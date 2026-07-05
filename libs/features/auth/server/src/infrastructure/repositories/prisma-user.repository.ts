@@ -47,6 +47,19 @@ export class PrismaUserRepository implements UserRepository {
     }
     return projectUserRecord(row);
   }
+
+  async updatePassword(id: string, hashedPassword: string): Promise<void> {
+    // The domain hands a pre-hashed value (bcrypt cost 10 per design
+    // §4.1 — that hashing happens in PasswordResetService.consumeReset).
+    // The adapter only persists it. If the user id does not exist,
+    // Prisma raises P2025; the domain layer is responsible for catching
+    // that signal (future slice — current callers either know the user
+    // exists from a prior lookup or accept the propagation).
+    await this.prisma.user.update({
+      where: { id },
+      data: { hashedPassword },
+    });
+  }
 }
 
 /**
