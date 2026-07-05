@@ -234,6 +234,26 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T3.2-sha>`.
 - **Files touched (rough).** `libs/features/auth/shared/**` (~50 lines).
 
+### Sub-task brief-T3.3 — `AuthService.register` (RED + GREEN, slice 3 batch 2) (~50 lines) [x]
+
+- **Description.** Brief-numbered sub-task for slice 3 batch 2. Extends `AuthService` (already shipped in slice 3 batch 1 with `login`) with `register(email, password, name?)`. Per design §4.1 + auth spec Sign-up AC-1..AC-4. Returns `LoginResult` (same shape as login so the client can dispatch the same redirect-after-auth code path). Throws `AuthError('EMAIL_ALREADY_EXISTS')` on duplicate email; `ValidationError` on weak password (<8 chars) or malformed email — both BEFORE any DB or bcrypt call. Password is hashed with `bcrypt.hash(password, 10)` — cost factor 10 is the reference-repo convention per design §4.1 (production overrides via env in slice 4+).
+- **Discovery / file targets.** Extend `libs/features/auth/server/src/auth-service.ts` (add `registerInputSchema` + `register` method). Add `'EMAIL_ALREADY_EXISTS'` to the `AuthErrorCode` union in `libs/features/auth/server/src/errors.ts`. Update `libs/features/auth/server/src/index.ts` barrel to re-export `RegisterInput`.
+- **TDD sequence.** RED → GREEN. RED: 5 tests in `libs/features/auth/server/src/__tests__/auth-service.register.test.ts` covering AC-1..AC-4 + the missing-name edge case. GREEN: minimal implementation matching the boundary contract in `auth-service.ts`. Atomic commits: RED first (commit `8782aff`), then GREEN (commit `0e21ff9`).
+- **Verification.** `pnpm --filter @features/auth exec vitest run` → 10/10 tests pass (5 login + 5 register); `pnpm turbo run typecheck --filter=@features/auth` exit 0; `pnpm turbo run lint --filter=@features/auth` exit 0.
+- **Rollback.** `git revert 0e21ff9..8782aff` (revert both commits in order).
+- **Files touched.** `libs/features/auth/server/src/auth-service.ts` (extended), `libs/features/auth/server/src/errors.ts` (extended), `libs/features/auth/server/src/index.ts` (extended), `libs/features/auth/server/src/__tests__/auth-service.register.test.ts` (NEW, 230 lines).
+- **Out of scope (deferred to later batches).** `LinkGoogleAccount`, `linkGoogleAccount` tests, the canonical `register.ts` schema in `libs/features/auth/shared/schemas/` (slice 4 adds it when `SignUpForm.tsx` lands).
+
+### Sub-task brief-T3.4 — `SessionService` shape (RED + GREEN, NO NextAuth, slice 3 batch 2) (~50 lines) [x]
+
+- **Description.** Brief-numbered sub-task for slice 3 batch 2. Creates `SessionService` as a thin domain layer that owns the Session lifecycle lookups and mutations. Ships three methods: `getCurrentUser(sessionToken)` (returns `{id, email, role}` or throws `AuthError('INVALID_SESSION' | 'SESSION_EXPIRED')`), `revokeSession(sessionToken)` (deletes the row, returns void; Prisma P2025 translated to `AuthError('INVALID_SESSION')`), `revokeAllSessions(userId)` (bulk revoke, returns the count). **NextAuth integration is OUT OF SCOPE for this batch** — the service is the seam the adapter will call into; the adapter wiring lands in slice 3 batch 3.
+- **Discovery / file targets.** Create `libs/features/auth/server/src/session-service.ts`. Add `'INVALID_SESSION'` and `'SESSION_EXPIRED'` to the `AuthErrorCode` union in `libs/features/auth/server/src/errors.ts`. Update `libs/features/auth/server/src/index.ts` barrel to re-export `SessionService` and `CurrentUser`.
+- **TDD sequence.** RED → GREEN. RED: 7 tests in `libs/features/auth/server/src/__tests__/session-service.test.ts` (4 describe blocks: `getCurrentUser` happy + invalid-token + expired-token; `revokeSession` happy + Prisma-P2025; `revokeAllSessions` happy + 0-sessions). GREEN: minimal implementation matching the boundary contract in `session-service.ts`. Atomic commits: RED first (commit `b614d35`), then GREEN (commit `d1605bd`).
+- **Verification.** `pnpm --filter @features/auth exec vitest run` → 17/17 tests pass (5 login + 5 register + 7 session-service); `pnpm turbo run typecheck --filter=@features/auth` exit 0; `pnpm turbo run lint --filter=@features/auth` exit 0.
+- **Rollback.** `git revert d1605bd..b614d35` (revert both commits in order).
+- **Files touched.** `libs/features/auth/server/src/session-service.ts` (NEW, 136 lines), `libs/features/auth/server/src/errors.ts` (extended), `libs/features/auth/server/src/index.ts` (extended), `libs/features/auth/server/src/__tests__/session-service.test.ts` (NEW, 210 lines).
+- **Out of scope (deferred to later batches).** `listActiveSessions(userId)` (slice 3 batch 3+ wires the controller that the slice-4 sessions UI consumes). `purgeExpired()` (slice 5+ runs as a NestJS cron task). NextAuth adapter call sites (slice 3 batch 3).
+
 ### Task T3.3 — `libs/features/auth/server/auth.config.ts` (NextAuth v5) (~50 lines)
 
 - **Description.** NextAuth v5 config: `CredentialsProvider` (delegates to `AuthService.verifyPassword`), `GoogleProvider` (uses `clientId`/`clientSecret` from env; happy-stub via `NEXTAUTH_URL` switch), `@auth/prisma-adapter` against `@core/database`, JWT strategy, callbacks (`jwt` embeds `role` + `userId`; `session` projects them). `pages.signIn` is a locale-aware factory resolved at runtime.

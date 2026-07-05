@@ -416,3 +416,154 @@ next_recommended: slice-3-batch-2-T3.3 (or design's T3.3 if brief continues fine
 - Design: `openspec/changes/vertical-slicing-reference-scaffold/design.md` §4 (auth domain design) + §6.1 (Zod validation) + §8.1 (test strategy)
 - Engram observation: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content; updated to include slice 3 batch 1)
 - Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139) — still the closest lesson; this batch avoided the filesystem-exploration stall by following the forbidden-ops list.
+
+---
+
+## Slice 3 batch 2: AuthService.register + SessionService shape (NO NextAuth) — STATUS: COMPLETE (4/N of slice 3)
+
+**Branch**: `feat/vertical-slicing-s3-auth-batch2` (cut from `develop` @ `bd752a5`).
+**Base commit**: `bd752a599aaf2c58447326bd7e957004103d408f` (post-PR #5 slice 3 batch 1 merged).
+**Mode**: interactive.
+**Strict TDD**: enabled (test_runner = `pnpm turbo run test`).
+**Worker outcome**: succeeded — no stalls. Forbidden ops (find/ls -R/tree/npm view/pnpm list) avoided. Total of 5 commits.
+
+### Scope (per parent brief)
+
+Brief renumbers slice-3 tasks for batch 2:
+
+- **brief T3.3** = `AuthService.register` (RED + GREEN, atomic commits).
+- **brief T3.4** = `SessionService` shape with `getCurrentUser`, `revokeSession`, `revokeAllSessions` (RED + GREEN, atomic commits). **NO NextAuth integration** — that's slice 3 batch 3.
+
+**Forbidden tasks in this batch**: RbacService, PasswordResetService, NestJS wrapper, auth events, controllers/endpoints, curl verification, NextAuth integration. **No `next-auth` install.**
+
+### Tasks completed
+
+| Brief Task | Subject | Commit | Marker | Notes |
+|------|---------|--------|--------|-------|
+| brief T3.3 (RED) | RED: failing Vitest tests for `AuthService.register` | `8782aff` | brief-T3.3 `[x]` in tasks.md | 5 tests covering AC-1..AC-4 + missing-name edge case. `vi.mock("@core/database", ...)` adds `prisma.user.create`; `vi.mock("bcryptjs", ...)` covers `bcrypt.hash`. RED verified: 5/5 FAIL with `TypeError: auth.register is not a function`. |
+| brief T3.3 (GREEN) | GREEN: `AuthService.register` + `EMAIL_ALREADY_EXISTS` + `RegisterInput` export | `0e21ff9` | (same marker) | Zod parse at boundary → email-uniqueness check → `bcrypt.hash(password, 10)` → `prisma.user.create` → `prisma.session.create`. Returns `LoginResult` (same shape as login). Empty-string `name` normalized to null. AuthErrorCode union extended with `'EMAIL_ALREADY_EXISTS'`. |
+| brief T3.4 (RED) | RED: failing Vitest tests for `SessionService` | `b614d35` | brief-T3.4 `[x]` in tasks.md | 7 tests in 4 describe blocks (`getCurrentUser` happy + invalid-token + expired-token; `revokeSession` happy + Prisma-P2025; `revokeAllSessions` happy + 0-sessions). RED verified: 7/7 FAIL with `Cannot find module '../session-service.js'`. |
+| brief T3.4 (GREEN) | GREEN: `SessionService` class + `INVALID_SESSION` / `SESSION_EXPIRED` codes | `d1605bd` | (same marker) | Three methods: `getCurrentUser` (with `expires <= now` boundary), `revokeSession` (translates Prisma `P2025` → `AuthError('INVALID_SESSION')` via local `isPrismaNotFoundError` type-guard), `revokeAllSessions` (idempotent; returns count). Re-exports `AuthError` + `AuthErrorCode` from `./errors.js` so the test's dynamic import resolves. AuthErrorCode union extended with `'INVALID_SESSION'` and `'SESSION_EXPIRED'`. |
+| tasks marker + apply-progress | tasks.md sub-task rows + this file | (this commit) | brief-T3.3 / brief-T3.4 `[x]` in tasks.md | Inserted two new sub-task entries between tasks.md T3.2 and the original T3.3 (NextAuth). Original T3.3 (NextAuth config) and T3.4 (Auth services umbrella) remain `[ ]` — umbrella T3.4 is incomplete until RbacService + PasswordResetService land in slice 3 batch 3+. |
+
+5 commits total this batch.
+
+### Files created / modified
+
+```
+libs/features/auth/server/
+  ├── src/
+  │   ├── auth-service.ts                                    | +138 lines: registerInputSchema + register() method
+  │   ├── session-service.ts                                 | NEW, 136 lines: SessionService class + CurrentUser type
+  │   ├── errors.ts                                          | +3 AuthErrorCode members (EMAIL_ALREADY_EXISTS, INVALID_SESSION, SESSION_EXPIRED)
+  │   ├── index.ts                                           | updated barrel: +RegisterInput export, +SessionService + CurrentUser exports
+  │   └── __tests__/
+  │       ├── auth-service.register.test.ts                  | NEW, 230 lines, 5 tests (RED + GREEN)
+  │       └── session-service.test.ts                        | NEW, 210 lines, 7 tests in 4 describe blocks (RED + GREEN)
+  └── ...                                                    | no other changes
+
+openspec/changes/.../tasks.md                                | +Sub-task brief-T3.3 [x] + brief-T3.4 [x] rows (inserted between T3.2 and original T3.3)
+openspec/changes/.../apply-progress.md                       | this section appended (merged, not overwritten)
+```
+
+### TDD evidence (per task)
+
+| Task | RED | GREEN |
+|------|-----|-------|
+| brief T3.3 | `pnpm --filter @features/auth exec vitest run src/__tests__/auth-service.register.test.ts` → 5/5 FAIL with `TypeError: auth.register is not a function` (the method doesn't exist on AuthService yet). | Same command → 5/5 PASS:<br>• AC-1 success: returns `{id,email,role,sessionToken}`; `prisma.user.findUnique` called once with `{where:{email}}`; `bcrypt.hash` called once with `("StrongP@ss123", 10)`; `prisma.user.create` called once with `{data:{email, hashedPassword:"$2a$10$mocked-hash-value" (NOT the plain password), name:"Alice", role:"USER"}}`; `prisma.session.create` called once with `{data:{sessionToken (UUID v4 string), userId, expires (Date)}}`.<br>• AC-2 email-already-exists: `AuthError` instance with `code === 'EMAIL_ALREADY_EXISTS'`; `bcrypt.hash`, `prisma.user.create`, `prisma.session.create` are NOT called.<br>• AC-3 weak-password: `ValidationError` thrown; no Prisma or bcrypt calls.<br>• AC-4 invalid-email: `ValidationError` thrown; same no-I/O guarantee.<br>• Edge case missing-name: `prisma.user.create` called with `{data:{name: null}}` (empty string normalized to null). |
+| brief T3.4 | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts` → 7/7 FAIL with `Cannot find module '../session-service.js'` (the module doesn't exist yet). | Same command → 7/7 PASS:<br>• `getCurrentUser` valid token: returns `{id:"user-1", email:"alice@example.com", role:"USER"}`; `prisma.session.findUnique` called with `{where:{sessionToken:"valid-token"}, include:{user:true}}`.<br>• `getCurrentUser` unknown token: `AuthError` with `code === 'INVALID_SESSION'`.<br>• `getCurrentUser` expired session (expires < now): `AuthError` with `code === 'SESSION_EXPIRED'`.<br>• `revokeSession` valid token: `prisma.session.delete` called with `{where:{sessionToken:"valid-token"}}`; returns void.<br>• `revokeSession` unknown token (Prisma P2025): `AuthError` with `code === 'INVALID_SESSION'` (translated by `isPrismaNotFoundError` type-guard).<br>• `revokeAllSessions` 3 sessions: `prisma.session.deleteMany` called with `{where:{userId:"user-1"}}`; returns `3`.<br>• `revokeAllSessions` 0 sessions: returns `0` (NOT an error — idempotent). |
+
+### Quality gates
+
+| Gate | Command | Result | Notes |
+|------|---------|--------|-------|
+| Workspace install | `pnpm install` | exit 0 | No new deps this batch (bcryptjs + zod already in slice 3 batch 1). 12 workspace projects still resolve. |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/auth-service.register.test.ts` | exit 0 (RED was 5/5 FAIL) | After GREEN: 5/5 PASS. |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts` | exit 0 (RED was 7/7 FAIL) | After GREEN: 7/7 PASS. |
+| Test (auth, full) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **17/17 tests pass** (5 login + 5 register + 7 session-service). |
+| Test (auth via turbo) | `pnpm turbo run test --filter=@features/auth` | exit 0 | 1/1 package successful. |
+| Test (regression) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed. |
+| Typecheck (auth) | `pnpm turbo run typecheck --filter=@features/auth` | exit 0 | `tsc --noEmit` clean — no `register` typing hole, `SessionService` resolves the `PrismaClient` type from `@core/database`. |
+| Lint (auth) | `pnpm turbo run lint --filter=@features/auth` | exit 0 | ESLint flat config + boundary rules clean. The file-level `@gpr/boundary/no-schemas-outside-shared` disable in `auth-service.ts` now covers both `loginInputSchema` (T3.2) and `registerInputSchema` (T3.3). |
+| Lint (regression) | `pnpm turbo run lint --filter=@core/* --filter=@shared-utils/*` | exit 0 | No boundary rule regression. |
+
+### Critical deviations
+
+1. **LSP false-positives on `auth-service.register.test.ts` during RED.** The LSP flagged `Property 'register' does not exist on type 'AuthService'` and `Argument of type 'string' is not assignable to parameter of type 'void'` (the latter on `bcrypt.hash.mockResolvedValue(...)`). Both were LSP cache artifacts — the actual `tsc --noEmit` run (which is the authoritative typecheck) passed in the GREEN step. The dynamic `import("../auth-service.js")` pattern means vitest strips types at runtime, so the `register` method-missing signal manifests as `TypeError: auth.register is not a function` in the test runner output — a valid "feature missing" failure for strict-TDD RED.
+2. **`as never` cast on `prisma.session.findUnique` mocks with `include`.** The Prisma generated type for `session.findUnique` (no `include` arg) returns `Session`, which has no `user` field. To mock the joined result that `SessionService.getCurrentUser` expects (`{ sessionToken, expires, user: User }`), the mock return was cast `as never`. This is the same pattern the Prisma docs recommend for unit-testing services that use Prisma; the alternative (using `as Prisma.SessionGetPayload<...>`) is more verbose without adding value for a mock.
+3. **`AuthError` re-export from `session-service.ts`.** The first GREEN attempt left session-service.ts without `export { AuthError } from "./errors.js"`, so the test's `const { SessionService, AuthError } = await import("../session-service.js")` destructured `AuthError` as `undefined`, producing 3 failures with `The instanceof assertion needs a constructor but undefined was given.` Resolution: added the re-export line mirroring the auth-service.ts pattern. All 7 session-service tests passed on the next run.
+4. **Brief T3.3 / T3.4 vs tasks.md T3.3 / T3.4 mismatch (continuation of slice 3 batch 1 deviation #4).** Brief T3.3 (`AuthService.register`) and brief T3.4 (`SessionService`) are sub-tasks of tasks.md T3.4 ("Auth services umbrella: AuthService, SessionService, RbacService, PasswordResetService"). The umbrella T3.4 is NOT marked `[x]` because RbacService + PasswordResetService are still pending. Resolution: inserted two new sub-task rows (`Sub-task brief-T3.3 ... [x]` + `Sub-task brief-T3.4 ... [x]`) between tasks.md T3.2 and the original T3.3 (NextAuth). The original T3.3 (NextAuth v5 config) and T3.4 (umbrella) remain `[ ]`. This pattern matches slice 3 batch 1's deviation #4 (brief T3.2 ≠ tasks.md T3.2 was resolved the same way).
+5. **Barrel split into T3.3 / T3.4 commits.** The first attempt at T3.3 GREEN shipped a barrel that re-exported `SessionService` from `./session-service.js`, but session-service.ts did not yet exist — typecheck would have failed. Resolution: T3.3 GREEN barrel adds only `RegisterInput` (the new type from T3.3); T3.4 GREEN barrel adds `SessionService` + `CurrentUser` (the new surface from T3.4). Each commit's barrel update matches the commit's actual exports.
+6. **`bcrypt.hash(password, 10)` cost factor choice.** Brief says cost 10 per design §4.1. The `auth-rbac` skill recommends ≥12 for production (and next-auth defaults to 12); the reference repo ships at 10 per the design's "dev-friendly setting" rationale. The implementation comment in `auth-service.ts#register` documents this explicitly and notes the slice-4+ env-configurable cost-factor follow-up. No deviation; explicit in design.
+7. **`isPrismaNotFoundError` type-guard instead of importing `PrismaClientKnownRequestError`.** The implementation avoids importing Prisma's error class directly so this service stays loosely coupled to the Prisma version; the `code: 'P2025'` field is stable across Prisma 6/7. The type-guard uses `'code' in err` with a runtime check, then narrows the type. Documented in the method docstring.
+
+### Forbidden operations (lessons carried from slice 2 batch 2 worker stall)
+
+The parent brief flagged a 13-turn filesystem stall from the previous worker. This batch adhered to the forbidden-ops list:
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED. All file reads targeted specific paths from the input list (10 files from the brief's "Authoritative files to read" section).
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED. Version pins came from memory + existing package.json precedents.
+- ❌ `cat .pi/gentle-ai/config.json`, `cat .claude/...` — NOT READ.
+- ❌ `which`, `whereis`, `type` — NOT USED.
+
+Each file read was a targeted `read` call on a path the brief explicitly listed.
+
+### Workload / PR boundary
+
+- Slice 3 batch 2 forecast from brief: brief T3.3 ~50 lines, brief T3.4 ~50 lines = ~100 lines.
+- Actual: ~440 insertions across `libs/features/auth/server/src/` (auth-service.ts +138, errors.ts +5, index.ts +13, session-service.ts NEW 136, register test NEW 230, session-service test NEW 210, tasks.md +sub-task rows, apply-progress.md +this section).
+- 400-line budget risk: **Low–Medium** — source code fits within budget; test files push the total over but tests dominate TDD-by-discipline slices and are expected. Slice 3 batch 1 also exceeded the per-PR budget with similar test-to-source ratios; the per-batch forecast (~50 LOC source per task) is preserved.
+- PR target for slice 3 batch 2: `feat/vertical-slicing-s3-auth-batch2` → `develop` once `/sdd-verify` clears the batch. Per `chain_strategy: feature-branch-chain`, this is the **fourth PR** of the 8-PR chain; the tracker branch is `feat/vertical-slicing-reference-scaffold`. After slice 3 verifies, this branch merges into the tracker; the tracker merges to `develop` after all 8 slices reviewed. **NOT pushed to remote, NOT merged yet.**
+- Forbidden scope creep confirmed: RbacService, PasswordResetService, NestJS wrapper, events wiring, controllers/endpoints, curl verification, NextAuth integration — all NOT started. `next-auth` NOT installed.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_1:
+  status: complete
+  tasks_done: [T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T1.7, T1.8]
+slice_2:
+  status: complete
+  tasks_done: [T2.1, T2.2, T2.3, T2.4, T2.5]
+  tasks_remaining: []
+slice_3:
+  status: in-progress (4/N — this batch brings the brief T3.x count to 4 of 11 design tasks)
+  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4]   # brief's TDD pair + register + session shape
+  tasks_done_tasks_md: [T3.1, brief-T3.3, brief-T3.4]     # tasks.md markers; T3.2 / T3.3 / T3.4 (umbrella) remain [ ]
+  tasks_remaining_slice_3:
+    - T3.2 (libs/features/auth/shared/schemas)
+    - T3.3 (NextAuth v5 config — note: brief T3.3 ≠ tasks.md T3.3)
+    - T3.4 (Auth services umbrella — RbacService + PasswordResetService still pending)
+    - T3.5 (events.ts + Prisma repos)
+    - T3.6 (apps/api NestJS thin wrapper)
+    - T3.7 (integration scenarios)
+    - T3.8 (REFACTOR pass)
+    - T3.9 (slice-wide turbo run gate)
+  commits_landed_this_batch: 5                             # brief-T3.3 RED, brief-T3.3 GREEN, brief-T3.4 RED, brief-T3.4 GREEN, tasks+apply-progress
+  insertions_this_batch: ~440 across 6 source files + tasks.md + apply-progress.md
+  test_count_this_batch: 12 new tests (5 register + 7 session-service); 17/17 auth tests pass overall
+feature_branch: feat/vertical-slicing-s3-auth-batch2
+base_commit: bd752a599aaf2c58447326bd7e957004103d408f
+head_commit: d1605bd (brief-T3.4 GREEN); tasks + apply-progress to follow
+pushed_to_remote: false
+merged_to_develop: false
+branch_protection_on_main: enforced (no force-push, no delete, 1 review required)
+risk_flags:
+  - inline_zod_schemas_login_register_with_file_level_eslint_disable_replace_with_shared_schemas_in_slice_4
+  - bcrypt_cost_10_below_auth_rbac_skill_minimum_12_intentional_per_design_section_4_1
+  - session_service_p2025_translation_via_local_type_guard_not_prisma_error_class
+next_recommended: slice-3-batch-3-T3.5 (RbacService per design §4.1, plus auth events wiring + Prisma repos)
+```
+
+---
+
+### Cross-references (slice 3 batch 2)
+
+- Tasks (brief-T3.3 and brief-T3.4 marked as new sub-task rows): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`
+- Spec: `openspec/changes/vertical-slicing-reference-scaffold/specs/auth/spec.md` §Sign-in + §Data Model (used by T3.3 register contract); §Sessions List and Revoke + §Session Lifecycle and Expiry (used by T3.4 session surface).
+- Design: `openspec/changes/vertical-slicing-reference-scaffold/design.md` §4 (auth domain design, SessionService shape) + §4.7 (events emitted — `auth.session.revoked` is referenced by SessionService.revokeSession in slice 3 batch 3+, but NOT dispatched in this batch).
+- Engram observation: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content; updated to include slice 3 batch 2).
+- Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139) — still the closest lesson; this batch avoided the filesystem-exploration stall by following the forbidden-ops list.
