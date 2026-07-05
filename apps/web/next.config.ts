@@ -5,9 +5,10 @@ const nextConfig: NextConfig = {
   // image / env hardening land in slice 4 alongside the auth UI.
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    typedRoutes: false,
-  },
+  // Next.js 16 moved typedRoutes out of `experimental` to the top level.
+  // Keep it disabled for now (slice 1 minimal landing has no typed links
+  // to validate). Enable when slices 4+ add typed routes.
+  typedRoutes: false,
 };
 
 export default nextConfig;
