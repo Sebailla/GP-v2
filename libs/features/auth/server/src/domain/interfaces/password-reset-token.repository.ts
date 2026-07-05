@@ -74,4 +74,24 @@ export interface PasswordResetTokenRepository {
    * persistence boundary.
    */
   markConsumed(tokenHash: string, consumedAt: Date): Promise<void>;
+
+  /**
+   * F4 (WARNING): TTL cleanup. Remove rows whose `expiresAt` is
+   * strictly less than `before` AND whose `consumedAt` is `null`.
+   *
+   * The `consumedAt: null` filter preserves consumed rows as the
+   * audit trail (`consumedAt` is the compliance timestamp — a
+   * future review needs to know when a row was consumed, not just
+   * when it expired). Operators who need to drop consumed rows
+   * must do so via an explicit migration.
+   *
+   * Returns the number of removed rows so the calling code can
+   * surface the count (useful for the future `@nestjs/schedule`
+   * cron job's metrics).
+   *
+   * The cron registration lands in slice 3 batch 6+ (T3.6 NestJS
+   * wrapper); this batch ships the port method + Prisma adapter
+   * + tests only.
+   */
+  deleteExpired(before: Date): Promise<number>;
 }
