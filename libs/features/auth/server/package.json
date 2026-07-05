@@ -1,0 +1,29 @@
+{
+  "name": "@features/auth",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Auth feature slice (server) for gastos-personales-reference. Slice 3 ships AuthService.login; sessions/RBAC/password-reset land in subsequent batches.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@core/database": "workspace:*",
+    "bcryptjs": "2.4.3",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "2.4.6",
+    "@types/node": "22.18.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  }
+}
