@@ -90,7 +90,7 @@ describe("wireAuthEvents", () => {
       expect(dispatched.userId).toBe("user-1");
       expect(dispatched.payload).toMatchObject({
         userId: "user-1",
-        sessionToken: "token-A",
+        sessionId: "token-A",
       });
       expect(
         (dispatched.payload as { revokedAt: Date }).revokedAt,
@@ -164,10 +164,10 @@ describe("wireAuthEvents", () => {
       const events = vi.mocked(dispatcher).mock.calls.map((c) => c[0] as DomainEvent);
       expect(events[0]?.name).toBe("auth.session.revoked");
       expect((events[0]?.payload as { userId: string }).userId).toBe("user-1");
-      expect((events[0]?.payload as { sessionToken: string }).sessionToken).toBe("token-X");
+      expect((events[0]?.payload as { sessionId: string }).sessionId).toBe("token-X");
       expect(events[1]?.name).toBe("auth.session.revoked");
       expect((events[1]?.payload as { userId: string }).userId).toBe("user-2");
-      expect((events[1]?.payload as { sessionToken: string }).sessionToken).toBe("token-Y");
+      expect((events[1]?.payload as { sessionId: string }).sessionId).toBe("token-Y");
     });
   });
 
@@ -204,10 +204,10 @@ describe("wireAuthEvents", () => {
       expect(dispatched.payload).toMatchObject({
         userId: "user-1",
         action: "session:read:any",
-        resourceKind: "session",
+        resourceType: "session",
       });
       expect(
-        (dispatched.payload as { deniedAt: Date }).deniedAt,
+        (dispatched.payload as { at: Date }).at,
       ).toBeInstanceOf(Date);
     });
 

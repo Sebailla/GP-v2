@@ -96,7 +96,7 @@ function wrapRevokeSession(
       userId: currentUser.id,
       payload: {
         userId: currentUser.id,
-        sessionToken,
+        sessionId: sessionToken,
         revokedAt: new Date(),
       },
       occurredAt: new Date(),
@@ -120,8 +120,8 @@ function wrapRbacCan(rbacService: RbacService, dispatcher: AuthEventDispatcher):
         payload: {
           userId: actor.id,
           action,
-          resourceKind: resource.kind,
-          deniedAt: new Date(),
+          resourceType: resource.kind,
+          at: new Date(),
         },
         occurredAt: new Date(),
       });
