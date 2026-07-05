@@ -315,8 +315,96 @@ describe("PasswordResetService", () => {
     });
   });
 
-  describe("consumeReset", () => {
-    it("with a valid token — replaces passwordHash (bcrypt 10), marks consumed, dispatches auth.password-reset.completed", async () => {
+      describe("consumeReset — prisma.$transaction atomicity (F1 + F6)", () => {
+        it("wraps userRepo.updatePassword + tokenRepo.markConsumed in a prisma.$transaction so a 2nd-write failure rolls back the first (F1 + F6)", async () => {
+          // 1. Seed a valid token.
+          const rawToken = "a".repeat(48);
+          const tokenHash = sha256(rawToken);
+          const tokenRepo = makeFakeTokenRepo();
+          tokenRepo.rows.set(tokenHash, {
+            id: "prt-1",
+            userId: "user-1",
+            tokenHash,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            consumedAt: null,
+          });
+
+          // 2. userRepo / tokenRepo port spies — should NOT be called inside the transaction (the
+          //    brief's Path A routes the writes through `tx.*` directly so the transaction owns
+          //    the connection).
+          const userRepo = makeFakeUserRepo({
+            id: "user-1",
+            email: "alice@example.com",
+            role: "USER",
+            hashedPassword: "$2a$10$old",
+          });
+
+          const dispatcher = vi.fn<AuthEventDispatcher>();
+          vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new-hash" as never);
+
+          // 3. Prisma stub: $transaction invokes the cb with a tx whose `user.update`
+          //    succeeds but whose `passwordResetToken.update` throws — proves the
+          //    transaction wraps both writes (and would roll the first back in a real DB).
+          const txUserUpdate = vi.fn(async () => undefined);
+          const txPasswordResetTokenUpdate = vi.fn(async () => {
+            throw new Error("simulated deadlock on the second write");
+          });
+          const $transaction = vi.fn(
+            async (cb: (tx: unknown) => Promise<unknown>) => {
+              return cb({
+                user: { update: txUserUpdate },
+                passwordResetToken: { update: txPasswordResetTokenUpdate },
+              });
+            },
+          );
+          const prismaStub = { $transaction };
+
+          const { PasswordResetService } = await import(
+            "../password-reset.service.js"
+          );
+          const service = new PasswordResetService(
+            userRepo as never,
+            tokenRepo as never,
+            dispatcher,
+            prismaStub as never, // F1: 4th constructor arg — currently IGNORED in RED state.
+          );
+
+          // 4. consumeReset must reject (the transaction callback threw).
+          await expect(
+            service.consumeReset(rawToken, "newPwd123"),
+          ).rejects.toThrow(/simulated deadlock/i);
+
+          // 5. $transaction was called exactly once — proves the service routes
+          //    both writes through ONE transaction (not bare await calls).
+          expect($transaction).toHaveBeenCalledTimes(1);
+
+          // 6. Inside the tx: user.update was called with the hashed password.
+          expect(txUserUpdate).toHaveBeenCalledTimes(1);
+          expect(txUserUpdate).toHaveBeenCalledWith({
+            where: { id: "user-1" },
+            data: { hashedPassword: "$2a$10$new-hash" },
+          });
+
+          // 7. Inside the tx: passwordResetToken.update was called with consumedAt.
+          expect(txPasswordResetTokenUpdate).toHaveBeenCalledTimes(1);
+          const prtCall = (
+            vi.mocked(txPasswordResetTokenUpdate).mock.calls[0] as unknown as [
+              { where: { tokenHash: string }; data: { consumedAt: Date } },
+            ]
+          )[0];
+          expect(prtCall.where).toEqual({ tokenHash });
+          expect(prtCall.data.consumedAt).toBeInstanceOf(Date);
+
+          // 8. The port-level updatePassword / markConsumed were NOT called —
+          //    the transaction owns the writes (Path A). This proves the
+          //    service doesn't double-write (which would break atomicity).
+          expect(userRepo.updatePassword).not.toHaveBeenCalled();
+          expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
+        });
+      });
+
+      describe("consumeReset", () => {
+        it("with a valid token — replaces passwordHash (bcrypt 10), marks consumed, dispatches auth.password-reset.completed", async () => {
       // 1. Seed a valid token via the in-memory token repo.
       const rawToken = "a".repeat(48); // 48 chars, satisfies >=32
       const tokenHash = sha256(rawToken);
