@@ -83,6 +83,63 @@ const sha256Hex = (raw: string): string =>
 const mintRawToken = (): string => randomBytes(32).toString("hex");
 
 /**
+ * F2: audit signal for a post-commit dispatcher failure.
+ *
+ * Emitted when `prisma.$transaction` committed successfully but the
+ * follow-up event dispatch rejected (e.g., the dev mailbox is full,
+ * a subscriber's email handler is broken, Sentry is unavailable).
+ *
+ * Per F2: the transaction has already committed, so the password
+ * actually changed. Re-throwing the dispatcher error would surface
+ * a 500 to the client AND re-fail on retry (the consumed token
+ * makes the second attempt fail with `INVALID_RESET_TOKEN`,
+ * leaving the user thinking the reset failed when it actually
+ * worked). The audit signal is the only honest observability
+ * surface here.
+ *
+ * TODO(slice-3+ observability): wire this to pino / Sentry when
+ * the production observability stack lands. For the reference
+ * repo the default sink logs to `console.error` so dev-machine
+ * failures are observable.
+ *
+ * Discriminated by `kind` so future audit signals (e.g. password
+ * hash reject, missing dispatcher) can extend the type without
+ * breaking consumers.
+ */
+export type AuthEventDispatchFailureSignal = {
+  readonly kind: "AUTH_EVENT_DISPATCH_FAILURE";
+  readonly event: DomainEvent;
+  readonly error: unknown;
+};
+
+/**
+ * F2 port: receives audit signals from the auth-slice domain.
+ *
+ * Choice X (per brief): constructor-injected AuditSink. Tests
+ * pass `vi.fn()`; production wires a real sink at module boot.
+ */
+export type AuditSink = (signal: AuthEventDispatchFailureSignal) => void;
+
+/**
+ * Default sink for the reference repo. Logs to console.error
+ * with the event name + error message but NEVER the event payload
+ * (the dev-only `token` field would leak to the terminal on every
+ * dispatcher failure — that defeats the F3 redaction).
+ *
+ * TODO(slice-3+): replace with a pino / Sentry adapter when the
+ * observability stack lands. The migration path is trivial —
+ * change `defaultAuditSink` to point at the real sink.
+ */
+export const defaultAuditSink: AuditSink = (signal) => {
+  const errMsg =
+    signal.error instanceof Error ? signal.error.message : String(signal.error);
+  console.error(
+    `[auth] dispatch failure for "${signal.event.name}":`,
+    errMsg,
+  );
+};
+
+/**
  * Builds the generic "invalid reset token" error. The message is
  * intentionally short and omits enumeration-revealing words
  * ("expired", "already used", "not found") so the response is
@@ -100,17 +157,20 @@ export class PasswordResetService {
   private readonly tokenRepo: PasswordResetTokenRepository;
   private readonly dispatcher: AuthEventDispatcher;
   private readonly prisma: PrismaClient;
+  private readonly auditSink: AuditSink;
 
   constructor(
     userRepo: UserRepository,
     tokenRepo: PasswordResetTokenRepository,
     dispatcher: AuthEventDispatcher,
     prisma?: PrismaClient,
+    auditSink: AuditSink = defaultAuditSink,
   ) {
     this.userRepo = userRepo;
     this.tokenRepo = tokenRepo;
     this.dispatcher = dispatcher;
     this.prisma = prisma ?? defaultPrisma;
+    this.auditSink = auditSink;
   }
 
   /**
@@ -239,10 +299,18 @@ export class PasswordResetService {
       });
     });
 
-    // 8. Dispatch the completed event. F2 wraps this in a try/catch
-    //    (see brief-fix-F2-GREEN) — the transaction has already
-    //    committed, so the dispatcher failure is an audit signal,
-    //    NOT a service error.
+    // 8. Dispatch the completed event. The transaction has already
+    //    committed at step 7, so the user's password IS the new one
+    //    by the time we get here. If the dispatcher rejects (the
+    //    dev mailbox is full, an email adapter is broken, Sentry
+    //    is unavailable, etc.), we MUST NOT re-throw — re-throwing
+    //    would surface a 500 to the client AND cause retries to
+    //    fail with INVALID_RESET_TOKEN (the consumed token), giving
+    //    the user a contradictory UX ("reset succeeded but failed").
+    //    Per F2: audit-signal the failure and return normally so the
+    //    caller (eventually the future NestJS controller) responds
+    //    200/204 and the user perceives success. Observability
+    //    collects the failure via the AuditSink.
     const event: DomainEvent = {
       name: "auth.password-reset.completed",
       userId: row.userId,
@@ -252,6 +320,16 @@ export class PasswordResetService {
       },
       occurredAt: new Date(),
     };
-    await this.dispatcher(event);
+    try {
+      await this.dispatcher(event);
+    } catch (error) {
+      this.auditSink({
+        kind: "AUTH_EVENT_DISPATCH_FAILURE",
+        event,
+        error,
+      });
+      // Swallow: the transaction committed; the audit signal is the
+      // observability surface; the caller resolves normally.
+    }
   }
 }
