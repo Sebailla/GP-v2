@@ -1,7 +1,9 @@
 packages:
   - "apps/*"
   - "libs/*"
+  - "libs/*/*"
   - "tools/*"
+  - "tools/*/*"
 
 # pnpm 11 settings (moved from "pnpm" field in package.json).
 # See https://pnpm.io/settings for the canonical list.

@@ -1,9 +1,15 @@
 import "reflect-metadata";
 
+import { env } from "@core/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 
 import { AppModule } from "./app.module";
+
+// Validate env at process boot. Any missing or malformed variable
+// throws a ZodError listing every offending field before NestJS
+// starts listening.
+void env;
 
 /**
  * Bootstrap NestJS on the configured port (default 3001).
