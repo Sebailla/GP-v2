@@ -169,6 +169,9 @@ importers:
       '@core/database':
         specifier: workspace:*
         version: link:../../../core/database
+      '@core/events':
+        specifier: workspace:*
+        version: link:../../../core/events
       bcryptjs:
         specifier: 2.4.3
         version: 2.4.3

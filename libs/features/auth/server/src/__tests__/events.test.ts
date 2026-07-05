@@ -184,6 +184,7 @@ describe("wireAuthEvents", () => {
         // Build a minimal stub that satisfies the type without touching prisma.
         {
           revokeSession: vi.fn(),
+          getCurrentUser: vi.fn(),
         } as never,
         rbacService,
         dispatcher,
@@ -217,7 +218,14 @@ describe("wireAuthEvents", () => {
       const rbacService = new RbacService();
       const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
-      wireAuthEvents({} as never, rbacService, dispatcher);
+      wireAuthEvents(
+        {
+          revokeSession: vi.fn(),
+          getCurrentUser: vi.fn(),
+        } as never,
+        rbacService,
+        dispatcher,
+      );
 
       const allowed = rbacService.can(
         { id: "user-1", role: "USER" },
