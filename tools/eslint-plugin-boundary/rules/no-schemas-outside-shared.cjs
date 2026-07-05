@@ -19,6 +19,13 @@
 const ALLOWED_PATTERNS = [
   /libs\/features\/[^/]+\/shared\/schemas\//,
   /libs\/core\/config\/env\.schema\.ts$/,
+  // Per design §6.2, the events catalog (kebab-case names +
+  // Zod payload schemas) lives in @core/events. The schemas are
+  // not feature input/output validation — they are the wire
+  // contract between producers and consumers, so the single-
+  // source-of-truth rule does not apply to them.
+  /libs\/core\/events\/src\/types\.ts$/,
+  /libs\/core\/events\/types\.ts$/,
 ];
 
 function isAllowed(filename) {
