@@ -2,6 +2,7 @@ packages:
   - "apps/*"
   - "libs/*"
   - "libs/*/*"
+  - "libs/*/*/*"
   - "tools/*"
   - "tools/*/*"
 
@@ -10,5 +11,6 @@ packages:
 allowBuilds:
   "@nestjs/core": true
   "@prisma/engines": true
+  bcryptjs: true
   prisma: true
   "sharp": true
