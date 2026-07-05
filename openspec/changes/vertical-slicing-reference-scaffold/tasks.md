@@ -168,7 +168,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.1-sha>` removes the migration + client; `pnpm prisma migrate reset` if the DB was applied locally before revert.
 - **Files touched (rough).** `libs/core/database/**` (~80 lines).
 
-### Task T2.2 — `libs/core/config` (Zod env schema at startup) (~50 lines)
+### Task T2.2 — `libs/core/config` (Zod env schema at startup) (~50 lines) [x]
 
 - **Description.** Validate `process.env` at startup with a Zod schema; export a typed `env` object. Required vars: `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PORT` (default 3001), `WEB_ORIGIN` (CORS origin), `NODE_ENV`. The schema **fails-fast** at import time — a missing or malformed var throws with a descriptive error.
 - **Discovery / file targets.** Create `libs/core/config/{env.schema.ts,env.ts,index.ts,__tests__/env.test.ts}`. Add `libs/core/config` as a dependency of `apps/api` and `apps/web` so they import `env` at the top of their entry files.
@@ -177,7 +177,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.2-sha>`.
 - **Files touched (rough).** `libs/core/config/**` (~50 lines).
 
-### Task T2.3 — `libs/core/events` (in-memory dispatcher + event types) (~80 lines)
+### Task T2.3 — `libs/core/events` (in-memory dispatcher + event types) (~80 lines) [x]
 
 - **Description.** Tiny pub/sub dispatcher with `dispatch(event)` and `subscribe(name, handler)` returning an unsubscribe function. `types.ts` declares the **9 domain events** from design §4.7 + §5.9: `auth.password-reset.requested`, `auth.password-reset.completed`, `auth.session.revoked`, `auth.rbac.denied`, `transactions.created`, `transactions.updated`, `transactions.soft-deleted`, `transactions.fx.stale`, `transactions.threshold.exceeded`. Each event has a Zod payload schema. The dispatcher keeps a 100-entry ring buffer per user (used by the dev mailbox in Slice 4).
 - **Discovery / file targets.** Create `libs/core/events/{package.json,tsconfig.json,src/dispatcher.ts,src/types.ts,src/index.ts,src/__tests__/dispatcher.test.ts,src/__tests__/types.test.ts}`.
@@ -186,7 +186,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.3-sha>`.
 - **Files touched (rough).** `libs/core/events/**` (~80 lines).
 
-### Task T2.4 — `libs/shared-utils/{date-formatting,currency,decimal}` (~60 lines)
+### Task T2.4 — `libs/shared-utils/{date-formatting,currency,decimal}` (~60 lines) [x]
 
 - **Description.** Three pure-helper packages: `date-formatting` (timezone-safe formatting using `Intl.DateTimeFormat`, ISO 8601 parsing), `currency` (format `Decimal` to localized currency strings), `decimal` (wrappers around `decimal.js` for monetary math — per D-TX-6, **never `BigInt`**). Each is exported via barrel `index.ts`. Pure functions, no I/O, no framework deps.
 - **Discovery / file targets.** Create `libs/shared-utils/{package.json,date-formatting/{tsconfig.json,src/index.ts,src/__tests__/date-formatting.test.ts},currency/{tsconfig.json,src/index.ts,src/__tests__/currency.test.ts},decimal/{tsconfig.json,src/index.ts,src/__tests__/decimal.test.ts}}`. Root `tsconfig.base.json` exposes `@shared-utils/*` aliases (T1.2).
