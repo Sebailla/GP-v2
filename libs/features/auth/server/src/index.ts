@@ -25,6 +25,7 @@ export { PasswordResetService } from "./password-reset.service.js";
 export { wireAuthEvents } from "./events.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
+export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";
 export type { UserRecord, UserRepository } from "./domain/interfaces/user.repository.js";
 export type {
   PasswordResetTokenRecord,
