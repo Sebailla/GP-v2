@@ -529,6 +529,82 @@ describe("wireAuthEvents", () => {
         expect(allEvents.some((e) => e.name === "auth.password-reset.completed")).toBe(
           false,
         );
-        expect($transaction).not.toHaveBeenCalled();
-      });
+            expect($transaction).not.toHaveBeenCalled();
+          });
+
+          // ---------------------------------------------------------------------------
+          // F3 follow-up: ring-buffer redaction through the auth-slice dispatch path.
+          //
+          // The two tests above use `dispatcher = vi.fn<...>()` which does NOT exercise
+          // the @core/events ring buffer. This test wires PasswordResetService into a
+          // REAL `createInMemoryDispatcher` so the buffer actually receives events,
+          // and asserts that the buffered copy's `payload.token` is the redacted
+          // sentinel (per F3). Mirrors the redaction contract pinned in
+          // `libs/core/events/src/__tests__/redact-sensitive.test.ts` but at the
+          // auth-slice boundary (the real consumer of the dispatcher).
+          // ---------------------------------------------------------------------------
+          it("F3 — the ring buffer holds the redacted token (auth.password-reset.requested)", async () => {
+            const { createInMemoryDispatcher } = await import("@core/events");
+            const ringDispatcher = createInMemoryDispatcher();
+            const { PasswordResetService } = await import(
+              "../password-reset.service.js"
+            );
+
+            // userRepo / tokenRepo are minimal — requestReset only needs
+            // findByEmail + create.
+            const userRepo = {
+              findByEmail: vi.fn().mockResolvedValue({
+                id: "u1",
+                email: "alice@example.com",
+                role: "USER",
+                hashedPassword: "$2a$10$old",
+              }),
+              findById: vi.fn(),
+              updatePassword: vi.fn(),
+            };
+            const tokenRepo = {
+              create: vi.fn(async (args: {
+                userId: string;
+                tokenHash: string;
+                expiresAt: Date;
+              }) => ({
+                id: "prt-1",
+                userId: args.userId,
+                tokenHash: args.tokenHash,
+                expiresAt: args.expiresAt,
+                consumedAt: null,
+              })),
+              findByHash: vi.fn(),
+              markConsumed: vi.fn(),
+            };
+
+            // F1: pass a no-op prisma stub so the constructor accepts 4 args.
+            const prismaStub = { $transaction: vi.fn() };
+            const auditSink = vi.fn();
+
+            const service = new PasswordResetService(
+              userRepo as never,
+              tokenRepo as never,
+              ringDispatcher.dispatch as unknown as (
+                event: import("@core/events").DomainEvent,
+              ) => Promise<void>,
+              prismaStub as never,
+              auditSink,
+            );
+
+            await service.requestReset("alice@example.com");
+
+            // The ring buffer holds the redacted copy — the raw token is NOT
+            // replayed (F3 sentinel guards against accidental leak via a
+            // subscriber that buffers + logs events).
+            const replayed = ringDispatcher.replay("u1");
+            expect(replayed).toHaveLength(1);
+            expect(replayed[0]!.name).toBe("auth.password-reset.requested");
+            expect((replayed[0]!.payload as { token: string }).token).toBe(
+              "***REDACTED***",
+            );
+
+            // AuditSink was NOT invoked (dispatch succeeded).
+            expect(auditSink).not.toHaveBeenCalled();
+          });
     });
