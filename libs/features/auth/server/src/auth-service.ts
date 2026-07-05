@@ -49,14 +49,24 @@ export type { AuthErrorCode } from "./errors.js";
 // validation). File-level disable is the cleanest fit while the schema
 // is private to the service.
 /* eslint-disable @gpr/boundary/no-schemas-outside-shared --
-   T3.2 inlines loginInputSchema in auth-service.ts;
-   canonical schema lands in libs/features/auth/shared/schemas/login.ts with slice 4. */
+   T3.2 inlines loginInputSchema, T3.3 inlines registerInputSchema in auth-service.ts.
+   Canonical schemas land in libs/features/auth/shared/schemas/{login,register}.ts
+   with slice 4 (when LoginForm + SignUpForm client components import them). */
 const loginInputSchema = z.object({
   email: z.string().min(1, "email is required").email("email is not a valid address"),
   password: z.string().min(1, "password is required"),
 });
 
+const registerInputSchema = z.object({
+  email: z.string().min(1, "email is required").email("email is not a valid address"),
+  password: z
+    .string()
+    .min(8, "password must be at least 8 characters"),
+  name: z.string().optional(),
+});
+
 export type LoginInput = z.infer<typeof loginInputSchema>;
+export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 /**
  * Public result shape for AuthService.login. Matches AC-1 of the auth
@@ -145,14 +155,118 @@ export class AuthService {
       },
     });
 
-    // 5. Project the public result. role is whatever Prisma returns
-    // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
-    // local role type if needed.
-    return {
-      id: user.id,
-      email: user.email,
-      role: String(user.role),
-      sessionToken: session.sessionToken,
-    };
-  }
-}
+// 5. Project the public result. role is whatever Prisma returns
+        // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
+        // local role type if needed.
+        return {
+          id: user.id,
+          email: user.email,
+          role: String(user.role),
+          sessionToken: session.sessionToken,
+        };
+      }
+
+      /**
+       * Register a new user with email + password (optional display name).
+       *
+       * Errors:
+       *  - ValidationError — input failed Zod parse (empty email, malformed
+       *    email, password shorter than 8 chars). Thrown BEFORE any DB or
+       *    bcrypt call.
+       *  - AuthError('EMAIL_ALREADY_EXISTS') — a user with this email is
+       *    already in the database (caught at the uniqueness check, BEFORE
+       *    hashing or persisting anything).
+       *
+       * On success, returns `LoginResult` (same shape as login — the
+       * register flow is a one-shot sign-up: it creates the user AND a
+       * session so the client lands authenticated immediately).
+       *
+       * Boundary contract:
+       *   1. Validate input with Zod FIRST (parse at the boundary).
+       *   2. Normalize empty name to null (empty string is the form's
+       *      natural empty-state; persisting `""` would clutter SELECTs).
+       *   3. Check email uniqueness. If taken → AuthError.
+       *   4. Hash password with bcryptjs at cost factor 10.
+       *      Cost 10 is the reference-repo convention (per design §4.1);
+       *      the auth-rbac skill recommends ≥12 for production — slice 4+
+       *      surfaces the cost factor as env-configurable.
+       *   5. Create the User row with the hashed credential.
+       *   6. Create a Session row with a random UUID sessionToken.
+       *   7. Return { id, email, role, sessionToken }.
+       */
+      async register(
+        email: string,
+        password: string,
+        name?: string | null,
+      ): Promise<LoginResult> {
+        // 1. Boundary validation.
+        const parsed = registerInputSchema.safeParse({ email, password, name });
+        if (!parsed.success) {
+          throw new ValidationError(
+            parsed.error.issues.map((issue) => ({
+              path: issue.path.map((segment) =>
+                typeof segment === "symbol" ? String(segment) : segment,
+              ),
+              message: issue.message,
+            })),
+          );
+        }
+
+        // 2. Normalize empty / missing name to null. The `name` column on
+        // User is `String?` — persisting "" would make equality checks
+        // (e.g. "WHERE name = ''") surprising and would render as an empty
+        // string in the UI instead of "no name set".
+        const normalizedName: string | null =
+          parsed.data.name === undefined || parsed.data.name === ""
+            ? null
+            : parsed.data.name;
+
+        // 3. Email uniqueness check. Done BEFORE hashing so the duplicate-
+        // email path costs a single SELECT, not a bcrypt round-trip.
+        const existing = await this.prisma.user.findUnique({
+          where: { email: parsed.data.email },
+        });
+        if (existing !== null) {
+          throw new AuthError("EMAIL_ALREADY_EXISTS");
+        }
+
+        // 4. Hash the password. bcryptjs cost 10 — see method docstring.
+        const hashed = await bcrypt.hash(parsed.data.password, 10);
+
+        // 5. Create the User. `role` defaults to USER at the schema level;
+        // we set it explicitly here so the contract is visible at the call
+        // site and so future admin-promotion paths have an obvious place
+        // to branch on.
+        const user = await this.prisma.user.create({
+          data: {
+            email: parsed.data.email,
+            hashedPassword: hashed,
+            name: normalizedName,
+            role: "USER",
+          },
+        });
+
+        // 6. Mint the session. sessionToken is a random UUID; expires is
+        // now + SESSION_TTL_MS — matches the login flow so a freshly
+        // registered user lands authenticated for the same duration.
+        const sessionToken = randomUUID();
+        const expires = new Date(Date.now() + SESSION_TTL_MS);
+        const session = await this.prisma.session.create({
+          data: {
+            sessionToken,
+            userId: user.id,
+            expires,
+          },
+        });
+
+        // 7. Project the public result — same shape as LoginResult so the
+        // client can dispatch the same redirect-after-auth code path for
+        // both sign-in and sign-up.
+        return {
+          id: user.id,
+          email: user.email,
+          role: String(user.role),
+          sessionToken: session.sessionToken,
+        };
+      }
+    }
