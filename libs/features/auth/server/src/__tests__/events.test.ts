@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
- * TDD contract for the events wiring — slice 3 (batches 3 + 4).
+ * TDD contract for the events wiring — slice 3 (batches 3 + 4 + 5).
  *
  * Per `openspec/changes/vertical-slicing-reference-scaffold/design.md`
  * §4.7 (Events emitted: the four events this slice covers) and the
@@ -17,31 +17,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  *  4. `auth.rbac.denied` — payload
  *     `{ userId, action, resourceType, at: Date }`.
  *
- * The slice 3 batch 3 tests wire events 3 + 4 via `wireAuthEvents
- * (sessionService, rbacService, dispatcher)` (the monkey-patch pattern
- * documented in events.ts). The slice 3 batch 4 tests wire events 1 + 2
- * via Pattern A (canonical design §4.1) — `PasswordResetService` takes
- * the dispatcher in its constructor and dispatches directly. Tests
- * construct `PasswordResetService` with mocked UserRepository +
- * PasswordResetTokenRepository ports and assert the dispatcher spy
- * was called with the canonical payload.
+ * Slice 3 batch 3 wires events 3 + 4 via `wireAuthEvents(session, rbac,
+ * dispatcher)` (monkey-patch). Slice 3 batch 4 wires events 1 + 2 via
+ * Pattern A: `PasswordResetService` takes the dispatcher in its constructor
+ * and dispatches directly. Slice 3 batch 5 adds the F2 audit signal + F8
+ * dispatcher guard, and migrates to the shared `password-reset.fakes.ts`
+ * factories (Phase 2 refactor per R2 #6).
  *
- * RED state at the time of the slice 3 batch 3 wiring: events.js did
- * NOT exist yet. The dynamic imports inside the original 4 tests
- * threw ERR_MODULE_NOT_FOUND. Every test failed for the expected
- * "feature missing" reason. The slice 3 batch 4 extension added the
- * 4 password-reset event tests — Pattern A means the dispatch is
- * delivered through the service (not the wrapper), so these tests
- * construct `PasswordResetService` directly.
- *
- * The Prisma singleton from @core/database is mocked so the suite
- * runs in the sandbox without a real database. `wireAuthEvents` looks
- * up the userId via `sessionService.getCurrentUser(sessionToken)`
- * BEFORE calling `revokeSession` — both prisma calls are mocked per
- * test. bcryptjs is also mocked at the top of this file so the
- * PasswordResetService.consumeReset hash path (test #3) does not
- * perform real bcrypt rounds inside the sandbox; the mock is inert
- * for the original 4 tests but provides the seam for the new ones.
+ * Phase 2 refactor (slice 3 batch 5):
+ *  - Imports the shared `password-reset.fakes.ts` factories (R2 #6).
+ *  - Switches `vi.clearAllMocks()` to `vi.resetAllMocks()` (R4 #2).
+ *  - Drops inline `{findByEmail, findById, updatePassword}` and `{create,
+ *    findByHash, markConsumed}` mocks in favor of `makeFakeUserRepo` /
+ *    `makeFakeTokenRepo`.
  */
 
 vi.mock("@core/database", () => ({
@@ -53,11 +41,6 @@ vi.mock("@core/database", () => ({
   },
 }));
 
-// bcryptjs is also mocked so the slice 3 batch 4 password-reset event
-// extension (PasswordResetService.consumeReset hash path) does not
-// perform real bcrypt rounds inside the vitest sandbox. The slice 3
-// batch 3 tests in this file do not reach bcryptjs — the mock is
-// inert for them but provides the seam for the new tests.
 vi.mock("bcryptjs", () => ({
   default: {
     compare: vi.fn(),
@@ -65,12 +48,36 @@ vi.mock("bcryptjs", () => ({
   },
 }));
 
+import type { PrismaClient } from "@core/database";
+import { createInMemoryDispatcher, type DomainEvent } from "@core/events";
+import bcrypt from "bcryptjs";
+
 import { prisma } from "@core/database";
-import type { DomainEvent } from "@core/events";
+
+import type { AuthEventDispatcher } from "../events.js";
+import { MIN_TOKEN_LENGTH } from "../password-reset.service.js";
+import type { PasswordResetTokenRepository } from "../domain/interfaces/password-reset-token.repository.js";
+import {
+  makeFakeTokenRepo,
+  makeFakeUserRepo,
+  makePrismaStub,
+  sha256,
+  seedTokenRow,
+  type FakePrismaStub,
+} from "./fixtures/password-reset.fakes.js";
+
+/**
+ * Cast a FakePrismaStub (intentionally narrow) to PrismaClient for the
+ * 4th constructor arg. Real PrismaClient has dozens of methods; the
+ * stub only needs `$transaction` for F1.
+ */
+function asPrismaStub(stub: FakePrismaStub): PrismaClient {
+  return stub as unknown as PrismaClient;
+}
 
 describe("wireAuthEvents", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("SessionService.revokeSession → auth.session.revoked", () => {
@@ -98,7 +105,9 @@ describe("wireAuthEvents", () => {
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
       const sessionService = new SessionService(prisma);
-      const rbacService = new (await import("../rbac-service.js")).RbacService();
+      const rbacService = new (
+        await import("../rbac-service.js")
+      ).RbacService();
       const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
       wireAuthEvents(sessionService, rbacService, dispatcher);
@@ -106,7 +115,8 @@ describe("wireAuthEvents", () => {
       await sessionService.revokeSession("token-A");
 
       expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = vi.mocked(dispatcher).mock.calls[0]?.[0] as DomainEvent;
+      const dispatched = vi.mocked(dispatcher).mock
+        .calls[0]?.[0] as DomainEvent;
       expect(dispatched.name).toBe("auth.session.revoked");
       expect(dispatched.userId).toBe("user-1");
       expect(dispatched.payload).toMatchObject({
@@ -166,14 +176,20 @@ describe("wireAuthEvents", () => {
           },
         ],
       ]);
-      vi.mocked(prisma.session.findUnique).mockImplementation(async (args: unknown) => {
-        const where = (args as { where: { sessionToken: string } }).where;
-        return findUniqueByToken.get(where.sessionToken) as never;
-      });
+      // Prisma's SessionWhereUniqueInput is a discriminated union; the
+      // service only ever calls with where.sessionToken, so we narrow
+      // here.
+      vi.mocked(prisma.session.findUnique).mockImplementation(
+        async (args: { where: { sessionToken: string } }) => {
+          return findUniqueByToken.get(args.where.sessionToken) as never;
+        },
+      );
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
       const sessionService = new SessionService(prisma);
-      const rbacService = new (await import("../rbac-service.js")).RbacService();
+      const rbacService = new (
+        await import("../rbac-service.js")
+      ).RbacService();
       const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
       wireAuthEvents(sessionService, rbacService, dispatcher);
@@ -182,13 +198,19 @@ describe("wireAuthEvents", () => {
       await sessionService.revokeSession("token-Y");
 
       expect(dispatcher).toHaveBeenCalledTimes(2);
-      const events = vi.mocked(dispatcher).mock.calls.map((c) => c[0] as DomainEvent);
+      const events = vi
+        .mocked(dispatcher)
+        .mock.calls.map((c) => c[0] as DomainEvent);
       expect(events[0]?.name).toBe("auth.session.revoked");
       expect((events[0]?.payload as { userId: string }).userId).toBe("user-1");
-      expect((events[0]?.payload as { sessionId: string }).sessionId).toBe("token-X");
+      expect((events[0]?.payload as { sessionId: string }).sessionId).toBe(
+        "token-X",
+      );
       expect(events[1]?.name).toBe("auth.session.revoked");
       expect((events[1]?.payload as { userId: string }).userId).toBe("user-2");
-      expect((events[1]?.payload as { sessionId: string }).sessionId).toBe("token-Y");
+      expect((events[1]?.payload as { sessionId: string }).sessionId).toBe(
+        "token-Y",
+      );
     });
   });
 
@@ -201,8 +223,9 @@ describe("wireAuthEvents", () => {
       const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
       wireAuthEvents(
-        // SessionService is unused in this scenario but the signature requires it.
-        // Build a minimal stub that satisfies the type without touching prisma.
+        // SessionService is unused in this scenario but the signature
+        // requires it. Build a minimal stub that satisfies the type
+        // without touching prisma.
         {
           revokeSession: vi.fn(),
           getCurrentUser: vi.fn(),
@@ -219,7 +242,8 @@ describe("wireAuthEvents", () => {
 
       expect(allowed).toBe(false);
       expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = vi.mocked(dispatcher).mock.calls[0]?.[0] as DomainEvent;
+      const dispatched = vi.mocked(dispatcher).mock
+        .calls[0]?.[0] as DomainEvent;
       expect(dispatched.name).toBe("auth.rbac.denied");
       expect(dispatched.userId).toBe("user-1");
       expect(dispatched.payload).toMatchObject({
@@ -227,384 +251,266 @@ describe("wireAuthEvents", () => {
         action: "session:read:any",
         resourceType: "session",
       });
-      expect(
-        (dispatched.payload as { at: Date }).at,
-      ).toBeInstanceOf(Date);
+      expect((dispatched.payload as { at: Date }).at).toBeInstanceOf(Date);
     });
 
-        it("does NOT dispatch any event when can() returns true (allowed action)", async () => {
-          const { RbacService } = await import("../rbac-service.js");
-          const { wireAuthEvents } = await import("../events.js");
+    it("does NOT dispatch any event when can() returns true (allowed action)", async () => {
+      const { RbacService } = await import("../rbac-service.js");
+      const { wireAuthEvents } = await import("../events.js");
 
-          const rbacService = new RbacService();
-          const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
+      const rbacService = new RbacService();
+      const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
-          wireAuthEvents(
-            {
-              revokeSession: vi.fn(),
-              getCurrentUser: vi.fn(),
-            } as never,
-            rbacService,
-            dispatcher,
-          );
+      wireAuthEvents(
+        {
+          revokeSession: vi.fn(),
+          getCurrentUser: vi.fn(),
+        } as never,
+        rbacService,
+        dispatcher,
+      );
 
-          const allowed = rbacService.can(
-            { id: "user-1", role: "USER" },
-            "session:read:own",
-            { kind: "session", ownerId: "user-1", id: "session-1" },
-          );
+      const allowed = rbacService.can(
+        { id: "user-1", role: "USER" },
+        "session:read:own",
+        { kind: "session", ownerId: "user-1", id: "session-1" },
+      );
 
-          expect(allowed).toBe(true);
-          expect(dispatcher).not.toHaveBeenCalled();
-        });
-      });
+      expect(allowed).toBe(true);
+      expect(dispatcher).not.toHaveBeenCalled();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PasswordResetService → auth.password-reset.{requested, completed}
+//
+// Pattern A is adopted (canonical design §4.1): the dispatcher is
+// injected into PasswordResetService via its constructor; the service
+// dispatches directly. wireAuthEvents is unchanged — it still wraps
+// SessionService.revokeSession + RbacService.can only.
+//
+// These tests pin the dispatch contract end-to-end. They construct
+// PasswordResetService directly with mocked UserRepository +
+// PasswordResetTokenRepository ports (no wireAuthEvents round-trip).
+//
+// Slice 3 batch 5 (Phase 2 refactor): shared `password-reset.fakes.ts`
+// factories replace the inline mock objects.
+// ---------------------------------------------------------------------------
+describe("PasswordResetService → auth.password-reset.requested/completed", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it("dispatches auth.password-reset.requested exactly once for a known email", async () => {
+    const { PasswordResetService } =
+      await import("../password-reset.service.js");
+    const userRepo = makeFakeUserRepo({
+      id: "user-1",
+      email: "alice@example.com",
+      role: "USER",
+      hashedPassword: "$2a$10$old",
+    });
+    const tokenRepo = makeFakeTokenRepo();
+    const dispatcher = vi.fn<AuthEventDispatcher>();
+
+    const service = new PasswordResetService(
+      userRepo,
+      tokenRepo as unknown as PasswordResetTokenRepository,
+      dispatcher,
+    );
+
+    await service.requestReset("alice@example.com");
+
+    expect(tokenRepo.create).toHaveBeenCalledTimes(1);
+    const createdArg = (
+      vi.mocked(tokenRepo.create).mock.calls[0] as unknown as [
+        { userId: string; tokenHash: string; expiresAt: Date },
+      ]
+    )[0];
+    expect(createdArg.userId).toBe("user-1");
+    const persistedHash = createdArg.tokenHash;
+    const expiresAt = createdArg.expiresAt;
+    expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+
+    expect(dispatcher).toHaveBeenCalledTimes(1);
+    const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
+    expect(event.name).toBe("auth.password-reset.requested");
+    expect(event.userId).toBe("user-1");
+    const payload = event.payload as {
+      userId: string;
+      token: string;
+      requestedAt: Date;
+    };
+    expect(payload.userId).toBe("user-1");
+    expect(payload.token.length).toBeGreaterThanOrEqual(MIN_TOKEN_LENGTH);
+    // The dispatched raw token must sha256 to the persisted hash.
+    expect(sha256(payload.token)).toBe(persistedHash);
+    expect(payload.requestedAt).toBeInstanceOf(Date);
+  });
+
+  it("does NOT dispatch any event for an unknown email (no enumeration leak)", async () => {
+    const { PasswordResetService } =
+      await import("../password-reset.service.js");
+    const userRepo = makeFakeUserRepo(null);
+    const tokenRepo = makeFakeTokenRepo();
+    const dispatcher = vi.fn<AuthEventDispatcher>();
+
+    const service = new PasswordResetService(
+      userRepo,
+      tokenRepo as unknown as PasswordResetTokenRepository,
+      dispatcher,
+    );
+
+    await service.requestReset("ghost@example.com");
+
+    expect(tokenRepo.create).not.toHaveBeenCalled();
+    expect(dispatcher).not.toHaveBeenCalled();
+  });
+
+  it("on a successful consumeReset, dispatches auth.password-reset.completed once (after the prior auth.password-reset.requested)", async () => {
+    const { PasswordResetService } =
+      await import("../password-reset.service.js");
+    const userRepo = makeFakeUserRepo({
+      id: "user-1",
+      email: "alice@example.com",
+      role: "USER",
+      hashedPassword: "$2a$10$old",
     });
 
-    // ---------------------------------------------------------------------------
-    // PasswordResetService → auth.password-reset.{requested, completed}
-    //
-    // Pattern A is adopted (canonical design §4.1): the dispatcher is
-    // injected into PasswordResetService via its constructor; the service
-    // dispatches directly. wireAuthEvents is unchanged — it still wraps
-    // SessionService.revokeSession + RbacService.can only.
-    //
-    // These tests pin the dispatch contract end-to-end. They construct
-    // PasswordResetService directly with mocked UserRepository +
-    // PasswordResetTokenRepository ports (no wireAuthEvents round-trip).
-    // ---------------------------------------------------------------------------
-    describe("PasswordResetService → auth.password-reset.requested/completed", () => {
-      it("dispatches auth.password-reset.requested exactly once for a known email", async () => {
-        const { PasswordResetService } = await import(
-          "../password-reset.service.js"
-        );
-        const userRepo = {
-          findByEmail: vi.fn().mockResolvedValue({
-            id: "user-1",
-            email: "alice@example.com",
-            role: "USER",
-            hashedPassword: "$2a$10$old",
-          }),
-          findById: vi.fn(),
-          updatePassword: vi.fn(),
-        };
-        const createdRows: Array<{
-          userId: string;
-          tokenHash: string;
-          expiresAt: Date;
-        }> = [];
-        const tokenRepo = {
-          create: vi.fn(async (args) => {
-            createdRows.push(args);
-            return {
-              id: "prt-1",
-              userId: args.userId,
-              tokenHash: args.tokenHash,
-              expiresAt: args.expiresAt,
-              consumedAt: null,
-            };
-          }),
-          findByHash: vi.fn(),
-          markConsumed: vi.fn(),
-        };
-        const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
+    // Seed a valid token in the in-memory token repo.
+    const rawToken = "x".repeat(48);
+    const tokenRepo = makeFakeTokenRepo();
+    seedTokenRow(tokenRepo, rawToken, { id: "prt-1", userId: "user-1" });
 
-        const service = new PasswordResetService(
-          userRepo as never,
-          tokenRepo as never,
-          dispatcher,
-        );
+    const dispatcher = vi.fn<AuthEventDispatcher>();
+    vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new" as never);
 
-        await service.requestReset("alice@example.com");
+    const prismaStub = makePrismaStub();
 
-        expect(tokenRepo.create).toHaveBeenCalledTimes(1);
-        expect(createdRows).toHaveLength(1);
-        const persistedHash = createdRows[0]!.tokenHash;
-        const expiresAt = createdRows[0]!.expiresAt;
-        expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+    const service = new PasswordResetService(
+      userRepo,
+      tokenRepo as unknown as PasswordResetTokenRepository,
+      dispatcher,
+      asPrismaStub(prismaStub),
+    );
 
-        // Dispatcher called exactly once.
-        expect(dispatcher).toHaveBeenCalledTimes(1);
-        const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
-        expect(event.name).toBe("auth.password-reset.requested");
-        expect(event.userId).toBe("user-1");
-        const payload = event.payload as {
-          userId: string;
-          token: string;
-          requestedAt: Date;
-        };
-        expect(payload.userId).toBe("user-1");
-        expect(payload.token.length).toBeGreaterThanOrEqual(32);
-        // The dispatched raw token must sha256 to the persisted hash
-        // (the canonical hash-only invariant).
-        const { createHash } = await import("node:crypto");
-        expect(createHash("sha256").update(payload.token).digest("hex")).toBe(
-          persistedHash,
-        );
-        expect(payload.requestedAt).toBeInstanceOf(Date);
-      });
+    // First: requestReset fires `requested` (1 dispatch).
+    await service.requestReset("alice@example.com");
+    expect(dispatcher).toHaveBeenCalledTimes(1);
 
-      it("does NOT dispatch any event for an unknown email (no enumeration leak)", async () => {
-        const { PasswordResetService } = await import(
-          "../password-reset.service.js"
-        );
-        const userRepo = {
-          findByEmail: vi.fn().mockResolvedValue(null),
-          findById: vi.fn(),
-          updatePassword: vi.fn(),
-        };
-        const tokenRepo = {
-          create: vi.fn(),
-          findByHash: vi.fn(),
-          markConsumed: vi.fn(),
-        };
-        const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
+    // Then: consumeReset fires `completed` (2 dispatches total).
+    await service.consumeReset(rawToken, "newPassword123");
+    expect(dispatcher).toHaveBeenCalledTimes(2);
 
-        const service = new PasswordResetService(
-          userRepo as never,
-          tokenRepo as never,
-          dispatcher,
-        );
+    const events = dispatcher.mock.calls.map(
+      (c) => (c as unknown as [DomainEvent])[0],
+    );
+    expect(events[0]!.name).toBe("auth.password-reset.requested");
+    expect(events[1]!.name).toBe("auth.password-reset.completed");
+    expect(events[1]!.userId).toBe("user-1");
+    const completedPayload = events[1]!.payload as {
+      userId: string;
+      resetAt: Date;
+    };
+    expect(completedPayload.userId).toBe("user-1");
+    expect(completedPayload.resetAt).toBeInstanceOf(Date);
 
-        await service.requestReset("ghost@example.com");
+    // F1: both writes went through the transaction; port-level writes
+    // are NOT called (transaction owns the writes).
+    expect(prismaStub.$transaction).toHaveBeenCalledTimes(1);
+    expect(prismaStub.txUserUpdate).toHaveBeenCalledTimes(1);
+    expect(prismaStub.txPrtUpdate).toHaveBeenCalledTimes(1);
+    expect(userRepo.updatePassword).not.toHaveBeenCalled();
+    expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
+  });
 
-        expect(tokenRepo.create).not.toHaveBeenCalled();
-        expect(dispatcher).not.toHaveBeenCalled();
-      });
-
-      it("on a successful consumeReset, dispatches auth.password-reset.completed once (after the prior auth.password-reset.requested)", async () => {
-        const { PasswordResetService } = await import(
-          "../password-reset.service.js"
-        );
-        const userRepo = {
-          findByEmail: vi.fn().mockResolvedValue({
-            id: "user-1",
-            email: "alice@example.com",
-            role: "USER",
-            hashedPassword: "$2a$10$old",
-          }),
-          findById: vi.fn(),
-          updatePassword: vi.fn(async () => {}),
-        };
-
-        // Seed a valid token in the in-memory repo.
-        const { createHash } = await import("node:crypto");
-        const rawToken = "x".repeat(48);
-        const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-        const tokenRepo = {
-          create: vi.fn(async (args) => ({
-            id: "prt-1",
-            userId: args.userId,
-            tokenHash: args.tokenHash,
-            expiresAt: args.expiresAt,
-            consumedAt: null,
-          })),
-          findByHash: vi.fn(async (hash: string) =>
-            hash === tokenHash
-              ? {
-                  id: "prt-1",
-                  userId: "user-1",
-                  tokenHash: hash,
-                  expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-                  consumedAt: null,
-                }
-              : null,
-          ),
-          markConsumed: vi.fn(async () => {}),
-        };
-        const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-        const bcryptMod = (await import("bcryptjs")).default;
-        vi.mocked(bcryptMod.hash).mockResolvedValue("$2a$10$new" as never);
-
-        // F1: the consumeReset writes go through prisma.$transaction
-        // (tx.user.update + tx.passwordResetToken.update). Build a
-        // minimal stub here.
-        const txUserUpdate = vi.fn(async () => undefined);
-        const txPrtUpdate = vi.fn(async () => undefined);
-        const $transaction = vi.fn(
-          async (cb: (tx: unknown) => Promise<unknown>) => {
-            return cb({
-              user: { update: txUserUpdate },
-              passwordResetToken: { update: txPrtUpdate },
-            });
-          },
-        );
-        const prismaStub = { $transaction };
-
-        const service = new PasswordResetService(
-          userRepo as never,
-          tokenRepo as never,
-          dispatcher,
-          prismaStub as never,
-        );
-
-        // First: requestReset fires `requested` (1 dispatch).
-        await service.requestReset("alice@example.com");
-        expect(dispatcher).toHaveBeenCalledTimes(1);
-
-        // Then: consumeReset fires `completed` (2 dispatches total).
-        await service.consumeReset(rawToken, "newPassword123");
-        expect(dispatcher).toHaveBeenCalledTimes(2);
-
-        const events = dispatcher.mock.calls.map(
-          (c) => (c as unknown as [DomainEvent])[0],
-        );
-        // First event is `requested`.
-        expect(events[0]!.name).toBe("auth.password-reset.requested");
-        // Second event is `completed` with the canonical payload.
-        expect(events[1]!.name).toBe("auth.password-reset.completed");
-        expect(events[1]!.userId).toBe("user-1");
-        const completedPayload = events[1]!.payload as {
-          userId: string;
-          resetAt: Date;
-        };
-        expect(completedPayload.userId).toBe("user-1");
-        expect(completedPayload.resetAt).toBeInstanceOf(Date);
-
-        // F1: both writes went through the transaction; the port-level
-        // updatePassword / markConsumed are not called (transaction owns
-        // the writes).
-        expect($transaction).toHaveBeenCalledTimes(1);
-        expect(txUserUpdate).toHaveBeenCalledTimes(1);
-        expect(txPrtUpdate).toHaveBeenCalledTimes(1);
-        expect(userRepo.updatePassword).not.toHaveBeenCalled();
-        expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
-      });
-
-      it("on an invalid consumeReset (consumed/expired/unknown token), NO auth.password-reset.completed event is dispatched", async () => {
-        const { PasswordResetService } = await import(
-          "../password-reset.service.js"
-        );
-        const userRepo = {
-          findByEmail: vi.fn().mockResolvedValue({
-            id: "user-1",
-            email: "alice@example.com",
-            role: "USER",
-            hashedPassword: "$2a$10$old",
-          }),
-          findById: vi.fn(),
-          updatePassword: vi.fn(),
-        };
-
-        // Empty token repo: every lookup misses → mock the
-        // "unknown token" branch.
-        const tokenRepo = {
-          create: vi.fn(),
-          findByHash: vi.fn().mockResolvedValue(null),
-          markConsumed: vi.fn(),
-        };
-        const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-
-        // F1: Pass a no-op prismaStub as the 4th constructor arg.
-        // The transaction is NEVER reached on the invalid-token path
-        // (the service throws before the tx wrapper).
-        const $transaction = vi.fn(async () => undefined);
-        const prismaStub = { $transaction };
-
-        const service = new PasswordResetService(
-          userRepo as never,
-          tokenRepo as never,
-          dispatcher,
-          prismaStub as never,
-        );
-
-        // First: requestReset fires `requested` (1 dispatch).
-        await service.requestReset("alice@example.com");
-        expect(dispatcher).toHaveBeenCalledTimes(1);
-        const firstEvent = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
-        expect(firstEvent.name).toBe("auth.password-reset.requested");
-
-        // Then: consumeReset with an unknown token → throws (asserted
-        // implicitly by the dispatch count being still 1) — no
-        // `completed` event is dispatched.
-        await expect(
-          service.consumeReset("nonexistent-token-string-1234567890", "newPwd"),
-        ).rejects.toBeInstanceOf(
-          (await import("../password-reset.service.js")).AuthError,
-        );
-
-        expect(dispatcher).toHaveBeenCalledTimes(1); // unchanged
-        const allEvents = dispatcher.mock.calls.map(
-          (c) => (c as unknown as [DomainEvent])[0],
-        );
-        expect(allEvents.some((e) => e.name === "auth.password-reset.completed")).toBe(
-          false,
-        );
-            expect($transaction).not.toHaveBeenCalled();
-          });
-
-          // ---------------------------------------------------------------------------
-          // F3 follow-up: ring-buffer redaction through the auth-slice dispatch path.
-          //
-          // The two tests above use `dispatcher = vi.fn<...>()` which does NOT exercise
-          // the @core/events ring buffer. This test wires PasswordResetService into a
-          // REAL `createInMemoryDispatcher` so the buffer actually receives events,
-          // and asserts that the buffered copy's `payload.token` is the redacted
-          // sentinel (per F3). Mirrors the redaction contract pinned in
-          // `libs/core/events/src/__tests__/redact-sensitive.test.ts` but at the
-          // auth-slice boundary (the real consumer of the dispatcher).
-          // ---------------------------------------------------------------------------
-          it("F3 — the ring buffer holds the redacted token (auth.password-reset.requested)", async () => {
-            const { createInMemoryDispatcher } = await import("@core/events");
-            const ringDispatcher = createInMemoryDispatcher();
-            const { PasswordResetService } = await import(
-              "../password-reset.service.js"
-            );
-
-            // userRepo / tokenRepo are minimal — requestReset only needs
-            // findByEmail + create.
-            const userRepo = {
-              findByEmail: vi.fn().mockResolvedValue({
-                id: "u1",
-                email: "alice@example.com",
-                role: "USER",
-                hashedPassword: "$2a$10$old",
-              }),
-              findById: vi.fn(),
-              updatePassword: vi.fn(),
-            };
-            const tokenRepo = {
-              create: vi.fn(async (args: {
-                userId: string;
-                tokenHash: string;
-                expiresAt: Date;
-              }) => ({
-                id: "prt-1",
-                userId: args.userId,
-                tokenHash: args.tokenHash,
-                expiresAt: args.expiresAt,
-                consumedAt: null,
-              })),
-              findByHash: vi.fn(),
-              markConsumed: vi.fn(),
-            };
-
-            // F1: pass a no-op prisma stub so the constructor accepts 4 args.
-            const prismaStub = { $transaction: vi.fn() };
-            const auditSink = vi.fn();
-
-            const service = new PasswordResetService(
-              userRepo as never,
-              tokenRepo as never,
-              ringDispatcher.dispatch as unknown as (
-                event: import("@core/events").DomainEvent,
-              ) => Promise<void>,
-              prismaStub as never,
-              auditSink,
-            );
-
-            await service.requestReset("alice@example.com");
-
-            // The ring buffer holds the redacted copy — the raw token is NOT
-            // replayed (F3 sentinel guards against accidental leak via a
-            // subscriber that buffers + logs events).
-            const replayed = ringDispatcher.replay("u1");
-            expect(replayed).toHaveLength(1);
-            expect(replayed[0]!.name).toBe("auth.password-reset.requested");
-            expect((replayed[0]!.payload as { token: string }).token).toBe(
-              "***REDACTED***",
-            );
-
-            // AuditSink was NOT invoked (dispatch succeeded).
-            expect(auditSink).not.toHaveBeenCalled();
-          });
+  it("on an invalid consumeReset (consumed/expired/unknown token), NO auth.password-reset.completed event is dispatched", async () => {
+    const { PasswordResetService } =
+      await import("../password-reset.service.js");
+    const userRepo = makeFakeUserRepo({
+      id: "user-1",
+      email: "alice@example.com",
+      role: "USER",
+      hashedPassword: "$2a$10$old",
     });
+
+    // Empty token repo: every lookup misses \u2192 "unknown token" branch.
+    const tokenRepo = makeFakeTokenRepo();
+    const dispatcher = vi.fn<AuthEventDispatcher>();
+
+    // F1: Pass a no-op prismaStub as the 4th constructor arg.
+    // The transaction is NEVER reached on the invalid-token path
+    // (the service throws before the tx wrapper).
+    const prismaStub = makePrismaStub();
+
+    const service = new PasswordResetService(
+      userRepo,
+      tokenRepo as unknown as PasswordResetTokenRepository,
+      dispatcher,
+      asPrismaStub(prismaStub),
+    );
+
+    // First: requestReset fires `requested` (1 dispatch).
+    await service.requestReset("alice@example.com");
+    expect(dispatcher).toHaveBeenCalledTimes(1);
+    const firstEvent = (
+      dispatcher.mock.calls[0] as unknown as [DomainEvent]
+    )[0];
+    expect(firstEvent.name).toBe("auth.password-reset.requested");
+
+    // Then: consumeReset with an unknown token \u2192 throws.
+    const { AuthError } = await import("../password-reset.service.js");
+    await expect(
+      service.consumeReset("nonexistent-token-string-1234567890", "newPwd"),
+    ).rejects.toBeInstanceOf(AuthError);
+
+    expect(dispatcher).toHaveBeenCalledTimes(1); // unchanged
+    const allEvents = dispatcher.mock.calls.map(
+      (c) => (c as unknown as [DomainEvent])[0],
+    );
+    expect(
+      allEvents.some((e) => e.name === "auth.password-reset.completed"),
+    ).toBe(false);
+    expect(prismaStub.$transaction).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------------------------------------
+  // F3 follow-up: ring-buffer redaction through the auth-slice dispatch path.
+  // -------------------------------------------------------------------------
+  it("F3 \u2014 the ring buffer holds the redacted token (auth.password-reset.requested)", async () => {
+    const ringDispatcher = createInMemoryDispatcher();
+    const { PasswordResetService } =
+      await import("../password-reset.service.js");
+
+    const userRepo = makeFakeUserRepo({
+      id: "u1",
+      email: "alice@example.com",
+      role: "USER",
+      hashedPassword: "$2a$10$old",
+    });
+    const tokenRepo = makeFakeTokenRepo();
+
+    const prismaStub = makePrismaStub();
+    const auditSink = vi.fn();
+
+    const service = new PasswordResetService(
+      userRepo,
+      tokenRepo as unknown as PasswordResetTokenRepository,
+      ringDispatcher.dispatch as unknown as AuthEventDispatcher,
+      asPrismaStub(prismaStub),
+      auditSink,
+    );
+
+    await service.requestReset("alice@example.com");
+
+    const replayed = ringDispatcher.replay("u1");
+    expect(replayed).toHaveLength(1);
+    expect(replayed[0]!.name).toBe("auth.password-reset.requested");
+    expect((replayed[0]!.payload as { token: string }).token).toBe(
+      "***REDACTED***",
+    );
+
+    expect(auditSink).not.toHaveBeenCalled();
+  });
+});
