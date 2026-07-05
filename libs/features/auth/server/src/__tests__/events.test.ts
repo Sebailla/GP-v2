@@ -1,38 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
- * TDD contract for the events wiring (slice 3 batch 3 / brief T3.5 RED).
+ * TDD contract for the events wiring — slice 3 (batches 3 + 4).
  *
- * Per `openspec/changes/vertical-slicing-reference-scaffold/design.md` §4.7
- * (Events emitted: `auth.session.revoked`, `auth.rbac.denied` are the two
- * events this batch wires; `auth.password-reset.requested` and
- * `auth.password-reset.completed` land with `PasswordResetService` in
- * slice 3 batch 4+).
+ * Per `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+ * §4.7 (Events emitted: the four events this slice covers) and the
+ * canonical Zod schemas in `libs/core/events/src/types.ts`. The four
+ * events this slice emits:
  *
- * The wiring is a `wireAuthEvents(sessionService, rbacService, dispatcher)`
- * function exported from `libs/features/auth/server/src/events.ts`. It
- * uses the **monkey-patch** pattern documented in the brief — pragmatic
- * for this slice; slice 3 batch 4+ refactors the services to dispatch
- * directly (single source of truth, no wrapper around the public method).
+ *  1. `auth.password-reset.requested` — payload
+ *     `{ userId, token (raw, dev only), requestedAt: Date }`.
+ *  2. `auth.password-reset.completed` — payload
+ *     `{ userId, resetAt: Date }`.
+ *  3. `auth.session.revoked` — payload
+ *     `{ userId, sessionId, revokedAt: Date }`.
+ *  4. `auth.rbac.denied` — payload
+ *     `{ userId, action, resourceType, at: Date }`.
  *
- * Two subscriptions pinned by these tests:
+ * The slice 3 batch 3 tests wire events 3 + 4 via `wireAuthEvents
+ * (sessionService, rbacService, dispatcher)` (the monkey-patch pattern
+ * documented in events.ts). The slice 3 batch 4 tests wire events 1 + 2
+ * via Pattern A (canonical design §4.1) — `PasswordResetService` takes
+ * the dispatcher in its constructor and dispatches directly. Tests
+ * construct `PasswordResetService` with mocked UserRepository +
+ * PasswordResetTokenRepository ports and assert the dispatcher spy
+ * was called with the canonical payload.
  *
- *  1. `SessionService.revokeSession(sessionToken)` →
- *     `auth.session.revoked` with payload
- *     `{ userId, sessionToken, revokedAt: Date }`.
+ * RED state at the time of the slice 3 batch 3 wiring: events.js did
+ * NOT exist yet. The dynamic imports inside the original 4 tests
+ * threw ERR_MODULE_NOT_FOUND. Every test failed for the expected
+ * "feature missing" reason. The slice 3 batch 4 extension added the
+ * 4 password-reset event tests — Pattern A means the dispatch is
+ * delivered through the service (not the wrapper), so these tests
+ * construct `PasswordResetService` directly.
  *
- *  2. `RbacService.can(actor, action, resource)` returning `false` →
- *     `auth.rbac.denied` with payload
- *     `{ userId: actor.id, action, resourceKind: resource.kind, deniedAt: Date }`.
- *
- * RED state: events.js does NOT exist yet. The dynamic imports inside
- * each `it` block throw ERR_MODULE_NOT_FOUND. Every test fails for the
- * expected "feature missing" reason.
- *
- * The Prisma singleton from @core/database is mocked so the suite runs
- * in the sandbox without a real database. `wireAuthEvents` looks up the
- * userId via `sessionService.getCurrentUser(sessionToken)` BEFORE calling
- * `revokeSession` — both prisma calls are mocked per test.
+ * The Prisma singleton from @core/database is mocked so the suite
+ * runs in the sandbox without a real database. `wireAuthEvents` looks
+ * up the userId via `sessionService.getCurrentUser(sessionToken)`
+ * BEFORE calling `revokeSession` — both prisma calls are mocked per
+ * test. bcryptjs is also mocked at the top of this file so the
+ * PasswordResetService.consumeReset hash path (test #3) does not
+ * perform real bcrypt rounds inside the sandbox; the mock is inert
+ * for the original 4 tests but provides the seam for the new ones.
  */
 
 vi.mock("@core/database", () => ({
