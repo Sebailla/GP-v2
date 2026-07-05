@@ -4,10 +4,10 @@
   "private": true,
   "description": "Reference repository validating the vertical-slicing monorepo model (apps/web + apps/api + libs/features/* + libs/core + libs/shared-utils). NOT a 1:1 copy of gastos-personales/. Greenfield.",
   "license": "MIT",
-  "packageManager": "pnpm@10.15.0",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=10.0.0"
+    "node": ">=22.13.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "build": "turbo run build",
@@ -31,9 +31,9 @@
     "clean": "turbo run clean && rm -rf .turbo node_modules"
   },
   "devDependencies": {
-    "@typescript-eslint/parser": "8.20.0",
-    "prettier": "3.3.3",
-    "turbo": "2.3.3",
-    "typescript": "5.6.3"
+    "@typescript-eslint/parser": "8.62.0",
+    "prettier": "3.9.0",
+    "turbo": "2.10.3",
+    "typescript": "6.0.3"
   }
 }

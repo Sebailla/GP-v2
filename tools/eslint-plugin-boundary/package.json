@@ -9,9 +9,9 @@
     "fixtures": "node scripts/run-fixtures.mjs"
   },
   "peerDependencies": {
-    "eslint": "^9.0.0"
+    "eslint": ">=9.0.0"
   },
   "devDependencies": {
-    "eslint": "9.18.0"
+    "eslint": "10.6.0"
   }
 }
