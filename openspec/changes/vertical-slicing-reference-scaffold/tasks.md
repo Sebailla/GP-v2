@@ -216,7 +216,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run lint typecheck test --filter @features/auth --filter api` exits 0; manual `curl` against `apps/api:3001` matches expectations on the six endpoints.
 **Rollback.** Per atomic commit (`git revert <task-sha>`); reverting any single task drops the corresponding service surface.
 
-### Task T3.1 — RED: write failing Vitest tests for `AuthService.login` (~30 lines)
+### Task T3.1 — RED: write failing Vitest tests for `AuthService.login` (~30 lines) [x]
 
 - **Description.** Write the failing test FIRST for the AuthService login happy + invalid-credential paths (per strict-tdd.md). The tests import the service from `@features/auth/server` and assert the contract — `verifyPassword(email, password)` returns the user record on a match and `null` on mismatch/absence.
 - **Discovery / file targets.** Create `libs/features/auth/server/services/__tests__/auth.service.test.ts`. Use Vitest; mock `UserRepository` (interface declared in T3.4). Bcrypt cost factor is fixed at 10 (design §4.1).
