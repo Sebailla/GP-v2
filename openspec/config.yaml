@@ -1,0 +1,147 @@
+# openspec/config.yaml — gastos-personales-reference
+#
+# Reference / spike repo validating the vertical-slicing model.
+# NOT production. NOT a 1:1 copy of the existing gastos-personales/ repo.
+# Stack entries are planned metadata only at sdd-init time; no code is installed yet.
+
+project: gastos-personales-reference
+purpose: reference-spike
+intent: >
+  Validate the proposed vertical-slicing monorepo model (apps/web + apps/api,
+  libs/core/database, libs/features/* with client/server/shared + colocated BDD).
+  Both this repo and the existing gastos-personales/ repo coexist; the latter is
+  NOT being migrated.
+
+# ---- Change conventions ----
+change_convention: kebab-case
+
+# ---- Artifact store ----
+artifact_store: hybrid
+  # hybrid = openspec/ files (committable, team-shareable) + Engram observations (cross-session recovery)
+  # Engram topic key for project context: sdd-init/gastos-personales-reference
+
+# ---- Branch model ----
+branch_model:
+  working: develop
+  protected: main
+  immutable: [main]
+  notes: >
+    AGENTS.md §5.1 git-flow. `main` is immutable: never commit, push, merge,
+    or rebase from it. All writes happen on `develop` or feature branches
+    cut from `develop`.
+
+# ---- SDD testing configuration ----
+strict_tdd: true
+test_runner: pnpm test
+bdd_runner: pnpm bdd   # @cucumber/cucumber reading libs/features/*/docs/*.feature
+coverage_threshold:
+  lines: 60
+  branches: 60
+  functions: 60
+  statements: 60
+coverage_gate_enforced: false   # proposed achievable target, not enforced at sdd-init time
+
+# ---- SDD pipeline ----
+phases:
+  - proposal
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - sync
+  - archive
+
+# ---- Delivery strategy ----
+delivery_strategy: ask-on-risk
+chain_strategy: feature-branch-chain
+review_budget_lines: 400
+execution_mode: interactive
+
+# ---- Planned stack (metadata only at sdd-init; not yet installed) ----
+stack:
+  language: typescript-5
+  typescript:
+    strict: true
+  package_manager: pnpm-10.x
+  workspaces: pnpm-workspace.yaml
+  orchestrator: turbo
+  turbo_pipelines: [build, dev, lint, test, typecheck]
+
+  apps:
+    web:
+      framework: nextjs-15
+      router: app
+      i18n: false
+      notes: App Router; no internationalization at first slice.
+    api:
+      framework: nestjs-10
+      modules: [@nestjs/config, @nestjs/jwt, class-validator, zod-validation-pipe]
+
+  libs:
+    core:
+      database:
+        description: Shared data layer; Prisma client + schema.
+        orm: prisma
+    features:
+      - name: auth
+        slices: [client, server, shared, docs]
+        bdd_colocated: libs/features/auth/docs/*.feature
+      - name: transactions
+        slices: [client, server, shared, docs]
+        bdd_colocated: libs/features/transactions/docs/*.feature
+    shared-utils:
+      description: Pure helpers (no I/O, no framework deps).
+      examples: [date-formatting, currency]
+
+  validation: zod   # single source of truth, reused on client + server
+  auth:
+    library: next-auth-v5   # Auth.js
+    adapter: "@auth/prisma-adapter"
+    strategy: email-password
+
+  testing:
+    unit: vitest
+    bdd: "@cucumber/cucumber"
+    bdd_features_glob: "libs/features/*/docs/*.feature"
+
+  lint:
+    config: eslint.config.mjs   # flat config
+    custom_boundary_rules:
+      - "no imports from */server/* into */client/*"
+      - "no direct cross-module imports (route through events or shared ports)"
+
+  container:
+    compose: docker-compose.yml
+    services: [postgres]
+
+  docs:
+    - docs/architecture.md
+    - Documents-es/docs/architecture.md
+    - docs/migration-playbook.md
+    - Documents-es/docs/migration-playbook.md
+    notes: English primary + Spanish mirror under Documents-es/.
+
+# ---- Out of scope (per preflight cache) ----
+out_of_scope:
+  - i18n
+  - sentry
+  - rate-limit
+  - multiple-auth-providers
+  - observability
+  - production-hardening
+
+# ---- Skills cache (project-scoped) ----
+skills:
+  - architecture-standards
+  - architecture-patterns
+  - turborepo
+  - database-strategy
+  - testing-standards
+  - next-best-practices
+  - api-design-principles
+  - auth-implementation-patterns
+  - env-config
+  - error-handling
+  - deployment
+  - verification-before-completion
