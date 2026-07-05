@@ -799,7 +799,7 @@ openspec/changes/vertical-slicing-reference-scaffold/
 | Gate | Command | Result | Notes |
 |------|---------|--------|-------|
 | Workspace install | `pnpm install` | exit 0 | No new external deps — bcrypt + zod were already in @features/auth. 12 workspace projects still resolve. |
-| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **45/45 tests pass** (5 login + 5 register + 7 session + 11 rbac + 8 events [4 batch 3 + 4 batch 4] + 7 password-reset [new] + 6 password-reset repo [new] — 39 prior + 7 brief-T3.4 + 6 brief-T3.5b = 45; the events.test.ts +4 lands alongside). |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **49/49 tests pass** (5 login + 5 register + 7 session + 11 rbac + 8 events [4 batch 3 + 4 batch 4 extension] + 7 password-reset [new] + 6 password-reset repo [new] — 32 prior + 7 brief-T3.4 + 6 brief-T3.5b + 4 brief-T3.5c = 49; the events.test.ts +4 lands alongside). |
 | Test (auth via turbo) | `pnpm turbo run test --filter=@features/auth` | exit 0 | 1/1 package successful. |
 | Test (regression) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed. |
 | Test (full) | `pnpm turbo run test` | exit 1 (apps/* test debt — slice-1 debt, out of scope) | Same slice-1 debt as the previous batch: `apps/api` and `apps/web` declare `"test": "vitest run"` but vitest is not in their devDependencies. Not in scope; documented at slice 2 batch 1. |
@@ -870,7 +870,7 @@ slice_3:
     - T3.9 (slice-wide turbo run gate)
   commits_landed_this_batch: 7  # brief-T3.4 RED, brief-T3.4 GREEN, brief-T3.5b RED, brief-T3.5b GREEN, brief-T3.5c events extension, brief-fix-events-comments, brief-markers-apply-progress
   insertions_this_batch: ~1500 across 6 new files + 6 modified source files + tasks.md + apply-progress.md
-  test_count_this_batch: 13 new tests (7 PasswordResetService + 6 PrismaPasswordResetTokenRepository), plus 4 new events.test.ts tests (brief T3.5c); 32 → 45 in @features/auth (39 prior + 7 brief-T3.4 + 6 brief-T3.5b; events.test.ts bumped from 4 → 8)
+  test_count_this_batch: 17 new tests (7 PasswordResetService + 6 PrismaPasswordResetTokenRepository + 4 events.test.ts [brief T3.5c extension]); 32 → 49 in @features/auth (32 prior + 7 brief-T3.4 + 6 brief-T3.5b + 4 brief-T3.5c = 49; events.test.ts bumped from 4 → 8)
 feature_branch: feat/vertical-slicing-s3-auth-batch4
 base_commit: 00bdc24882129ea498e83b3a006df5be91f0d5e2
 head_commit: <this commit, pending>
