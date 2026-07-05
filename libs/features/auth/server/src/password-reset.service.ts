@@ -1,5 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 
+import { prisma as defaultPrisma } from "@core/database";
+import type { PrismaClient } from "@core/database";
 import bcrypt from "bcryptjs";
 import type { DomainEvent } from "@core/events";
 
@@ -97,15 +99,18 @@ export class PasswordResetService {
   private readonly userRepo: UserRepository;
   private readonly tokenRepo: PasswordResetTokenRepository;
   private readonly dispatcher: AuthEventDispatcher;
+  private readonly prisma: PrismaClient;
 
   constructor(
     userRepo: UserRepository,
     tokenRepo: PasswordResetTokenRepository,
     dispatcher: AuthEventDispatcher,
+    prisma?: PrismaClient,
   ) {
     this.userRepo = userRepo;
     this.tokenRepo = tokenRepo;
     this.dispatcher = dispatcher;
+    this.prisma = prisma ?? defaultPrisma;
   }
 
   /**
@@ -216,15 +221,28 @@ export class PasswordResetService {
     // 5. Hash the new password at the canonical cost factor.
     const hashed = await bcrypt.hash(newPassword, 10);
 
-    // 6. Persist the new credential via the UserRepository port
-    //    (the bcrypt cost factor is visible at this seam; the
-    //    adapter only persists the value).
-    await this.userRepo.updatePassword(row.userId, hashed);
+    // 6 + 7. F1: wrap BOTH writes in a single prisma.\$transaction so a
+    //    failure on the second write rolls back the first (TOCTOU
+    //    invariant). We use `tx.user.update` / `tx.passwordResetToken
+    //    .update` DIRECTLY here — the ports' adapters route through
+    //    `this.prisma.*` (a different connection), which would defeat
+    //    the transaction. The ports are still used for the read
+    //    (findByHash) where atomicity is not needed.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: row.userId },
+        data: { hashedPassword: hashed },
+      });
+      await tx.passwordResetToken.update({
+        where: { tokenHash },
+        data: { consumedAt: new Date() },
+      });
+    });
 
-    // 7. Mark the token consumed. Idempotent in the adapter.
-    await this.tokenRepo.markConsumed(tokenHash, new Date());
-
-    // 8. Dispatch the completed event.
+    // 8. Dispatch the completed event. F2 wraps this in a try/catch
+    //    (see brief-fix-F2-GREEN) — the transaction has already
+    //    committed, so the dispatcher failure is an audit signal,
+    //    NOT a service error.
     const event: DomainEvent = {
       name: "auth.password-reset.completed",
       userId: row.userId,

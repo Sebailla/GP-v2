@@ -415,10 +415,26 @@ describe("wireAuthEvents", () => {
         const bcryptMod = (await import("bcryptjs")).default;
         vi.mocked(bcryptMod.hash).mockResolvedValue("$2a$10$new" as never);
 
+        // F1: the consumeReset writes go through prisma.$transaction
+        // (tx.user.update + tx.passwordResetToken.update). Build a
+        // minimal stub here.
+        const txUserUpdate = vi.fn(async () => undefined);
+        const txPrtUpdate = vi.fn(async () => undefined);
+        const $transaction = vi.fn(
+          async (cb: (tx: unknown) => Promise<unknown>) => {
+            return cb({
+              user: { update: txUserUpdate },
+              passwordResetToken: { update: txPrtUpdate },
+            });
+          },
+        );
+        const prismaStub = { $transaction };
+
         const service = new PasswordResetService(
           userRepo as never,
           tokenRepo as never,
           dispatcher,
+          prismaStub as never,
         );
 
         // First: requestReset fires `requested` (1 dispatch).
@@ -443,6 +459,15 @@ describe("wireAuthEvents", () => {
         };
         expect(completedPayload.userId).toBe("user-1");
         expect(completedPayload.resetAt).toBeInstanceOf(Date);
+
+        // F1: both writes went through the transaction; the port-level
+        // updatePassword / markConsumed are not called (transaction owns
+        // the writes).
+        expect($transaction).toHaveBeenCalledTimes(1);
+        expect(txUserUpdate).toHaveBeenCalledTimes(1);
+        expect(txPrtUpdate).toHaveBeenCalledTimes(1);
+        expect(userRepo.updatePassword).not.toHaveBeenCalled();
+        expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
       });
 
       it("on an invalid consumeReset (consumed/expired/unknown token), NO auth.password-reset.completed event is dispatched", async () => {
@@ -469,10 +494,17 @@ describe("wireAuthEvents", () => {
         };
         const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
 
+        // F1: Pass a no-op prismaStub as the 4th constructor arg.
+        // The transaction is NEVER reached on the invalid-token path
+        // (the service throws before the tx wrapper).
+        const $transaction = vi.fn(async () => undefined);
+        const prismaStub = { $transaction };
+
         const service = new PasswordResetService(
           userRepo as never,
           tokenRepo as never,
           dispatcher,
+          prismaStub as never,
         );
 
         // First: requestReset fires `requested` (1 dispatch).
@@ -497,5 +529,6 @@ describe("wireAuthEvents", () => {
         expect(allEvents.some((e) => e.name === "auth.password-reset.completed")).toBe(
           false,
         );
+        expect($transaction).not.toHaveBeenCalled();
       });
     });

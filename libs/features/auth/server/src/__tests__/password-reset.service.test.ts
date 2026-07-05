@@ -163,35 +163,72 @@ function makeFakeUserRepo(user: {
   };
 }
 
-function makeFakeTokenRepo() {
-  const rows = new Map<string, PasswordResetTokenRecord>();
-  return {
-    rows,
-    create: vi.fn(async (args: {
-      userId: string;
-      tokenHash: string;
-      expiresAt: Date;
-    }) => {
-      const row: PasswordResetTokenRecord = {
-        id: `prt-${rows.size + 1}`,
-        userId: args.userId,
-        tokenHash: args.tokenHash,
-        expiresAt: args.expiresAt,
-        consumedAt: null,
+    function makeFakeTokenRepo() {
+      const rows = new Map<string, PasswordResetTokenRecord>();
+      return {
+        rows,
+        create: vi.fn(async (args: {
+          userId: string;
+          tokenHash: string;
+          expiresAt: Date;
+        }) => {
+          const row: PasswordResetTokenRecord = {
+            id: `prt-${rows.size + 1}`,
+            userId: args.userId,
+            tokenHash: args.tokenHash,
+            expiresAt: args.expiresAt,
+            consumedAt: null,
+          };
+          rows.set(args.tokenHash, row);
+          return row;
+        }),
+        findByHash: vi.fn(async (tokenHash: string) => {
+          return rows.get(tokenHash) ?? null;
+        }),
+        markConsumed: vi.fn(async (tokenHash: string, consumedAt: Date) => {
+          const row = rows.get(tokenHash);
+          if (row === undefined) return;
+          rows.set(tokenHash, { ...row, consumedAt });
+        }),
       };
-      rows.set(args.tokenHash, row);
-      return row;
-    }),
-    findByHash: vi.fn(async (tokenHash: string) => {
-      return rows.get(tokenHash) ?? null;
-    }),
-    markConsumed: vi.fn(async (tokenHash: string, consumedAt: Date) => {
-      const row = rows.get(tokenHash);
-      if (row === undefined) return;
-      rows.set(tokenHash, { ...row, consumedAt });
-    }),
-  };
-}
+    }
+
+    /**
+     * Build a Prisma stub that exposes `$transaction` for F1 (the
+     * service writes through `tx.user.update` / `tx.passwordResetToken
+     * .update`, NOT through the UserRepository / PasswordResetToken
+     * Repository ports). The returned stub records both tx-level calls
+     * and exposes them for assertion via `prismaStub.txUserUpdate` /
+     * `prismaStub.txPrtUpdate`. Default: both updates succeed
+     * (returning `undefined`). Inject custom `txUserUpdate` /
+     * `txPrtUpdate` to simulate failures.
+     */
+    function makePrismaStub(
+      options?: {
+        txUserUpdate?: ReturnType<typeof vi.fn>;
+        txPrtUpdate?: ReturnType<typeof vi.fn>;
+      },
+    ): {
+      $transaction: ReturnType<typeof vi.fn>;
+      txUserUpdate: ReturnType<typeof vi.fn>;
+      txPrtUpdate: ReturnType<typeof vi.fn>;
+    } {
+      const txUserUpdate =
+        options?.txUserUpdate ??
+        vi.fn(async () => undefined);
+      const txPrtUpdate =
+        options?.txPrtUpdate ??
+        vi.fn(async () => undefined);
+      const $transaction = vi.fn(
+        async (cb: (tx: unknown) => Promise<unknown>) => {
+          return cb({
+            user: { update: txUserUpdate },
+            passwordResetToken: { update: txPrtUpdate },
+          });
+        },
+      );
+      return { $transaction, txUserUpdate, txPrtUpdate };
+    }
 
 const sha256 = (s: string): string =>
   createHash("sha256").update(s).digest("hex");
@@ -405,74 +442,90 @@ describe("PasswordResetService", () => {
 
       describe("consumeReset", () => {
         it("with a valid token — replaces passwordHash (bcrypt 10), marks consumed, dispatches auth.password-reset.completed", async () => {
-      // 1. Seed a valid token via the in-memory token repo.
-      const rawToken = "a".repeat(48); // 48 chars, satisfies >=32
-      const tokenHash = sha256(rawToken);
-      const tokenRepo = makeFakeTokenRepo();
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-      tokenRepo.rows.set(tokenHash, {
-        id: "prt-1",
-        userId: "user-1",
-        tokenHash,
-        expiresAt,
-        consumedAt: null,
-      });
+          // 1. Seed a valid token via the in-memory token repo.
+          const rawToken = "a".repeat(48); // 48 chars, satisfies >=32
+          const tokenHash = sha256(rawToken);
+          const tokenRepo = makeFakeTokenRepo();
+          const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+          tokenRepo.rows.set(tokenHash, {
+            id: "prt-1",
+            userId: "user-1",
+            tokenHash,
+            expiresAt,
+            consumedAt: null,
+          });
 
-      // 2. Wire userRepo with updatePassword spy.
-      const userRepo = makeFakeUserRepo({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        hashedPassword: "$2a$10$old-hash",
-      });
-      const dispatcher = vi.fn<AuthEventDispatcher>();
-      vi.mocked(bcrypt.hash).mockResolvedValue(
-        "$2a$10$new-bcrypt-hash" as never,
-      );
+          // 2. Wire userRepo with updatePassword spy.
+          const userRepo = makeFakeUserRepo({
+            id: "user-1",
+            email: "alice@example.com",
+            role: "USER",
+            hashedPassword: "$2a$10$old-hash",
+          });
+          const dispatcher = vi.fn<AuthEventDispatcher>();
+          vi.mocked(bcrypt.hash).mockResolvedValue(
+            "$2a$10$new-bcrypt-hash" as never,
+          );
 
-      const { PasswordResetService } = await import("../password-reset.service.js");
-      const service = new PasswordResetService(
-        userRepo as never,
-        tokenRepo as never,
-        dispatcher,
-      );
+          // F1: both writes go through `tx.*` inside `prisma.$transaction`.
+          const prismaStub = makePrismaStub();
 
-      await service.consumeReset(rawToken, "newPassword123");
+          const { PasswordResetService } = await import("../password-reset.service.js");
+          const service = new PasswordResetService(
+            userRepo as never,
+            tokenRepo as never,
+            dispatcher,
+            prismaStub as never,
+          );
 
-      // Token marked consumed with the same hash.
-      expect(tokenRepo.markConsumed).toHaveBeenCalledTimes(1);
-      const consumedArg = vi.mocked(tokenRepo.markConsumed).mock
-        .calls[0] as unknown as [string, Date];
-      expect(consumedArg[0]).toBe(tokenHash);
-      expect(consumedArg[1]).toBeInstanceOf(Date);
+          await service.consumeReset(rawToken, "newPassword123");
 
-      // auth.password-reset.completed dispatched once with the right shape.
-      expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = (vi.mocked(dispatcher).mock.calls[0] as unknown as [
-        DomainEvent,
-      ])[0];
-      expect(dispatched.name).toBe("auth.password-reset.completed");
-      expect(dispatched.userId).toBe("user-1");
-      const payload = dispatched.payload as {
-        userId: string;
-        resetAt: Date;
-      };
-      expect(payload.userId).toBe("user-1");
-      expect(payload.resetAt).toBeInstanceOf(Date);
+          // F1: $transaction was called once with BOTH writes inside.
+          expect(prismaStub.$transaction).toHaveBeenCalledTimes(1);
+          // tx.user.update called with (userId, hashedPassword) — the bcrypt
+          // cost factor is visible at this seam.
+          expect(prismaStub.txUserUpdate).toHaveBeenCalledTimes(1);
+          expect(prismaStub.txUserUpdate).toHaveBeenCalledWith({
+            where: { id: "user-1" },
+            data: { hashedPassword: "$2a$10$new-bcrypt-hash" },
+          });
+          // tx.passwordResetToken.update called with (tokenHash, consumedAt).
+          expect(prismaStub.txPrtUpdate).toHaveBeenCalledTimes(1);
+          const prtUpdateArg = (
+            vi.mocked(prismaStub.txPrtUpdate).mock
+              .calls[0] as unknown as [
+              { where: { tokenHash: string }; data: { consumedAt: Date } },
+            ]
+          )[0];
+          expect(prtUpdateArg.where).toEqual({ tokenHash });
+          expect(prtUpdateArg.data.consumedAt).toBeInstanceOf(Date);
 
-      // bcrypt.hash called with the new password and cost factor 10.
-      // Asserting the exact `bcrypt.hash(newPassword, 10)` shape avoids
-      // the `'hash, 10'` literal-string flakiness flagged in the brief.
-      expect(bcrypt.hash).toHaveBeenCalledTimes(1);
-      expect(bcrypt.hash).toHaveBeenCalledWith("newPassword123", 10);
+          // The port-level updatePassword + markConsumed are NEVER called
+          // (the transaction owns the writes; double-writing would defeat
+          // atomicity).
+          expect(userRepo.updatePassword).not.toHaveBeenCalled();
+          expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
 
-      // userRepo.updatePassword called with (userId, hashedPassword).
-      expect(userRepo.updatePassword).toHaveBeenCalledTimes(1);
-      const updateArg = vi.mocked(userRepo.updatePassword).mock
-        .calls[0] as unknown as [string, string];
-      expect(updateArg[0]).toBe("user-1");
-      expect(updateArg[1]).toBe("$2a$10$new-bcrypt-hash");
-    });
+          // auth.password-reset.completed dispatched once with the right shape.
+          expect(dispatcher).toHaveBeenCalledTimes(1);
+          const dispatched = (vi.mocked(dispatcher).mock.calls[0] as unknown as [
+            DomainEvent,
+          ])[0];
+          expect(dispatched.name).toBe("auth.password-reset.completed");
+          expect(dispatched.userId).toBe("user-1");
+          const payload = dispatched.payload as {
+            userId: string;
+            resetAt: Date;
+          };
+          expect(payload.userId).toBe("user-1");
+          expect(payload.resetAt).toBeInstanceOf(Date);
+
+          // bcrypt.hash called with the new password and cost factor 10.
+          // Asserting the exact `bcrypt.hash(newPassword, 10)` shape avoids
+          // the `'hash, 10'` literal-string flakiness flagged in the brief.
+          expect(bcrypt.hash).toHaveBeenCalledTimes(1);
+          expect(bcrypt.hash).toHaveBeenCalledWith("newPassword123", 10);
+        });
 
     it("with an already-consumed token — throws AuthError generic; no password update; no completed event", async () => {
       const rawToken = "b".repeat(48);
@@ -495,6 +548,7 @@ describe("PasswordResetService", () => {
       const dispatcher = vi.fn<AuthEventDispatcher>();
       vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new" as never);
 
+      const prismaStub = makePrismaStub();
       const { PasswordResetService, AuthError } = await import(
         "../password-reset.service.js"
       );
@@ -502,6 +556,7 @@ describe("PasswordResetService", () => {
         userRepo as never,
         tokenRepo as never,
         dispatcher,
+        prismaStub as never,
       );
 
       let caught: unknown;
@@ -526,6 +581,9 @@ describe("PasswordResetService", () => {
       expect(dispatcher).not.toHaveBeenCalled();
       // bcrypt.hash never called (short-circuit before user mutation).
       expect(bcrypt.hash).not.toHaveBeenCalled();
+      // F1: $transaction was NOT reached (service threw before the
+      // transaction wrapper).
+      expect(prismaStub.$transaction).not.toHaveBeenCalled();
     });
 
     it("with an expired token (>1h ago) — throws AuthError generic; no password update; no enumeration leak about expiry", async () => {
@@ -547,6 +605,7 @@ describe("PasswordResetService", () => {
         hashedPassword: "$2a$10$old",
       });
       const dispatcher = vi.fn<AuthEventDispatcher>();
+      const prismaStub = makePrismaStub();
 
       const { PasswordResetService, AuthError } = await import(
         "../password-reset.service.js"
@@ -555,6 +614,7 @@ describe("PasswordResetService", () => {
         userRepo as never,
         tokenRepo as never,
         dispatcher,
+        prismaStub as never,
       );
 
       let caught: unknown;
@@ -572,6 +632,7 @@ describe("PasswordResetService", () => {
       ).not.toContain("expired");
       expect(userRepo.updatePassword).not.toHaveBeenCalled();
       expect(dispatcher).not.toHaveBeenCalled();
+      expect(prismaStub.$transaction).not.toHaveBeenCalled();
     });
 
     it("with an unknown token — throws AuthError generic; no password update; NO 'not found' wording (no enumeration leak)", async () => {
@@ -583,6 +644,7 @@ describe("PasswordResetService", () => {
         hashedPassword: "$2a$10$old",
       });
       const dispatcher = vi.fn<AuthEventDispatcher>();
+      const prismaStub = makePrismaStub();
 
       const { PasswordResetService, AuthError } = await import(
         "../password-reset.service.js"
@@ -591,6 +653,7 @@ describe("PasswordResetService", () => {
         userRepo as never,
         tokenRepo as never,
         dispatcher,
+        prismaStub as never,
       );
 
       let caught: unknown;
@@ -613,6 +676,7 @@ describe("PasswordResetService", () => {
       expect(dispatcher).not.toHaveBeenCalled();
       // The service looked up the token by sha256(rawToken) via the port.
       expect(tokenRepo.findByHash).toHaveBeenCalledTimes(1);
+      expect(prismaStub.$transaction).not.toHaveBeenCalled();
     });
   });
 });
