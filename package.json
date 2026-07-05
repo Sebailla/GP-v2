@@ -19,6 +19,13 @@
     "bdd": "turbo run bdd",
     "e2e": "turbo run e2e",
     "coverage": "turbo run coverage",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d postgres",
+    "db:logs": "docker compose logs -f postgres",
+    "prisma": "pnpm --filter @core/database exec prisma",
+    "prisma:migrate:dev": "pnpm --filter @core/database exec prisma migrate dev",
+    "prisma:generate": "pnpm --filter @core/database exec prisma generate",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,yaml,yml}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,yaml,yml}\" --ignore-path .gitignore",
     "clean": "turbo run clean && rm -rf .turbo node_modules"
