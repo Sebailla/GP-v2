@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { AuthError, ValidationError } from "./errors.js";
+import { BCRYPT_COST_FACTOR } from "./constants.js";
 
 // Re-export the error classes from this module so consumers (tests, the
 // barrel `src/index.ts`) can import the whole AuthService surface from a
@@ -231,7 +232,7 @@ export class AuthService {
         }
 
         // 4. Hash the password. bcryptjs cost 10 — see method docstring.
-        const hashed = await bcrypt.hash(parsed.data.password, 10);
+        const hashed = await bcrypt.hash(parsed.data.password, BCRYPT_COST_FACTOR);
 
         // 5. Create the User. `role` defaults to USER at the schema level;
         // we set it explicitly here so the contract is visible at the call

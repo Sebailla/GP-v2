@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
+import { BCRYPT_COST_FACTOR } from "./constants.js";
 import { AuthError } from "./errors.js";
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import type {
@@ -72,10 +73,10 @@ export type { AuthErrorCode } from "./errors.js";
  */
 
 /** Token TTL for a fresh reset (1h per design §4.1). */
-const TOKEN_TTL_MS = 60 * 60 * 1000;
+export const TOKEN_TTL_MS = 60 * 60 * 1000;
 
 /** Minimum raw token length, enforced at mint time. */
-const MIN_TOKEN_LENGTH = 32;
+export const MIN_TOKEN_LENGTH = 32;
 
 const sha256Hex = (raw: string): string =>
   createHash("sha256").update(raw).digest("hex");
@@ -291,7 +292,7 @@ export class PasswordResetService {
     }
 
     // 5. Hash the new password at the canonical cost factor.
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, BCRYPT_COST_FACTOR);
 
     // 6 + 7. F1: wrap BOTH writes in a single prisma.\$transaction so a
     //    failure on the second write rolls back the first (TOCTOU

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { BCRYPT_COST_FACTOR } from "../constants.js";
+
 /**
  * TDD contract for AuthService.register (slice 3 batch 2 / brief T3.3 RED).
  *
@@ -99,8 +101,11 @@ describe("AuthService.register", () => {
       where: { email: "alice@example.com" },
     });
 
-    // 2. Password was hashed with bcrypt at cost 10 (NOT stored plain)
-    expect(bcrypt.hash).toHaveBeenCalledWith("StrongP@ss123", 10);
+        // 2. Password was hashed with bcrypt at BCRYPT_COST_FACTOR (NOT stored plain)
+        expect(bcrypt.hash).toHaveBeenCalledWith(
+          "StrongP@ss123",
+          BCRYPT_COST_FACTOR,
+        );
 
     // 3. User row was created with the hashed password, NOT the plain one
     expect(prisma.user.create).toHaveBeenCalledTimes(1);
