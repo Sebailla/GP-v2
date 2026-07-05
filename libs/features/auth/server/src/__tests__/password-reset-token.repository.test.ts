@@ -56,6 +56,7 @@ vi.mock("@core/database", () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -239,6 +240,102 @@ describe("PrismaPasswordResetTokenRepository", () => {
       await expect(
         repo.markConsumed("orphan-hash", new Date()),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // F4 (WARNING): TTL cleanup. Brief brief-fix-F4 RED.
+  //
+  // Per the `password_reset_tokens` table growing unboundedly without a TTL job,
+  // the port gains `deleteExpired(before: Date): Promise<number>` so a future
+  // `@nestjs/schedule` cron can prune rows. The cron registration lands in
+  // slice 3 batch 6+ (T3.6 NestJS wrapper); this batch ships the port method +
+  // Prisma adapter + tests only.
+  //
+  // Filtering policy: deleted rows have `consumedAt: null` AND
+  // `expiresAt < before`. Consumed rows are deliberately preserved (the
+  // `consumedAt` timestamp is the audit trail \u2014 a future compliance
+  // review needs to know when a row was consumed, not just when it
+  // expired). Operators who need to drop consumed rows can do so via an
+  // explicit migration.
+  // ---------------------------------------------------------------------------
+  describe("deleteExpired (port method)", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it("returns the number of removed unconsumed+expired rows", async () => {
+      const { PrismaPasswordResetTokenRepository } = await import(
+        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
+      );
+
+      const cutoff = new Date("2026-01-01T00:00:00Z");
+      vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
+        count: 2,
+      } as never);
+
+      const repo = new PrismaPasswordResetTokenRepository();
+      const count = await repo.deleteExpired(cutoff);
+
+      expect(count).toBe(2);
+      expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledTimes(1);
+      expect(
+        (vi.mocked(prisma.passwordResetToken.deleteMany).mock
+          .calls[0] as unknown as [
+          {
+            where: {
+              expiresAt: { lt: Date };
+              consumedAt: null;
+            };
+          },
+        ])[0],
+      ).toEqual({
+        where: {
+          expiresAt: { lt: cutoff },
+          consumedAt: null,
+        },
+      });
+    });
+
+    it("does NOT remove consumed rows (consumedAt: null filter is enforced)", async () => {
+      const { PrismaPasswordResetTokenRepository } = await import(
+        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
+      );
+
+      vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
+        count: 0,
+      } as never);
+
+      const repo = new PrismaPasswordResetTokenRepository();
+      await repo.deleteExpired(new Date());
+
+      // The where clause MUST include `consumedAt: null` regardless of
+      // any other filter \u2014 asserts that consumed rows are not pruned.
+      const callArg = (
+        vi.mocked(prisma.passwordResetToken.deleteMany).mock
+          .calls[0] as unknown as [
+          {
+            where: Record<string, unknown>;
+          },
+        ]
+      )[0];
+      expect(callArg.where).toMatchObject({ consumedAt: null });
+    });
+
+    it("returns 0 when no rows match", async () => {
+      const { PrismaPasswordResetTokenRepository } = await import(
+        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
+      );
+
+      vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
+        count: 0,
+      } as never);
+
+      const repo = new PrismaPasswordResetTokenRepository();
+      const count = await repo.deleteExpired(new Date());
+
+      expect(count).toBe(0);
+      expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledTimes(1);
     });
   });
 });
