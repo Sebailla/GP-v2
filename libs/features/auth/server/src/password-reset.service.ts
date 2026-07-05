@@ -159,19 +159,31 @@ export class PasswordResetService {
   private readonly prisma: PrismaClient;
   private readonly auditSink: AuditSink;
 
-  constructor(
-    userRepo: UserRepository,
-    tokenRepo: PasswordResetTokenRepository,
-    dispatcher: AuthEventDispatcher,
-    prisma?: PrismaClient,
-    auditSink: AuditSink = defaultAuditSink,
-  ) {
-    this.userRepo = userRepo;
-    this.tokenRepo = tokenRepo;
-    this.dispatcher = dispatcher;
-    this.prisma = prisma ?? defaultPrisma;
-    this.auditSink = auditSink;
-  }
+      constructor(
+        userRepo: UserRepository,
+        tokenRepo: PasswordResetTokenRepository,
+        dispatcher: AuthEventDispatcher,
+        prisma?: PrismaClient,
+        auditSink: AuditSink = defaultAuditSink,
+      ) {
+        // F8 (WARNING) — eager failure for missing dispatcher. Without this
+        // guard, a missing arg compiles cleanly (TypeScript's
+        // AuthEventDispatcher type is opaque enough that callers can
+        // forget it) and the failure surfaces only at first dispatch —
+        // AFTER bcrypt rounds + transaction work, which makes the bug
+        // hard to diagnose. The contract is documented: the dispatcher
+        // is REQUIRED, not optional.
+        if (typeof dispatcher !== "function") {
+          throw new TypeError(
+            `PasswordResetService requires an AuthEventDispatcher (a function); received ${typeof dispatcher === "undefined" ? "undefined" : String(dispatcher)}.`,
+          );
+        }
+        this.userRepo = userRepo;
+        this.tokenRepo = tokenRepo;
+        this.dispatcher = dispatcher;
+        this.prisma = prisma ?? defaultPrisma;
+        this.auditSink = auditSink;
+      }
 
   /**
    * Mint a single-use reset token for the supplied email and dispatch
