@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+"extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
@@ -13,6 +13,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
+    "ignoreDeprecations": "6.0",
     "incremental": true,
     "noEmit": false
   },
