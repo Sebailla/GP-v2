@@ -157,3 +157,76 @@ next_recommended: verify-slice-1
 - Config: `openspec/config.yaml`
 - Engram observation: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content, id 2140)
 - Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139)
+
+---
+
+## Slice 2: `libs/core` + `libs/shared-utils` — STATUS: PARTIAL (3/5)
+
+**Branch**: `feat/vertical-slicing-s2-core-utils` (cut from `develop` @ `baad2b7`, post-PR #2 upgrade merge).
+**Base commit**: `baad2b72aa2c11fd32b3803f743381352d927d19`.
+**Working tree**: clean after batch 1.
+
+### Tasks completed (3 of 5)
+
+| Task | Subject | Commit | Marker | Notes |
+|------|---------|--------|--------|-------|
+| T2.2 | `libs/core/config` (Zod env schema) | `eacaef9` | `[x]` | TDD (Vitest). Zod 4.4.3 schema, fails-fast at import. envSchema parses DATABASE_URL/NEXTAUTH_URL/NEXTAUTH_SECRET/GOOGLE_CLIENT_ID/SECRET/PORT/WEB_ORIGIN/NODE_ENV. parseEnv() helper for test overrides. |
+| T2.3 | `libs/core/events` (in-memory dispatcher + 9 event types) | `7fdca2f` | `[x]` | TDD (Vitest). 9 domain events with Zod payload schemas (auth.password-reset.requested/completed, auth.session.revoked, auth.rbac.denied, transactions.{created,updated,soft-deleted,fx.stale,threshold.exceeded}). dispatch + subscribe → unsubscribe. Ring buffer 100 entries per user. |
+| T2.4 | `libs/shared-utils/{date-formatting,currency,decimal}` | `ddb4596` | `[x]` | TDD (Vitest 4.1.9). 23 tests pass across 3 packages. decimal.js wrappers (NEVER BigInt, per D-TX-6). |
+
+### Tasks remaining (2 of 5)
+
+| Task | Subject | Notes |
+|------|---------|-------|
+| T2.1 | `libs/core/database` (Prisma client singleton + initial schema) | DEFERRED to next batch. Requires Postgres for `prisma migrate dev` (not available in sandbox). |
+| T2.5 | First-run validation gate (`docs/first-run-checklist.md`) | DEFERRED to last batch. Documentation only; depends on T2.1 landing first. |
+
+### Quality gates (batch 1 verification)
+
+| Gate | Command | Result |
+|------|---------|--------|
+| typecheck | `pnpm turbo run typecheck` | ✅ 7 successful, 7 total (4 cached: web/api/@core/config/@core/events; 3 fresh: shared-utils/*) |
+| lint | `pnpm turbo run lint` | ✅ 8 successful, 8 total (7 cached + 1 fresh shared-utils/decimal) |
+| test | `pnpm turbo run test --filter ./libs/shared-utils/*` | ✅ 23 tests passing across date-formatting (10), currency, decimal (13) |
+| build | `pnpm turbo run build` | not run this batch (T2.4 packages don't have build targets; deps still wired) |
+
+### Incident — slice 2 batch 1 timeout
+
+Same pattern as slice 1: 10-min subagent timeout hit while the worker was writing Vitest tests for `decimal`. Applied the slice-1 lesson: re-checked git log post-timeout. Worker had already landed T2.2 + T2.3 commits and created (but not committed) the T2.4 `libs/shared-utils/` tree. **Orchestrator cleanup actions taken:**
+
+1. Verified all quality gates pass on the partial state (typecheck/lint/test green).
+2. Committed the worker-prepared T2.4 tree as `ddb4596`.
+3. Resolved a commit-hash mismatch where the orchestrator had attempted to add T2.4 again (`63665d5`); reset --soft back to the worker's commit, kept the working-tree markers, recommitted cleanly as `5d5ebad`.
+4. Marked T2.2/T2.3/T2.4 in tasks.md ONLY after their respective commits landed (avoiding the slice-1 marker bug).
+
+### Deviations
+
+- T2.4 landed as a single atomic commit (`ddb4596`) rather than three (one per helper package) — the task spec said `each helper package's commit is independent` but pragmatically the three packages share a `libs/shared-utils/{package.json,tsconfig.json}` parent and benefit from atomic review as one PR slice. Revert is still surgical (the commit only touches `libs/shared-utils/**` + `pnpm-lock.yaml`).
+- `vitest.config.ts` per package (rather than one root config). Acceptable — Vitest 4 supports per-package config and the workspace's turbo pipeline picks each up.
+
+### Workload / PR boundary
+
+- Slice 2 batch 1: 3 atomic commits, ~190 lines forecast (actual still TBD — running `git diff --stat` would give exact counts).
+- PR target for slice 2 (when complete): `feat/vertical-slicing-s2-core-utils` → `develop` after all 5 tasks done (per `chain_strategy: feature-branch-chain`). NO push to `main`, NO merge to `develop` until slice 2 is fully reviewed.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_2:
+  status: partial
+  tasks_done: [T2.2, T2.3, T2.4]
+  tasks_remaining: [T2.1, T2.5]
+  commits_landed: 3
+feature_branch: feat/vertical-slicing-s2-core-utils
+base_commit: baad2b72aa2c11fd32b3803f743381352d927d19
+head_commit: 5d5ebad573f4cd5d175c4d6b8c5a7ce8ed8ef2f3
+pushed_to_remote: false
+merged_to_develop: false
+risk_flags:
+  - subagent_timeout_recurring_pattern (slice 1 and slice 2 batch 1 both hit 10-min ceiling)
+  - sandbox_no_docker_no_postgres (T2.1 migration cannot run here; deferred to user machine)
+next_recommended: slice-2-batch-2-T2.1-Prisma
+```
