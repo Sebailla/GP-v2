@@ -1,0 +1,105 @@
+// Prisma schema for gastos-personales-reference.
+//
+// Single source of truth for the database tables. The schema covers the
+// AUTH slice tables (User, Account, Session, VerificationToken,
+// PasswordResetToken) required by `specs/auth/spec.md` "Data Model".
+// Transactions tables (Currency, FxRate, Category, Transaction,
+// IdempotencyKey, AuditLog) land in slice 5.
+//
+// Prisma 7.x note: the `url` property is NO LONGER supported in the
+// datasource block of `schema.prisma`. The connection URL is configured
+// in `prisma.config.ts` (see that file) and passed to `PrismaClient`
+// via `datasourceUrl` at construction time. The `prisma.config.ts` is
+// where `env("DATABASE_URL")` is read.
+
+generator client {
+  provider = "prisma-client"
+  // Prisma 7 requires an explicit output path. Place the generated
+  // client inside the package's src/ so the resolver can find it via
+  // a relative import from ./client.ts.
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// AUTH slice (slice 2 — this file)
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  emailVerified  DateTime?
+  name           String?
+  image          String?
+  hashedPassword String?
+  role           Role      @default(USER)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt])
+  @@map("password_reset_tokens")
+}

@@ -9,4 +9,6 @@ packages:
 # See https://pnpm.io/settings for the canonical list.
 allowBuilds:
   "@nestjs/core": true
+  "@prisma/engines": true
+  prisma: true
   "sharp": true

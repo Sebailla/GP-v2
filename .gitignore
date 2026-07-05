@@ -12,6 +12,9 @@ dist/
 out/
 build/
 
+# Prisma generated client (re-generated on `prisma generate`)
+libs/core/database/src/generated/
+
 # Test artifacts
 coverage/
 bdd-reports/

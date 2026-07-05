@@ -159,7 +159,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm install && pnpm prisma migrate dev && pnpm turbo run build lint typecheck test` exits 0; a runtime smoke check on `apps/api` boot fails-fast if env vars are missing.
 **Rollback.** Per atomic commit (`git revert <task-sha>`); the slice's commit chain is revertible as a group because no slice depends on this slice's internal details — only its public API.
 
-### Task T2.1 — `libs/core/database` (Prisma client singleton + initial schema) (~80 lines)
+### Task T2.1 — `libs/core/database` (Prisma client singleton + initial schema) (~80 lines) [x]
 
 - **Description.** Create the Prisma schema covering the auth slice tables (`User`, `Account`, `Session`, `VerificationToken`, `PasswordResetToken`, `Role` enum). Transactions tables land in Slice 5. The schema lives at `libs/core/database/prisma/schema.prisma`; the client singleton lives in `libs/core/database/src/client.ts` and is the **only** place `new PrismaClient()` is permitted. Re-export the typed client from `libs/core/database/src/index.ts` as `@core/database`.
 - **Discovery / file targets.** Create `libs/core/database/{package.json,tsconfig.json,prisma/schema.prisma,src/client.ts,src/index.ts}`. Migrations live under `libs/core/database/prisma/migrations/`.
@@ -195,7 +195,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** Per atomic commit (`git revert <T2.4-sha>`); each helper package's commit is independent.
 - **Files touched (rough).** `libs/shared-utils/**` (~60 lines).
 
-### Task T2.5 — First-run validation gate (~0 new lines, ~50 verification-only commands)
+### Task T2.5 — First-run validation gate (~0 new lines, ~50 verification-only commands) [x]
 
 - **Description.** Run the full pipeline end-to-end on a clean clone to prove the skeleton + core libs work together. This task is **verification-only** — no new code beyond the validation matrix itself; if a check fails, file a fix-task against the offending slice's task.
 - **Discovery / file targets.** No new files; produce `docs/first-run-checklist.md` (≤30 lines) capturing the commands so `sdd-verify` can replay them. The checklist must end with the success criterion: **"all exit 0"**.
