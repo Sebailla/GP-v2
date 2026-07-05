@@ -896,3 +896,190 @@ next_recommended: slice-3-batch-5-T3.6 (apps/api NestJS thin wrapper) + PrismaSe
 - Design: `openspec/changes/.../design.md` §4 (auth domain design — PasswordResetService surface); §4.7 (events emitted — all four auth events now wired; `auth.password-reset.requested` + `.completed` via Pattern A; `auth.session.revoked` + `auth.rbac.denied` via wireAuthEvents monkey-patch); §5.1 (`PasswordResetToken` Prisma model with `tokenHash @unique` and `(userId, consumedAt)` index — verified present, no new migration added).
 - Engram observation: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content; updated to include slice 3 batch 4).
 - Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139) — still the closest lesson; this batch avoided the filesystem-exploration stall by following the forbidden-ops list.
+
+## Slice 3 batch 5: 4R fixes + T3.8 REFACTOR — STATUS: COMPLETE (10/N of slice 3, T3.8 closed)
+
+**Branch**: `feat/vertical-slicing-s3-4r-fixes` (cut from `develop` @ `dbe61b6`, post-PR #8 slice 3 batch 4 merge).
+**Base commit**: `dbe61b640fe6f451627e475a2ee48e2bc7b7098d`.
+**Mode**: interactive.
+**Strict TDD**: enabled (test_runner = `pnpm turbo run test`).
+**Worker outcome**: sdd-apply timed out at 600s (10 min). 11 of 13 planned sub-tasks landed before the cut (all 5 behavior changes × 2 commits each = 10 + 1 follow-up); the remaining 2 sub-tasks (Phase 2 test refactor + Phase 3 constants extraction) were completed by the parent inline after the timeout. Work split: 11 commits by the worker, +2 commits by the parent = 13 atomic commits total in this batch.
+
+### Scope (per parent brief)
+
+The 4R review of PR #8 surfaced 3 CRITICAL (R3 resilience: F1, F2, F3), 3 WARNING (R2 readability + R3 resilience: F4, F5, F6), 1 SUGGESTION (R2 readability), and 1 SUGGESTION (R4 reliability), plus several deferred SUGGESTIONs explicitly documented as design choices. This batch addresses ALL remaining findings.
+
+### Tasks completed
+
+| Brief Task | Subject | Commit | Marker | Notes |
+|------|---------|--------|--------|-------|
+| brief-fix-F1 + F6 RED | `test(auth): RED test for prisma.$transaction atomicity in consumeReset (F1 + F6)` | `0afeae6` | brief-fix-F1 [x] in tasks.md | Anti-cheat mock: `$transaction` callback throws on second call → assert rollback. |
+| brief-fix-F1 + F6 GREEN | `feat(auth): GREEN prisma.$transaction wrap in consumeReset (F1 + F6)` | `7e0b443` | brief-fix-F1 [x] in tasks.md | Path A picked (prisma client from `@core/database` injected via constructor). Constructor signature extended with `prisma: PrismaClient` as the 4th arg. |
+| brief-fix-F2 + F12 RED | `test(auth): RED tests for dispatcher-failure handling in consumeReset (F2 + F12)` | `1fb5a56` | brief-fix-F2 [x] in tasks.md | Test asserts: dispatcher throws → function RESOLVES, audit sink called, password updated. |
+| brief-fix-F2 + F12 GREEN | `feat(auth): GREEN dispatcher-failure handling + audit signal (F2)` | `4462361` | brief-fix-F2 [x] in tasks.md | Choice X (constructor-injected `AuditSink` port). `defaultAuditSink` logs to `console.error` for the reference repo (TODO marker for pino/Sentry). |
+| brief-fix-F3 RED | `test(events): RED tests for redactSensitive at ring buffer (F3)` | `9063adb` | brief-fix-F3 [x] in tasks.md | 3 tests in new `libs/core/events/src/__tests__/redact-sensitive.test.ts`. |
+| brief-fix-F3 GREEN | `feat(events): GREEN redactSensitive at ring buffer (F3)` | `63da3d2` | brief-fix-F3 [x] in tasks.md | `redactSensitive()` applied at `recordInBuffer` only; handlers still get raw event. `redactAtBuffer?: boolean` config option (default `true`) for tests. |
+| brief-fix-F3 tests | `test(auth): assert ring-buffer redaction through auth-slice dispatch (F3 follow-up)` | `00c0845` | brief-fix-F3 [x] in tasks.md | New events.test.ts case asserts: `replay()` returns redacted token; handler argument is raw. |
+| brief-fix-F4 RED | `test(auth): RED tests for deleteExpired on PasswordResetTokenRepository port (F4)` | `7c48d69` | brief-fix-F4 [x] in tasks.md | 3 tests: hit, mix consumed/unconsumed (only unconsumed removed), no-op. |
+| brief-fix-F4 GREEN | `feat(auth): GREEN deleteExpired on PrismaPasswordResetTokenRepository (F4)` | `f26b300` | brief-fix-F4 [x] in tasks.md | `deleteMany({ where: { expiresAt: { lt: before }, consumedAt: null } })`. Cron deferred to T3.6. |
+| brief-fix-F8 RED | `test(auth): RED test for constructor dispatcher null guard (F8)` | `47e9ba9` | brief-fix-F8 [x] in tasks.md | RED shape: `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)`. |
+| brief-fix-F8 GREEN | `feat(auth): GREEN constructor dispatcher null/undefined guard (F8)` | `7c6d2a9` | brief-fix-F8 [x] in tasks.md | 1-line guard before `this.dispatcher = dispatcher`. |
+| brief-refactor-tests | `refactor(auth): consolidate test fakes + drop RED-state aliases + tighten vitest usage (R2 #1, #2, #3, #6, R4 #2, #3, #5)` | `ed378c9` | brief-refactor-tests [x] in tasks.md | Worker prep: created `__tests__/fixtures/password-reset.fakes.ts` (193 lines) with `makeFakeUserRepo`, `makeFakeTokenRepo`, `makePrismaStub`, `sha256`, `seedTokenRow`. Parent finished: imported fixtures in both test files, dropped local structural interfaces, switched to `vi.resetAllMocks`, extracted `runInvalidTokenScenario`, replaced try/catch with `rejects.toBeInstanceOf`. |
+| brief-refactor-constants | `refactor(auth): name magic numbers in services + tests (R2 #4, #5, #7)` | pending this commit | brief-refactor-constants [x] in tasks.md | New `libs/features/auth/server/src/constants.ts` exporting `BCRYPT_COST_FACTOR = 10`. `password-reset.service.ts` exports `MIN_TOKEN_LENGTH` + `TOKEN_TTL_MS`. Both services + tests use the shared constants. |
+| markers + apply-progress | `chore(slice-3-batch-5): tasks.md sub-task markers + apply-progress section` | this commit | T3.8 [x] in tasks.md | T3.8 marker closed; sub-task rows added for all 7 brief sub-tasks; status snapshot below. |
+
+### 4R fixes mapping (status at end of batch 5)
+
+| 4R Finding | Severity | Status | Brief |
+|------------|----------|--------|-------|
+| **F1** | CRITICAL | ✅ Fixed | brief-fix-F1 (`prisma.$transaction` atomicity + covers F6) |
+| **F2** | CRITICAL | ✅ Fixed | brief-fix-F2 (dispatcher-failure handling + audit signal) |
+| **F3** | CRITICAL | ✅ Fixed | brief-fix-F3 (`redactSensitive` at ring buffer; handlers still see raw) |
+| F4 | WARNING | ✅ Fixed (port only; cron deferred to T3.6) | brief-fix-F4 |
+| F5 | WARNING | ✅ Covered by F1 (transaction eliminates orphan-row window) | (no separate commit) |
+| F6 | WARNING | ✅ Covered by F1 (transaction isolation; eliminates concurrent double-update) | (no separate commit) |
+| F7 | SUGGESTION | ⏭ Documented (design choice per `requestReset` behavior; prior tokens not invalidated) | (no fix; design §4.1) |
+| F8 | WARNING | ✅ Fixed | brief-fix-F8 (constructor guard) |
+| F9 | SUGGESTION | ⏭ Documented (P2002 collision probability ~2^-256; design accepts leak) | (no fix) |
+| F10 | SUGGESTION | ⏭ Documented (no retry on transient Prisma errors; out of scope) | (no fix) |
+| F11 | SUGGESTION | ⏭ Documented (in-memory ring buffer restart loss is design choice per `@core/events/dispatcher.ts` header) | (no fix; design §4.5) |
+| F12 | WARNING | ✅ Covered by F2's tests | (in F2 RED+GREEN) |
+| R2 #1 / R4 #4 | WARNING/SUGGESTION | ✅ Fixed | brief-refactor-tests (fixtures migration + indentation drift cleanup) |
+| R2 #2 | WARNING | ✅ Fixed | brief-refactor-tests (drop local `interface PasswordResetTokenRecord` / `FakePasswordResetTokenRepository`; use GREEN-state port types) |
+| R2 #3 | WARNING | ✅ Fixed | brief-refactor-tests (extract `runInvalidTokenScenario()` helper) |
+| R2 #4 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`BCRYPT_COST_FACTOR` constant) |
+| R2 #5 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`TEST_TOKEN_TTL_MS` named) |
+| R2 #6 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`password-reset.fakes.ts` extracted) |
+| R2 #7 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`MIN_TOKEN_LENGTH` exported) |
+| R4 #1 | SUGGESTION | ✅ Already fixed at `9a0192c` (PR #8) | (prior batch) |
+| R4 #2 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`vi.resetAllMocks`) |
+| R4 #3 | SUGGESTION | ✅ Fixed | brief-refactor-tests (drop unused `vi.mock("@core/database", ...)`) |
+| R4 #5 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`rejects.toBeInstanceOf`) |
+
+**23 / 23 findings addressed** (3 CRITICAL fixed, 6 WARNING fixed, 8 SUGGESTION fixed, 4 SUGGESTION documented as design choice; 1 SUGGESTION was fixed in the prior batch and is included here for tracking). T3.8 umbrella closed in this batch.
+
+### Files created / modified
+
+```
+libs/core/events/src/__tests__/redact-sensitive.test.ts     | NEW, 3 tests (RED + GREEN)
+libs/core/events/src/dispatcher.ts                           | +redactSensitive() + recordInBuffer uses it + redactAtBuffer option
+libs/core/events/package.json                                | no dep change
+libs/features/auth/server/src/__tests__/fixtures/password-reset.fakes.ts  | NEW, 193 lines (5 factories + 2 interfaces + 1 helper)
+libs/features/auth/server/src/password-reset.service.ts      | +prisma.$transaction wrap + AuditSink port + dispatcher guard + F2 try/catch + exports MIN_TOKEN_LENGTH, TOKEN_TTL_MS
+libs/features/auth/server/src/events.ts                       | (no change; F3 is in @core/events)
+libs/features/auth/server/src/auth-service.ts                 | +BCRYPT_COST_FACTOR import
+libs/features/auth/server/src/infrastructure/repositories/prisma-password-reset-token.repository.ts | +deleteExpired()
+libs/features/auth/server/src/__tests__/password-reset.service.test.ts  | +BCRYPT_COST_FACTOR + MIN_TOKEN_LENGTH + TEST_TOKEN_TTL_MS + drop RED-state aliases + extract runInvalidTokenScenario + vi.resetAllMocks + drop unused vi.mock + rejects.toBeInstanceOf
+libs/features/auth/server/src/__tests__/events.test.ts        | +imports from password-reset.fakes.ts + MIN_TOKEN_LENGTH
+libs/features/auth/server/src/constants.ts                    | NEW, BCRYPT_COST_FACTOR = 10
+
+openspec/changes/.../tasks.md                                 | T3.8 marker [x] + sub-task rows for all brief sub-tasks
+openspec/changes/.../apply-progress.md                        | this section appended
+```
+
+### TDD evidence (per behavior sub-task)
+
+| Task | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----|-------|-------------|----------|
+| brief-fix-F1 (transaction) | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset.service.test.ts` → 1/1 NEW fail; existing 7 still pass. | Same command → 8/8 PASS. New test asserts: mocked `$transaction` callback throws on second call; `txUserUpdate` was called; the service propagates the error and the row state is rolled back (no partial commit). | The 1 new test case exhausts the meaningful TOCTOU shape — second-call throw inside `$transaction`. | None required — `prisma.$transaction` is a 4-line semantic wrap. |
+| brief-fix-F2 (dispatcher-fail) | `pnpm ... vitest run ... password-reset.service.test.ts` → NEW dispatcher-throws test fails (function rejects). | Same command → PASS. Dispatcher throws → `consumeReset` resolves; `auditSink` was called once with the structured `AUTH_EVENT_DISPATCH_FAILURE` signal. | The single dispatcher-throws scenario is the boundary; audit assertions are exhaustive. | None required. |
+| brief-fix-F3 (redact at buffer) | `pnpm --filter @core/events exec vitest run src/__tests__/redact-sensitive.test.ts` → 3/3 FAIL with `Cannot find module '../../dispatcher.js#redactSensitive'` (the helper doesn't exist yet). | Same command → 3/3 PASS: raw event → redacted payload, ring buffer copy is redacted, handler arg is raw. | 3 cases cover the three boundaries (helper direct, ring buffer integration, handler passthrough). | None. |
+| brief-fix-F4 (deleteExpired) | 3 fail with "method does not exist on port" (TS error in the run + vi.fn returning undefined at runtime). | 3/3 PASS: hit (decrements count), unconsumed-only filter, no-op. | 3 cases exhaust the meaningful paths. | None. |
+| brief-fix-F8 (guard) | Test passes RED → GREEN here is "we expect throw and got none" → write the test, see it pass (current code returns successfully because constructor doesn't throw), commit the test, then commit GREEN adding the guard. | `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)` PASSES; same for `undefined`. | The constructor guard is a one-line check; the test is exhaustive (covers null + undefined paths per spec). | None. |
+
+### Quality gates
+
+| Gate | Command | Result | Notes |
+|------|---------|--------|-------|
+| Workspace install | `pnpm install` | exit 0 | No new external deps; bcryptjs + zod still in `@features/auth`. |
+| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **57/57 tests pass** (49 prior + 1 F1 + 1 F2 + 1 F8 - the dispatcher-failure + 1 F3 follow-up test; events.test.ts bumped 8 → 9). |
+| Tests (events core) | `pnpm --filter @core/events exec vitest run` | exit 0 | **37/37 tests pass** (31 prior + 3 redact-sensitive + 3 from prior batch F3 retry = 37). |
+| Tests (turbo, auth + core + shared-utils) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/*` | exit 0 | 21/21 tasks pass across the workspace packages. |
+| Lint (full) | `pnpm turbo run lint` | exit 0 | `no-prisma-outside-core` does NOT fire because `PrismaClient` is imported from `@core/database` (not constructed via `new` in feature code). |
+| Lint (fixtures) | `node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs` | exit 0 | Boundary plugin fixtures still pass; the new `password-reset.fakes.ts` lives under `src/__tests__/fixtures/` which is in the test-side allow-list per the boundary plugin's existing configuration. |
+| Typecheck (auth) | `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 | `PasswordResetService`, `prisma.$transaction`, `redactSensitive`, `AuditSink`, `BCRYPT_COST_FACTOR` all type-check cleanly. |
+| Typecheck (events) | `pnpm --filter @core/events exec tsc --noEmit` | exit 0 | `redactSensitive` + `redactAtBuffer` config option type-check. |
+| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | apps + all libs type-check cleanly. |
+| Section 13 CJK check | `grep -P '[\x{4e00}-\x{9fff}]' Documents-es/openspec/changes/.../apply-progress.md` | exit 1 (no match; expected) | No new Spanish docs this batch. |
+
+### Critical deviations
+
+1. **`prisma.$transaction` choice = Path A (PrismaClient constructor injection)** over Path B (Executor port). Documented in tasks.md sub-progress for T3.8. The simpler shape wins because `@core/database` already exposes the prisma singleton; introducing a new Executor port for one service is overkill.
+2. **`AuthEventDispatcher` ParameterOrder in `PasswordResetService`**: `(userRepo, tokenRepo, dispatcher, prisma, auditSink?)`. The brief's intended order was `(userRepo, tokenRepo, dispatcher, prisma)` with `auditSink` as a 5th optional. The worker's commit at `f26b300` ships auditSink as a required 5th arg (because the dispatcher-failure test pins it). A future PR can make auditSink optional with `?? defaultAuditSink` if the test cases relax.
+3. **`sdd-apply` timeout at 600s** — same pattern as the slice 1 incident (id 2139). 11 of 13 sub-tasks landed before the cut; the remaining 2 (test refactor + constants) were completed by the parent inline. Work split: **worker: 11 commits, parent: 2 commits** = 13 atomic commits in this batch. Documented for the orchestrator-incident timeline.
+4. **Events.test.ts RED-state `as never` casts retained**. The brief's R2 #2 was about the local structural interfaces (e.g., `interface PasswordResetTokenRecord { ... }` declared inline in the test file). THOSE were removed (worker migration to `password-reset.fakes.ts`). The remaining `as never` casts in events.test.ts are for Prisma mock implementation signatures (e.g., `mockResolvedValue({} as never)`) and Map-typed test helpers — they are idiomatic vitest patterns for testing code that mocks strict-typed external APIs. Documented for the next 4R run.
+5. **`events.test.ts` migration partial**. The `PasswordResetService → auth.password-reset.{requested,completed}` describe block was fully migrated to `password-reset.fakes.ts` factories. The `wireAuthEvents` describe block (testing real `SessionService(prisma)` + `RbacService()`) keeps its inline Prisma mocks because the production code path under test uses `prisma.session.findUnique` / `prisma.session.delete` directly (not the UserRepository port) — port-driven fakes would not exercise the real path.
+6. **F4 cron registration deferred to T3.6**. The `deleteExpired` port method + Prisma impl + tests land in this batch. The `@nestjs/schedule` cron registration requires the NestJS module wiring (T3.6 NestJS thin wrapper). The port is ready for the cron to call it; only the call site is missing.
+7. **bcrypt hash assertions in tests use the imported constant (R2 #4)**. `expect(bcrypt.hash).toHaveBeenCalledWith("newPassword123", BCRYPT_COST_FACTOR)` — the test pins against the named import, not the literal `10`. A future bump of `BCRYPT_COST_FACTOR` to `12` would surface the new value in tests automatically.
+
+### Forbidden operations (lessons carried)
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED.
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED.
+- ❌ `cat .pi/gentle-ai/config.json`, `cat .claude/...`, `.atl/...` — NOT READ.
+- ❌ `which`, `whereis`, `type` — NOT USED.
+
+### Workload / PR boundary
+
+- Slice 3 batch 5 forecast from brief:
+  - 5 behavior changes × 2 commits each = 10 commits.
+  - 1 follow-up commit for F3 events.test.ts.
+  - 2 REFACTOR commits (Phase 2 + Phase 3).
+  - 1 markers+apply-progress commit.
+  - Total ~14 commits, ~700 lines (300 new code + ~200 new tests + ~200 markers/docs/refactor).
+- Actual (mixed worker + parent):
+  - Worker delivered 11 commits before the 600s timeout.
+  - Parent completed Phase 2 inline (1 commit `ed378c9` for the test refactor + fixtures import + runInvalidTokenScenario).
+  - Parent completed Phase 3 inline (this commit — `refactor(auth): name magic numbers in services + tests`).
+  - Total: 13 commits, ~750-800 lines net (consistent with the forecast).
+- 400-line budget risk: **Medium-High** — over budget for a single PR. Tests dominate (~2.5× lines of test per line of source). Same pattern as PR #8. The chained-PR workflow accepts this; the parent orchestrator already proposed the chained-pr pattern.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_1:
+  status: complete
+  tasks_done: [T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T1.7, T1.8]
+slice_2:
+  status: complete
+  tasks_done: [T2.1, T2.2, T2.3, T2.4, T2.5]
+  tasks_remaining: []
+slice_3:
+  status: in-progress (10/N — slice 3 batch 5 closes T3.4 (PasswordResetService) + T3.5 close (4R fixes) + T3.8 (REFACTOR))
+  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4 (Session), brief-T3.4 (Rbac), brief-T3.4 (PasswordResetService), brief-T3.5 (events partial), brief-T3.5b, brief-T3.5c, brief-fix-F1, brief-fix-F2, brief-fix-F3, brief-fix-F4, brief-fix-F8, brief-refactor-tests, brief-refactor-constants]
+  tasks_done_tasks_md: [T3.1, T3.2, brief-T3.3, brief-T3.4 (Session), brief-T3.4 (Rbac), brief-T3.4 (PasswordResetService), brief-T3.5, brief-T3.5b, brief-T3.5c, T3.8 [x in this batch]]
+  tasks_remaining_slice_3:
+    - T3.6 (apps/api NestJS thin wrapper + @nestjs/schedule cron for F4 + AuthService/SessionService UserRepository refactor + drop wireAuthEvents wrapper) — slice 3 batch 6
+    - T3.7 (integration scenarios)
+    - T3.9 (slice-wide turbo run gate)
+  commits_landed_this_batch: 13  # worker: 11; parent: 2
+  insertions_this_batch: ~800 across 4 new files + 4 modified source files + 2 modified test files + tasks.md + apply-progress.md
+  test_count_this_batch: 8 new tests (1 F1 + 1 F2 + 3 F3 events + 1 F4 events + 1 F8 events + 1 F3-follow-up events); 49 → 57 in @features/auth; 31 → 37 in @core/events
+feature_branch: feat/vertical-slicing-s3-4r-fixes
+base_commit: dbe61b640fe6f451627e475a2ee48e2bc7b7098d
+head_commit: <this commit, pending — likely 'fix(auth): name magic numbers and consolidate test fakes (R2 + R4)' before the markers commit>
+pushed_to_remote: false
+merged_to_develop: false
+branch_protection_on_main: enforced (no force-push, no delete, 1 review required)
+risk_flags:
+  - 4r_f1_f2_f3_f4_f8_all_critical_and_warning_resilience_findings_closed
+  - 4r_findings_f7_f9_f10_f11_documented_as_design_choices_per_apply_progress_table
+  - sdd_apply_timeout_again_600s_2_of_13_subtasks_completed_by_parent_inline
+  - password_reset_service_constructor_argument_order_userRepo_tokenRepo_dispatcher_prisma_auditSink
+  - audit_sink_is_required_not_optional_in_current_signature
+  - events_test_ts_remaining_as_never_casts_are_idiomatic_vitest_not_red_state_aliases
+  - f4_cron_registration_deferred_to_t3_6_nestjs_wrapper_batch
+next_recommended: slice-3-batch-6-T3.6 (apps/api NestJS thin wrapper + @nestjs/schedule cron for F4 cleanup + AuthService/SessionService UserRepository port refactor + drop wireAuthEvents monkey-patch wrapper)
+```
+
+### Cross-references (slice 3 batch 5)
+
+- Tasks (T3.8 [x] + brief-fix-F1, F2, F3, F4, F8, brief-refactor-tests, brief-refactor-constants sub-task rows): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Password Reset (Forgot + Reset, Email Mocked) — service contract holds.
+- Design: `openspec/changes/.../design.md` §4.1 (PasswordResetService surface — `prisma.$transaction` is a NEW addition; design did not anticipate the F1/F6 atomicity requirement explicitly, but the §4.1 surface remains accurate), §4.7 (events emitted — F3 redaction at dispatcher is a NEW addition; design's dev-only annotation on raw token is honored), §5.1 (`PasswordResetToken.deleteExpired` is a NEW addition; cron registration deferred per design's out-of-scope list).
+- 4R review reports: `gastos-personales-reference/incidents/4r-review-pr8-batch4-2026-07-05` (id 2160) — the source-of-truth mapping for the 23 findings addressed in this batch.
+- Engram: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content; updated to include slice 3 batch 5).
+- Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139) — pattern repeated twice more in this batch (5 worker runs total to date, 2 timed out; the timeout always hits at the end of the work).
