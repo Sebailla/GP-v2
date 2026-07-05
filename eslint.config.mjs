@@ -15,7 +15,7 @@ import tsParser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: [
+ignores: [
       "**/node_modules/**",
       "**/dist/**",
       "**/.next/**",
@@ -30,6 +30,9 @@ export default [
       "tools/eslint-plugin-boundary/__fixtures__/**",
       // Next.js generates type files inside .next; ignore those.
       "**/.next/types/**",
+      // Prisma generates the client into libs/core/database/src/generated;
+      // ignore it (gitignored too) so lints stay focused on hand-written code.
+      "**/libs/core/database/src/generated/**",
     ],
   },
 
