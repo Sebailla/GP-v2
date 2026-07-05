@@ -16,5 +16,7 @@ export { AuthService } from "./auth-service.js";
 export type { LoginInput, LoginResult, RegisterInput } from "./auth-service.js";
 export { SessionService } from "./session-service.js";
 export type { CurrentUser } from "./session-service.js";
+export { RbacService } from "./rbac-service.js";
+export type { Action, Actor, Resource, ResourceKind, Role } from "./rbac-service.js";
 export { AuthError, ValidationError } from "./errors.js";
 export type { AuthErrorCode } from "./errors.js";

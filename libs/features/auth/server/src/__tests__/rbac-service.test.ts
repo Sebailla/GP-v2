@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 
+import type { Action } from "../rbac-service.js";
+
 /**
  * TDD contract for RbacService (slice 3 batch 3 / brief T3.4 RED).
  *
@@ -184,8 +186,7 @@ describe("RbacService", () => {
       // must return `false` for any value not explicitly granted.
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- defense-in-depth probe
-        "session:promote:any" as any,
+        "session:promote:any" as Action,
         { kind: "session", ownerId: "user-1", id: "session-1" },
       );
 
