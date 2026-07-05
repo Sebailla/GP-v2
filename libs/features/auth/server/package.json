@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@core/database": "workspace:*",
+    "@core/events": "workspace:*",
     "bcryptjs": "2.4.3",
     "zod": "4.4.3"
   },

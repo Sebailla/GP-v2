@@ -252,7 +252,9 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T3.4-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/{services,domain/interfaces}/**` + tests (~150 lines).
 - **Sub-progress (slice 3 batch 1 + batch 2).** AuthService covered across two slices: T3.1+T3.2 (slice 3 batch 1) landed `login`; slice 3 batch 2 (PR #6) added `register` (5 tests passing) + `Email verification` + `Email uniqueness check` + `bcrypt cost factor 10`. SessionService shape landed in slice 3 batch 2 (PR #6) with `getCurrentUser` + `revokeSession` + `revokeAllSessions` (7 tests passing); NextAuth adapter call sites deferred. **RbacService and PasswordResetService remain pending.**
+- **Sub-progress (slice 3 batch 3).** `RbacService` landed (PR #7 pending) — `can(actor, action, resource)` with the full permission table per design §4.1 (USER + 4 `*:own` actions; ADMIN + all 8). 11 tests passing. `Action` type is a closed string-literal union (`Action` defense in depth at type level; runtime lookup returns `false` for unknown values).
 - **Task stays open** until all four services (AuthService + SessionService + RbacService + PasswordResetService) are complete AND the canonical `shared/schemas/` lands (T3.2).
+- **Sub-task brief-T3.4 (RbacService) [x]** — slice 3 batch 3. Permission table matrix exactly per design §4.1; no extra actions invented. Files: `src/rbac-service.ts` (140 lines), `src/__tests__/rbac-service.test.ts` (11 tests).
 
 ### Task T3.5 — `libs/features/auth/server/events.ts` (event emission wiring) (~30 lines)
 
@@ -262,6 +264,8 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes the new event tests; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T3.5-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/{events.ts,infrastructure/repositories/**}` + tests (~30 lines).
+- **Sub-progress (slice 3 batch 3).** `wireAuthEvents` landed (PR #7 pending) — monkey-patches `SessionService.revokeSession` to dispatch `auth.session.revoked` and wraps `RbacService.can` to dispatch `auth.rbac.denied` on `false`. `PrismaUserRepository` shipped as the first `@core/database` integration adapter (the rest land in batch 4+). 4 event tests passing. PasswordResetService-driven events (`auth.password-reset.requested` / `.completed`) deferred to slice 3 batch 4+.
+- **Sub-task brief-T3.5 (events wiring partial) [x]** — slice 3 batch 3. Wired SessionService.revokeSession + RbacService.can. userId recovered via `sessionService.getCurrentUser(token)` before the delete. PrismaUserRepository implements UserRepository port (findById + findByEmail); AuthService / SessionService NOT yet refactored to use the port — that's a batch 4+ concern.
 
 ### Task T3.6 — `apps/api/modules/auth` (NestJS thin wrapper) (~50 lines)
 
