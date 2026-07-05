@@ -17,7 +17,10 @@
 
 export type AuthErrorCode =
   | "USER_NOT_FOUND"
-  | "INVALID_CREDENTIALS";
+  | "INVALID_CREDENTIALS"
+  | "EMAIL_ALREADY_EXISTS"
+  | "INVALID_SESSION"
+  | "SESSION_EXPIRED";
 
 export class AuthError extends Error {
   public readonly code: AuthErrorCode;

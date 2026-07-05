@@ -251,6 +251,8 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes all four service suites; at least 12 RBAC scenarios are exercised; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T3.4-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/{services,domain/interfaces}/**` + tests (~150 lines).
+- **Sub-progress (slice 3 batch 1 + batch 2).** AuthService covered across two slices: T3.1+T3.2 (slice 3 batch 1) landed `login`; slice 3 batch 2 (PR #6) added `register` (5 tests passing) + `Email verification` + `Email uniqueness check` + `bcrypt cost factor 10`. SessionService shape landed in slice 3 batch 2 (PR #6) with `getCurrentUser` + `revokeSession` + `revokeAllSessions` (7 tests passing); NextAuth adapter call sites deferred. **RbacService and PasswordResetService remain pending.**
+- **Task stays open** until all four services (AuthService + SessionService + RbacService + PasswordResetService) are complete AND the canonical `shared/schemas/` lands (T3.2).
 
 ### Task T3.5 — `libs/features/auth/server/events.ts` (event emission wiring) (~30 lines)
 
