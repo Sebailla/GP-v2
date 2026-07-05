@@ -197,9 +197,71 @@ next_recommended: slice-2-batch-2-T2.1
 ### Cross-references
 
 - Tasks (markers now match reality): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`
+- (Slice 2 batch 2 status below — slice 2 is now 5/5 complete.)
 - Spec: `openspec/changes/vertical-slicing-reference-scaffold/specs/auth/spec.md`, `.../transactions/spec.md`
 - Design: `openspec/changes/vertical-slicing-reference-scaffold/design.md`
 - Proposal: `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`
 - Config: `openspec/config.yaml`
 - Engram observation: `sdd/vertical-slicing-reference-scaffold/apply-progress` (mirrored content, id 2140)
 - Engram incident report: `gastos-personales-reference/incidents/sdd-apply-slice1-timeout-2026-07-05` (id 2139)
+
+---
+
+## Slice 2 batch 2: T2.1 + T2.5 — STATUS: COMPLETE (5/5 of slice 2)
+
+**Branch**: `feat/vertical-slicing-s2-database-validation` (cut from `develop` @ `7e9a8bd`).
+**Base commit**: `7e9a8bd695821f03243e94c6dacc5817b43fb3cd` (post-PR #3 slice 2 batch 1).
+**Worker outcome**: stalled at 13 turns investigating the filesystem instead of implementing. Orchestrator completed T2.1 + T2.5 directly.
+
+### Tasks completed
+
+| Task | Subject | Marker | Notes |
+|------|---------|--------|-------|
+| T2.1 | `libs/core/database` (Prisma client singleton + auth schema) | `[x]` | Prisma 7.8.0 + @prisma/client 7.8.0. Auth tables: User, Account, Session, VerificationToken, PasswordResetToken + Role enum. Schema.prisma with explicit `output = "../src/generated"` (Prisma 7 requires it). `prisma.config.ts` with `env('DATABASE_URL')` per Prisma 7 config-moved-from-schema pattern. Singleton via lazy Proxy (`getOrCreate` on first property access); `accelerateUrl: 'postgresql://placeholder.localhost/db'` placeholder (Prisma 7 typecheck requires it; real fix is driver adapter in slice 3+). |
+| T2.5 | `docs/first-run-checklist.md` + Spanish mirror | `[x]` | §13 mirror rule applied (perl CJK check: no CJK found). Documents the full validation matrix (install, db:up, prisma generate, prisma migrate dev, turbo run, fixtures) with success criterion "all exit 0". |
+
+### Quality gates (batch 2 verification)
+
+| Gate | Result |
+|------|--------|
+| typecheck | ✅ 8 successful, 8 total |
+| lint | ✅ 9 successful, 9 total (after adding `libs/core/database/src/generated` to ESLint ignores) |
+| test | ✅ 6 successful, 6 total (3 @core/database tests pass with lazy init) |
+| boundary fixtures | ✅ 11 passed, 0 failed |
+| CJK check (Spanish mirror) | ✅ no CJK found |
+| prisma generate | ✅ generated 7.8.0 client to `./src/generated` |
+| migrations | ⚠️ NOT RUN (sandbox has no Postgres) — deferred to user machine |
+
+### Critical incidents & resolutions
+
+1. **Worker stalled at 13 turns** (not a 10-min timeout, but a logic stall). Worker was exploring filesystem instead of implementing. Orchestrator completed T2.1 + T2.5 directly.
+2. **Prisma 7 accelerateUrl requirement**: typecheck AND runtime BOTH require non-empty `accelerateUrl`. Resolution: placeholder string with TODO for driver adapter in slice 3+.
+3. **Prisma 7 output path is mandatory**: `output = "../src/generated"` explicit path required.
+4. **ESLint warnings on generated client**: added `libs/core/database/src/generated/**` to ESLint `ignores` and `.gitignore`.
+5. **pnpm-workspace.yaml globs**: extended `libs/*` to `libs/*/*` and `tools/*` to `tools/*/*` to capture sub-packages.
+6. **pnpm 11 allowBuilds placeholders**: cleaned incomplete `set this to true or false` entries to clean boolean map.
+
+### Deviations
+
+- **Prisma 7 accelerateUrl placeholder**: documented in `client.ts` as TODO(slice-3+). Real fix is a driver adapter (`@prisma/adapter-pg`). The singleton works for typecheck and unit tests; real DB queries will fail until driver adapter is wired.
+- **Worker stalled, orchestrator finished directly**: first time this session. Acceptable but signals the worker prompt was too open-ended.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_2:
+  status: complete
+  tasks_done: [T2.1, T2.2, T2.3, T2.4, T2.5]
+  tasks_remaining: []
+feature_branch: feat/vertical-slicing-s2-database-validation
+base_commit: 7e9a8bd695821f03243e94c6dacc5817b43fb3cd
+pushed_to_remote: false
+merged_to_develop: false
+risk_flags:
+  - prisma_7_accelerateurl_placeholder_until_slice_3_driver_adapter
+  - sandbox_no_postgres_migration_must_run_locally
+next_recommended: slice-3-auth-server
+```
