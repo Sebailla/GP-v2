@@ -234,9 +234,56 @@ const sha256 = (s: string): string =>
   createHash("sha256").update(s).digest("hex");
 
 describe("PasswordResetService", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+      beforeEach(() => {
+        vi.clearAllMocks();
+      });
+
+      // ---------------------------------------------------------------------------
+      // F8 (WARNING — missing dispatcher runtime check).
+      //
+      // TypeScript types the dispatcher as AuthEventDispatcher, but at runtime a
+      // missing arg compiles cleanly and crashes at first dispatch (which is
+      // already after bcrypt + transaction work — a confusing failure).
+      // The constructor MUST guard against a non-function dispatcher and throw
+      // a TypeError eagerly so the wiring bug is caught at boot, not on the
+      // first reset attempt.
+      // ---------------------------------------------------------------------------
+      it("F8 — the constructor throws TypeError when the dispatcher is missing/null (not a function)", async () => {
+        const { PasswordResetService } = await import(
+          "../password-reset.service.js"
+        );
+        const userRepo = makeFakeUserRepo(null);
+        const tokenRepo = makeFakeTokenRepo();
+        const prismaStub = makePrismaStub();
+        const auditSink = vi.fn();
+
+        // null at the dispatcher slot — TypeScript would let this through if
+        // we used `as never` (the dispatcher's AuthEventDispatcher type is
+        // `(event) => Promise<void> | void`).
+        expect(
+          () =>
+            new PasswordResetService(
+              userRepo as never,
+              tokenRepo as never,
+              null as never,
+              prismaStub as never,
+              auditSink,
+            ),
+        ).toThrow(TypeError);
+
+        // Also covers the `undefined` case (which is what a missing arg resolves
+        // to when the call site forgets an argument).
+        expect(
+          () =>
+            new PasswordResetService(
+              userRepo as never,
+              tokenRepo as never,
+              undefined as never,
+              prismaStub as never,
+              auditSink,
+            ),
+        ).toThrow(TypeError);
+      });
 
   describe("requestReset", () => {
     it("mints a token, persists a row, and dispatches auth.password-reset.requested for a known email", async () => {
