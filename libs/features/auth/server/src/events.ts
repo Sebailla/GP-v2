@@ -4,49 +4,64 @@ import type { RbacService } from "./rbac-service.js";
 import type { SessionService } from "./session-service.js";
 
 /**
- * Events wiring — slice 3 batch 3 (brief T3.5 GREEN).
+ * Events wiring for the auth slice — slice 3 (batches 3 + 4).
  *
- * Wires two auth-slice events to the `@core/events` dispatcher:
+ * Wires the four auth-slice events to the `@core/events` dispatcher.
+ * The canonical Zod-validated payload schemas live at
+ * `libs/core/events/src/types.ts` (this file is a consumer, not the
+ * source of truth); the four events this slice emits are:
  *
- *  1. `SessionService.revokeSession(sessionToken)` →
- *     `auth.session.revoked` with payload
- *     `{ userId, sessionToken, revokedAt: Date }`.
+ *  1. `auth.password-reset.requested` (PasswordResetService.request
+ *     Reset, dispatched directly via the constructor-injected
+ *     dispatcher — see Pattern A below)
+ *       Payload: `{ userId: string, token: string (raw, dev only),
+ *       requestedAt: Date }`
+ *     — see `@core/events/types.ts#authPasswordResetRequested
+ *     Payload`.
  *
- *  2. `RbacService.can(actor, action, resource)` returning `false` →
- *     `auth.rbac.denied` with payload
- *     `{ userId: actor.id, action, resourceKind: resource.kind, deniedAt: Date }`.
+ *  2. `auth.password-reset.completed` (PasswordResetService.consume
+ *     Reset, dispatched directly via the constructor-injected
+ *     dispatcher — Pattern A)
+ *       Payload: `{ userId: string, resetAt: Date }`
+ *     — see `@core/events/types.ts#authPasswordResetCompleted
+ *     Payload`.
  *
- * The two `auth.password-reset.*` events land with
- * `PasswordResetService` in slice 3 batch 4+.
+ *  3. `auth.session.revoked` (monkey-patched via `wireAuthEvents` +
+ *     `wrapRevokeSession` — SessionService.revokeSession)
+ *       Payload: `{ userId: string, sessionId: string, revokedAt:
+ *       Date }`
+ *     — see `@core/events/types.ts#authSessionRevokedPayload`.
+ *     The userId is recovered via `sessionService.getCurrentUser
+ *     (sessionToken)` BEFORE the delete; the wrapper re-throws
+ *     without dispatching if the lookup fails.
  *
- * Implementation pattern (the **monkey-patch**):
+ *  4. `auth.rbac.denied` (monkey-patched via `wireAuthEvents` +
+ *     `wrapRbacCan` — RbacService.can returning `false`)
+ *       Payload: `{ userId: string, action: string, resourceType:
+ *       string, at: Date }`
+ *     — see `@core/events/types.ts#authRbacDeniedPayload`. The
+ *     wrapper preserves the original's pure semantics — same inputs,
+ *     same outputs, dispatch is a side effect of the `false` path.
  *
- *   - `SessionService.revokeSession` is replaced on the passed
- *     instance so the dispatcher fires AFTER a successful delete. The
- *     userId is recovered by calling the public
- *     `sessionService.getCurrentUser(token)` lookup BEFORE the delete
- *     — if that lookup throws (invalid / expired token) the wrapper
- *     re-throws without dispatching. This keeps the lookup inside the
- *     wrapper rather than reaching into the service's private
- *     `prisma` instance.
- *
- *   - `RbacService.can` is replaced on the passed instance so the
- *     dispatcher fires when (and only when) the decision returns
- *     `false`. The wrapper preserves the original's pure-function
- *     semantics: same inputs, same outputs, the dispatch is a side
- *     effect of the `false` path.
- *
- * This is **intentionally a pragmatic monkey-patch for this slice** —
- * the canonical refactor (slice 3 batch 4+) is to make
- * `SessionService.revokeSession` and `RbacService.can` take a
- * dispatcher directly so the dispatch is the service's responsibility
- * (single source of truth, no public-method wrapping).
+ * Pattern A vs Pattern B dispatch: the canonical design §4.1 says
+ * "PasswordResetService... dispatches". Pattern A — adopted here —
+ * has the service take the dispatcher in its constructor and
+ * dispatch directly. `wireAuthEvents` is unchanged for the slice 3
+ * batch 3 events (SessionService.revokeSession + RbacService.can);
+ * the slice 3 batch 5+ cleanup would refactor those services to
+ * dispatch directly too (single source of truth, no public-method
+ * wrapping). The batch 4 dispatch path lands here as a
+ * counter-example — `PasswordResetService` is constructed WITH the
+ * dispatcher and does NOT need (or want) a wrapper.
  *
  * The function is a setup hook: callers wire it once at NestJS
  * module boot (or per-request when using a per-request dispatcher)
  * and never call it again. Re-calling it on the same instance would
  * double-wrap (each call re-binds `original` to the previous wrapped
  * function); callers must own the dispatcher instance lifecycle.
+ *
+ * See `libs/core/events/src/types.ts` for the authoritative Zod
+ * schemas; do NOT duplicate the payload shapes here.
  */
 
 /**

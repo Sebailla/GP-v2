@@ -9,16 +9,16 @@
  * `prisma.user` directly — keeps the domain unit-testable with in-memory
  * fakes.
  *
- * Slice 3 batch 3 only ships the interface declaration; the concrete
+ * Slice 3 batch 3 only shipped the interface declaration; the concrete
  * `PrismaUserRepository` lives at
  * `src/infrastructure/repositories/prisma-user.repository.ts` and is
  * NOT yet wired into `AuthService` or `SessionService` (those still
  * call `prisma.user.findUnique` / `prisma.user.findUnique` directly).
- * Slice 3 batch 4+ refactors `AuthService` / `SessionService` /
- * `PasswordResetService` to depend on this interface (single source of
- * truth for the User read path), at which point the direct
- * `prisma.user.*` calls in those services become forbidden by code
- * review.
+ * Slice 3 batch 4 (this batch) extends the port with `updatePassword`
+ * — `PasswordResetService.consumeReset` is the first service to take
+ * a mutation method through this interface. Refactoring
+ * `AuthService.register` to use `create(...)` on this same port is a
+ * separate refactor (slice 3 batch 5+ alongside the wrapper cleanup).
  *
  * Methods:
  *  - `findById(id)`: lookup a user by primary key. Returns `null` when
@@ -26,14 +26,13 @@
  *  - `findByEmail(email)`: lookup by email. Returns `null` when not
  *    found. Callers (AuthService.login, AuthService.register,
  *    PasswordResetService.requestReset) use this.
- *
- * The interface does NOT expose mutating methods (`create`,
- * `update`, `delete`) on purpose: the slice-wide decision is that
- * mutating paths go through a dedicated `UserWriter` port (deferred to
- * slice 3 batch 4+). Today, `AuthService.register` and
- * `PasswordResetService.consumeReset` mutate the User row directly via
- * `prisma.user.create` / `prisma.user.update`; refactoring those into
- * a `UserWriter` interface is out of scope here.
+ *  - `updatePassword(id, hashedPassword)`: replace the user's
+ *    `hashedPassword`. Used by `PasswordResetService.consumeReset` to
+ *    apply a credential swap after a valid reset token consumes the
+ *    token. The implementation owns the cost factor (bcrypt 10 per
+ *    design §4.1) AND the storage call to `prisma.user.update`; the
+ *    domain hands a pre-hashed value to keep the cost factor visible
+ *    at the service boundary.
  */
 
 /**
@@ -54,4 +53,11 @@ export interface UserRecord {
 export interface UserRepository {
   findById(id: string): Promise<UserRecord | null>;
   findByEmail(email: string): Promise<UserRecord | null>;
+  /**
+   * Replace the user's `hashedPassword` with the supplied value. The
+   * caller (PasswordResetService.consumeReset) is responsible for
+   * hashing the new password with bcrypt cost 10 BEFORE the call —
+   * this method only persists the result.
+   */
+  updatePassword(id: string, hashedPassword: string): Promise<void>;
 }
