@@ -75,7 +75,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm install && pnpm db:up && docker compose ps` shows Postgres healthy; `pnpm turbo run build lint typecheck` exits 0 across all workspaces.
 **Rollback.** Slice commit = one or more atomic commits on `feat/vertical-slicing-reference-scaffold`. To drop the slice: `git revert <slice-base-sha>..<slice-tip-sha> --no-edit` after merge approval.
 
-### Task T1.1 — Initialize monorepo (pnpm + Turbo workspaces) (~40 lines)
+### Task T1.1 — Initialize monorepo (pnpm + Turbo workspaces) (~40 lines) [x]
 
 - **Description.** Declare pnpm 10.x as the package manager, set up the workspace declaration, add the root `package.json` with workspace scripts (`db:up`, `db:down`, `prisma migrate dev`, dev, build, lint, test, typecheck, bdd, e2e), and create `turbo.json` declaring every pipeline with `dependsOn`/`outputs` per design §3.2.
 - **Discovery / file targets.** Create `pnpm-workspace.yaml` (`packages: ['apps/*', 'libs/*', 'tools/*']`), root `package.json` (declares `packageManager: "pnpm@10.x"` and the workspace scripts), `turbo.json` (pipelines: `build`, `dev`, `lint`, `test`, `typecheck`, `bdd`, `e2e`), `.editorconfig`, `.gitignore` (excludes `.env*`, `node_modules`, `dist`, `.next`, `.turbo`, `coverage`, `bdd-reports`, `playwright-report`, `test-results`), `.nvmrc` (Node 22 LTS pin).
@@ -84,7 +84,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.1-sha>`.
 - **Files touched (rough).** `pnpm-workspace.yaml`, `package.json`, `turbo.json`, `.editorconfig`, `.gitignore`, `.nvmrc` (~40 lines total).
 
-### Task T1.2 — `tsconfig.base.json` with path aliases (~50 lines)
+### Task T1.2 — `tsconfig.base.json` with path aliases (~50 lines) [x]
 
 - **Description.** Strict TypeScript base config (`strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`, `moduleResolution: "Bundler"`, `target: "ES2022"`, `module: "ESNext"`) plus the workspace path aliases documented in design §3.3 (`@core/database`, `@core/events`, `@core/config`, `@features/auth`, `@features/transactions`, `@shared-utils/*`).
 - **Discovery / file targets.** Create `tsconfig.base.json` at repo root.
@@ -93,7 +93,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.2-sha>`.
 - **Files touched (rough).** `tsconfig.base.json` (~50 lines).
 
-### Task T1.3 — ESLint flat config + custom boundary plugin (~80 lines)
+### Task T1.3 — ESLint flat config + custom boundary plugin (~80 lines) [x]
 
 - **Description.** Stand up the flat config (`eslint.config.mjs`) and the custom boundary plugin in `tools/eslint-plugin-boundary/`. Four non-negotiable rules: `no-client-server-import` (blocks `*/server/*` imports into `*/client/*`), `no-cross-module-import` (blocks direct `libs/features/<other>` imports except via `@core/events` or shared ports), `no-prisma-outside-core` (blocks `new PrismaClient(` outside `libs/core/database/src/`), `no-schemas-outside-shared` (blocks Zod schemas outside `libs/features/*/shared/schemas/*` and `libs/core/config/env.schema.ts`). Optional fifth: `no-mojibake-in-docs` (blocks CJK codepoints in `Documents-es/**/*.md`). Each rule has a `valid.ts` and `invalid.ts` fixture under `tools/eslint-plugin-boundary/__fixtures__/<rule>/`.
 - **Discovery / file targets.** Create `tools/eslint-plugin-boundary/` with `package.json`, `index.cjs`, and per-rule files (`rules/no-client-server-import.cjs`, etc.); `eslint.config.mjs` extends the plugin's `recommended` export; add fixtures under `tools/eslint-plugin-boundary/__fixtures__/{no-client-server-import,no-cross-module-import,no-prisma-outside-core,no-schemas-outside-shared}/{valid,invalid}.ts`.
@@ -102,7 +102,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.3-sha>`.
 - **Files touched (rough).** `eslint.config.mjs`, `tools/eslint-plugin-boundary/**` (~80 lines).
 
-### Task T1.4 — LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md (~60 lines)
+### Task T1.4 — LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md (~60 lines) [x]
 
 - **Description.** Per Locked Decision #6 (`LICENSE = MIT`) and `openspec/config.yaml#docs`. `README.md` documents the publicable intent and the quickstart: `pnpm install`, `pnpm db:up`, `pnpm prisma migrate dev`, `pnpm dev`. `CONTRIBUTING.md` is a lightweight one-pager. `AGENTS.md` is the project-local conventions file — it mirrors the relevant subset of `openspec/config.yaml` for any agent that doesn't traverse the openspec folder.
 - **Discovery / file targets.** Create `LICENSE` (MIT body, full text), `README.md`, `CONTRIBUTING.md`, `AGENTS.md`. Reference Engram conventions id 2129 (`branch-model`), 2132 (`doc-mirror-spanish`), 2133 (`ui-complete-not-scaffold`).
@@ -111,7 +111,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.4-sha>`.
 - **Files touched (rough).** `LICENSE`, `README.md`, `CONTRIBUTING.md`, `AGENTS.md` (~60 lines).
 
-### Task T1.5 — `docker-compose.yml` for Postgres + db scripts (~20 lines)
+### Task T1.5 — `docker-compose.yml` for Postgres + db scripts (~20 lines) [x]
 
 - **Description.** Single-service compose file with a Postgres 16 image, exposed on the default `5432`, healthcheck, and a named volume. Root scripts (in `package.json`) wrap the compose lifecycle: `db:up`, `db:down`, `db:reset` (`down -v && up -d`), `db:logs`.
 - **Discovery / file targets.** Create `docker-compose.yml`, add `scripts` entries in root `package.json` (`db:up`, `db:down`, `db:reset`, `db:logs`). Database connection string `DATABASE_URL=postgres://postgres:postgres@localhost:5432/gastos_reference` appears in `.env.example` (T1.6 / Slice 2 will reference it).
@@ -120,7 +120,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.5-sha>`.
 - **Files touched (rough).** `docker-compose.yml`, root `package.json` updates (~20 lines).
 
-### Task T1.6 — `apps/web` scaffold (Next.js 15 minimal) (~30 lines)
+### Task T1.6 — `apps/web` scaffold (Next.js 15 minimal) (~30 lines) [x]
 
 - **Description.** Bootstrap the Next.js 15 App Router workspace with the `app/[locale]/layout.tsx` shell — but with placeholders only: the layout renders `<html lang={locale}>` and `{children}`, no providers yet, no UI primitives yet (those land in Slice 4). `next.config.ts` is minimal (no `createNextIntlPlugin` yet — added in Slice 4). No `package.json` deps beyond what Next 15 requires (`next`, `react`, `react-dom`, `typescript`).
 - **Discovery / file targets.** Create `apps/web/{package.json,tsconfig.json,next.config.ts,app/[locale]/layout.tsx,app/[locale]/page.tsx}`. The `tsconfig.json` extends `tsconfig.base.json` and declares path aliases. **`next.config.ts` and `package.json` get full deps in Slice 4** — this slice adds only the minimum to compile an empty landing page.
@@ -129,7 +129,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.6-sha>`.
 - **Files touched (rough).** `apps/web/**` (~30 lines).
 
-### Task T1.7 — `apps/api` scaffold (NestJS 10 minimal) (~30 lines)
+### Task T1.7 — `apps/api` scaffold (NestJS 10 minimal) (~30 lines) [x]
 
 - **Description.** Bootstrap the NestJS 10 workspace on port 3001 with a single `app.module.ts` that imports nothing yet (no feature modules wired — those land in Slices 3 and 5). `main.ts` calls `NestFactory.create(AppModule)` and listens on `process.env.PORT ?? 3001`. Add `@nestjs/{config,common,core}` and `reflect-metadata` to `apps/api/package.json`. Nest-cli.json + tsconfig.json as the boot needs.
 - **Discovery / file targets.** Create `apps/api/{package.json,tsconfig.json,nest-cli.json,src/main.ts,src/app.module.ts}`. `tsconfig.json` extends `tsconfig.base.json`.
@@ -138,7 +138,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.7-sha>`.
 - **Files touched (rough).** `apps/api/**` (~30 lines).
 
-### Task T1.8 — `docs/architecture.md` stub + Spanish mirror (~30 lines)
+### Task T1.8 — `docs/architecture.md` stub + Spanish mirror (~30 lines) [x]
 
 - **Description.** Stub `docs/architecture.md` with the six headings from design §1–§11 (`Overview`, `Repository layout`, `Monorepo tooling`, `Domain design: auth`, `Domain design: transactions`, `Cross-cutting concerns`). Each section gets 2–4 lines of placeholder prose; full content lands in Slice 8. Produce the Spanish mirror under `Documents-es/docs/architecture.md` in the **same atomic commit** (convention id 2132).
 - **Discovery / file targets.** Create `docs/architecture.md` and `Documents-es/docs/architecture.md`.

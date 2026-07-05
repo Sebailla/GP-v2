@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "incremental": true,
+    "composite": false,
+
+    "baseUrl": ".",
+    "paths": {
+      "@core/database": ["libs/core/database/src"],
+      "@core/database/*": ["libs/core/database/src/*"],
+      "@core/events": ["libs/core/events/src"],
+      "@core/events/*": ["libs/core/events/src/*"],
+      "@core/config": ["libs/core/config"],
+      "@core/config/*": ["libs/core/config/*"],
+      "@features/auth": ["libs/features/auth/server"],
+      "@features/auth/*": ["libs/features/auth/*"],
+      "@features/transactions": ["libs/features/transactions/server"],
+      "@features/transactions/*": ["libs/features/transactions/*"],
+      "@shared-utils/*": ["libs/shared-utils/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", ".turbo", "coverage"]
+}

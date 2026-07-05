@@ -1,0 +1,17 @@
+{
+  "name": "@gpr/eslint-plugin-boundary",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Custom ESLint plugin enforcing the vertical-slicing architecture boundaries for gastos-personales-reference. Local plugin - not published.",
+  "main": "index.cjs",
+  "scripts": {
+    "lint": "eslint .",
+    "fixtures": "node scripts/run-fixtures.mjs"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  },
+  "devDependencies": {
+    "eslint": "9.18.0"
+  }
+}
