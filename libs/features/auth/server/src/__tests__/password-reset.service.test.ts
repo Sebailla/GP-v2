@@ -440,6 +440,123 @@ describe("PasswordResetService", () => {
         });
       });
 
+      describe("consumeReset — dispatcher-failure handling (F2 + F12)", () => {
+        it("does NOT reject if the post-commit dispatcher rejects; emits a structured AuditSink signal with the dispatcher error (F2)", async () => {
+          // 1. Seed a valid token.
+          const rawToken = "a".repeat(48);
+          const tokenHash = sha256(rawToken);
+          const tokenRepo = makeFakeTokenRepo();
+          tokenRepo.rows.set(tokenHash, {
+            id: "prt-1",
+            userId: "user-1",
+            tokenHash,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            consumedAt: null,
+          });
+
+          const userRepo = makeFakeUserRepo({
+            id: "user-1",
+            email: "alice@example.com",
+            role: "USER",
+            hashedPassword: "$2a$10$old",
+          });
+
+          // 2. Dispatcher that ALWAYS rejects (simulates email / dev mailbox outage).
+          const dispatcherError = new Error("email service down");
+          const dispatcher = vi
+            .fn<AuthEventDispatcher>()
+            .mockRejectedValue(dispatcherError);
+          vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new-hash" as never);
+
+          // 3. Prisma stub: transaction succeeds BOTH writes.
+          const prismaStub = makePrismaStub();
+
+          // 4. AuditSink spy — captures the F2 failure signal.
+          const auditSink = vi.fn();
+
+          const { PasswordResetService } = await import(
+            "../password-reset.service.js"
+          );
+          const service = new PasswordResetService(
+            userRepo as never,
+            tokenRepo as never,
+            dispatcher,
+            prismaStub as never,
+            auditSink, // F2: 5th constructor arg — currently IGNORED in RED state.
+          );
+
+          // 5. consumeReset must RESOLVE (not reject). The transaction
+          //    has already committed; the user perceives success even when
+          //    the post-commit dispatch fails. The dispatcher error is
+          //    captured by the AuditSink, not propagated to the caller.
+          await expect(
+            service.consumeReset(rawToken, "newPwd123"),
+          ).resolves.toBeUndefined();
+
+          // The transaction was executed (writes committed).
+          expect(prismaStub.$transaction).toHaveBeenCalledTimes(1);
+          expect(prismaStub.txUserUpdate).toHaveBeenCalledTimes(1);
+          expect(prismaStub.txPrtUpdate).toHaveBeenCalledTimes(1);
+
+          // The dispatcher WAS called (and rejected).
+          expect(dispatcher).toHaveBeenCalledTimes(1);
+
+          // F2: AuditSink was invoked exactly once with the failure signal.
+          expect(auditSink).toHaveBeenCalledTimes(1);
+          const signal = (
+            vi.mocked(auditSink).mock.calls[0] as unknown as [
+              { kind: string; event: { name?: string }; error?: unknown },
+            ]
+          )[0];
+          expect(signal.kind).toBe("AUTH_EVENT_DISPATCH_FAILURE");
+          expect(signal.event?.name).toBe("auth.password-reset.completed");
+          expect((signal.error as Error).message).toMatch(/email service down/i);
+        });
+
+        it("does NOT call AuditSink when the dispatcher resolves (F2 — only failure path triggers the signal)", async () => {
+          const rawToken = "a".repeat(48);
+          const tokenHash = sha256(rawToken);
+          const tokenRepo = makeFakeTokenRepo();
+          tokenRepo.rows.set(tokenHash, {
+            id: "prt-1",
+            userId: "user-1",
+            tokenHash,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            consumedAt: null,
+          });
+
+          const userRepo = makeFakeUserRepo({
+            id: "user-1",
+            email: "alice@example.com",
+            role: "USER",
+            hashedPassword: "$2a$10$old",
+          });
+          // Successful (non-throwing) dispatcher — the dispatch path lands cleanly.
+          const dispatcher = vi.fn<AuthEventDispatcher>();
+          vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new-hash" as never);
+          const prismaStub = makePrismaStub();
+          const auditSink = vi.fn();
+
+          const { PasswordResetService } = await import(
+            "../password-reset.service.js"
+          );
+          const service = new PasswordResetService(
+            userRepo as never,
+            tokenRepo as never,
+            dispatcher,
+            prismaStub as never,
+            auditSink,
+          );
+
+          await expect(
+            service.consumeReset(rawToken, "newPwd123"),
+          ).resolves.toBeUndefined();
+
+          // AuditSink is only invoked on dispatcher FAILURE.
+          expect(auditSink).not.toHaveBeenCalled();
+        });
+      });
+
       describe("consumeReset", () => {
         it("with a valid token — replaces passwordHash (bcrypt 10), marks consumed, dispatches auth.password-reset.completed", async () => {
           // 1. Seed a valid token via the in-memory token repo.
