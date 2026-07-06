@@ -27,7 +27,6 @@ export type { CurrentUser } from "./session-service.js";
 export { RbacService } from "./rbac-service.js";
 export type { Action, Actor, Resource, ResourceKind, Role } from "./rbac-service.js";
 export { PasswordResetService } from "./password-reset.service.js";
-export { wireAuthEvents } from "./events.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";

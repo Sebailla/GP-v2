@@ -1,11 +1,13 @@
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
+import type { DomainEvent } from "@core/events";
 
 import { AuthError } from "./errors.js";
 import type { SessionRepository } from "./domain/interfaces/session.repository.js";
 import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-session.repository.js";
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
+import type { AuthEventDispatcher } from "./events.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -15,8 +17,8 @@ export type { AuthErrorCode } from "./errors.js";
 
 /**
  * SessionService — slice 3 batch 2 (brief T3.4 GREEN) + slice 3 batch 6
- * (UserRepository + SessionRepository ports wired in; direct
- * prisma.user.* + prisma.session.* reads removed).
+ * (UserRepository + SessionRepository ports wired in; `wireAuthEvents`
+ * monkey-patch wrapper dropped — Pattern A dispatcher adopted).
  *
  * Thin domain layer that owns the Session lifecycle lookups and
  * mutations. Per design §4.1 the broader SessionService also exposes
@@ -50,6 +52,12 @@ export type { AuthErrorCode } from "./errors.js";
  *    brief — 3 methods listed: listActive, findByToken, revokeByToken).
  *    Future batches may add `revokeAllForUser` to the port when a
  *    controller-level "log out everywhere" affordance lands.
+ *
+ * Pattern A dispatch (canonical design §4.1): the dispatcher is taken
+ * as the 4th constructor argument and dispatched directly from
+ * `revokeSession`. The previous `wireAuthEvents` monkey-patch
+ * wrapper (slice 3 batch 3) is removed — there is no longer a global
+ * "wrap the service after construction" step.
  */
 
 export type CurrentUser = {
@@ -62,16 +70,26 @@ export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
   private readonly userRepo: UserRepository;
+  private readonly dispatcher: AuthEventDispatcher;
 
   constructor(
     prisma?: PrismaClient,
     sessionRepo?: SessionRepository,
     userRepo?: UserRepository,
+    dispatcher?: AuthEventDispatcher,
   ) {
     const client = prisma ?? defaultPrisma;
     this.prisma = client;
     this.sessionRepo = sessionRepo ?? new PrismaSessionRepository(client);
     this.userRepo = userRepo ?? new PrismaUserRepository(client);
+    // Pattern A: dispatcher is REQUIRED. F8 guard — eager failure
+    // for missing dispatcher (mirror of PasswordResetService's F8).
+    if (typeof dispatcher !== "function") {
+      throw new TypeError(
+        `SessionService requires an AuthEventDispatcher (a function); received ${typeof dispatcher === "undefined" ? "undefined" : String(dispatcher)}.`,
+      );
+    }
+    this.dispatcher = dispatcher;
   }
 
   /**
@@ -118,15 +136,45 @@ export class SessionService {
   /**
    * Revoke a single session by its token. Returns void on success.
    *
-   * Slice 3 batch 6: routes through the `SessionRepository.revokeByToken`
-   * port. The adapter swallows Prisma P2025 (idempotent — a missing
-   * session is a no-op rather than an error). The previous direct
-   * \`prisma.session.delete\` raised P2025 which this service then
-   * translated to AuthError('INVALID_SESSION'); that path is removed
-   * because the port now owns the idempotency contract.
+   * Pattern A dispatch (canonical design §4.1): when `userId` is
+   * supplied, this method deletes the session row through the
+   * SessionRepository port and dispatches the
+   * `auth.session.revoked` event directly. The userId is recovered
+   * by the controller from the JWT-decoded session (slice 3 batch 6
+   * T3.6 NestJS `JwtAuthGuard`) before invoking this method; the
+   * internal `getCurrentUser` round-trip the previous
+   * `wireAuthEvents` wrapper performed is no longer needed.
+   *
+   * When called WITHOUT a userId (e.g., from the bare
+   * `revokeSession(token)` signature for tests / cleanup paths),
+   * the delete still happens but the event is not dispatched —
+   * matching the design's requirement that the event carries the
+   * userId for the dev mailbox routing.
+   *
+   * Slice 3 batch 6: routes through the
+   * `SessionRepository.revokeByToken` port. The adapter swallows
+   * Prisma P2025 (idempotent — a missing session is a no-op rather
+   * than an error). The previous direct `prisma.session.delete`
+   * raised P2025 which this service then translated to
+   * AuthError('INVALID_SESSION'); that path is removed because the
+   * port now owns the idempotency contract.
    */
-  async revokeSession(sessionToken: string): Promise<void> {
+  async revokeSession(sessionToken: string, userId?: string): Promise<void> {
     await this.sessionRepo.revokeByToken(sessionToken);
+    if (userId === undefined) {
+      return;
+    }
+    const event: DomainEvent = {
+      name: "auth.session.revoked",
+      userId,
+      payload: {
+        userId,
+        sessionId: sessionToken,
+        revokedAt: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    await this.dispatcher(event);
   }
 
   /**
@@ -134,9 +182,12 @@ export class SessionService {
    * revoked sessions (0 when the user had none — this is NOT an
    * error; revokeAllSessions is idempotent).
    *
-   * Stays as a direct \`prisma.session.deleteMany\` call — the
+   * Stays as a direct `prisma.session.deleteMany` call — the
    * SessionRepository port does not yet expose a bulk-delete surface
    * (the brief lists 3 methods: listActive, findByToken, revokeByToken).
+   * Dispatches NO event by design (a controller-level "log out
+   * everywhere" affordance lands when the port gains
+   * `revokeAllForUser`).
    *
    * This is the "log out everywhere" primitive: a user who suspects
    * their account is compromised calls revokeAllSessions on their own
@@ -154,14 +205,14 @@ export class SessionService {
    * List active (unexpired) sessions for the given user.
    *
    * Slice 3 batch 6 (T3.6 NestJS controller): the controller's
-   * \`GET /auth/sessions\` endpoint calls this; the response is the
-   * client-facing \`SessionListResponse\` projection (id, deviceLabel,
-   * lastActiveAt). The projection onto \`deviceLabel\` /
-   * \`lastActiveAt\` lives at the controller boundary, NOT in this
+   * `GET /auth/sessions` endpoint calls this; the response is the
+   * client-facing `SessionListResponse` projection (id, deviceLabel,
+   * lastActiveAt). The projection onto `deviceLabel` /
+   * `lastActiveAt` lives at the controller boundary, NOT in this
    * service — this method returns the SessionRecord projection from
    * the port, which carries enough data for the controller to build
    * the response (the actual device-label derivation is a slice 4
-   * concern; for the reference repo the \`sessionToken\` suffix
+   * concern; for the reference repo the `sessionToken` suffix
    * serves as a stand-in label).
    */
   async listActiveSessions(userId: string): Promise<

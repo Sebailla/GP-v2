@@ -44,25 +44,37 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * in the sandbox without a real database.
  */
 
-vi.mock("@core/database", () => ({
-  prisma: {
-    session: {
-      findUnique: vi.fn(),
-      delete: vi.fn(),
-      deleteMany: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-    },
-  },
-}));
+    vi.mock("@core/database", () => ({
+      prisma: {
+        session: {
+          findUnique: vi.fn(),
+          delete: vi.fn(),
+          deleteMany: vi.fn(),
+        },
+        user: {
+          findUnique: vi.fn(),
+        },
+      },
+    }));
 
-import { prisma } from "@core/database";
+    import { prisma } from "@core/database";
 
-describe("SessionService", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    import type { AuthEventDispatcher } from "../events.js";
+
+    /**
+     * Slice 3 batch 6 (drop-wireauth-events): SessionService now takes
+     * the dispatcher as the 4th constructor argument. The existing
+     * session-service unit tests don't exercise dispatch on the paths
+     * under test (the wireAuthEvents wrapper used to do this); they
+     * pass a `vi.fn()` so the F8 guard accepts the constructor call
+     * and Pattern A is wired in.
+     */
+    const noopDispatcher = vi.fn<AuthEventDispatcher>();
+
+    describe("SessionService", () => {
+      beforeEach(() => {
+        vi.resetAllMocks();
+      });
 
   describe("getCurrentUser", () => {
     it("returns { id, email, role } when sessionToken is valid and not expired", async () => {
@@ -85,7 +97,7 @@ describe("SessionService", () => {
         hashedPassword: "$2a$10$some-hash",
       } as never);
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
       const result = await service.getCurrentUser("valid-token");
 
       expect(result).toEqual({
@@ -105,7 +117,7 @@ describe("SessionService", () => {
       const { SessionService, AuthError } = await import("../session-service.js");
       vi.mocked(prisma.session.findUnique).mockResolvedValue(null);
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
 
       let caught: unknown;
       try {
@@ -128,7 +140,7 @@ describe("SessionService", () => {
         expires: new Date(Date.now() - 1000),
       } as never);
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
 
       let caught: unknown;
       try {
@@ -146,7 +158,7 @@ describe("SessionService", () => {
       const { SessionService } = await import("../session-service.js");
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
       const result = await service.revokeSession("valid-token");
 
       expect(result).toBeUndefined();
@@ -167,7 +179,7 @@ describe("SessionService", () => {
       (prismaError as Error & { code?: string }).code = "P2025";
       vi.mocked(prisma.session.delete).mockRejectedValue(prismaError);
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
 
       await expect(
         service.revokeSession("unknown-token"),
@@ -183,7 +195,7 @@ describe("SessionService", () => {
       const { SessionService } = await import("../session-service.js");
       vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 3 });
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
       const count = await service.revokeAllSessions("user-1");
 
       expect(count).toBe(3);
@@ -196,7 +208,7 @@ describe("SessionService", () => {
       const { SessionService } = await import("../session-service.js");
       vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 0 });
 
-      const service = new SessionService(prisma);
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
       const count = await service.revokeAllSessions("user-no-sessions");
 
       expect(count).toBe(0);
