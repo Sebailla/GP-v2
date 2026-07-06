@@ -32,15 +32,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  *    `makeFakeTokenRepo`.
  */
 
-vi.mock("@core/database", () => ({
-  prisma: {
-    session: {
-      findUnique: vi.fn(),
-      delete: vi.fn(),
-    },
-  },
-}));
-
 vi.mock("bcryptjs", () => ({
   default: {
     compare: vi.fn(),
@@ -51,8 +42,6 @@ vi.mock("bcryptjs", () => ({
 import type { PrismaClient } from "@core/database";
 import { createInMemoryDispatcher, type DomainEvent } from "@core/events";
 import bcrypt from "bcryptjs";
-
-import { prisma } from "@core/database";
 
 import type { AuthEventDispatcher } from "../events.js";
 import { MIN_TOKEN_LENGTH } from "../password-reset.service.js";
@@ -75,212 +64,22 @@ function asPrismaStub(stub: FakePrismaStub): PrismaClient {
   return stub as unknown as PrismaClient;
 }
 
-describe("wireAuthEvents", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
-  describe("SessionService.revokeSession → auth.session.revoked", () => {
-    it("dispatches auth.session.revoked with userId, sessionToken, and revokedAt on a successful revoke", async () => {
-      const { SessionService } = await import("../session-service.js");
-      const { wireAuthEvents } = await import("../events.js");
-
-      vi.mocked(prisma.session.findUnique).mockResolvedValue({
-        id: "session-1",
-        sessionToken: "token-A",
-        userId: "user-1",
-        expires: new Date(Date.now() + 60_000),
-        user: {
-          id: "user-1",
-          email: "alice@example.com",
-          name: "Alice",
-          role: "USER" as const,
-          hashedPassword: "$2a$10$hash",
-          emailVerified: null,
-          image: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      } as never);
-      vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
-
-      const sessionService = new SessionService(prisma);
-      const rbacService = new (
-        await import("../rbac-service.js")
-      ).RbacService();
-      const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-
-      wireAuthEvents(sessionService, rbacService, dispatcher);
-
-      await sessionService.revokeSession("token-A");
-
-      expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = vi.mocked(dispatcher).mock
-        .calls[0]?.[0] as DomainEvent;
-      expect(dispatched.name).toBe("auth.session.revoked");
-      expect(dispatched.userId).toBe("user-1");
-      expect(dispatched.payload).toMatchObject({
-        userId: "user-1",
-        sessionId: "token-A",
-      });
-      expect(
-        (dispatched.payload as { revokedAt: Date }).revokedAt,
-      ).toBeInstanceOf(Date);
-    });
-
-    it("dispatches multiple events when revokeSession is called multiple times (no swallowing)", async () => {
-      const { SessionService } = await import("../session-service.js");
-      const { wireAuthEvents } = await import("../events.js");
-
-      // First call: token-X for user-1
-      // Second call: token-Y for user-2
-      const findUniqueByToken = new Map<string, unknown>([
-        [
-          "token-X",
-          {
-            id: "session-X",
-            sessionToken: "token-X",
-            userId: "user-1",
-            expires: new Date(Date.now() + 60_000),
-            user: {
-              id: "user-1",
-              email: "alice@example.com",
-              name: "Alice",
-              role: "USER" as const,
-              hashedPassword: "$2a$10$hash",
-              emailVerified: null,
-              image: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          },
-        ],
-        [
-          "token-Y",
-          {
-            id: "session-Y",
-            sessionToken: "token-Y",
-            userId: "user-2",
-            expires: new Date(Date.now() + 60_000),
-            user: {
-              id: "user-2",
-              email: "bob@example.com",
-              name: "Bob",
-              role: "USER" as const,
-              hashedPassword: "$2a$10$hash",
-              emailVerified: null,
-              image: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
-          },
-        ],
-      ]);
-      // Prisma's SessionWhereUniqueInput is a discriminated union; the
-      // service only ever calls with where.sessionToken, so we narrow
-      // here.
-      vi.mocked(prisma.session.findUnique).mockImplementation(
-        async (args: { where: { sessionToken: string } }) => {
-          return findUniqueByToken.get(args.where.sessionToken) as never;
-        },
-      );
-      vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
-
-      const sessionService = new SessionService(prisma);
-      const rbacService = new (
-        await import("../rbac-service.js")
-      ).RbacService();
-      const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-
-      wireAuthEvents(sessionService, rbacService, dispatcher);
-
-      await sessionService.revokeSession("token-X");
-      await sessionService.revokeSession("token-Y");
-
-      expect(dispatcher).toHaveBeenCalledTimes(2);
-      const events = vi
-        .mocked(dispatcher)
-        .mock.calls.map((c) => c[0] as DomainEvent);
-      expect(events[0]?.name).toBe("auth.session.revoked");
-      expect((events[0]?.payload as { userId: string }).userId).toBe("user-1");
-      expect((events[0]?.payload as { sessionId: string }).sessionId).toBe(
-        "token-X",
-      );
-      expect(events[1]?.name).toBe("auth.session.revoked");
-      expect((events[1]?.payload as { userId: string }).userId).toBe("user-2");
-      expect((events[1]?.payload as { sessionId: string }).sessionId).toBe(
-        "token-Y",
-      );
-    });
-  });
-
-  describe("RbacService.can → auth.rbac.denied", () => {
-    it("dispatches auth.rbac.denied when can() returns false", async () => {
-      const { RbacService } = await import("../rbac-service.js");
-      const { wireAuthEvents } = await import("../events.js");
-
-      const rbacService = new RbacService();
-      const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-
-      wireAuthEvents(
-        // SessionService is unused in this scenario but the signature
-        // requires it. Build a minimal stub that satisfies the type
-        // without touching prisma.
-        {
-          revokeSession: vi.fn(),
-          getCurrentUser: vi.fn(),
-        } as never,
-        rbacService,
-        dispatcher,
-      );
-
-      const allowed = rbacService.can(
-        { id: "user-1", role: "USER" },
-        "session:read:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
-
-      expect(allowed).toBe(false);
-      expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = vi.mocked(dispatcher).mock
-        .calls[0]?.[0] as DomainEvent;
-      expect(dispatched.name).toBe("auth.rbac.denied");
-      expect(dispatched.userId).toBe("user-1");
-      expect(dispatched.payload).toMatchObject({
-        userId: "user-1",
-        action: "session:read:any",
-        resourceType: "session",
-      });
-      expect((dispatched.payload as { at: Date }).at).toBeInstanceOf(Date);
-    });
-
-    it("does NOT dispatch any event when can() returns true (allowed action)", async () => {
-      const { RbacService } = await import("../rbac-service.js");
-      const { wireAuthEvents } = await import("../events.js");
-
-      const rbacService = new RbacService();
-      const dispatcher = vi.fn<(event: DomainEvent) => Promise<void>>();
-
-      wireAuthEvents(
-        {
-          revokeSession: vi.fn(),
-          getCurrentUser: vi.fn(),
-        } as never,
-        rbacService,
-        dispatcher,
-      );
-
-      const allowed = rbacService.can(
-        { id: "user-1", role: "USER" },
-        "session:read:own",
-        { kind: "session", ownerId: "user-1", id: "session-1" },
-      );
-
-      expect(allowed).toBe(true);
-      expect(dispatcher).not.toHaveBeenCalled();
-    });
-  });
-});
+// ---------------------------------------------------------------------------
+// wireAuthEvents was REMOVED in slice 3 batch 6 (drop-wireauth-events).
+//
+// Pattern A is now the single source of truth for dispatch across the
+// slice:
+//  - SessionService.revokeSession(token, userId) → dispatcher.dispatch
+//  - RbacService.can() with `false` outcome → dispatcher.dispatch
+//  - PasswordResetService.requestReset / consumeReset → dispatcher.dispatch
+//
+// Each service takes the dispatcher in its constructor; no global
+// "wire after construction" step exists. The contract is exercised in:
+//  - pattern-a-dispatch.test.ts (new file, covers Session + Rbac Pattern A)
+//  - rbac-service.test.ts + session-service.test.ts (cleaned up —
+//    every test now constructs the service with a `vi.fn()`
+//    dispatcher; no wrapper round-trip).
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // PasswordResetService → auth.password-reset.{requested, completed}

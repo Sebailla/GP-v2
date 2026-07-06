@@ -1,6 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import type { Action } from "../rbac-service.js";
+import type { AuthEventDispatcher } from "../events.js";
+
+/**
+ * Slice 3 batch 6 (drop-wireauth-events): RbacService now takes the
+ * dispatcher in its constructor. Every test instantiates it with a
+ * `vi.fn()` so the F8 guard accepts the constructor call and the
+ * Pattern A dispatch (on `false`) is wired in. The dispatcher is
+ * `resetAllMocks`ed between tests so cross-test pollution is
+ * impossible.
+ */
+const noopDispatcher = vi.fn<AuthEventDispatcher>();
 
 /**
  * TDD contract for RbacService (slice 3 batch 3 / brief T3.4 RED).
@@ -42,10 +53,14 @@ import type { Action } from "../rbac-service.js";
  */
 
 describe("RbacService", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
   describe("USER role", () => {
     it("allows session:read:own on own session", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -54,11 +69,12 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
     it("denies session:read:own on someone else's session", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -71,7 +87,7 @@ describe("RbacService", () => {
 
     it("denies session:read:any (cross-user read)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -84,7 +100,7 @@ describe("RbacService", () => {
 
     it("allows session:revoke:own on own session", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -93,11 +109,12 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
     it("denies session:revoke:any (cross-user revoke)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -110,7 +127,7 @@ describe("RbacService", () => {
 
     it("allows transaction:read:own on own transaction", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -119,11 +136,12 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
     it("denies transaction:read:any (cross-user read)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "user-1", role: "USER" },
@@ -138,7 +156,7 @@ describe("RbacService", () => {
   describe("ADMIN role", () => {
     it("allows session:read:any on someone else's session", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "admin-1", role: "ADMIN" },
@@ -147,11 +165,12 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
     it("allows session:revoke:any (cross-user revoke)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "admin-1", role: "ADMIN" },
@@ -160,11 +179,12 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
     it("allows session:read:own on own session (admins also own resources)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       const allowed = rbac.can(
         { id: "admin-1", role: "ADMIN" },
@@ -173,13 +193,14 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(true);
+      expect(noopDispatcher).not.toHaveBeenCalled();
     });
   });
 
   describe("defense in depth", () => {
     it("denies USER on an unknown action at runtime (cast past the type)", async () => {
       const { RbacService } = await import("../rbac-service.js");
-      const rbac = new RbacService();
+      const rbac = new RbacService(noopDispatcher);
 
       // Cast past the literal-union `Action` type to simulate an attacker
       // calling `can()` with a fabricated action name. The lookup table
@@ -191,6 +212,20 @@ describe("RbacService", () => {
       );
 
       expect(allowed).toBe(false);
+    });
+  });
+
+  describe("constructor guard (F8)", () => {
+    it("throws TypeError when dispatcher is null or undefined", async () => {
+      const { RbacService } = await import("../rbac-service.js");
+
+      expect(
+        () => new RbacService(null as unknown as AuthEventDispatcher),
+      ).toThrow(TypeError);
+
+      expect(
+        () => new RbacService(undefined as unknown as AuthEventDispatcher),
+      ).toThrow(TypeError);
     });
   });
 });

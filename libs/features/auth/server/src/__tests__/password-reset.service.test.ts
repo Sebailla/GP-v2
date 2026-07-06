@@ -303,15 +303,67 @@ describe("PasswordResetService", () => {
       )[0].tokenHash;
       expect(first).not.toBe(second);
 
-      expect(dispatcher).toHaveBeenCalledTimes(2);
-      const events = vi
-        .mocked(dispatcher)
-        .mock.calls.map((c) => (c as unknown as [DomainEvent])[0]);
-      expect(
-        events.every((e) => e.name === "auth.password-reset.requested"),
-      ).toBe(true);
-    });
-  });
+          expect(dispatcher).toHaveBeenCalledTimes(2);
+          const events = vi
+            .mocked(dispatcher)
+            .mock.calls.map((c) => (c as unknown as [DomainEvent])[0]);
+          expect(
+            events.every((e) => e.name === "auth.password-reset.requested"),
+          ).toBe(true);
+        });
+
+        it("R3 follow-up — swallows dispatcher rejection + emits AuditSink signal; row persists (orphan bounded by F4 cron)", async () => {
+          const userRepo = makeFakeUserRepo({
+            id: "user-1",
+            email: "alice@example.com",
+            role: "USER",
+            hashedPassword: "$2a$10$old",
+          });
+          const tokenRepo = makeFakeTokenRepo();
+          const dispatcherError = new Error("email adapter offline");
+          const dispatcher = vi
+            .fn<AuthEventDispatcher>()
+            .mockRejectedValue(dispatcherError);
+          const auditSink = vi.fn();
+
+          const { PasswordResetService } =
+            await import("../password-reset.service.js");
+          const service = new PasswordResetService(
+            userRepo,
+            tokenRepo as unknown as PasswordResetTokenRepository,
+            dispatcher,
+            // prisma is required by the constructor shape; use a no-op
+            // stub since requestReset never reaches the transaction.
+            asPrismaStub(makePrismaStub()),
+            auditSink,
+          );
+
+          // Contract: requestReset RESOLVES (no 500 to caller), row
+          // persists (user can inspect dev mailbox OR retry), audit
+          // sink fires with the F2-shaped signal.
+          await expect(
+            service.requestReset("alice@example.com"),
+          ).resolves.toBeUndefined();
+
+          expect(tokenRepo.create).toHaveBeenCalledTimes(1);
+          expect(dispatcher).toHaveBeenCalledTimes(1);
+          expect(auditSink).toHaveBeenCalledTimes(1);
+          const auditCall = (
+            vi.mocked(auditSink).mock.calls[0] as unknown as [
+              {
+                kind: string;
+                event: DomainEvent;
+                error: unknown;
+              },
+            ]
+          )[0];
+          expect(auditCall.kind).toBe("AUTH_EVENT_DISPATCH_FAILURE");
+          expect(auditCall.event.name).toBe("auth.password-reset.requested");
+          expect((auditCall.error as Error).message).toBe(
+            "email adapter offline",
+          );
+        });
+      });
 
   describe("consumeReset — prisma.$transaction atomicity (F1 + F6)", () => {
     it("wraps userRepo.updatePassword + tokenRepo.markConsumed in a prisma.$transaction so a 2nd-write failure rolls back the first (F1 + F6)", async () => {

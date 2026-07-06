@@ -1,5 +1,7 @@
 /**
- * RbacService — slice 3 batch 3 (brief T3.4 GREEN).
+ * RbacService — slice 3 batch 3 (brief T3.4 GREEN) + slice 3 batch 6
+ * (`wireAuthEvents` monkey-patch wrapper dropped — Pattern A dispatcher
+ * adopted via constructor injection).
  *
  * Owns the role / permission table for the auth slice, per design.md §4.1.
  * Every server-side guard (NestJS controllers, NextAuth `authorize`
@@ -25,19 +27,26 @@
  *   1. ADMIN → true (super-role bypass; design §4.1).
  *   2. Ownership check: if the resource carries an `ownerId` AND it does
  *      not match `actor.id`, deny. This gates `*:own` actions on USER.
- *   3. Lookup `PERMISSIONS[actor.role][action]`. If true → allow; else deny.
+ *      The `auth.rbac.denied` event fires here for USER (it's the
+ *      observable outcome that operators want to audit).
+ *   3. Lookup `PERMISSIONS[actor.role][action]`. If true → allow; else
+ *      deny (and fire `auth.rbac.denied`).
  *   4. Defense in depth: unknown action values default to `false` (the
  *      `Action` type is a closed string-literal union, but at runtime a
  *      `can()` caller could cast past the type; the lookup table misses
  *      and returns `false`).
  *
- * The class takes no constructor arguments — it is a pure decision
- * function with no I/O. Events emitted on denial (the `auth.rbac.denied`
- * audit event) live in `events.ts` (T3.5), which monkey-patches the
- * `can()` method to dispatch on `false`. The monkey-patch is intentional
- * for this slice; slice 3 batch 4+ refactors `can()` to take a
- * dispatcher parameter directly (single source of truth).
+ * Pattern A dispatch (canonical design §4.1): the dispatcher is taken
+ * as the 1st constructor argument. `can()` dispatches
+ * `auth.rbac.denied` directly on a `false` outcome. The previous
+ * `wireAuthEvents` wrapper (slice 3 batch 3) that monkey-patched the
+ * `can()` method is removed — there is no longer a global
+ * "wire after construction" step.
  */
+
+import type { DomainEvent } from "@core/events";
+
+import type { AuthEventDispatcher } from "./events.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -102,16 +111,30 @@ const PERMISSIONS = {
 } as const satisfies Record<Role, Record<Action, boolean>>;
 
 export class RbacService {
+  private readonly dispatcher: AuthEventDispatcher;
+
+  constructor(dispatcher: AuthEventDispatcher) {
+    // F8 (WARNING) — eager failure for missing dispatcher, mirroring
+    // PasswordResetService / SessionService.
+    if (typeof dispatcher !== "function") {
+      throw new TypeError(
+        `RbacService requires an AuthEventDispatcher (a function); received ${typeof dispatcher === "undefined" ? "undefined" : String(dispatcher)}.`,
+      );
+    }
+    this.dispatcher = dispatcher;
+  }
+
   /**
    * Decide whether `actor` may perform `action` on `resource`.
    *
    * Returns `true` when allowed, `false` when denied. Throws nothing —
    * authorization decisions are boolean; failures propagate as a `false`
-   * result, and the audit event (`auth.rbac.denied`) is dispatched from
-   * the `events.ts` wrapper, not from this method.
+   * result, and the audit event (`auth.rbac.denied`) is dispatched
+   * directly from this method on the `false` outcome.
    *
-   * The method is pure (no I/O, no clock dependency, no allocation in
-   * the hot path) so it is safe to call from controllers and middleware.
+   * The method is pure modulo the audit dispatch (no I/O, no clock
+   * dependency beyond `new Date()` for the `at` field) so it is safe
+   * to call from controllers and middleware.
    */
   can(actor: Actor, action: Action, resource: Resource): boolean {
     // 1. Super-role bypass — admins can do anything.
@@ -124,12 +147,40 @@ export class RbacService {
     //    3 confirms the role allows that action at all). `*:any` actions
     //    skip this by design — they have no ownership semantics.
     if (resource.ownerId !== undefined && resource.ownerId !== actor.id) {
+      this.denyAndAudit(actor, action, resource);
       return false;
     }
 
     // 3. Lookup. The `Action` type narrowing on `actor.role` keeps the
     //    table access type-safe. The default `false` covers any action
     //    value the runtime somehow saw that the table does not enumerate.
-    return PERMISSIONS[actor.role][action] ?? false;
+    const allowed = PERMISSIONS[actor.role][action] ?? false;
+    if (!allowed) {
+      this.denyAndAudit(actor, action, resource);
+    }
+    return allowed;
+  }
+
+  /**
+   * Internal: dispatch the `auth.rbac.denied` event for a `can()`
+   * outcome of `false`. Kept private so the public surface still
+   * returns a clean boolean. The dispatcher is awaited (pattern A)
+   * because the audit signal is the only honest observability for a
+   * denial; treating it fire-and-forget would lose the observability
+   * contract.
+   */
+  private denyAndAudit(actor: Actor, action: Action, resource: Resource): void {
+    const event: DomainEvent = {
+      name: "auth.rbac.denied",
+      userId: actor.id,
+      payload: {
+        userId: actor.id,
+        action,
+        resourceType: resource.kind,
+        at: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    void this.dispatcher(event);
   }
 }
