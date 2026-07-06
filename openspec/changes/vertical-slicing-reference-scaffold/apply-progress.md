@@ -1462,3 +1462,142 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 - Spec: `openspec/changes/.../specs/auth/spec.md` §Multi-Provider Adapter Wiring (G20), §Password Reset (G21), §Cross-cutting scenarios (T3.7). The three integration tests map directly to spec scenarios.
 - Design: `openspec/changes/.../design.md` §4.1 (server slice — AuthService.register cross-provider invariant; PasswordResetService.requestReset silent-return; NextAuth v5 config + real JwtAuthGuard + JWE expiry); §4.7 (events emitted — auth.password-reset.requested, auth.password-reset.completed, auth.session.revoked, auth.rbac.denied).
 - Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch8`.
+
+## Slice 4 batch 4a: T4.2 + T4.3 + T4.5 — STATUS: COMPLETE (slice 4 foundations, i18n layer)
+
+**Branch**: `feat/vertical-slicing-s4-batch4a-t42-t43-t45` (cut from `develop` @ `8e56e3a`, post-PR #13 T3.7 + T3.9 merge — slice 3 CLOSED at 9/9).
+**Base**: `8e56e3a` (last merge of slice 3 batch 8, slice 3 closer).
+**Head**: this batch (5 atomic commits: deps + T4.5 + T4.3 + T4.2 + markers).
+**Mode**: interactive. Strict TDD enabled. test runner: `pnpm turbo run test`.
+**Worker outcome**: 5 atomic commits landed clean; all quality gates green at the markers commit. Forbidden ops honored.
+
+### Sub-tasks completed (5)
+
+| Sub-task | Subject | Status |
+|----------|---------|--------|
+| brief-deps | Install next-intl@3.26.5 + clsx@2.1.1 + tailwind-merge@2.5.5 + vitest@4.1.9 (devDep) | DONE |
+| brief-T4.5-cn-helper | cn helper + apps/web vitest config + lib-utils tests (RED + GREEN, 4 tests) | DONE |
+| brief-T4.3-next-intl-middleware | middleware.ts + i18n.ts + middleware tests (RED + GREEN, 6 tests) | DONE |
+| brief-T4.2-i18n-catalogs | en.json + es.json + key-set parity test (no TDD per brief, 4 tests) | DONE |
+| brief-markers-apply-progress | tasks.md T4.2 + T4.3 + T4.5 [x] markers + apply-progress section + Spanish mirror | DONE |
+
+### Files created / modified (10 files, +792 / -2 across 5 atomic commits)
+
+- `apps/web/package.json` — MODIFIED (+4 deps: clsx@2.1.1, tailwind-merge@2.5.5, next-intl@3.26.5 in `dependencies`; vitest@4.1.9 in `devDependencies`).
+- `pnpm-lock.yaml` — MODIFIED (lockfile regenerated for the four packages).
+- `apps/web/vitest.config.ts` — NEW (~50 lines). Closes the slice 1 deferred apps/web#test install. node env + clearMocks + aliases that pin next-intl/server + next-intl/navigation to the client build (so any future test importing a next-intl module from apps/web doesn't trip the React-Server-Conditional Exports warning).
+- `apps/web/lib/utils.ts` — NEW (~50 lines, JSDoc + `cn` function). The canonical class-name merger per design §6.5: `cn(...inputs: ClassValue[]) = twMerge(clsx(inputs))`. JSDoc documents why tailwind-merge's subset-conflict resolution matters for shadcn-style primitives (batch 4b).
+- `apps/web/__tests__/lib-utils.test.ts` — NEW (4 tests). TDD test for cn: merge precedence (`p-2 + p-4 → p-4`), falsey-filter (null/undefined/false dropped), subset-conflict (`px-2 + p-4 → p-4` — px-2 is a strict subset of p-4 and gets dropped), type-narrowing (`string` not `string | undefined`).
+- `apps/web/i18n.ts` — NEW (~50 lines). The `routing` config via `defineRouting({...})` from next-intl/routing: `locales: ['en','es']`, `defaultLocale: 'en'`, `localePrefix: 'always'`. Single source of truth for both middleware.ts AND the NextIntlClientProvider (batch 4c).
+- `apps/web/middleware.ts` — NEW (~50 lines). Wraps `createMiddleware(routing)` from next-intl/middleware + exports the canonical negative-lookahead matcher that excludes /api, /_next, /_vercel, and paths with a file extension.
+- `apps/web/__tests__/middleware.test.ts` — NEW (6 tests). TDD test for middleware: (1) /sign-in → 307 to /en/sign-in, (2) /es/sign-in → 200 passthrough (x-middleware-request-x-next-intl-locale: es + NEXT_LOCALE=es cookie), (3) /reset-password/abc123 → 307 to /en/reset-password/abc123 (deep paths preserved), (4-6) matcher regression nets (api /_next / general exclusion).
+- `apps/web/messages/en.json` — NEW (~1670 bytes, 30 keys). English catalog for the auth-slice surface (signIn / signUp / forgotPassword / resetPassword / sessions / devMailbox / common / locale).
+- `apps/web/messages/es.json` — NEW (~1910 bytes, 30 keys). Spanish catalog using neutral/professional Spanish per AGENTS.md §13. Identical key tree to en.json.
+- `apps/web/__tests__/i18n-catalogs.test.ts` — NEW (4 tests). Catalog key-set parity check: both files parse, English carries every brief-mandated key, en.json and es.json carry identical key trees (no missing keys on either side), no CJK fallthrough mojibake in either file.
+- `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` — MODIFIED: T4.2 [x], T4.3 [x], T4.5 [x] markers on the umbrella rows + per-row sub-progress notes (~12 new paragraphs).
+- `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` — NEW (~150 lines). Spanish mirror of THIS section per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Source-of-truth in English; mirror is a faithful translation. Technical surfaces (file paths, commit SHAs, JSON examples) preserved verbatim.
+
+### Tests: apps/web suite 0 → 14/14 PASS
+
+- `apps/web/__tests__/lib-utils.test.ts` (T4.5): 4 new tests.
+  - `merges conflicting Tailwind padding utilities — last one wins` — asserts `cn('p-2', 'p-4') === 'p-4'`.
+  - `filters out falsy values (null, undefined, false)` — asserts the conflict resolves AND no literal `null`/`undefined`/`false` leaks into the output.
+  - `recognizes \`px-*\` as a subset conflict of \`p-*\` (broader wins)` — asserts `cn('px-2', 'p-4') === 'p-4'` (px-2 is a strict subset of p-4 and tailwind-merge drops it).
+  - `returns a string (type narrowing)` — asserts the return type is `string` not `string | undefined`.
+- `apps/web/__tests__/middleware.test.ts` (T4.3): 6 new tests (3 routing + 3 matcher).
+  - `redirects bare '/sign-in' to '/en/sign-in' (default locale prefix)` — asserts 30x + `pathname === '/en/sign-in'` (parses absolute Location URL via `new URL(loc, HOST).pathname`).
+  - `keeps '/es/sign-in' unchanged (no double-prefix)` — asserts 200 + `x-middleware-request-x-next-intl-locale === 'es'` + `set-cookie` carries `NEXT_LOCALE=es`.
+  - `redirects a deep bare path '/reset-password/abc123' to '/en/reset-password/abc123'` — asserts deep paths are preserved across the prefix redirect.
+  - Matcher regression nets: the matcher string is the canonical negative-lookahead form, excludes `api`, excludes `_next`.
+- `apps/web/__tests__/i18n-catalogs.test.ts` (T4.2): 4 new tests (catalog parity + CJK fallthrough).
+  - `both en.json and es.json exist as JSON-parsable files` — sanity check on JSON.parse.
+  - `the en.json key tree is non-empty (catalog has at least the auth surface)` — asserts >20 keys + enumerates every brief-mandated key explicitly.
+  - `en.json and es.json carry identical key trees (no missing keys in either locale)` — symmetric difference of the flattened key sets is empty.
+  - `the catalogs are clean of mojibake indicators (CJK fallthrough)` — mirrors AGENTS.md §13's `no-mojibake-in-docs` rule at the catalog level; the rule itself is enforced in slice 8 once the `@eslint/markdown` parser is wired.
+
+### TDD evidence
+
+| Sub-task | RED | GREEN | Final count |
+|----------|-----|-------|-------------|
+| brief-deps | N/A (no production code) | N/A | 0 |
+| brief-T4.5-cn-helper | RED: `lib/utils.ts` missing → 1 of 4 tests fails (Cannot find module). Created cn = `twMerge(clsx(inputs))`. GREEN: 4/4 cn tests PASS. | 4 new |
+| brief-T4.3-next-intl-middleware | RED: middleware.ts missing → 6/6 tests fail (Cannot find module). Created middleware.ts + i18n.ts + discovered empirical behaviors. Discovered next-intl 3.26.5 emits ABSOLUTE URL in Location for redirects (test parses via `new URL(loc, HOST).pathname`); emits `x-middleware-request-x-next-intl-locale` header on PASSTHROUGH responses (e.g. /es/sign-in). Test revised mid-cycle to read these canonical signals. GREEN: 6/6 middleware tests PASS. | 6 new |
+| brief-T4.2-i18n-catalogs | Per brief: NO strict TDD (catalog content is documentation/data, not behavior). The catalog key-set parity test was written AFTER the catalogs to act as a regression net — it was RED in the absence of the catalogs (Cannot find module), GREEN once both files exist with identical keys. 4/4 catalog tests PASS. | 4 new |
+| brief-markers-apply-progress | N/A (markers only) | N/A |
+
+### Quality gates
+
+| Gate | Result |
+|------|--------|
+| `pnpm install` | exit 0 (4 packages added: next-intl@3.26.5, clsx@2.1.1, tailwind-merge@2.5.5, vitest@4.1.9; lockfile regenerated) |
+| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (no regression) |
+| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no regression) |
+| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (no regression) |
+| `cd apps/api && pnpm exec vitest run` | 21/21 PASS (no regression) |
+| `pnpm --filter web exec vitest run` | 14/14 PASS (NEW: 4 cn + 6 middleware + 4 catalogs) |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 (full turbo, slices 1-4 wired) |
+| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
+| `pnpm turbo run lint` (full) | exit 0 (no new violations) |
+| `pnpm turbo run typecheck --filter=web` | exit 0 (next-intl types resolve under tsconfig strict + Bundler resolution) |
+| `pnpm turbo run typecheck` (full) | exit 0 (full workspace) |
+
+Pre-existing failure NOT caused by this batch: `pnpm turbo run build --filter=web` would FAIL because the `apps/web/app/[locale]/layout.tsx` and `page.tsx` were scaffolded in slice 1 with `force-static` + `import { env } from "@core/config"`; the env import runs at module load and requires `DATABASE_URL`/`NEXTAUTH_URL`/`NEXTAUTH_SECRET` to be set. Slice 4 batch 4c (forms) is the natural place to wire a real `.env.local` for apps/web (the build path is exercised when batch 4c ships the actual sign-in page). This batch ONLY adds middleware + i18n + cn + catalogs — no actual page is rendered at /sign-in yet, so the build path isn't part of the brief's required gates (typecheck + test are; both PASS).
+
+### Slice 4 batch 4a status snapshot
+
+- **Tasks**: 3/15 [x] (T4.2 + T4.3 + T4.5 closed; T4.1, T4.4, T4.6-T4.15 deferred per slice 4 batch distribution).
+- **Net new tests**: 14 (4 cn + 6 middleware + 4 catalogs).
+- **Quality gates**: 11/11 required gates exit 0.
+- **Atomic commits**: 5 (deps; T4.5; T4.3; T4.2; markers).
+- **Forbidden ops honored**: no `find`, `ls -R`, `tree`, `npm view`, `pnpm list`, `pnpm why`. No modifications to `apps/web/components/ui/*` (T4.4, batch 4b). No `app/[locale]/sign-in/page.tsx` (T4.8, batch 4c). No Tailwind config (T4.7, batch 4b). No `@nestjs/schedule` or non-web deps. No edits to `libs/features/auth/*` (slice 3 closed).
+
+### Critical deviations from the brief
+
+1. **`cn("px-2", "p-4")` assertion revised from `"p-4 px-2"` to `"p-4"`**. The brief stated `"p-4 px-2"` (the reverse-order case) as the expected output. The actual tailwind-merge library emits `"p-4"` for the brief's order — `px-2` is a STRICT SUBSET of `p-4` (every axis px-2 sets is already covered by p-4's all-sides), so tailwind-merge drops the redundant subset rather than emitting a string that LOOKS like a partial override but is semantically a no-op. The test pin the observed behavior (the lib is the source of truth, per testing-standards: "Expected values must come from an independent source of truth — a known-good literal, a worked example, the spec"). The cn JSDoc documents both orders so future readers can run `cn("p-4", "px-2")` (reverse order) to see what a partial override looks like. Brief's "minimum coverage" gates (4 tests, all gate-passing shapes) are still met.
+2. **Middleware test reads `x-middleware-request-x-next-intl-locale` instead of `Vary` for passthrough assertions**. next-intl 3.26.5 does NOT set a `Vary` header on PASSTHROUGH responses (e.g. /es/sign-in) — only on redirects. The canonical "active locale" signal on passthrough is the `x-middleware-request-x-next-intl-locale` header that next-intl stamps on the response, paired with the `NEXT_LOCALE=<locale>` Set-Cookie header (the cookie is the source of truth for subsequent prefix-less requests). The test asserts both signals on the passthrough case. Documented in the test JSDoc so future readers know why the assertion shape doesn't match the brief's initial instinct.
+3. **next-intl@3.26.5 emits non-fatal peer warning for Next 16**. next-intl 3.x's peer range caps at `^15.x`; Next 16.2.10 is installed. pnpm 11 emits a soft warning (not a hard fail). The middleware runtime uses standard `Request`/`Response` (Node 22 has these natively; next-intl's middleware does not depend on Next 16-specific APIs), so the middleware works at runtime. Migration to next-intl v4 is deferred to a future slice if needed.
+4. **5 atomic commits (not the implicit 4 the brief laid out)**. The brief implicitly suggested three impl commits (T4.2/T4.3/T4.5) plus one markers commit; this batch landed FIVE — the brief-deps sub-task becomes its own commit (dependencies are pre-flight infrastructure, not behavior), keeping each impl commit revertable in isolation without leaving an orphaned `next-intl`/`clsx`/`tailwind-merge` import in a rolled-back snapshot.
+
+### Risk flags
+
+**Closed (carry-overs from prior slices):**
+
+- `apps/web vitest install deferred from slice 1` — CLOSED in this batch (`apps/web/vitest.config.ts` + vitest added as devDep).
+- Spanish mirror for apply-progress — per AGENTS.md §13: every English `.md` under `openspec/` or `docs/` MUST have a Spanish mirror in the same atomic commit. The slice 4 batch 4a apply-progress section ships with `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` as the Spanish mirror in the markers commit.
+- Key-set drift between en.json and es.json — regression net added (apps/web/**tests**/i18n-catalogs.test.ts symmetric difference assertion).
+- CJK mojibake fallthrough — regression net added at the catalog level (mirrors the deferred ESLint `no-mojibake-in-docs` rule from §13).
+
+**New (this batch):**
+
+- `next_intl_v3_peer_warning_for_next_16` — pnpm soft-warns on the peer mismatch. The middleware uses standard Request/Response and works against Next 16 at runtime. Migration to next-intl v4 deferred to a future slice.
+- `middleware_passthrough_uses_cookie_not_vary_header_for_locale_signal` — next-intl 3.26.5 sets `Vary: Accept-Language` only on redirects (passthrough uses the `x-middleware-request-x-next-intl-locale` header + `NEXT_LOCALE` cookie). Test pinned against the canonical signals; documented in the JSDoc.
+- `cn_subset_conflict_order_sensitivity` — `cn("px-2", "p-4")` returns `"p-4"` (px-2 dropped as strict subset); `cn("p-4", "px-2")` returns `"p-4 px-2"` (px-2 narrows the horizontal axis on top of p-4). Test pinned the brief's order; the JSDoc documents the reverse-order case so future readers understand the behavior.
+- `vitest_only_middleware_test_alone` — apps/web/vitest.config.ts picks up `__tests__/**/*.test.ts` and `__tests__/**/*.test.tsx`, but the middleware + cn + catalog tests are all `.test.ts` (no `.tsx` yet — no React component tests in this batch; LoginForm lands in batch 4c with T4.1). The config is forward-compatible with `.tsx` files (the include glob already lists them).
+
+### Workload / PR boundary
+
+- Forecast (brief): ~70-80 lines of source per task + tests (~70 lines) + markers (~50 lines).
+- Actual: 10 files changed (8 in `apps/web/` + tasks.md + the Spanish mirror), 5 atomic commits, +~790 / -2 net insertions. Net-new tests: 14. Source lines dominate: cn (~50) + middleware (~50) + i18n.ts (~50) + vitest config (~50) + 3 test files (4-6 cases each) + 2 catalog files (~80 lines combined). Apply-progress section is ~150 lines.
+- 400-line budget risk: **Low** — every commit is well under 400 (deps commit 114, T4.5 159, T4.3 221, T4.2 256, markers ~250 estimated).
+- PR target: `feat/vertical-slicing-s4-batch4a-t42-t43-t45` → `develop` once `sdd-verify` clears.
+- This is the 1st PR of slice 4 (which has 8+ batches: 4a/4b/4c/4d/4e).
+- NOT pushed to remote, NOT merged.
+
+### Forbidden operations (honored)
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED. All reads targeted specific paths from input list or tmp probe files (deleted after use).
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED. Versions came from the brief's explicit recommendation (`next-intl@3.26.5 clsx@2.1.1 tailwind-merge@2.5.5`); vitest@4.1.9 was mirrored from libs/features/auth/server/package.json's existing devDep.
+- ❌ Modifying `apps/web/components/ui/*` (T4.4, batch 4b) — NOT TOUCHED.
+- ❌ Real `app/[locale]/sign-in/page.tsx` (T4.8, batch 4c) — NOT CREATED.
+- ❌ Tailwind config (T4.7, batch 4b) — NOT TOUCHED.
+- ❌ `@nestjs/schedule` or non-web deps — NOT ADDED.
+- ❌ Editing `libs/features/auth/*` (slice 3 closed) — NOT TOUCHED.
+- ❌ Committing secrets — NOT ATTEMPTED. No `.env*` files modified.
+- ❌ "Co-Authored-By" or AI attribution — NOT INCLUDED in any commit.
+
+### Cross-references (slice 4 batch 4a)
+
+- Tasks (T4.2 [x] + T4.3 [x] + T4.5 [x] markers + per-row sub-progress notes): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` (umbrella T4.2 row at line 350; umbrella T4.3 row at line 361; umbrella T4.5 row at line 382).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §I18n (the 6 critical screens all read labels from the catalogs); §Routes (the locale-prefixed route shape via the middleware).
+- Design: `openspec/changes/.../design.md` §6.3 (i18n routing — `defineRouting` + `createMiddleware` + `localePrefix: 'always'`); §6.5 (design tokens + shadcn-style primitives, including the cn helper pattern); §4.4 (route shape — locale-prefixed `/[locale]/(auth)/sign-in` etc.).
+- Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch4a`.
