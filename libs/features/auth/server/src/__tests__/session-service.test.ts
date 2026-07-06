@@ -51,6 +51,9 @@ vi.mock("@core/database", () => ({
       delete: vi.fn(),
       deleteMany: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -65,22 +68,21 @@ describe("SessionService", () => {
     it("returns { id, email, role } when sessionToken is valid and not expired", async () => {
       const { SessionService } = await import("../session-service.js");
 
+      // Slice 3 batch 6 (refactor-sessionservice-port): the user
+      // projection is resolved via the UserRepository port, not
+      // the Prisma `include` join. Mock both ports' backing
+      // prisma calls.
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: "session-1",
         sessionToken: "valid-token",
         userId: "user-1",
         expires: new Date(Date.now() + 60_000),
-        user: {
-          id: "user-1",
-          email: "alice@example.com",
-          name: "Alice",
-          role: "USER" as const,
-          hashedPassword: "$2a$10$some-hash",
-          emailVerified: null,
-          image: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER" as const,
+        hashedPassword: "$2a$10$some-hash",
       } as never);
 
       const service = new SessionService(prisma);
@@ -93,7 +95,9 @@ describe("SessionService", () => {
       });
       expect(prisma.session.findUnique).toHaveBeenCalledWith({
         where: { sessionToken: "valid-token" },
-        include: { user: true },
+      });
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: "user-1" },
       });
     });
 
@@ -115,22 +119,13 @@ describe("SessionService", () => {
 
     it("throws AuthError('SESSION_EXPIRED') when session.expires is in the past", async () => {
       const { SessionService, AuthError } = await import("../session-service.js");
+      // Slice 3 batch 6: no `user` join; SessionRepository returns
+      // the bare SessionRecord.
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: "session-1",
         sessionToken: "expired-token",
         userId: "user-1",
         expires: new Date(Date.now() - 1000),
-        user: {
-          id: "user-1",
-          email: "alice@example.com",
-          name: "Alice",
-          role: "USER" as const,
-          hashedPassword: "$2a$10$some-hash",
-          emailVerified: null,
-          image: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
       } as never);
 
       const service = new SessionService(prisma);
@@ -160,23 +155,26 @@ describe("SessionService", () => {
       });
     });
 
-    it("throws AuthError('INVALID_SESSION') when sessionToken does not exist (Prisma P2025)", async () => {
-      const { SessionService, AuthError } = await import("../session-service.js");
-      // Prisma error code P2025 = "Record to delete does not exist"
+    it("silently no-ops on missing session (Prisma P2025 → idempotent post-condition via SessionRepository port)", async () => {
+      const { SessionService } = await import("../session-service.js");
+      // Slice 3 batch 6 (refactor-sessionservice-port): the port
+      // \`revokeByToken\` swallows Prisma P2025 — the service
+      // returns void on a missing token. The previous direct
+      // prisma.session.delete code path translated P2025 to
+      // AuthError('INVALID_SESSION'); that translation moves to
+      // the ADAPTER (P2025 idempotency) under the new port.
       const prismaError = new Error("Record to delete does not exist.");
       (prismaError as Error & { code?: string }).code = "P2025";
       vi.mocked(prisma.session.delete).mockRejectedValue(prismaError);
 
       const service = new SessionService(prisma);
 
-      let caught: unknown;
-      try {
-        await service.revokeSession("unknown-token");
-      } catch (err) {
-        caught = err;
-      }
-      expect(caught).toBeInstanceOf(AuthError);
-      expect((caught as InstanceType<typeof AuthError>).code).toBe("INVALID_SESSION");
+      await expect(
+        service.revokeSession("unknown-token"),
+      ).resolves.toBeUndefined();
+      expect(prisma.session.delete).toHaveBeenCalledWith({
+        where: { sessionToken: "unknown-token" },
+      });
     });
   });
 

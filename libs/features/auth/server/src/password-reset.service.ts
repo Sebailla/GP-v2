@@ -242,7 +242,25 @@ export class PasswordResetService {
       },
       occurredAt: new Date(),
     };
-    await this.dispatcher(event);
+    // 4R follow-up (slice 3 batch 5 R3 WARNING #2): wrap the dispatch
+    // in try/catch + auditSink — same pattern as `consumeReset` (F2
+    // fix). If the dispatcher rejects (email adapter down, mailbox
+    // full, etc.), the row is already persisted but the caller
+    // would otherwise see a 500. Swallowing the rejection is safe
+    // here: (a) the user can retry with a fresh `requestReset` call
+    // that mints a NEW token + new row; (b) the orphan row is
+    // bounded by the F4 cron (deleteExpired) cleanup at ≤15 min.
+    // The audit signal is the only honest observability for the
+    // dispatcher failure.
+    try {
+      await this.dispatcher(event);
+    } catch (error) {
+      this.auditSink({
+        kind: "AUTH_EVENT_DISPATCH_FAILURE",
+        event,
+        error,
+      });
+    }
   }
 
   /**

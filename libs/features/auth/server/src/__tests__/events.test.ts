@@ -38,6 +38,17 @@ vi.mock("@core/database", () => ({
       findUnique: vi.fn(),
       delete: vi.fn(),
     },
+    // Slice 3 batch 6 (refactor-sessionservice-port): the
+    // wireAuthEvents wrapper recovers the userId via
+    // SessionService.getCurrentUser, which now routes through
+    // UserRepository (and ultimately prisma.user.findUnique) —
+    // the Prisma include join is gone. Add the mock so the
+    // pre-drop wireAuthEvents test scenarios keep working
+    // through this commit; the next commit (drop wireAuthEvents)
+    // rewrites this describe block from scratch.
+    user: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
@@ -85,22 +96,27 @@ describe("wireAuthEvents", () => {
       const { SessionService } = await import("../session-service.js");
       const { wireAuthEvents } = await import("../events.js");
 
+      // Slice 3 batch 6 (refactor-sessionservice-port): the bare
+      // SessionRecord is returned by SessionRepository.findByToken
+      // (no `user` join); the user projection resolves through
+      // UserRepository.findById and prisma.user.findUnique. The
+      // top-level mock is shaped to support BOTH call sites.
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: "session-1",
         sessionToken: "token-A",
         userId: "user-1",
         expires: new Date(Date.now() + 60_000),
-        user: {
-          id: "user-1",
-          email: "alice@example.com",
-          name: "Alice",
-          role: "USER" as const,
-          hashedPassword: "$2a$10$hash",
-          emailVerified: null,
-          image: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "user-1",
+        email: "alice@example.com",
+        name: "Alice",
+        role: "USER" as const,
+        hashedPassword: "$2a$10$hash",
+        emailVerified: null,
+        image: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       } as never);
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
@@ -134,6 +150,12 @@ describe("wireAuthEvents", () => {
 
       // First call: token-X for user-1
       // Second call: token-Y for user-2
+      //
+      // Slice 3 batch 6 (refactor-sessionservice-port): the bare
+      // SessionRecord is returned by SessionRepository.findByToken
+      // (no `user` join); the user projection resolves through
+      // UserRepository.findById and prisma.user.findUnique. We mock
+      // both ports so the wrapper can recover the userId.
       const findUniqueByToken = new Map<string, unknown>([
         [
           "token-X",
@@ -142,17 +164,6 @@ describe("wireAuthEvents", () => {
             sessionToken: "token-X",
             userId: "user-1",
             expires: new Date(Date.now() + 60_000),
-            user: {
-              id: "user-1",
-              email: "alice@example.com",
-              name: "Alice",
-              role: "USER" as const,
-              hashedPassword: "$2a$10$hash",
-              emailVerified: null,
-              image: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
           },
         ],
         [
@@ -162,17 +173,36 @@ describe("wireAuthEvents", () => {
             sessionToken: "token-Y",
             userId: "user-2",
             expires: new Date(Date.now() + 60_000),
-            user: {
-              id: "user-2",
-              email: "bob@example.com",
-              name: "Bob",
-              role: "USER" as const,
-              hashedPassword: "$2a$10$hash",
-              emailVerified: null,
-              image: null,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            },
+          },
+        ],
+      ]);
+      const findUserById = new Map<string, unknown>([
+        [
+          "user-1",
+          {
+            id: "user-1",
+            email: "alice@example.com",
+            name: "Alice",
+            role: "USER" as const,
+            hashedPassword: "$2a$10$hash",
+            emailVerified: null,
+            image: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        [
+          "user-2",
+          {
+            id: "user-2",
+            email: "bob@example.com",
+            name: "Bob",
+            role: "USER" as const,
+            hashedPassword: "$2a$10$hash",
+            emailVerified: null,
+            image: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         ],
       ]);
@@ -182,6 +212,11 @@ describe("wireAuthEvents", () => {
       vi.mocked(prisma.session.findUnique).mockImplementation(
         async (args: { where: { sessionToken: string } }) => {
           return findUniqueByToken.get(args.where.sessionToken) as never;
+        },
+      );
+      vi.mocked(prisma.user.findUnique).mockImplementation(
+        async (args: { where: { id: string } }) => {
+          return findUserById.get(args.where.id) as never;
         },
       );
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
