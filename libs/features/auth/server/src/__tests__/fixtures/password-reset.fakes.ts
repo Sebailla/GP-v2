@@ -12,6 +12,13 @@ import type {
 } from "../../domain/interfaces/user.repository.js";
 
 /**
+ * Default token TTL (1h per design §4.1). Mirrors `TOKEN_TTL_MS` in
+ * `password-reset.service.ts` and `TEST_TOKEN_TTL_MS` in the test
+ * files. Single source-of-truth for the fixtures file's default.
+ */
+const FIXTURES_TOKEN_TTL_MS = 60 * 60 * 1000;
+
+/**
  * Shared fakes for PasswordResetService tests \u2014 slice 3 batch 5 (Phase 2
  * refactor per R2 #6).
  *
@@ -84,10 +91,12 @@ export function makeFakeUserRepo(
   const hashedPassword = user?.hashedPassword ?? "$2a$10$default-hash";
 
   return {
-    findByEmail: vi.fn(async (lookupEmail: string): Promise<UserRecord | null> => {
-      if (!hasUser || email !== lookupEmail) return null;
-      return { id, email, role, hashedPassword };
-    }),
+    findByEmail: vi.fn(
+      async (lookupEmail: string): Promise<UserRecord | null> => {
+        if (!hasUser || email !== lookupEmail) return null;
+        return { id, email, role, hashedPassword };
+      },
+    ),
     findById: vi.fn(async (lookupId: string): Promise<UserRecord | null> => {
       if (!hasUser || id !== lookupId) return null;
       return { id, email, role, hashedPassword };
@@ -153,24 +162,18 @@ export function makeFakeTokenRepo(): FakeTokenRepo {
  * .update` spies. Defaults: both updates succeed (resolve to
  * `undefined`).
  */
-export function makePrismaStub(
-  options?: {
-    txUserUpdate?: ReturnType<typeof vi.fn>;
-    txPrtUpdate?: ReturnType<typeof vi.fn>;
-  },
-): FakePrismaStub {
-  const txUserUpdate =
-    options?.txUserUpdate ?? vi.fn(async () => undefined);
-  const txPrtUpdate =
-    options?.txPrtUpdate ?? vi.fn(async () => undefined);
-  const $transaction = vi.fn(
-    async (cb: (tx: unknown) => Promise<unknown>) => {
-      return cb({
-        user: { update: txUserUpdate },
-        passwordResetToken: { update: txPrtUpdate },
-      });
-    },
-  );
+export function makePrismaStub(options?: {
+  txUserUpdate?: ReturnType<typeof vi.fn>;
+  txPrtUpdate?: ReturnType<typeof vi.fn>;
+}): FakePrismaStub {
+  const txUserUpdate = options?.txUserUpdate ?? vi.fn(async () => undefined);
+  const txPrtUpdate = options?.txPrtUpdate ?? vi.fn(async () => undefined);
+  const $transaction = vi.fn(async (cb: (tx: unknown) => Promise<unknown>) => {
+    return cb({
+      user: { update: txUserUpdate },
+      passwordResetToken: { update: txPrtUpdate },
+    });
+  });
   return { $transaction, txUserUpdate, txPrtUpdate };
 }
 
@@ -204,7 +207,8 @@ export function seedTokenRow(
     id: overrides?.id ?? `prt-${repo.rows.size + 1}`,
     userId: overrides?.userId ?? "user-1",
     tokenHash,
-    expiresAt: overrides?.expiresAt ?? new Date(Date.now() + 60 * 60 * 1000),
+    expiresAt:
+      overrides?.expiresAt ?? new Date(Date.now() + FIXTURES_TOKEN_TTL_MS),
     consumedAt: overrides?.consumedAt ?? null,
   };
   repo.rows.set(tokenHash, row);
