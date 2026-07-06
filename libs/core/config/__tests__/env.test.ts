@@ -23,6 +23,7 @@ const completeFixture: Env = {
 		"postgresql://postgres:postgres@localhost:5432/gastos_reference",
 	NEXTAUTH_URL: "http://localhost:3000",
 	NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+	API_URL: "http://localhost:3001",
 	GOOGLE_CLIENT_ID: "google-client-id-stub",
 	GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
 	WEB_ORIGIN: "http://localhost:3000",
@@ -98,6 +99,13 @@ describe("envSchema", () => {
 			const paths = result.error.issues.map((i) => i.path.join("."));
 			expect(paths).toContain("NODE_ENV");
 		});
+
+		it("flags API_URL as a required field (T4.8)", () => {
+			expect(result.success).toBe(false);
+			if (result.success) return;
+			const paths = result.error.issues.map((i) => i.path.join("."));
+			expect(paths).toContain("API_URL");
+		});
 	});
 
 	describe("safeParse with a complete, well-formed env (GREEN)", () => {
@@ -106,6 +114,7 @@ describe("envSchema", () => {
 				"postgresql://postgres:postgres@localhost:5432/gastos_reference",
 			NEXTAUTH_URL: "http://localhost:3000",
 			NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+			API_URL: "http://localhost:3001",
 			GOOGLE_CLIENT_ID: "google-client-id-stub",
 			GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
 			WEB_ORIGIN: "http://localhost:3000",
@@ -133,6 +142,7 @@ describe("envSchema", () => {
 				"postgresql://postgres:postgres@localhost:5432/gastos_reference",
 			NEXTAUTH_URL: "http://localhost:3000",
 			NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+			API_URL: "http://localhost:3001",
 			GOOGLE_CLIENT_ID: "google-client-id-stub",
 			GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
 			WEB_ORIGIN: "http://localhost:3000",
