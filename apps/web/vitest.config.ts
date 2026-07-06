@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import path from "node:path";
 
 /**
@@ -12,12 +13,15 @@ import path from "node:path";
  * the shadcn-style primitives (T4.4) can be tested via React Testing
  * Library's `render()` + the `toBeInTheDocument` matchers.
  *
+ * The `@vitejs/plugin-react` plugin is REQUIRED here because the apps/web
+ * tsconfig sets `"jsx": "preserve"` (Next.js's canonical setting) and
+ * Vite's import-analysis plugin refuses to parse JSX in that mode (it
+ * errors with "Failed to parse source for import analysis because the
+ * content contains invalid JS syntax"). The React plugin installs an
+ * esbuild-based JSX transform that the import-analysis step honors.
+ *
  * The `setupFiles` block loads the jest-dom matchers BEFORE any test
  * module so `expect(...).toBeInTheDocument()` resolves at call time.
- * Tests that don't need DOM (cn, middleware, catalog parity) keep their
- * `node` environment semantics because happy-dom is fully Request/
- * Response compatible — the load cost is ~30ms and the consistency
- * benefit (single test runner across the workspace) outweighs it.
  *
  * The `resolve.alias` block points `next-intl/navigation`, `next-intl/
  * server`, and `next-intl/middleware` at the real package — pnpm's
@@ -26,6 +30,7 @@ import path from "node:path";
  * across the `react-server` / `default` conditional.
  */
 export default defineConfig({
+  plugins: [react()],
   test: {
     include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],
     environment: "happy-dom",
