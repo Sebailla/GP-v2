@@ -14,6 +14,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "2.7.4",
     "@core/config": "workspace:*",
     "@core/database": "workspace:*",
     "@core/events": "workspace:*",
@@ -23,6 +24,7 @@
     "@nestjs/platform-express": "11.1.27",
     "@nestjs/schedule": "6.1.3",
     "bcryptjs": "2.4.3",
+    "next-auth": "5.0.0-beta.25",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.1"
   },
