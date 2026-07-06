@@ -12,14 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
 
@@ -27,9 +19,10 @@ import { zodResolver } from "@/lib/zod-resolver";
  * LoginForm — slice 4 batch 4c (T4.1 + T4.8).
  *
  * Client component that wraps the canonical `loginSchema` (from
- * `libs/features/auth/shared/schemas/login`) via `react-hook-form` +
- * `@hookform/resolvers/zod`. On submit, POSTs `{ email, password }`
- * to `${apiUrl}/auth/login` and surfaces the result through:
+ * `libs/features/auth/shared/schemas/login`) via `react-hook-form`
+ * + the local `@/lib/zod-resolver` adapter. On submit, POSTs
+ * `{ email, password }` to `${apiUrl}/auth/login` and surfaces the
+ * result through:
  *
  *  - `onSuccess()` — 200 → the parent page triggers the redirect.
  *  - 401 → form-level banner with `auth.signIn.error.invalidCredentials`.
@@ -46,10 +39,15 @@ import { zodResolver } from "@/lib/zod-resolver";
  *     fields.
  *  5. **Success** — `onSuccess` fires; the parent unmounts the form.
  *
- * The token returned by the API is NOT stored in this batch — that
- * lands in the slice 4 follow-up alongside the NextAuth client config
- * (T3.3 deferred item). The success path simply redirects to the
- * landing page; the user is NOT actually authenticated across reloads.
+ * The form does NOT wrap its content in a `<Card>` — the parent
+ * page is responsible for the visual container (see
+ * `app/[locale]/(auth)/sign-in/page.tsx`). This keeps the form
+ * composable inside any surface (Card, plain `<main>`, modal, etc.).
+ *
+ * The session token returned by the API is NOT stored in this batch —
+ * that lands in the slice 4 follow-up alongside the NextAuth client
+ * config (T3.3 deferred). The success path simply notifies the parent;
+ * the user is NOT actually authenticated across reloads.
  */
 export interface LoginFormProps {
   /** Base URL of the auth API (e.g. `http://localhost:3001`). */
@@ -61,7 +59,7 @@ export interface LoginFormProps {
    */
   onSuccess?: () => unknown;
   /**
-   * Optional className appended to the wrapping `<Card>` (kept narrow —
+   * Optional className appended to the wrapping `<form>` (kept narrow —
    * the page owns layout, this form owns structure + semantics).
    */
   className?: string;
@@ -142,86 +140,78 @@ export function LoginForm({
   const passwordErrorId = passwordError ? "login-password-error" : undefined;
 
   return (
-    <Card className={cn("w-full max-w-sm", className)}>
-      <CardHeader>
-        <CardTitle>{t("title")}</CardTitle>
-        <CardDescription>{t("email")}</CardDescription>
-      </CardHeader>
-      <Form
-        onSubmit={onSubmit}
-        aria-busy={isSubmitting}
-        noValidate
-        aria-describedby={formError ? "login-form-error" : undefined}
-      >
-        <CardContent className="flex flex-col gap-ui-space-4">
-          {formError ? (
-            <div
-              id="login-form-error"
-              role="alert"
-              className="rounded-ui-md border border-ui-danger bg-ui-danger/10 px-ui-space-3 py-ui-space-2 text-ui-text-sm text-ui-danger"
-              data-testid="login-form-error"
-            >
-              {formError}
-            </div>
-          ) : null}
+    <Form
+      onSubmit={onSubmit}
+      aria-busy={isSubmitting}
+      noValidate
+      aria-describedby={formError ? "login-form-error" : undefined}
+      className={cn("flex flex-col gap-ui-space-4", className)}
+    >
+      {formError ? (
+        <div
+          id="login-form-error"
+          role="alert"
+          className="rounded-ui-md border border-ui-danger bg-ui-danger/10 px-ui-space-3 py-ui-space-2 text-ui-text-sm text-ui-danger"
+          data-testid="login-form-error"
+        >
+          {formError}
+        </div>
+      ) : null}
 
-          <div className="flex flex-col gap-ui-space-1">
-            <label htmlFor="login-email" className="text-ui-text-sm font-ui-font-medium text-ui-fg">
-              {t("email")}
-            </label>
-            <Input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={emailError ? true : undefined}
-              aria-describedby={emailErrorId}
-              disabled={isSubmitting}
-              {...register("email")}
-            />
-            {emailError ? (
-              <p
-                id={emailErrorId}
-                className="text-ui-text-sm text-ui-danger"
-                data-testid="login-email-error"
-              >
-                {emailError}
-              </p>
-            ) : null}
-          </div>
+      <div className="flex flex-col gap-ui-space-1">
+        <label htmlFor="login-email" className="text-ui-text-sm font-ui-font-medium text-ui-fg">
+          {t("email")}
+        </label>
+        <Input
+          id="login-email"
+          type="email"
+          autoComplete="email"
+          aria-invalid={emailError ? true : undefined}
+          aria-describedby={emailErrorId}
+          disabled={isSubmitting}
+          {...register("email")}
+        />
+        {emailError ? (
+          <p
+            id={emailErrorId}
+            className="text-ui-text-sm text-ui-danger"
+            data-testid="login-email-error"
+          >
+            {emailError}
+          </p>
+        ) : null}
+      </div>
 
-          <div className="flex flex-col gap-ui-space-1">
-            <label
-              htmlFor="login-password"
-              className="text-ui-text-sm font-ui-font-medium text-ui-fg"
-            >
-              {t("password")}
-            </label>
-            <Input
-              id="login-password"
-              type="password"
-              autoComplete="current-password"
-              aria-invalid={passwordError ? true : undefined}
-              aria-describedby={passwordErrorId}
-              disabled={isSubmitting}
-              {...register("password")}
-            />
-            {passwordError ? (
-              <p
-                id={passwordErrorId}
-                className="text-ui-text-sm text-ui-danger"
-                data-testid="login-password-error"
-              >
-                {passwordError}
-              </p>
-            ) : null}
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end gap-ui-space-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? tc("loading") : t("submit")}
-          </Button>
-        </CardFooter>
-      </Form>
-    </Card>
+      <div className="flex flex-col gap-ui-space-1">
+        <label
+          htmlFor="login-password"
+          className="text-ui-text-sm font-ui-font-medium text-ui-fg"
+        >
+          {t("password")}
+        </label>
+        <Input
+          id="login-password"
+          type="password"
+          autoComplete="current-password"
+          aria-invalid={passwordError ? true : undefined}
+          aria-describedby={passwordErrorId}
+          disabled={isSubmitting}
+          {...register("password")}
+        />
+        {passwordError ? (
+          <p
+            id={passwordErrorId}
+            className="text-ui-text-sm text-ui-danger"
+            data-testid="login-password-error"
+          >
+            {passwordError}
+          </p>
+        ) : null}
+      </div>
+
+      <Button type="submit" disabled={isSubmitting} className="self-end">
+        {isSubmitting ? tc("loading") : t("submit")}
+      </Button>
+    </Form>
   );
 }
