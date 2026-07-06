@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 
 import { AuthError, ValidationError } from "./errors.js";
 import { BCRYPT_COST_FACTOR } from "./constants.js";
+import type { UserRepository } from "./domain/interfaces/user.repository.js";
+import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import {
   loginSchema,
   registerSchema,
@@ -29,7 +31,8 @@ export type { LoginInput, RegisterInput };
 
 /**
  * AuthService — slice 3 batch 1 (T3.2 GREEN) + slice 3 batch 6 (schemas
- * moved to libs/features/auth/shared/schemas).
+ * moved to libs/features/auth/shared/schemas; UserRepository port
+ * wired into login + register).
  *
  * Owns the credential verification + session creation flow for the
  * "Email and Password Login" requirement (specs/auth/spec.md AC-1..AC-4)
@@ -54,10 +57,27 @@ export type { LoginInput, RegisterInput };
  * corresponding `eslint-disable @gpr/boundary/no-schemas-outside-shared`
  * directive are removed in slice 3 batch 6.
  *
- * The constructor takes a PrismaClient (DI-friendly: tests inject a mock;
- * production injects the @core/database singleton). When the constructor
- * argument is omitted, the @core/database singleton is used so call
- * sites can write `new AuthService()` without explicit wiring.
+ * Persistence ports (per architecture-standards skill: services depend
+ * on the port, NOT the concrete Prisma client):
+ *  - UserRepository: read-side (findByEmail) — wired in slice 3 batch 6
+ *    (this commit). The default port implementation
+ *    \`PrismaUserRepository\` shares the same prisma instance, so
+ *    existing tests that mock \`@core/database\` keep working without
+ *    changes.
+ *  - PrismaClient (direct): write-side \`session.create\` for the
+ *    login + register flows. The SessionRepository port (slice 3
+ *    batch 6, T3.6b) ships read + revoke methods today; the
+ *    session-create will land as a future port extension (not in
+ *    scope for this batch — the brief notes
+ *    \`prisma.session.*\` direct writes stay for now).
+ *
+ * The constructor takes an optional PrismaClient (DI-friendly: tests
+ * inject a mock; production injects the @core/database singleton).
+ * The UserRepository is also optional — when omitted, the service
+ * auto-constructs a \`PrismaUserRepository\` over the same prisma
+ * instance. Two-arg form \`(prisma, userRepo)\` lets tests inject
+ * custom repos (the future slice 4 controller wires a real
+ * \`PrismaUserRepository\`).
  */
 
 /**
@@ -81,9 +101,12 @@ const SESSION_TTL_MS = 60 * 60 * 1000;
 
 export class AuthService {
   private readonly prisma: PrismaClient;
+  private readonly userRepo: UserRepository;
 
-  constructor(prisma?: PrismaClient) {
-    this.prisma = prisma ?? defaultPrisma;
+  constructor(prisma?: PrismaClient, userRepo?: UserRepository) {
+    const client = prisma ?? defaultPrisma;
+    this.prisma = client;
+    this.userRepo = userRepo ?? new PrismaUserRepository(client);
   }
 
   /**
@@ -113,10 +136,11 @@ export class AuthService {
       );
     }
 
-    // 2. Look up the user.
-    const user = await this.prisma.user.findUnique({
-      where: { email: parsed.data.email },
-    });
+    // 2. Look up the user via the UserRepository port (slice 3
+    //    batch 6 R3 follow-up: drop direct prisma.user.*). The
+    //    port owns the persistence boundary; the adapter
+    //    (PrismaUserRepository) routes to prisma under the hood.
+    const user = await this.userRepo.findByEmail(parsed.data.email);
     if (user === null) {
       throw new AuthError("USER_NOT_FOUND");
     }
@@ -213,11 +237,10 @@ export class AuthService {
             ? null
             : parsed.data.name;
 
-        // 3. Email uniqueness check. Done BEFORE hashing so the duplicate-
-        // email path costs a single SELECT, not a bcrypt round-trip.
-        const existing = await this.prisma.user.findUnique({
-          where: { email: parsed.data.email },
-        });
+        // 3. Email uniqueness check via the UserRepository port.
+        //    Done BEFORE hashing so the duplicate-email path costs
+        //    a single SELECT, not a bcrypt round-trip.
+        const existing = await this.userRepo.findByEmail(parsed.data.email);
         if (existing !== null) {
           throw new AuthError("EMAIL_ALREADY_EXISTS");
         }
