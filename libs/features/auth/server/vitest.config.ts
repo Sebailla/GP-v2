@@ -8,19 +8,19 @@ import { defineConfig } from "vitest/config";
  * Prisma (mocked) and bcryptjs (mocked) at runtime.
  */
 export default defineConfig({
-    test: {
-        // The Zod schemas live under libs/features/auth/shared/schemas/ (per
-        // design §4.2 + ESLint rule `no-schemas-outside-shared`). Their unit
-        // tests live alongside the schemas under shared/schemas/__tests__/;
-        // the server package's vitest config picks both up so a single
-        // `pnpm --filter @features/auth exec vitest run` discovers every
-        // auth-slice test.
-        include: [
-          "src/__tests__/**/*.test.ts",
-          "../shared/schemas/__tests__/**/*.test.ts",
-        ],
-        environment: "node",
-        globals: false,
-        clearMocks: true,
-      },
+	test: {
+		// The Zod schemas live under libs/features/auth/shared/schemas/ (per
+		// design §4.2 + ESLint rule `no-schemas-outside-shared`). Their unit
+		// tests live alongside the schemas under shared/schemas/__tests__/;
+		// the server package's vitest config picks both up so a single
+		// `pnpm --filter @features/auth exec vitest run` discovers every
+		// auth-slice test.
+		include: [
+			"src/__tests__/**/*.test.ts",
+			"../shared/schemas/__tests__/**/*.test.ts",
+		],
+		environment: "node",
+		globals: false,
+		clearMocks: true,
+	},
 });

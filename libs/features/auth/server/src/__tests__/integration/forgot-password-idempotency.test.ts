@@ -53,25 +53,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 vi.mock("bcryptjs", () => ({
-  default: {
-    compare: vi.fn(),
-    hash: vi.fn(),
-  },
+	default: {
+		compare: vi.fn(),
+		hash: vi.fn(),
+	},
 }));
 
 import type { PrismaClient } from "@core/database";
 import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "../../events.js";
-import type {
-  PasswordResetTokenRepository,
-} from "../../domain/interfaces/password-reset-token.repository.js";
+import type { PasswordResetTokenRepository } from "../../domain/interfaces/password-reset-token.repository.js";
 import {
-  makeFakeTokenRepo,
-  makeFakeUserRepo,
-  makePrismaStub,
-  type FakePrismaStub,
-  type FakeTokenRepo,
+	makeFakeTokenRepo,
+	makeFakeUserRepo,
+	makePrismaStub,
+	type FakePrismaStub,
+	type FakeTokenRepo,
 } from "../fixtures/password-reset.fakes.js";
 
 /**
@@ -84,185 +82,191 @@ import {
  * types.
  */
 function asPrismaStub(stub: FakePrismaStub): PrismaClient {
-  return stub as unknown as PrismaClient;
+	return stub as unknown as PrismaClient;
 }
 
 describe("PasswordResetService requestReset — idempotency + no enumeration leak (T3.7 #3 — integration)", () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
+	beforeEach(() => {
+		vi.resetAllMocks();
+	});
 
-  describe("known email path", () => {
-    it("persists ONE token row + dispatches ONE auth.password-reset.requested event (positive control)", async () => {
-      const userRepo = makeFakeUserRepo({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        hashedPassword: "$2a$10$existing-hash",
-      });
-      const tokenRepo = makeFakeTokenRepo();
-      const dispatcher = vi.fn<AuthEventDispatcher>();
+	describe("known email path", () => {
+		it("persists ONE token row + dispatches ONE auth.password-reset.requested event (positive control)", async () => {
+			const userRepo = makeFakeUserRepo({
+				id: "user-1",
+				email: "alice@example.com",
+				role: "USER",
+				hashedPassword: "$2a$10$existing-hash",
+			});
+			const tokenRepo = makeFakeTokenRepo();
+			const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../../password-reset.service.js");
-      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+			const { PasswordResetService } = await import(
+				"../../password-reset.service.js"
+			);
+			const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      // Act — known email.
-      const result = await service.requestReset("alice@example.com");
+			// Act — known email.
+			const result = await service.requestReset("alice@example.com");
 
-      // Assert — the public contract: void return for ALL paths.
-      expect(result).toBeUndefined();
+			// Assert — the public contract: void return for ALL paths.
+			expect(result).toBeUndefined();
 
-      // Persistence — exactly ONE token row was created.
-      expect(tokenRepo.create).toHaveBeenCalledTimes(1);
-      const createdArg = (
-        vi.mocked(tokenRepo.create).mock.calls[0] as unknown as [
-          { userId: string; tokenHash: string; expiresAt: Date },
-        ]
-      )[0];
-      expect(createdArg.userId).toBe("user-1");
-      expect(typeof createdArg.tokenHash).toBe("string");
-      expect(createdArg.tokenHash.length).toBeGreaterThan(0);
-      expect(createdArg.expiresAt).toBeInstanceOf(Date);
+			// Persistence — exactly ONE token row was created.
+			expect(tokenRepo.create).toHaveBeenCalledTimes(1);
+			const createdArg = (
+				vi.mocked(tokenRepo.create).mock.calls[0] as unknown as [
+					{ userId: string; tokenHash: string; expiresAt: Date },
+				]
+			)[0];
+			expect(createdArg.userId).toBe("user-1");
+			expect(typeof createdArg.tokenHash).toBe("string");
+			expect(createdArg.tokenHash.length).toBeGreaterThan(0);
+			expect(createdArg.expiresAt).toBeInstanceOf(Date);
 
-      // Dispatch — exactly ONE event was dispatched.
-      expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = (
-        vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent]
-      )[0];
-      expect(dispatched.name).toBe("auth.password-reset.requested");
-      expect(dispatched.userId).toBe("user-1");
-      const payload = dispatched.payload as {
-        userId: string;
-        token: string;
-        requestedAt: Date;
-      };
-      expect(payload.userId).toBe("user-1");
-      expect(typeof payload.token).toBe("string");
-      expect(payload.token.length).toBeGreaterThanOrEqual(32);
-      expect(payload.requestedAt).toBeInstanceOf(Date);
-    });
+			// Dispatch — exactly ONE event was dispatched.
+			expect(dispatcher).toHaveBeenCalledTimes(1);
+			const dispatched = (
+				vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent]
+			)[0];
+			expect(dispatched.name).toBe("auth.password-reset.requested");
+			expect(dispatched.userId).toBe("user-1");
+			const payload = dispatched.payload as {
+				userId: string;
+				token: string;
+				requestedAt: Date;
+			};
+			expect(payload.userId).toBe("user-1");
+			expect(typeof payload.token).toBe("string");
+			expect(payload.token.length).toBeGreaterThanOrEqual(32);
+			expect(payload.requestedAt).toBeInstanceOf(Date);
+		});
 
-    it("does NOT call prisma.$transaction on the request path (F1 atomicity is consumeReset-only)", async () => {
-      const userRepo = makeFakeUserRepo({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        hashedPassword: "$2a$10$existing",
-      });
-      const tokenRepo = makeFakeTokenRepo();
-      const dispatcher = vi.fn<AuthEventDispatcher>();
-      const prismaStub = makePrismaStub();
+		it("does NOT call prisma.$transaction on the request path (F1 atomicity is consumeReset-only)", async () => {
+			const userRepo = makeFakeUserRepo({
+				id: "user-1",
+				email: "alice@example.com",
+				role: "USER",
+				hashedPassword: "$2a$10$existing",
+			});
+			const tokenRepo = makeFakeTokenRepo();
+			const dispatcher = vi.fn<AuthEventDispatcher>();
+			const prismaStub = makePrismaStub();
 
-      const { PasswordResetService } =
-        await import("../../password-reset.service.js");
-      const service = new PasswordResetService(
-        userRepo,
-        tokenRepo as unknown as PasswordResetTokenRepository,
-        dispatcher,
-        asPrismaStub(prismaStub),
-      );
+			const { PasswordResetService } = await import(
+				"../../password-reset.service.js"
+			);
+			const service = new PasswordResetService(
+				userRepo,
+				tokenRepo as unknown as PasswordResetTokenRepository,
+				dispatcher,
+				asPrismaStub(prismaStub),
+			);
 
-      await service.requestReset("alice@example.com");
+			await service.requestReset("alice@example.com");
 
-      // The request path is single-write (tokenRepo.create) — no tx
-      // is needed. The transactional contract is consumeReset-only
-      // (see password-reset.service.test.ts F1 fix).
-      expect(prismaStub.$transaction).not.toHaveBeenCalled();
-    });
-  });
+			// The request path is single-write (tokenRepo.create) — no tx
+			// is needed. The transactional contract is consumeReset-only
+			// (see password-reset.service.test.ts F1 fix).
+			expect(prismaStub.$transaction).not.toHaveBeenCalled();
+		});
+	});
 
-  describe("unknown email path (no enumeration leak)", () => {
-    it("returns void, persists NO row, and dispatches NO event for an unknown email", async () => {
-      const userRepo = makeFakeUserRepo(null); // no seeded user
-      const tokenRepo = makeFakeTokenRepo();
-      const dispatcher = vi.fn<AuthEventDispatcher>();
+	describe("unknown email path (no enumeration leak)", () => {
+		it("returns void, persists NO row, and dispatches NO event for an unknown email", async () => {
+			const userRepo = makeFakeUserRepo(null); // no seeded user
+			const tokenRepo = makeFakeTokenRepo();
+			const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../../password-reset.service.js");
-      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+			const { PasswordResetService } = await import(
+				"../../password-reset.service.js"
+			);
+			const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      // Act — unknown email.
-      const result = await service.requestReset("ghost@example.com");
+			// Act — unknown email.
+			const result = await service.requestReset("ghost@example.com");
 
-      // Assert — the public contract: void return (parallels the
-      // known-email path so the controller's 202 response is
-      // identical regardless of which path executed).
-      expect(result).toBeUndefined();
+			// Assert — the public contract: void return (parallels the
+			// known-email path so the controller's 202 response is
+			// identical regardless of which path executed).
+			expect(result).toBeUndefined();
 
-      // CRITICAL: no persistence, no dispatch. This is the
-      // no-enumeration-leak invariant.
-      expect(tokenRepo.create).not.toHaveBeenCalled();
-      expect(dispatcher).not.toHaveBeenCalled();
+			// CRITICAL: no persistence, no dispatch. This is the
+			// no-enumeration-leak invariant.
+			expect(tokenRepo.create).not.toHaveBeenCalled();
+			expect(dispatcher).not.toHaveBeenCalled();
 
-      // The internal rows Map stays empty (defense-in-depth — even
-      // an internal helper that bypassed the tokenRepo port would
-      // leave no trace).
-      expect(tokenRepo.rows.size).toBe(0);
-    });
+			// The internal rows Map stays empty (defense-in-depth — even
+			// an internal helper that bypassed the tokenRepo port would
+			// leave no trace).
+			expect(tokenRepo.rows.size).toBe(0);
+		});
 
-    it("does NOT call bcrypt.hash on the unknown-email path (no work, no side-channel timing)", async () => {
-      const userRepo = makeFakeUserRepo(null);
-      const tokenRepo = makeFakeTokenRepo();
-      const dispatcher = vi.fn<AuthEventDispatcher>();
+		it("does NOT call bcrypt.hash on the unknown-email path (no work, no side-channel timing)", async () => {
+			const userRepo = makeFakeUserRepo(null);
+			const tokenRepo = makeFakeTokenRepo();
+			const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../../password-reset.service.js");
-      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+			const { PasswordResetService } = await import(
+				"../../password-reset.service.js"
+			);
+			const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("ghost@example.com");
+			await service.requestReset("ghost@example.com");
 
-      // bcrypt.hash is the most expensive operation on the known-email
-      // path (consumeReset uses it; requestReset never does). Even
-      // though requestReset doesn't hash, this assertion guards
-      // against a future refactor that adds a hash step on the
-      // unknown-email path (which would create a timing side-channel).
-      // bcrypt is module-mocked at the top of this file; the spy
-      // exists for this exact assertion.
-      // We import lazily to satisfy the bcryptjs mock contract.
-      const bcrypt = (await import("bcryptjs")).default;
-      expect(bcrypt.hash).not.toHaveBeenCalled();
-    });
-  });
+			// bcrypt.hash is the most expensive operation on the known-email
+			// path (consumeReset uses it; requestReset never does). Even
+			// though requestReset doesn't hash, this assertion guards
+			// against a future refactor that adds a hash step on the
+			// unknown-email path (which would create a timing side-channel).
+			// bcrypt is module-mocked at the top of this file; the spy
+			// exists for this exact assertion.
+			// We import lazily to satisfy the bcryptjs mock contract.
+			const bcrypt = (await import("bcryptjs")).default;
+			expect(bcrypt.hash).not.toHaveBeenCalled();
+		});
+	});
 
-  describe("known vs unknown — observationally identical at the public contract level", () => {
-    it("both paths return void and resolve (no exception, no rejection)", async () => {
-      // Known-email path
-      const knownUserRepo = makeFakeUserRepo({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        hashedPassword: "$2a$10$existing",
-      });
-      const knownDispatcher = vi.fn<AuthEventDispatcher>();
-      const knownTokenRepo = makeFakeTokenRepo();
+	describe("known vs unknown — observationally identical at the public contract level", () => {
+		it("both paths return void and resolve (no exception, no rejection)", async () => {
+			// Known-email path
+			const knownUserRepo = makeFakeUserRepo({
+				id: "user-1",
+				email: "alice@example.com",
+				role: "USER",
+				hashedPassword: "$2a$10$existing",
+			});
+			const knownDispatcher = vi.fn<AuthEventDispatcher>();
+			const knownTokenRepo = makeFakeTokenRepo();
 
-      // Unknown-email path
-      const unknownUserRepo = makeFakeUserRepo(null);
-      const unknownDispatcher = vi.fn<AuthEventDispatcher>();
-      const unknownTokenRepo = makeFakeTokenRepo();
+			// Unknown-email path
+			const unknownUserRepo = makeFakeUserRepo(null);
+			const unknownDispatcher = vi.fn<AuthEventDispatcher>();
+			const unknownTokenRepo = makeFakeTokenRepo();
 
-      const { PasswordResetService } =
-        await import("../../password-reset.service.js");
+			const { PasswordResetService } = await import(
+				"../../password-reset.service.js"
+			);
 
-      const knownService = new PasswordResetService(
-        knownUserRepo,
-        knownTokenRepo,
-        knownDispatcher,
-      );
-      const unknownService = new PasswordResetService(
-        unknownUserRepo,
-        unknownTokenRepo,
-        unknownDispatcher,
-      );
+			const knownService = new PasswordResetService(
+				knownUserRepo,
+				knownTokenRepo,
+				knownDispatcher,
+			);
+			const unknownService = new PasswordResetService(
+				unknownUserRepo,
+				unknownTokenRepo,
+				unknownDispatcher,
+			);
 
-      // Both promises resolve (no rejection) and both resolve to
-      // undefined (no shape difference between the two paths).
-      const knownResult = await knownService.requestReset("alice@example.com");
-      const unknownResult = await unknownService.requestReset("ghost@example.com");
+			// Both promises resolve (no rejection) and both resolve to
+			// undefined (no shape difference between the two paths).
+			const knownResult = await knownService.requestReset("alice@example.com");
+			const unknownResult =
+				await unknownService.requestReset("ghost@example.com");
 
-      expect(knownResult).toBeUndefined();
-      expect(unknownResult).toBeUndefined();
-    });
-  });
+			expect(knownResult).toBeUndefined();
+			expect(unknownResult).toBeUndefined();
+		});
+	});
 });

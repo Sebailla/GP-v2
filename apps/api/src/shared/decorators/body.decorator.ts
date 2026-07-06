@@ -19,4 +19,4 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
  * the validator.
  */
 export const BodySchema = <T extends z.ZodTypeAny>(schema: T) =>
-  Body(new ZodValidationPipe(schema));
+	Body(new ZodValidationPipe(schema));

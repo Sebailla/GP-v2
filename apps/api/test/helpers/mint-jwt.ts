@@ -52,35 +52,35 @@ import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../src/lib/auth.constants.js";
 const DEFAULT_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days — NextAuth default
 
 export interface MintJwtOptions {
-  /**
-   * Override the maxAge in seconds. A negative value produces a token
-   * whose `exp` claim sits in the past (relative to the current time).
-   * Default: 30 days (NextAuth v5 default).
-   *
-   * For expiry assertions, use a value below NextAuth's
-   * `clockTolerance: 15` seconds (e.g., `-3600`) so the decoder does
-   * not accept the token under the clock-skew tolerance.
-   */
-  maxAgeSeconds?: number;
+	/**
+	 * Override the maxAge in seconds. A negative value produces a token
+	 * whose `exp` claim sits in the past (relative to the current time).
+	 * Default: 30 days (NextAuth v5 default).
+	 *
+	 * For expiry assertions, use a value below NextAuth's
+	 * `clockTolerance: 15` seconds (e.g., `-3600`) so the decoder does
+	 * not accept the token under the clock-skew tolerance.
+	 */
+	maxAgeSeconds?: number;
 }
 
 export async function mintJwt(
-  claims: Readonly<Record<string, unknown>>,
-  options?: MintJwtOptions,
-  secret = process.env["NEXTAUTH_SECRET"] ?? "",
+	claims: Readonly<Record<string, unknown>>,
+	options?: MintJwtOptions,
+	secret = process.env["NEXTAUTH_SECRET"] ?? "",
 ): Promise<string> {
-  if (secret === "") {
-    throw new Error(
-      "mintJwt requires NEXTAUTH_SECRET to be set (the guard reads it via env.NEXTAUTH_SECRET at decode time).",
-    );
-  }
+	if (secret === "") {
+		throw new Error(
+			"mintJwt requires NEXTAUTH_SECRET to be set (the guard reads it via env.NEXTAUTH_SECRET at decode time).",
+		);
+	}
 
-  const maxAgeSeconds = options?.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS;
+	const maxAgeSeconds = options?.maxAgeSeconds ?? DEFAULT_MAX_AGE_SECONDS;
 
-  return encode({
-    token: claims,
-    secret,
-    salt: NEXTAUTH_SESSION_TOKEN_NAME,
-    maxAge: maxAgeSeconds,
-  });
+	return encode({
+		token: claims,
+		secret,
+		salt: NEXTAUTH_SESSION_TOKEN_NAME,
+		maxAge: maxAgeSeconds,
+	});
 }

@@ -1,14 +1,14 @@
 import { Module } from "@nestjs/common";
 
 import {
-  AuthService,
-  PasswordResetService,
-  RbacService,
-  SessionService,
-  PrismaPasswordResetTokenRepository,
-  PrismaSessionRepository,
-  PrismaUserRepository,
-  defaultAuditSink,
+	AuthService,
+	PasswordResetService,
+	RbacService,
+	SessionService,
+	PrismaPasswordResetTokenRepository,
+	PrismaSessionRepository,
+	PrismaUserRepository,
+	defaultAuditSink,
 } from "@features/auth";
 
 import { createInMemoryDispatcher } from "@core/events";
@@ -42,51 +42,53 @@ import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
 const dispatcher = createInMemoryDispatcher();
 
 @Module({
-  controllers: [AuthController],
-  providers: [
-    {
-      provide: AuthService,
-      useFactory: () => new AuthService(),
-    },
-    {
-      provide: SessionService,
-      useFactory: () =>
-        new SessionService(
-          defaultPrisma,
-          new PrismaSessionRepository(defaultPrisma),
-          new PrismaUserRepository(defaultPrisma),
-          dispatcher.dispatch,
-        ),
-    },
-    {
-      provide: PasswordResetService,
-      useFactory: () =>
-        new PasswordResetService(
-          new PrismaUserRepository(defaultPrisma),
-          new PrismaPasswordResetTokenRepository(defaultPrisma),
-          dispatcher.dispatch,
-          defaultPrisma,
-          defaultAuditSink,
-        ),
-    },
-    {
-      provide: RbacService,
-      useFactory: () => new RbacService(dispatcher.dispatch),
-    },
-    {
-      provide: AuthCronService,
-      useFactory: () =>
-        new AuthCronService(new PrismaPasswordResetTokenRepository(defaultPrisma)),
-    },
-    JwtAuthGuard,
-  ],
-  exports: [
-    AuthService,
-    SessionService,
-    RbacService,
-    PasswordResetService,
-    AuthCronService,
-    JwtAuthGuard,
-  ],
+	controllers: [AuthController],
+	providers: [
+		{
+			provide: AuthService,
+			useFactory: () => new AuthService(),
+		},
+		{
+			provide: SessionService,
+			useFactory: () =>
+				new SessionService(
+					defaultPrisma,
+					new PrismaSessionRepository(defaultPrisma),
+					new PrismaUserRepository(defaultPrisma),
+					dispatcher.dispatch,
+				),
+		},
+		{
+			provide: PasswordResetService,
+			useFactory: () =>
+				new PasswordResetService(
+					new PrismaUserRepository(defaultPrisma),
+					new PrismaPasswordResetTokenRepository(defaultPrisma),
+					dispatcher.dispatch,
+					defaultPrisma,
+					defaultAuditSink,
+				),
+		},
+		{
+			provide: RbacService,
+			useFactory: () => new RbacService(dispatcher.dispatch),
+		},
+		{
+			provide: AuthCronService,
+			useFactory: () =>
+				new AuthCronService(
+					new PrismaPasswordResetTokenRepository(defaultPrisma),
+				),
+		},
+		JwtAuthGuard,
+	],
+	exports: [
+		AuthService,
+		SessionService,
+		RbacService,
+		PasswordResetService,
+		AuthCronService,
+		JwtAuthGuard,
+	],
 })
 export class AuthModule {}

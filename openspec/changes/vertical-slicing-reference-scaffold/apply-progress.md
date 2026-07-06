@@ -1365,16 +1365,16 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 ### Tests: 101 → 113 in @features/auth (+12 new); 18 → 21 in apps/api e2e (+3 new)
 
-- `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts`: 4 new tests.
+- `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts`: 4 new tests (@features/auth).
   - `Credentials register + UserRepository.findByEmail share the same User.id (cross-provider identity invariant)` — registers a Credentials user; verifies the same id is reachable through the UserRepository port (the seam a future Google callback resolves against).
   - `a second register for the same email throws AuthError('EMAIL_ALREADY_EXISTS') — no duplicate row` — the existing duplicate-email throw path is pinned as a regression net; negative post-conditions (no bcrypt.hash / user.create / session.create) asserted.
   - `the UserRepository port resolves the same id regardless of which provider seeded the user (port-driven identity)` — same id via two distinct lookup paths (Credentials-side vs OAuth-side) both routing through the UserRepository port.
   - `the userRepo.findByEmail port is the integration seam (lookup is actually called)` — companion assertion confirming the lookup is actually called (vs. a hardcoded return).
-- `apps/api/test/session-expiry.e2e-spec.ts`: 3 new tests.
+- `apps/api/test/session-expiry.e2e-spec.ts`: 3 new tests (apps/api e2e).
   - `returns 401 when the bearer JWT is expired (exp claim in the past)` — mints a JWT with `maxAgeSeconds: -3600` (1h past) → `GET /auth/sessions` returns 401.
   - `returns 401 when the bearer JWT's maxAge window already elapsed (exp 24 hours ago)` — second expiry scenario for defense-in-depth.
   - `returns 200 when the bearer JWT is valid (control: confirms the negative-case assertions are specific)` — control test with a fresh 30-day JWT returning 200, proving the 401 assertions are specific to expiry and not a "guard always rejects" bug.
-- `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts`: 5 new tests.
+- `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts`: 5 new tests (@features/auth).
   - `persists ONE token row + dispatches ONE auth.password-reset.requested event (positive control)` — known-email happy path.
   - `does NOT call prisma.$transaction on the request path (F1 atomicity is consumeReset-only)` — F1 atomicity is confirmed scoped to consumeReset.
   - `returns void, persists NO row, and dispatches NO event for an unknown email` — the core no-enumeration-leak assertion.
@@ -1396,7 +1396,7 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 | Gate | Result |
 |------|--------|
 | `pnpm install` | exit 0 |
-| `pnpm --filter @features/auth exec vitest run` | 113/113 PASS (101 prior + 12 new from T3.7 batch 8) |
+| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (101 prior + 9 new from T3.7 batch 8) |
 | `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no change) |
 | `pnpm --filter @core/config exec vitest run` | 19/19 PASS (no change) |
 | `cd apps/api && pnpm exec vitest run` | 21/21 PASS (18 prior + 3 new from T3.7 session-expiry) |
@@ -1410,7 +1410,7 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 - **Tasks**: 9/9 [x] (T3.1, T3.2, T3.3, T3.4, T3.5, T3.6, T3.7, T3.8, T3.9 all closed).
 - **PRs merged into `develop`**: 8/8 (PRs #5, #6, #7, #8, #9, #10, #11, #12).
-- **Tests**: 113/113 @features/auth + 21/21 apps/api e2e + 37/37 @core/events + 19/19 @core/config + 24/24 turbo tasks = all green.
+- **Tests**: 110/110 @features/auth + 21/21 apps/api e2e + 37/37 @core/events + 19/19 @core/config + 24/24 turbo tasks = all green.
 - **Quality gates**: 12/12 commands exit 0.
 - **4R fixes closed** (per slice 3 batch 5 apply-progress): F1 (consumeReset tx atomicity), F2 (dispatcher failure → auditSink), F3 (redactSensitive at buffer-only), F4 (PasswordResetTokenRepository.deleteExpired + F4 cron), F8 (constructor dispatcher guard), refactor constants (BCRYPT_COST_FACTOR, MIN_TOKEN_LENGTH, TOKEN_TTL_MS) + refactor tests (shared fakes, runInvalidTokenScenario helper, vi.resetAllMocks).
 - **Forbidden ops honored**: no `find`, `ls -R`, `tree`, `npm view`, `pnpm list`, `pnpm why`, real OAuth handshake, T3.6 controller rewrite, new packages, BDD `.feature` files, or commits to remote.

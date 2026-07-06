@@ -105,8 +105,7 @@ import { mintJwt } from "./helpers/mint-jwt.js";
  * `env.NEXTAUTH_SECRET` at runtime, so both encoder + decoder must
  * agree on the value).
  */
-const TEST_NEXTAUTH_SECRET =
-	"test-secret-at-least-32-characters-long-for-hkdf";
+const TEST_NEXTAUTH_SECRET = "test-secret-at-least-32-characters-long-for-hkdf";
 
 describe("JwtAuthGuard session expiry (T3.7 #2 — integration)", () => {
 	let app: INestApplication;

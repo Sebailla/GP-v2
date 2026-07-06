@@ -9,7 +9,10 @@ import { env } from "@core/config";
 
 import { AuthService } from "@features/auth";
 
-import { NEXTAUTH_SESSION_MAX_AGE_SECONDS, NEXTAUTH_SESSION_TOKEN_NAME } from "./auth.constants.js";
+import {
+	NEXTAUTH_SESSION_MAX_AGE_SECONDS,
+	NEXTAUTH_SESSION_TOKEN_NAME,
+} from "./auth.constants.js";
 
 /**
  * NextAuth v5 configuration — T3.3 (slice 3 batch 7).
