@@ -32,5 +32,4 @@ export {
 export {
   sessionListSchema,
   type SessionListResponse,
-  type SessionRecord,
 } from "./session-list.js";

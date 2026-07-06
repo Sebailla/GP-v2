@@ -17,6 +17,12 @@ import { z } from "zod";
  *  - sessions: list of `{ id, deviceLabel, lastActiveAt: Date }`.
  *  - `sessions` may be empty (no active sessions → 200 + empty array,
  *    not 404).
+ *
+ * The request body for `GET /auth/sessions` is empty (no payload — a
+ * GET request has no body), so no request schema is needed at this
+ * file. The `SessionRecord` DB row shape (id, sessionToken, userId,
+ * expires) lives at `libs/features/auth/server/src/domain/interfaces/
+ * session.repository.ts` per slice 3 batch 6 (T3.6b).
  */
 
 export const sessionListSchema = z.object({
@@ -31,14 +37,3 @@ export const sessionListSchema = z.object({
 
 export type SessionListResponse = z.infer<typeof sessionListSchema>;
 
-/**
- * Per-session record consumed by the server before projecting onto the
- * response shape. Exported here so `SessionService` (server) and the
- * future `SessionList` component (client) share the same field names.
- */
-export interface SessionRecord {
-  readonly id: string;
-  readonly sessionToken: string;
-  readonly userId: string;
-  readonly expires: Date;
-}
