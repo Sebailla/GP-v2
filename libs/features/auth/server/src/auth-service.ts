@@ -3,10 +3,15 @@ import { randomUUID } from "node:crypto";
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 
 import { AuthError, ValidationError } from "./errors.js";
 import { BCRYPT_COST_FACTOR } from "./constants.js";
+import {
+  loginSchema,
+  registerSchema,
+  type LoginInput,
+  type RegisterInput,
+} from "../../shared/schemas/index.js";
 
 // Re-export the error classes from this module so consumers (tests, the
 // barrel `src/index.ts`) can import the whole AuthService surface from a
@@ -15,14 +20,22 @@ import { BCRYPT_COST_FACTOR } from "./constants.js";
 export { AuthError, ValidationError } from "./errors.js";
 export type { AuthErrorCode } from "./errors.js";
 
+// Re-export the canonical input types so existing consumers
+// (`@features/auth` barrel → `LoginInput` / `RegisterInput`) keep
+// working. The types themselves are inferred from the canonical
+// schemas at `libs/features/auth/shared/schemas/{login,register}.ts`
+// (design §4.2); this file does NOT define its own copy.
+export type { LoginInput, RegisterInput };
+
 /**
- * AuthService — slice 3 batch 1 (T3.2 GREEN).
+ * AuthService — slice 3 batch 1 (T3.2 GREEN) + slice 3 batch 6 (schemas
+ * moved to libs/features/auth/shared/schemas).
  *
  * Owns the credential verification + session creation flow for the
- * "Email and Password Login" requirement (specs/auth/spec.md AC-1..AC-4).
- * Other AuthService methods (register, linkGoogleAccount, getCurrentUser,
- * password reset hooks) land in subsequent batches — this file is
- * intentionally minimal.
+ * "Email and Password Login" requirement (specs/auth/spec.md AC-1..AC-4)
+ * and the "Sign-up" requirement (register). Other AuthService methods
+ * (linkGoogleAccount, getCurrentUser) land in subsequent batches — this
+ * file is intentionally minimal.
  *
  * Boundary contract (per @core/config style):
  *   1. Validate input with Zod FIRST (parse at the boundary).
@@ -33,41 +46,19 @@ export type { AuthErrorCode } from "./errors.js";
  *   4. Create a Session row with a random UUID sessionToken.
  *   5. Return { id, email, role, sessionToken }.
  *
+ * Input schemas (canonical) live at
+ * `libs/features/auth/shared/schemas/{login,register}.ts` per design
+ * §4.2 + ESLint rule `no-schemas-outside-shared`; this service
+ * imports them through the schemas barrel. The previous
+ * file-local `loginInputSchema` / `registerInputSchema` +
+ * corresponding `eslint-disable @gpr/boundary/no-schemas-outside-shared`
+ * directive are removed in slice 3 batch 6.
+ *
  * The constructor takes a PrismaClient (DI-friendly: tests inject a mock;
  * production injects the @core/database singleton). When the constructor
  * argument is omitted, the @core/database singleton is used so call
  * sites can write `new AuthService()` without explicit wiring.
  */
-
-// Inline Zod schema for the login boundary.
-//
-// The slice-wide rule (`@gpr/boundary/no-schemas-outside-shared`) wants
-// Zod schemas under libs/features/<x>/shared/schemas/. T3.2 keeps the
-// login schema co-located with the service for the minimal slice (no
-// client form yet — slice 4 adds the Next.js LoginForm and the
-// canonical shared/schemas/login.ts lands there so the form can import
-// the same definition for react-hook-form + @hookform/resolvers/zod
-// validation). File-level disable is the cleanest fit while the schema
-// is private to the service.
-/* eslint-disable @gpr/boundary/no-schemas-outside-shared --
-   T3.2 inlines loginInputSchema, T3.3 inlines registerInputSchema in auth-service.ts.
-   Canonical schemas land in libs/features/auth/shared/schemas/{login,register}.ts
-   with slice 4 (when LoginForm + SignUpForm client components import them). */
-const loginInputSchema = z.object({
-  email: z.string().min(1, "email is required").email("email is not a valid address"),
-  password: z.string().min(1, "password is required"),
-});
-
-const registerInputSchema = z.object({
-  email: z.string().min(1, "email is required").email("email is not a valid address"),
-  password: z
-    .string()
-    .min(8, "password must be at least 8 characters"),
-  name: z.string().optional(),
-});
-
-export type LoginInput = z.infer<typeof loginInputSchema>;
-export type RegisterInput = z.infer<typeof registerInputSchema>;
 
 /**
  * Public result shape for AuthService.login. Matches AC-1 of the auth
@@ -110,7 +101,7 @@ export class AuthService {
    */
   async login(email: string, password: string): Promise<LoginResult> {
     // 1. Boundary validation.
-    const parsed = loginInputSchema.safeParse({ email, password });
+    const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
       throw new ValidationError(
         parsed.error.issues.map((issue) => ({
@@ -201,7 +192,7 @@ export class AuthService {
         name?: string | null,
       ): Promise<LoginResult> {
         // 1. Boundary validation.
-        const parsed = registerInputSchema.safeParse({ email, password, name });
+        const parsed = registerSchema.safeParse({ email, password, name });
         if (!parsed.success) {
           throw new ValidationError(
             parsed.error.issues.map((issue) => ({

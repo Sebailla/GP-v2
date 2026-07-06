@@ -129,13 +129,19 @@ describe("AuthService.login", () => {
 
     let caught: unknown;
     try {
-      await auth.login("alice@example.com", "wrong");
+      // 9 chars — passes the canonical `loginSchema.password.min(8)`
+      // boundary (slice 3 batch 6: schema tightened from min(1) to
+      // min(8) when the inline schema was replaced by the canonical
+      // shared schema at libs/features/auth/shared/schemas/login.ts).
+      // A 5-char password would fail at the schema boundary and the
+      // service would throw ValidationError instead of INVALID_CREDENTIALS.
+      await auth.login("alice@example.com", "wrongpass");
     } catch (err) {
       caught = err;
     }
     expect(caught).toBeInstanceOf(AuthError);
     expect((caught as InstanceType<typeof AuthError>).code).toBe("INVALID_CREDENTIALS");
-    expect(bcrypt.compare).toHaveBeenCalledWith("wrong", "$2a$10$some-hash");
+    expect(bcrypt.compare).toHaveBeenCalledWith("wrongpass", "$2a$10$some-hash");
     // No session is created on a failed credential check.
     expect(prisma.session.create).not.toHaveBeenCalled();
   });

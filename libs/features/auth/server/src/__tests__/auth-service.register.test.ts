@@ -198,38 +198,32 @@ describe("AuthService.register", () => {
     expect(prisma.session.create).not.toHaveBeenCalled();
   });
 
-  // Edge case: missing name — empty string is normalized to null
-  it("treats empty-string name as null and creates the user successfully", async () => {
-    const { AuthService } = await import("../auth-service.js");
-
-    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-    vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$mocked-hash-value");
-    vi.mocked(prisma.user.create).mockResolvedValue({
-      id: "user-new",
-      email: "alice@example.com",
-      name: null,
-      role: "USER" as const,
-      hashedPassword: "$2a$10$mocked-hash-value",
-      emailVerified: null,
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    vi.mocked(prisma.session.create).mockResolvedValue({
-      id: "session-1",
-      sessionToken: "session-token-xyz",
-      userId: "user-new",
-      expires: new Date(Date.now() + 60_000),
-    });
-
+  // Edge case (regression of the older "empty name → null" behavior).
+  //
+  // Slice 3 batch 6 replaces the inline `registerInputSchema` in
+  // auth-service.ts with the canonical
+  // `registerSchema` from libs/features/auth/shared/schemas/register.ts
+  // (design §4.2). The canonical schema makes `name` a REQUIRED
+  // field with `min(1).max(120)` — so an empty-string name is now an
+  // invalid input that throws ValidationError at the boundary BEFORE
+  // any DB or bcrypt call. This matches design §4.2 verbatim: name is
+  // a user-visible display name, not an optional handle.
+  it("throws ValidationError when name is empty (canonical schema makes name REQUIRED)", async () => {
+    const { AuthService, ValidationError } = await import("../auth-service.js");
     const auth = new AuthService(prisma);
-    const result = await auth.register("alice@example.com", "StrongP@ss123", "");
 
-    expect(result.id).toBe("user-new");
-    expect(result.email).toBe("alice@example.com");
+    let caught: unknown;
+    try {
+      await auth.register("alice@example.com", "StrongP@ss123", "");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ValidationError);
 
-    // Empty string is normalized to null at the boundary
-    const createArgs = vi.mocked(prisma.user.create).mock.calls[0]?.[0];
-    expect(createArgs?.data?.name).toBeNull();
+    // No side effects on the empty-name path
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(bcrypt.hash).not.toHaveBeenCalled();
+    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(prisma.session.create).not.toHaveBeenCalled();
   });
 });
