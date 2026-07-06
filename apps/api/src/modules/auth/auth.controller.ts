@@ -12,12 +12,6 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 
-// IMPORTANT: import the services as runtime values, not `import type`.
-// The auto-formatter's `useImportType` rule rewrites value imports
-// to type-only when the symbol is only used as a constructor
-// parameter type. NestJS's reflective DI requires the runtime
-// classes, so we anchor them to a module-level constant that the
-// formatter cannot see as type-only.
 import {
   AuthService,
   PasswordResetService,
@@ -26,8 +20,6 @@ import {
   AuthError,
   ValidationError,
   type CurrentUser,
-} from "@features/auth";
-import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
@@ -38,35 +30,12 @@ import {
   type ResetPasswordInput,
 } from "@features/auth";
 
-// Module-level runtime anchor for the services. This forces the
-// import above to be a value import (the auto-formatter sees these
-// identifiers used at module scope, not as type annotations only).
-// After NestJS resolves the controller's constructor at startup, this
-// anchor is unused; it exists purely to defeat the linter's
-// `useImportType` heuristic.
-const _serviceAnchor: ReadonlyArray<unknown> = [
-  AuthService,
-  PasswordResetService,
-  RbacService,
-  SessionService,
-];
-void _serviceAnchor;
-
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
-// Side-effect import: keeps the @Body decorator exported from this
-// module so consumers (slice 5 tests, future features) can use it
-// alongside the auth controller.
-import "../../shared/decorators/body.decorator.js";
 
 /**
  * Map an AuthError code to the HTTP status the controller should
  * return. Centralized so every route uses the same mapping; per design
- * §4.1:
- *  - USER_NOT_FOUND, INVALID_CREDENTIALS, INVALID_RESET_TOKEN,
- *    INVALID_SESSION, SESSION_EXPIRED → 401
- *  - EMAIL_ALREADY_EXISTS → 409
- *  - ValidationError (Zod rejection at the boundary) → 400
- *  - anything else → 500
+ * §4.1.
  */
 function authErrorToHttpStatus(error: AuthError | ValidationError): number {
   if (error instanceof ValidationError) {
@@ -86,30 +55,23 @@ function authErrorToHttpStatus(error: AuthError | ValidationError): number {
   }
 }
 
-/**
- * Wrap a service call so an AuthError/ValidationError becomes a
- * NestJS HttpException with the correct status. Keeps route handlers
- * readable — the error-translation policy lives in one place.
- *
- * The generic Body parameter is referenced indirectly via the
- * `body.decorator.js` side-effect import above (which re-exports the
- * type alias). The Body decorator is imported at the module level for
- * framework-aware tooling; see `@BodySchema` usage in `body.decorator.ts`.
- */
 async function runOrThrowHttp<T>(fn: () => Promise<T>): Promise<T> {
   try {
     return await fn();
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = authErrorToHttpStatus(error);
       throw new HttpException(
         { error: error.code, message: error.message },
-        status,
+        authErrorToHttpStatus(error),
       );
     }
     if (error instanceof ValidationError) {
       throw new HttpException(
-        { error: "VALIDATION_FAILED", message: error.message, issues: error.issues },
+        {
+          error: "VALIDATION_FAILED",
+          message: error.message,
+          issues: error.issues,
+        },
         authErrorToHttpStatus(error),
       );
     }
@@ -117,28 +79,63 @@ async function runOrThrowHttp<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+function validateOrThrow<T extends import("zod").ZodTypeAny>(
+  raw: unknown,
+  schema: T,
+): import("zod").infer<T> {
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    throw new ValidationError(
+      result.error.issues.map((issue) => ({
+        path: issue.path.map((segment) =>
+          typeof segment === "symbol" ? String(segment) : segment,
+        ),
+        message: issue.message,
+      })),
+    );
+  }
+  return result.data;
+}
+
 /**
- * AuthController (slice 3 batch 6 — T3.6 NestJS thin wrapper).
+ * AuthController (slice 3 batch 6b — T3.6 e2e fix).
  *
  * Per design §2 the controller is a thin DI-wiring + route-binding
  * layer. All business code lives in the auth services exported by
- * `@features/auth`. The controller's only job is to:
- *  1. Bind each of the 6 design-§4.1 routes to a service method.
- *  2. Validate the body via the generic ZodValidationPipe.
- *  3. Map service errors to HTTP status codes.
- *  4. Attach the JWT guard to the two authenticated routes.
+ * `@features/auth`. The controller:
+ *  1. Binds each of the 6 design-§4.1 routes to a service method.
+ *  2. Validates the body via the canonical Zod schemas (Pattern A:
+ *     `validateOrThrow(schema)` — runs before the service is called).
+ *  3. Maps service errors to HTTP status codes.
+ *  4. Attaches the JWT guard to the two authenticated routes.
  *
  * T3.3 (NextAuth v5 config) is deferred to batch 7; the current
  * JwtAuthGuard is a stub that reads the bearer token and looks up
- * the session via SessionService.
+ * the session via SessionService. Real JWT verification lands later.
  *
- * @Body is included in the imports so the framework's metadata
- * reflection sees the parameter-decorator registry. Use @BodySchema
- * (the slice's typed body wrapper) on each route instead.
+ * AUTO-FORMATTER MITIGATION: The harness's biome auto-formatter
+ * converts `import { Foo }` to `import { type Foo }` when the symbol
+ * is only used as a parameter type annotation. NestJS's reflective
+ * DI requires runtime class identity. We defeat the heuristic with
+ * a class-level static field that references each service as a VALUE
+ * (not a type). After NestJS resolves the constructor at startup, this
+ * anchor is unused; it exists purely to keep the runtime import.
  */
 @Controller("/auth")
-// biome-ignore lint/correctness/useExhaustiveDependencies: Body is a framework decorator
 export class AuthController {
+  /**
+   * Static runtime anchors. These force the services to be imported
+   * as runtime values (the linter's `useImportType` rule preserves
+   * imports when the symbol is used as a value). The anchors are
+   * never accessed at runtime — they're a marker for the linter.
+   */
+  private static readonly _ServiceAnchor: ReadonlyArray<unknown> = [
+    AuthService,
+    PasswordResetService,
+    RbacService,
+    SessionService,
+  ];
+
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
@@ -149,10 +146,10 @@ export class AuthController {
   @Post("/login")
   @HttpCode(200)
   async login(
-    @Body()
-    body: LoginInput,
+    @Body() raw: unknown,
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
     return runOrThrowHttp(async () => {
+      const body = validateOrThrow<typeof loginSchema>(raw, loginSchema);
       const result = await this.authService.login(body.email, body.password);
       return {
         id: result.id,
@@ -166,10 +163,10 @@ export class AuthController {
   @Post("/register")
   @HttpCode(201)
   async register(
-    @Body()
-    body: RegisterInput,
+    @Body() raw: unknown,
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
     return runOrThrowHttp(async () => {
+      const body = validateOrThrow<typeof registerSchema>(raw, registerSchema);
       const result = await this.authService.register(
         body.email,
         body.password,
@@ -186,22 +183,16 @@ export class AuthController {
 
   @Post("/forgot-password")
   @HttpCode(202)
-  async forgotPassword(
-    @Body()
-    body: ForgotPasswordInput,
-  ): Promise<void> {
-    // requestReset is idempotent (no enumeration leak). Both known
-    // and unknown emails return void to the caller (202 Accepted).
+  async forgotPassword(@Body() raw: unknown): Promise<void> {
+    const body = validateOrThrow<typeof forgotPasswordSchema>(raw, forgotPasswordSchema);
     await this.passwordResetService.requestReset(body.email);
   }
 
   @Post("/reset-password")
   @HttpCode(200)
-  async resetPassword(
-    @Body()
-    body: ResetPasswordInput,
-  ): Promise<void> {
+  async resetPassword(@Body() raw: unknown): Promise<void> {
     return runOrThrowHttp(async () => {
+      const body = validateOrThrow<typeof resetPasswordSchema>(raw, resetPasswordSchema);
       await this.passwordResetService.consumeReset(body.token, body.newPassword);
     });
   }
@@ -212,9 +203,6 @@ export class AuthController {
     @Req() request: Request & { user: CurrentUser },
   ): Promise<ReadonlyArray<{ id: string; sessionToken: string; expires: Date }>> {
     return runOrThrowHttp(async () => {
-      // RbacService.can is the canonical authorization gate; per design
-      // §4.1 the controller must use it (not a UI-only check). The user
-      // is allowed to read their own session list.
       const allowed = this.rbacService.can(
         { id: request.user.id, role: "USER" },
         "session:read:own",

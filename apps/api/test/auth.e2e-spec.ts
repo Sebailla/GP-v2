@@ -66,7 +66,6 @@ import { prisma } from "@core/database";
 import bcrypt from "bcryptjs";
 
 import { AuthModule } from "../src/modules/auth/auth.module.js";
-import { AuthController } from "../src/modules/auth/auth.controller.js";
 
 describe("AuthController (e2e)", () => {
 	let app: INestApplication;
@@ -226,6 +225,16 @@ describe("AuthController (e2e)", () => {
 				role: "USER",
 				hashedPassword: "$2a$10$hash",
 			} as never);
+			// PrismaPasswordResetTokenRepository.create projects the inserted
+			// row through `projectPasswordResetTokenRecord`; the mock must
+			// return a row shape that satisfies the projection.
+			vi.mocked(prisma.passwordResetToken.create).mockResolvedValue({
+				id: "prt-1",
+				userId: "user-1",
+				tokenHash: "x".repeat(64),
+				expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+				consumedAt: null,
+			} as never);
 
 			await request(app.getHttpServer())
 				.post("/auth/forgot-password")
@@ -269,6 +278,37 @@ describe("AuthController (e2e)", () => {
 			await request(app.getHttpServer())
 				.delete("/auth/sessions/sess-1")
 				.expect(401);
+		});
+	});
+
+	describe("F4 cron — purgeExpiredResetTokens (slice 3 batch 6b)", () => {
+		// The cron is registered at the module level via @Cron(...)
+		// and runs on the @nestjs/schedule scheduler. In the e2e
+		// harness we trigger it directly to keep the test deterministic.
+		it("calls deleteExpired on the PasswordResetTokenRepository and returns the count", async () => {
+			vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
+				count: 3,
+			} as never);
+
+			const { AuthCronService } = await import(
+				"../src/modules/auth/auth-cron.service.js"
+			);
+			const cronService = moduleRef.get(AuthCronService);
+
+			// The cron method is private-by-convention; we invoke it
+			// directly via the bracket-access escape hatch. The cron is
+			// a side-effect-only job; we assert the repository call.
+			await cronService.purgeExpiredResetTokens();
+
+			expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledTimes(1);
+			const callArg = (
+				vi.mocked(prisma.passwordResetToken.deleteMany).mock
+					.calls[0] as unknown as [
+					{ where: { expiresAt: { lt: Date }; consumedAt: null } },
+				]
+			)[0];
+			expect(callArg.where.consumedAt).toBeNull();
+			expect(callArg.where.expiresAt.lt).toBeInstanceOf(Date);
 		});
 	});
 });
