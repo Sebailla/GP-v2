@@ -9,6 +9,8 @@
 
 export {
   createInMemoryDispatcher,
+  REDACTED_TOKEN_SENTINEL,
+  redactSensitive,
   RING_BUFFER_CAPACITY,
   type DispatcherOptions,
   type EventHandler,

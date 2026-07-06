@@ -1,6 +1,64 @@
 import type { DomainEvent, EventName } from "./types";
 
 /**
+ * The literal sentinel used to replace `payload.token` at the
+ * ring-buffer layer. Chosen to be:
+ *  - Visually obvious in dev logs (a future subscriber that
+ *    accidentally logs the buffered event will see the sentinel
+ *    and know redaction occurred).
+ *  - Parseable (operators can grep for it to count token-leak
+ *    attempts in logs).
+ *  - Not a value the hash-digest or any other payload field
+ *    could legitimately take.
+ */
+export const REDACTED_TOKEN_SENTINEL = "***REDACTED***";
+
+/**
+ * F3 (CRITICAL): replace the dev-only `payload.token` field with
+ * the redaction sentinel at the ring-buffer boundary.
+ *
+ * Threat model: the canonical Zod schema
+ * (`authPasswordResetRequestedPayload.token`) is annotated
+ * `"dev-only — production should remove this field"`, but a
+ * subscriber (Sentry hook, dev mailbox, audit logger) may still
+ * log the full `DomainEvent` and leak the raw token within the
+ * 1h validity window.
+ *
+ * Behavior:
+ *  - IMMUTABLE: returns a NEW event object (callers keep their
+ *    raw copy; the source event is never mutated).
+ *  - TARGETED: only the literal top-level `payload.token` field
+ *    is redacted. No deep traversal, no over-redaction.
+ *  - HANDLERS RECEIVE RAW: `createInMemoryDispatcher` calls
+ *    handlers with the unredacted event (the email handler
+ *    needs the real token to send the email). Only the ring
+ *    buffer holds the redacted copy.
+ *
+ * Used by `InMemoryDispatcher.recordInBuffer` (see DispatcherOptions
+ * .`redactAtBuffer` for the opt-out).
+ */
+export function redactSensitive(event: DomainEvent): DomainEvent {
+  if (
+    event.payload === null ||
+    event.payload === undefined ||
+    typeof event.payload !== "object"
+  ) {
+    return event;
+  }
+  const payload = event.payload as Record<string, unknown>;
+  if (!("token" in payload)) {
+    return event;
+  }
+  return {
+    ...event,
+    payload: {
+      ...payload,
+      token: REDACTED_TOKEN_SENTINEL,
+    },
+  };
+}
+
+/**
  * In-memory pub/sub for domain events.
  *
  * Why in-memory: the reference repo is a single-process scaffold;
@@ -28,6 +86,18 @@ export interface InMemoryDispatcher {
 
 export interface DispatcherOptions {
   onError?: ErrorSink;
+  /**
+   * F3 (CRITICAL) guardrail opt-out: when `true` (the default),
+   * the ring buffer stores the redacted copy (`payload.token`
+   * replaced with `REDACTED_TOKEN_SENTINEL`). When `false`, the
+   * raw event is stored \u2014 useful for tests that need to assert
+   * what the handler received.
+   *
+   * Always leave `true` in production. The only legitimate
+   * `false` is from tests or the slice-4 dev mailbox's debug
+   * mode (which never reaches a real user).
+   */
+  redactAtBuffer?: boolean;
 }
 
 export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMemoryDispatcher {
@@ -45,6 +115,10 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
         error instanceof Error ? error.message : String(error)
       );
     });
+  // F3: redact-at-buffer is ON by default (the secure default).
+  // Tests opt out via `{ redactAtBuffer: false }` when they need
+  // to assert the raw event was buffered.
+  const redactAtBuffer: boolean = options.redactAtBuffer ?? true;
 
   function recordInBuffer(event: DomainEvent): void {
     if (event.userId === undefined) return;
@@ -53,7 +127,11 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
       buffer = [];
       buffers.set(event.userId, buffer);
     }
-    buffer.push(event);
+    // F3: store the redacted copy; handlers in `dispatch()` below
+    // still see the raw event (they need the token to email the
+    // user, etc.).
+    const stored = redactAtBuffer ? redactSensitive(event) : event;
+    buffer.push(stored);
     while (buffer.length > RING_BUFFER_CAPACITY) {
       buffer.shift();
     }

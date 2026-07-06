@@ -100,6 +100,21 @@ export class PrismaPasswordResetTokenRepository
       throw err;
     }
   }
+
+  async deleteExpired(before: Date): Promise<number> {
+    // F4: prune expired rows whose `consumedAt` is still null.
+    // Consumed rows are preserved as the audit trail; only
+    // unconsumed+expired rows are removed. The `consumedAt: null`
+    // guard is enforced by the test suite (the RED test asserts
+    // the where clause includes this key).
+    const result = await this.prisma.passwordResetToken.deleteMany({
+      where: {
+        expiresAt: { lt: before },
+        consumedAt: null,
+      },
+    });
+    return result.count;
+  }
 }
 
 /**

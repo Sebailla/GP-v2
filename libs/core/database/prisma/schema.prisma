@@ -100,6 +100,13 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // (userId, consumedAt) supports the typical query: "list a user's
+  // active (unconsumed) reset tokens". (expiresAt, consumedAt)
+  // supports `deleteExpired(before)` (R3 follow-up to the 4R review
+  // for slice 3 batch 5): the cron that lands in slice 6 (T3.6)
+  // deletes where `expiresAt < now AND consumedAt IS NULL` — this
+  // composite index keeps the prune off the seq-scan path.
   @@index([userId, consumedAt])
+  @@index([expiresAt, consumedAt])
   @@map("password_reset_tokens")
 }
