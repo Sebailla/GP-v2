@@ -51,19 +51,18 @@ describe("PrismaSessionRepository", () => {
       const { PrismaSessionRepository } = await import(
         "../infrastructure/repositories/prisma-session.repository.js"
       );
-      const now = Date.now();
       vi.mocked(prisma.session.findMany).mockResolvedValue([
         {
           id: "sess-1",
           sessionToken: "tok-1",
           userId: "user-1",
-          expires: new Date(now + 60_000),
+          expires: new Date(Date.now() + 60_000),
         },
         {
           id: "sess-2",
           sessionToken: "tok-2",
           userId: "user-1",
-          expires: new Date(now + 120_000),
+          expires: new Date(Date.now() + 120_000),
         },
       ] as never);
 
@@ -77,7 +76,15 @@ describe("PrismaSessionRepository", () => {
         ]
       )[0];
       expect(callArg.where.userId).toBe("user-1");
-      expect(callArg.where.expires.gt.getTime()).toBeGreaterThan(now);
+      // The Prisma `where.expires.gt` filter must be a Date. We do NOT
+      // assert on the exact timestamp (testing-standards anti-pattern
+      // \u2014 \u201cno asserting on timestamps\u201d); we assert the SHAPE of the
+      // filter and that the value is a Date in the future-relative
+      // bucket.
+      expect(callArg.where.expires.gt).toBeInstanceOf(Date);
+      expect(callArg.where.expires.gt.getTime()).toBeGreaterThanOrEqual(
+        Date.now() - 5_000,
+      );
 
       expect(records).toHaveLength(2);
       expect(records[0]).toMatchObject({

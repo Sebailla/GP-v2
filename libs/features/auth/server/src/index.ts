@@ -5,10 +5,15 @@
  * Slice 3 batch 2 widens this barrel with AuthService.register and
  * SessionService. Slice 3 batch 3 adds RbacService + the events wiring
  * + the UserRepository port + PrismaUserRepository. Slice 3 batch 4
- * (this batch) closes the umbrella T3.4 with PasswordResetService +
- * the PasswordResetTokenRepository port (its Prisma adapter lands in
- * brief T3.5b's commit). The NestJS controller wrappers + schema
- * harmonization land in slice 3 batch 5+.
+ * closes the umbrella T3.4 with PasswordResetService + the
+ * PasswordResetTokenRepository port. Slice 3 batch 5 lands the 4R fixes
+ * (F1/F2/F3/F4/F8) + T3.8 REFACTOR. Slice 3 batch 6 (this entry) ships
+ * the shared Zod schemas (at `libs/features/auth/shared/schemas/`),
+ * `SessionRepository` + `PrismaSessionRepository`, the NestJS auth
+ * module + controller, the `requestReset` dispatcher-failure handling,
+ * the AuthService / SessionService refactors to use the UserRepository
+ * (and SessionRepository) ports, and the `wireAuthEvents` cleanup
+ * (Pattern A on SessionService + RbacService).
  *
  * Consumers (apps/api, apps/web, sibling slices via @core/events):
  *   import { AuthService, SessionService, RbacService, PasswordResetService, AuthError, ValidationError } from "@features/auth";
@@ -26,10 +31,12 @@ export { wireAuthEvents } from "./events.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";
+export { PrismaSessionRepository } from "./infrastructure/repositories/prisma-session.repository.js";
 export type { UserRecord, UserRepository } from "./domain/interfaces/user.repository.js";
 export type {
   PasswordResetTokenRecord,
   PasswordResetTokenRepository,
 } from "./domain/interfaces/password-reset-token.repository.js";
+export type { SessionRecord, SessionRepository } from "./domain/interfaces/session.repository.js";
 export { AuthError, ValidationError } from "./errors.js";
 export type { AuthErrorCode } from "./errors.js";
