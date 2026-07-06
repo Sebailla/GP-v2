@@ -1,0 +1,60 @@
+{
+  "auth": {
+    "common": {
+      "loading": "Loading…",
+      "genericError": "Something went wrong. Please try again.",
+      "cancel": "Cancel",
+      "backToLoginLink": "Back to sign-in"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "error": {
+        "invalidCredentials": "Invalid email or password."
+      }
+    },
+    "signUp": {
+      "title": "Create your account",
+      "email": "Email",
+      "password": "Password",
+      "name": "Display name",
+      "submit": "Create account",
+      "error": {
+        "duplicateEmail": "An account with this email already exists."
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "email": "Email",
+      "submit": "Send reset link",
+      "success": "If this email is registered, you will receive a reset link shortly."
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "newPassword": "New password",
+      "submit": "Reset password",
+      "error": {
+        "invalidToken": "This reset link is invalid or has expired."
+      },
+      "success": "Your password has been reset. You can now sign in."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "list": "Devices currently signed in",
+      "revokeButton": "Revoke",
+      "empty": "No active sessions found."
+    },
+    "devMailbox": {
+      "title": "Dev mailbox",
+      "noTokensHint": "No password reset tokens have been dispatched yet.",
+      "tokenLabel": "Reset token",
+      "copyButton": "Copy token"
+    },
+    "locale": {
+      "en": "English",
+      "es": "Spanish"
+    }
+  }
+}

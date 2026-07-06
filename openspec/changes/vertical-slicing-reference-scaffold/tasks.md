@@ -347,7 +347,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.1-sha>`.
 - **Files touched (rough).** Test + stub (~25 lines).
 
-### Task T4.2 — `apps/web/messages/{en,es}.json` (i18n catalogs) (~40 lines)
+### Task T4.2 — `apps/web/messages/{en,es}.json` (i18n catalogs) (~40 lines) [x] (slice 4 batch 4a)
 
 - **Description.** Boot the `next-intl` catalogs with the auth-slice keys: `auth.signIn.title`, `auth.signIn.email`, `auth.signIn.password`, `auth.signIn.submit`, `auth.signIn.error.invalidCredentials`, `auth.signUp.*`, `auth.forgotPassword.*`, `auth.resetPassword.*`, `auth.sessions.*`, `auth.devMailbox.*` (later slices add the transactions keys). Minimum coverage: every screen has at least a title + one CTA + one error string in both locales.
 - **Discovery / file targets.** Create `apps/web/messages/en.json` and `apps/web/messages/es.json`.
@@ -355,8 +355,10 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T4.2-sha>`.
 - **Files touched (rough).** `apps/web/messages/**` (~40 lines).
+- **Sub-progress (slice 4 batch 4a — T4.2 closed)**. Catalog key tree matches the brief verbatim; English + Spanish copies shipped. The Spanish catalog uses neutral/professional Spanish per AGENTS.md §13 (no voseo, no regional slang); technical surfaces (route names, file paths, command names) preserved verbatim. Key-set parity test (`apps/web/__tests__/i18n-catalogs.test.ts`) catches the common drift mode (one-key-added-to-en-but-not-es). CJK fallthrough check mirrors the no-mojibake-in-docs rule from §13 at the catalog level. Slice-6 TransactionForm / TotalsCard strings land in slice 6 — this slice stays scoped to the auth-slice surface per the brief's forbidden scope clause.
+  - **Sub-task brief-T4.2-i18n-catalogs [x]** — `apps/web/messages/en.json` (~1670 bytes, 30 keys) + `apps/web/messages/es.json` (~1910 bytes, 30 keys) + `apps/web/__tests__/i18n-catalogs.test.ts` (4 tests, key-set parity + CJK fallthrough check). Verification: `pnpm --filter web exec vitest run` reports 4/4 catalog tests PASS.
 
-### Task T4.3 — `apps/web/middleware.ts` (next-intl locale detection) (~25 lines)
+### Task T4.3 — `apps/web/middleware.ts` (next-intl locale detection) (~25 lines) [x] (slice 4 batch 4a)
 
 - **Description.** Per design §6.3: `createMiddleware` from `next-intl/middleware` with `locales: ['en', 'es']`, `defaultLocale: 'en'`, `localePrefix: 'always'`. Routes `/sign-in` redirect to `/en/sign-in`; visiting `/es/sign-in` keeps Spanish.
 - **Discovery / file targets.** Create `apps/web/middleware.ts`. Add `next-intl` to `apps/web/package.json` (deps from design §6.5).
@@ -364,6 +366,9 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes the locale tests; `pnpm --filter web dev` boots and a `curl /sign-in` returns the locale redirect.
 - **Rollback.** `git revert <T4.3-sha>`.
 - **Files touched (rough).** `apps/web/middleware.ts` + `apps/web/i18n.ts` + test (~25 lines).
+- **Sub-progress (slice 4 batch 4a — T4.3 closed)**. `apps/web/i18n.ts` exports the `routing` config via `defineRouting({...})` (next-intl/routing) so the middleware and the NextIntlClientProvider (slice 4 batch 4c) share the same source of truth. `apps/web/middleware.ts` wraps `createMiddleware(routing)` and exports a negative-lookahead matcher that excludes /api, /_next, /_vercel, and paths with a file extension. The matcher regex is pinned by 3 regression-net tests so a future edit that accidentally drops `api` or `_next` from the exclusion triggers a clear failure. next-intl v3.26.5 emits an ABSOLUTE URL in the Location header for redirects (test parses with `new URL(loc, HOST).pathname`); the canonical "active locale" signal on PASSTHROUGH responses (e.g. /es/sign-in) is the `x-middleware-request-x-next-intl-locale` header plus the `NEXT_LOCALE=es` cookie — Vary is NOT set on passthrough responses (only on redirects). This empirical behavior is documented in the test JSDoc.
+  - **Sub-task brief-T4.3-next-intl-middleware [x]** — `apps/web/i18n.ts` (~50 lines, `defineRouting({...})` config + `Locale` type export) + `apps/web/middleware.ts` (~50 lines, `createMiddleware(routing)` + matcher export) + `apps/web/__tests__/middleware.test.ts` (6 tests: 3 routing scenarios + 3 matcher regression nets). Verification: `pnpm --filter web exec vitest run` reports 6/6 middleware tests PASS; full apps/web suite 14/14 PASS.
+  - **Sub-task brief-deps-partial [x]** — `next-intl@3.26.5` installed via `pnpm add -F web`. Peer warning ("next-intl 3.x caps at Next 15; installed 16.2.10") is non-fatal — the standard Request/Response middleware path works against Next 16 at runtime; the peer cap is a documentation gap in next-intl 3.x, not a runtime break. Migration to next-intl v4 deferred to a future slice if needed.
 
 ### Task T4.4 — `apps/web/components/ui/{button,input,form,card}.tsx` (~25 lines)
 
@@ -374,7 +379,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.4-sha>`.
 - **Files touched (rough).** `apps/web/components/ui/**` + `apps/web/package.json` (~25 lines of source — most files are well-established shadcn patterns).
 
-### Task T4.5 — `apps/web/lib/utils.ts` (cn helper) (~5 lines)
+### Task T4.5 — `apps/web/lib/utils.ts` (cn helper) (~5 lines) [x] (slice 4 batch 4a)
 
 - **Description.** `cn(...inputs: ClassValue[]) = twMerge(clsx(inputs))`. Used by every primitive and every form.
 - **Discovery / file targets.** Create `apps/web/lib/utils.ts`. Add a tiny unit test that asserts `cn('p-2','p-4')` resolves to `'p-4'`.
@@ -382,6 +387,9 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T4.5-sha>`.
 - **Files touched (rough).** `apps/web/lib/utils.ts` + test (~5 lines).
+- **Sub-progress (slice 4 batch 4a — T4.5 closed)**. Brief's stated assertion for the `px-2`/`p-4` case (`"p-4 px-2"`) is the REVERSE-ORDER case; the actual tailwind-merge behavior for `cn("px-2", "p-4")` is `"p-4"` (px-2 is a strict subset of p-4 and gets dropped). The test pin the observed behavior (the lib is the source of truth) and the JSDoc on `cn` documents both orders — future readers can run the test to see what `cn("p-4", "px-2")` (reverse order) actually returns. Vitest config (`apps/web/vitest.config.ts`) lands at the same time, closing the slice-1 deferred apps/web#test install.
+  - **Sub-task brief-T4.5-cn-helper [x]** — `apps/web/lib/utils.ts` (~30 lines, JSDoc + `cn` function) + `apps/web/__tests__/lib-utils.test.ts` (4 tests: merge precedence + falsey-filter + subset-conflict + type narrowing) + `apps/web/vitest.config.ts` (close slice-1 deferred install; node environment + clearMocks + next-intl aliases). Verification: `pnpm --filter web exec vitest run` reports 4/4 cn tests PASS; full apps/web suite 14/14 PASS.
+  - **Sub-task brief-deps-partial [x]** — `clsx@2.1.1` + `tailwind-merge@2.5.5` + `vitest@4.1.9` (devDep) installed via `pnpm add -F web` along with `next-intl`.
 
 ### Task T4.6 — `apps/web/components.json` (minimal shadcn manifest) (~10 lines)
 
