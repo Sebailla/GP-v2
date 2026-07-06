@@ -25,17 +25,55 @@ export type { LoginInput, LoginResult, RegisterInput } from "./auth-service.js";
 export { SessionService } from "./session-service.js";
 export type { CurrentUser } from "./session-service.js";
 export { RbacService } from "./rbac-service.js";
-export type { Action, Actor, Resource, ResourceKind, Role } from "./rbac-service.js";
+export type {
+	Action,
+	Actor,
+	Resource,
+	ResourceKind,
+	Role,
+} from "./rbac-service.js";
 export { PasswordResetService } from "./password-reset.service.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";
 export { PrismaSessionRepository } from "./infrastructure/repositories/prisma-session.repository.js";
-export type { UserRecord, UserRepository } from "./domain/interfaces/user.repository.js";
 export type {
-  PasswordResetTokenRecord,
-  PasswordResetTokenRepository,
+	UserRecord,
+	UserRepository,
+} from "./domain/interfaces/user.repository.js";
+export type {
+	PasswordResetTokenRecord,
+	PasswordResetTokenRepository,
 } from "./domain/interfaces/password-reset-token.repository.js";
-export type { SessionRecord, SessionRepository } from "./domain/interfaces/session.repository.js";
+export type {
+	SessionRecord,
+	SessionRepository,
+} from "./domain/interfaces/session.repository.js";
 export { AuthError, ValidationError } from "./errors.js";
 export type { AuthErrorCode } from "./errors.js";
+// F2 audit sink — the slice's console.error sink for dispatcher
+// failures (default; production swaps for pino/Sentry).
+export { defaultAuditSink } from "./password-reset.service.js";
+
+// Slice 3 batch 6 (T3.2 partial) — re-export the canonical Zod schemas
+// from the shared barrel so the NestJS controller (apps/api) can
+// import both the validator and the inferred TS type from a single
+// path. The schemas themselves live at
+// `libs/features/auth/shared/schemas/` per design §4.2; this is the
+// public seam for the consumer.
+//
+// NOTE: `LoginInput` + `RegisterInput` are also re-exported above
+// from `./auth-service.js` (the service's own parse shapes). We
+// re-export them from the schemas barrel too — TypeScript's
+// structural typing treats them as identical (the schemas are the
+// single source of truth), so no TS2300 collision.
+export {
+	forgotPasswordSchema,
+	loginSchema,
+	registerSchema,
+	resetPasswordSchema,
+	sessionListSchema,
+	type ForgotPasswordInput,
+	type ResetPasswordInput,
+	type SessionListResponse,
+} from "../../shared/schemas/index.js";

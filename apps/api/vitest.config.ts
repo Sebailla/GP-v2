@@ -9,14 +9,14 @@ import { defineConfig } from "vitest/config";
  * tests exercise.
  */
 export default defineConfig({
-  test: {
-    include: [
-      "test/**/*.spec.ts",
-      "test/**/*.test.ts",
-      "test/**/*.e2e-spec.ts",
-    ],
-    environment: "node",
-    globals: false,
-    clearMocks: true,
-  },
+	test: {
+		include: [
+			"test/**/*.spec.ts",
+			"test/**/*.test.ts",
+			"test/**/*.e2e-spec.ts",
+		],
+		environment: "node",
+		globals: false,
+		clearMocks: true,
+	},
 });

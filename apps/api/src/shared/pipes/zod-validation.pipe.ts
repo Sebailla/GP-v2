@@ -27,18 +27,18 @@ import type { z } from "zod";
  */
 @Injectable()
 export class ZodValidationPipe<T extends z.ZodTypeAny>
-  implements PipeTransform<unknown, z.infer<T>>
+	implements PipeTransform<unknown, z.infer<T>>
 {
-  constructor(private readonly schema: T) {}
+	constructor(private readonly schema: T) {}
 
-  transform(value: unknown, _metadata: ArgumentMetadata): z.infer<T> {
-    const result = this.schema.safeParse(value);
-    if (!result.success) {
-      throw new BadRequestException({
-        error: "VALIDATION_FAILED",
-        issues: result.error.issues,
-      });
-    }
-    return result.data;
-  }
+	transform(value: unknown, _metadata: ArgumentMetadata): z.infer<T> {
+		const result = this.schema.safeParse(value);
+		if (!result.success) {
+			throw new BadRequestException({
+				error: "VALIDATION_FAILED",
+				issues: result.error.issues,
+			});
+		}
+		return result.data;
+	}
 }
