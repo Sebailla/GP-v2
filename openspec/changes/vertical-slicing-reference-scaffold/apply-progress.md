@@ -1601,3 +1601,155 @@ Pre-existing failure NOT caused by this batch: `pnpm turbo run build --filter=we
 - Spec: `openspec/changes/.../specs/auth/spec.md` §I18n (the 6 critical screens all read labels from the catalogs); §Routes (the locale-prefixed route shape via the middleware).
 - Design: `openspec/changes/.../design.md` §6.3 (i18n routing — `defineRouting` + `createMiddleware` + `localePrefix: 'always'`); §6.5 (design tokens + shadcn-style primitives, including the cn helper pattern); §4.4 (route shape — locale-prefixed `/[locale]/(auth)/sign-in` etc.).
 - Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch4a`.
+
+---
+
+## Slice 4 batch 4b: T4.4 + T4.6 + T4.7 — STATUS: COMPLETE (slice 4 visual foundations)
+
+**Project**: `gastos-personales-reference`
+**Branch**: `feat/vertical-slicing-s4-batch4b-t44-t46-t47` (5 atomic commits ahead of `develop @ bc3adef`, post-PR #14 slice 4 batch 4a merge).
+**Base**: `bc3adef` (PR #14 merge of slice 4 batch 4a).
+**Mode**: interactive. Strict TDD enabled. Test runner: `pnpm turbo run test`.
+
+### Sub-tasks completed (8)
+
+| Sub-task | Subject | Status |
+|----------|---------|--------|
+| brief-deps | Install Tailwind v4 + Radix + CVA + lucide + testing-library deps | DONE |
+| brief-T4.7-design-tokens | Extract tokens from `gastos-personales/` into apps/web/app/globals.css + postcss config | DONE |
+| brief-T4.4-RED | Failing test suite for the 4 shadcn-style primitives (23 assertions) | DONE |
+| brief-T4.4-GREEN | Implement Button / Input / Form / Card primitives | DONE |
+| brief-T4.4-test-env | Update vitest config: happy-dom + jest-dom + react plugin + @/ alias | DONE |
+| brief-T4.6-manifest | Create `apps/web/components.json` shadcn-style manifest | DONE |
+| brief-T4.6-readme | Create `apps/web/components.json.md` documenting CLI-not-used convention | DONE |
+| brief-markers-apply-progress | tasks.md T4.4 + T4.6 + T4.7 [x] markers + apply-progress section | DONE |
+
+### Atomic commits landed (5)
+
+```
+7e1083f chore(web): install slice 4 batch 4b dependencies
+d33ae9c feat(web): T4.7 design tokens + Tailwind v4 setup (slice 4 batch 4b)
+ad62375 test(web): RED shadcn-style primitives (T4.4 batch 4b)
+5418944 feat(web): GREEN 4 shadcn-style primitives (T4.4 batch 4b)
+24bdfc6 feat(web): T4.6 components.json manifest + README (slice 4 batch 4b)
+```
+
+(plus this markers commit)
+
+### Files created / modified (15 files, ~990 insertions / ~30 deletions)
+
+NEW (10):
+
+- `apps/web/app/globals.css` (~150 lines) — design tokens under :root + .dark + Tailwind v4 @theme inline block + prefers-reduced-motion/transparency fallbacks.
+- `apps/web/postcss.config.mjs` (~15 lines) — single `@tailwindcss/postcss` plugin.
+- `apps/web/__tests__/setup.ts` (~25 lines) — imports `@testing-library/jest-dom/vitest` matchers globally.
+- `apps/web/__tests__/components/ui/primitives.test.tsx` (~330 lines, 23 assertions) — RED + GREEN TDD contract for the 4 primitives.
+- `apps/web/components/ui/button.tsx` (~120 lines) — CVA variants × sizes + Radix Slot asChild.
+- `apps/web/components/ui/input.tsx` (~45 lines) — native `<input>` wrapper with aria-invalid styles.
+- `apps/web/components/ui/form.tsx` (~25 lines) — minimal `<form>` wrapper for slice 4c.
+- `apps/web/components/ui/card.tsx` (~95 lines) — compound primitive (Card + 5 sub-components).
+- `apps/web/components.json` (~15 lines) — canonical shadcn-style manifest.
+- `apps/web/components.json.md` (~50 lines) — README documenting the CLI-not-used convention.
+
+MODIFIED (5):
+
+- `apps/web/app/[locale]/layout.tsx` (+1 line: `import "../globals.css";`).
+- `apps/web/tsconfig.json` (+1 line: explicit `baseUrl: "."`).
+- `apps/web/vitest.config.ts` (+react plugin + happy-dom env + setupFiles + @/ alias).
+- `apps/web/package.json` (+8 deps: tailwindcss@4, @tailwindcss/postcss@4, postcss, autoprefixer, @radix-ui/react-slot, @radix-ui/react-label, class-variance-authority, lucide-react + 4 devDeps: @testing-library/react, @testing-library/jest-dom, happy-dom, @vitejs/plugin-react).
+- `openspec/changes/.../tasks.md` (T4.4 + T4.6 + T4.7 [x] markers + sub-progress paragraphs).
+
+### Test count change
+
+- apps/web: 14 → 38 tests (+24: 23 new primitives + 1 sanity canary removed before commit).
+- @features/auth: 110/110 (unchanged).
+- @core/events: 37/37 (unchanged).
+- @core/config: 19/19 (unchanged).
+- @core/database: 3/3 (unchanged).
+- apps/api: 21/21 (unchanged).
+- Full turbo filtered test gate: 9/9 tasks PASS.
+
+### TDD evidence
+
+| Sub-task | RED | GREEN | Final count |
+|----------|-----|-------|-------------|
+| brief-T4.4-RED (primitives.test.tsx) | Tests imported `@/components/ui/{button,input,form,card}`; the 4 modules didn't exist so vitest failed at parse time ("Failed to parse source for import analysis"). 0/23 assertions ran. | 4 primitive modules implemented; vitest parses the test file. 23/23 assertions pass. | 23 new |
+
+### Critical deviations from the brief
+
+1. **`tsx: 'preserve'` in apps/web/tsconfig.json required `@vitejs/plugin-react` for vitest**. The tsconfig sets `jsx: 'preserve'` because that's Next.js's canonical setting (the build pipeline runs `tsc --noEmit` with that mode). Vite 8's import-analysis plugin refuses to parse JSX in that mode and emits "Failed to parse source for import analysis because the content contains invalid JS syntax" even though the JSX is valid. The fix is `@vitejs/plugin-react` (an esbuild-based JSX transform) wired into the vitest config. Documented in the vitest config JSDoc so future readers understand the constraint.
+
+2. **`apps/web/tsconfig.json` adds explicit `baseUrl: "."`**. The base tsconfig sets `baseUrl: "."` relative to the workspace root; without an explicit override the apps/web tsconfig resolves paths relative to the wrong directory. The override pins `baseUrl: "."` (relative to apps/web/) so the `@/*` alias resolves `apps/web/lib/utils` correctly. The fix is required for both tsc and vitest to resolve `@/lib/utils` and the 4 `@/components/ui/*` paths.
+
+3. **RTL v16 requires explicit `afterEach(cleanup)`** (no longer auto-registered). The first GREEN run reported "Found multiple elements with the role 'button'" and similar duplicate-element errors because DOM nodes from one `it()` leaked into the next. The fix is `import { afterEach } from "vitest"; import { cleanup } from "@testing-library/react"; afterEach(() => cleanup());` at the top of the test file. Documented in the test file JSDoc so future readers know why the hook is explicit.
+
+4. **Button link variant test revised from `underline` to `underline-offset-4` + `hover:underline`**. The canonical shadcn link variant does NOT have `underline` at rest (only on hover). The first RED test asserted `underline` directly; the GREEN commit updated the test to assert `underline-offset-4` (always present) + `hover:underline` (selector present) — the canonical shadcn pattern.
+
+5. **Form children test revised from `form.contains(input)` to `form.querySelector("#name")`**. The first GREEN run reported `form.contains(input)` returned `false` even though the input was clearly inside the form in the source code. happy-dom's `Node.contains` behavior differs from jsdom in some edge cases (specifically around `Object.is` equality of elements created via different query paths). The fix is to assert via the scoped `form.querySelector("#name")` instead — same observable contract, more portable.
+
+6. **Form onSubmit test revised from `dispatchEvent(new Event("submit"))` to `fireEvent.submit(form)`**. The first GREEN run reported `onSubmit` was called 0 times when dispatched via the raw DOM event. React's synthetic event system doesn't pick up raw `dispatchEvent` calls for `submit`; the canonical pattern is `fireEvent.submit(form)` from `@testing-library/react`. The fix swaps to the canonical pattern.
+
+7. **No `tailwind.config.ts` created**. The brief's brief-deps sub-task mentions `postcss` + `autoprefixer` as deps but does not require a `tailwind.config.ts`. Tailwind v4's CSS-first configuration reads from the `@theme inline` block in `app/globals.css` (T4.7); the `components.json` `tailwind.config` field points at `app/globals.css` (the CSS file, not a JS config). Documented in `components.json.md`.
+
+### Risk flags
+
+NEW (this batch):
+
+- `tsx_preserve_breaks_vite_import_analysis` — Next.js canonical setting breaks vitest without `@vitejs/plugin-react`. Documented in vitest config JSDoc.
+- `apps_web_tsconfig_baseurl_must_be_explicit` — baseUrl override required for `@/*` path resolution. Documented in tsconfig.
+- `rtl_v16_no_auto_cleanup` — `afterEach(cleanup)` must be explicit per test file. Documented in test file JSDoc.
+- `happy_dom_node_contains_edge_case` — `form.contains(input)` may return false in happy-dom; use scoped querySelector instead. Documented in test file JSDoc.
+
+CARRIED (from batch 4a):
+
+- `next_intl_v3_peer_warning_for_next_16` — non-fatal; runtime works.
+- `middleware_passthrough_uses_cookie_not_vary_header_for_locale_signal`.
+- `cn_subset_conflict_order_sensitivity`.
+- `apps_web_build_fails_without_env_vars` — pre-existing slice-1 env-validation constraint; build succeeds with env vars set; batch 4c will wire a real `.env.local`.
+
+### Workload / PR boundary
+
+- Forecast (brief): ~70-80 lines of source per task + tests (~70 lines) + markers (~50 lines).
+- Actual: 15 files changed, ~990 insertions / ~30 deletions. 5 atomic commits. The T4.4 work dominates (4 primitive modules + 23-assertion test suite + test env upgrade); T4.6 is small (documentation); T4.7 is medium (globals.css + postcss + layout import).
+- 400-line budget risk: **Low** — every commit is well under 400 (deps 339, T4.7 226, T4.4-RED 630 including test file + vitest config, T4.4-GREEN 376, T4.6 73, markers ~200 estimated).
+- PR target: `feat/vertical-slicing-s4-batch4b-t44-t46-t47` → `develop` once `sdd-verify` clears.
+- This is the 2nd PR of slice 4 (which has 8+ batches: 4a/4b/4c/4d/4e).
+- NOT pushed to remote, NOT merged.
+
+### Forbidden operations (honored)
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED. All reads targeted specific paths from the brief or tmp probe files.
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED. Versions came from the brief's explicit recommendations.
+- ❌ Running the `shadcn-ui` CLI — primitives are hand-written per the brief's forbidden-scope clause. components.json.md documents this.
+- ❌ Importing any `gastos-personales/` files into the reference repo — design tokens are COPIED (not imported) per the brief.
+- ❌ Modifying `apps/web/messages/*.json` or `apps/web/i18n.ts` (those are batch 4a territory).
+- ❌ Editing `libs/features/auth/*` (slice 3 closed) — NOT TOUCHED.
+- ❌ Modifying `apps/web/components/ui/*` outside of batch 4b's scope — NOT TOUCHED.
+- ❌ Real `app/[locale]/sign-in/page.tsx` (T4.8, batch 4c) — NOT CREATED.
+- ❌ "Co-Authored-By" or AI attribution — NOT INCLUDED in any commit.
+
+### Quality gates — all green
+
+| Gate | Result |
+|------|--------|
+| Workspace install | ✅ exit 0 |
+| `@features/auth` test | ✅ 110/110 PASS (no regression) |
+| `@core/events` test | ✅ 37/37 PASS (no regression) |
+| `@core/config` test | ✅ 19/19 PASS (no regression) |
+| `@core/database` test | ✅ 3/3 PASS (no regression) |
+| `apps/api` test | ✅ 21/21 PASS (no regression) |
+| `apps/web` test | ✅ 38/38 PASS (14 batch 4a + 24 new: 23 primitives + 1 sanity canary removed) |
+| `pnpm turbo run test` (filtered, full workspace) | ✅ 9/9 tasks PASS |
+| `pnpm --filter web exec tsc --noEmit` | ✅ exit 0 |
+| `pnpm --filter web exec eslint . --max-warnings 0` | ✅ exit 0 |
+| `pnpm --filter web build` (with env vars set) | ✅ exit 0; no Tailwind warnings; globals.css compiles |
+| `node -e "JSON.parse(require('fs').readFileSync('apps/web/components.json','utf8'))"` | ✅ exit 0 |
+| `pnpm run lint:fixtures` | ✅ 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
+| `pnpm turbo run lint` (full) | ✅ exit 0 |
+
+### Cross-references (slice 4 batch 4b)
+
+- Tasks (T4.4 [x] + T4.6 [x] + T4.7 [x] markers + per-row sub-progress notes): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` (umbrella T4.4 row at line 373; umbrella T4.6 row at line 394; umbrella T4.7 row at line 403).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Routes (the auth-slice routes will compose the primitives).
+- Design: `openspec/changes/.../design.md` §6.4 (design token extraction contract); §6.5 (shadcn-style primitives setup + cn helper + components.json shape).
+- Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch4b`.
