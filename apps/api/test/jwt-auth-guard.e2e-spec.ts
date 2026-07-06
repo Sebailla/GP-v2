@@ -1,18 +1,18 @@
-    // `vi.stubEnv` (hoisted with `vi.mock` to the top of the file)
-    // sets the env BEFORE any @core/config import triggers the env
-    // singleton's lazy evaluation. The secret MUST match the value
-    // the production guard reads at runtime.
-    vi.stubEnv("NODE_ENV", "test");
-    vi.stubEnv("PORT", "3001");
-    vi.stubEnv("WEB_ORIGIN", "http://localhost:3000");
-    vi.stubEnv("DATABASE_URL", "postgresql://placeholder/db");
-    vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000");
-    vi.stubEnv(
-      "NEXTAUTH_SECRET",
-      "test-secret-at-least-32-characters-long-for-hkdf",
-    );
-    vi.stubEnv("GOOGLE_CLIENT_ID", "test-google-client-id");
-    vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-google-client-secret");
+// `vi.stubEnv` (hoisted with `vi.mock` to the top of the file)
+// sets the env BEFORE any @core/config import triggers the env
+// singleton's lazy evaluation. The secret MUST match the value
+// the production guard reads at runtime.
+vi.stubEnv("NODE_ENV", "test");
+vi.stubEnv("PORT", "3001");
+vi.stubEnv("WEB_ORIGIN", "http://localhost:3000");
+vi.stubEnv("DATABASE_URL", "postgresql://placeholder/db");
+vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000");
+vi.stubEnv(
+	"NEXTAUTH_SECRET",
+	"test-secret-at-least-32-characters-long-for-hkdf",
+);
+vi.stubEnv("GOOGLE_CLIENT_ID", "test-google-client-id");
+vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-google-client-secret");
 
 import "reflect-metadata";
 

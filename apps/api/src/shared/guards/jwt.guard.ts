@@ -124,9 +124,7 @@ export class JwtAuthGuard implements CanActivate {
  * stale-email condition if the user changed addresses between
  * issuance and the current request).
  */
-function toCurrentUser(
-	claims: Readonly<Record<string, unknown>>,
-): CurrentUser {
+function toCurrentUser(claims: Readonly<Record<string, unknown>>): CurrentUser {
 	const userId = pickString(claims["userId"]) ?? pickString(claims["sub"]);
 	const email = pickString(claims["email"]) ?? "";
 	const role = pickString(claims["role"]) ?? "USER";

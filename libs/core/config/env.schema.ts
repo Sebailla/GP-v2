@@ -25,27 +25,22 @@ const NODE_ENV_VALUES = ["development", "test", "production"] as const;
 export type NodeEnv = (typeof NODE_ENV_VALUES)[number];
 
 export const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  NEXTAUTH_URL: z.string().url(),
-  NEXTAUTH_SECRET: z.string().min(32),
-  // T3.3 (slice 3 batch 7) — Google OAuth credentials are OPTIONAL.
-  // The Credentials provider is always wired; the Google provider is
-  // added to the providers array only when BOTH id and secret are
-  // present (see `apps/api/src/lib/auth.config.ts#isGoogleConfigured`).
-  // This keeps dev / test environments runnable without OAuth
-  // credentials and aligns with the design's "Google OAuth happy-stub
-  // via NEXTAUTH_URL switch" note (Google handshake is exercised in
-  // T3.7, not this batch).
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-  WEB_ORIGIN: z.string().url(),
-  PORT: z.coerce
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .default(3001),
-  NODE_ENV: z.enum(NODE_ENV_VALUES),
+	DATABASE_URL: z.string().url(),
+	NEXTAUTH_URL: z.string().url(),
+	NEXTAUTH_SECRET: z.string().min(32),
+	// T3.3 (slice 3 batch 7) — Google OAuth credentials are OPTIONAL.
+	// The Credentials provider is always wired; the Google provider is
+	// added to the providers array only when BOTH id and secret are
+	// present (see `apps/api/src/lib/auth.config.ts#isGoogleConfigured`).
+	// This keeps dev / test environments runnable without OAuth
+	// credentials and aligns with the design's "Google OAuth happy-stub
+	// via NEXTAUTH_URL switch" note (Google handshake is exercised in
+	// T3.7, not this batch).
+	GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+	GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+	WEB_ORIGIN: z.string().url(),
+	PORT: z.coerce.number().int().positive().optional().default(3001),
+	NODE_ENV: z.enum(NODE_ENV_VALUES),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -61,5 +56,5 @@ export type Env = z.infer<typeof envSchema>;
  *   const env = parseEnv({ ...process.env, PORT: "4242" });
  */
 export function parseEnv(source: Readonly<Record<string, unknown>>): Env {
-  return envSchema.parse(source);
+	return envSchema.parse(source);
 }

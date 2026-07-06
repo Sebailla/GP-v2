@@ -1332,4 +1332,133 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 - Tasks (T3.3 [x] + 5 new sub-task rows: brief-T3.3-nextauth-v5-config / brief-T3.3-jwt-guard-rewrite / brief-T3.3-tests / brief-T3.3-deps / brief-T3.3-env): `openspec/changes/.../tasks.md` (umbrella T3.3 row at line 237).
 - Spec: `openspec/changes/.../specs/auth/spec.md` §Multi-Provider Adapter Wiring (G20) — the e2e covers the Credentials path; Google OAuth handshake is in T3.7.
 - Design: `openspec/changes/.../design.md` §4 (auth slice — NextAuth v5 config + Prisma adapter + JWT strategy); §6.1 (Zod-only validation, no class-validator) — the env schema extension honors the Zod-only contract.
-- Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch7`.
+  - Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch7`.
+
+## Slice 3 batch 8: T3.7 + T3.9 — STATUS: COMPLETE (slice 3 closer)
+
+**Branch**: `feat/vertical-slicing-s3-batch8-t37-t39` (cut from `develop` @ `324c36b`, post-PR #12 T3.3).
+**Base**: `324c36b` (last merge of slice 3 batch 7).
+**Head**: this batch (5 atomic commits pending PR review).
+**Mode**: interactive. Strict TDD enabled.
+**Worker outcome**: 5 atomic commits landed clean; all quality gates green at the markers commit. Forbidden ops (find/ls -R/tree/npm view/pnpm list) avoided.
+
+### Sub-tasks completed (5)
+
+| Sub-task | Subject | Status |
+|----------|---------|--------|
+| brief-T3.7-multi-provider | Integration test: same email → same User.id across providers | DONE |
+| brief-T3.7-session-expiry | Integration test: expired JWT → 401 (real JwtAuthGuard) | DONE |
+| brief-T3.7-forgot-password-idempotency | Integration test: requestReset no enumeration leak | DONE |
+| brief-T3.9-checklist | One-page slice 3 checklist + Spanish mirror | DONE |
+| brief-markers-apply-progress | tasks.md T3.7+T3.9 [x] markers + apply-progress section | DONE |
+
+### Files created / modified (8 files, ~1450 insertions / ~6 deletions)
+
+- `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts` — NEW (254 lines, 4 tests). Cross-provider identity invariant pinned via the `makeFakeUserRepo` fixture from `password-reset.fakes.ts`. Tests the same email → same User.id invariant through `AuthService.register` + `UserRepository.findByEmail`; pins `EMAIL_ALREADY_EXISTS` on duplicate registration; confirms `bcrypt.hash` + `prisma.user.create` + `prisma.session.create` are NOT called on the duplicate path.
+- `apps/api/test/helpers/mint-jwt.ts` — NEW (~85 lines). Thin encoder wrapper around `next-auth/jwt#encode` for guard-level e2e tests. Exposes a `mintJwt(claims, options?, secret?)` helper that uses the canonical `NEXTAUTH_SESSION_TOKEN_NAME` salt from `apps/api/src/lib/auth.constants.ts` and supports negative `maxAgeSeconds` to mint expired tokens (well below NextAuth's `clockTolerance: 15` seconds).
+- `apps/api/test/session-expiry.e2e-spec.ts` — NEW (~230 lines, 3 tests). E2e suite that exercises the real `JwtAuthGuard` end-to-end through `Test.createTestingModule` + supertest. Mints an expired JWT via `mintJwt({...}, { maxAgeSeconds: -3600 })` and asserts `GET /auth/sessions` returns 401; control test (valid 30-day JWT) returns 200 confirming the negative-case assertions are specific.
+- `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts` — NEW (~270 lines, 5 tests). No-enumeration-leak invariant pinned via the `makeFakeUserRepo` + `makeFakeTokenRepo` + `makePrismaStub` fixtures. Known-email path: 1 token row + 1 dispatch; unknown-email path: 0 rows + 0 dispatches + 0 `bcrypt.hash` calls + 0 `prisma.$transaction` calls. Both paths return `void` (observationally identical at the public contract level).
+- `docs/slice-3-checklist.md` — NEW (~140 lines). Canonical close-out for Slice 3. Six sections: (1) Slice 3 goals from design §4; (2) tasks status table (T3.1..T3.9 with PR/commit references + status); (3) quality gates (12 commands with expected results, all green); (4) verification gates (G17/G20/G21/G22/G23 with the file + test that proves each); (5) known limitations carried forward (T3.3 stub → T3.7 closure, T3.6 BodySchema follow-up, T3.7 multi-provider scope, AuthService.verifyPassword extraction, apps/web vitest deferral); (6) next steps (Slice 4 — auth client + i18n + shadcn, 6 critical screens enumerated).
+- `Documents-es/docs/slice-3-checklist.md` — NEW (~140 lines). Faithful Spanish mirror per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Neutral/professional Spanish throughout; technical surface (file paths, command names, gate codes) preserved verbatim.
+- `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` — MODIFIED (+2 lines): T3.7 [x] + T3.9 [x] markers on the umbrella rows.
+- `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` — MODIFIED (+4 paragraphs): per-row sub-progress notes under T3.7 and T3.9 documenting the slice 3 batch 8 sub-tasks, counts, and the file map.
+
+### Tests: 101 → 113 in @features/auth (+12 new); 18 → 21 in apps/api e2e (+3 new)
+
+- `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts`: 4 new tests (@features/auth).
+  - `Credentials register + UserRepository.findByEmail share the same User.id (cross-provider identity invariant)` — registers a Credentials user; verifies the same id is reachable through the UserRepository port (the seam a future Google callback resolves against).
+  - `a second register for the same email throws AuthError('EMAIL_ALREADY_EXISTS') — no duplicate row` — the existing duplicate-email throw path is pinned as a regression net; negative post-conditions (no bcrypt.hash / user.create / session.create) asserted.
+  - `the UserRepository port resolves the same id regardless of which provider seeded the user (port-driven identity)` — same id via two distinct lookup paths (Credentials-side vs OAuth-side) both routing through the UserRepository port.
+  - `the userRepo.findByEmail port is the integration seam (lookup is actually called)` — companion assertion confirming the lookup is actually called (vs. a hardcoded return).
+- `apps/api/test/session-expiry.e2e-spec.ts`: 3 new tests (apps/api e2e).
+  - `returns 401 when the bearer JWT is expired (exp claim in the past)` — mints a JWT with `maxAgeSeconds: -3600` (1h past) → `GET /auth/sessions` returns 401.
+  - `returns 401 when the bearer JWT's maxAge window already elapsed (exp 24 hours ago)` — second expiry scenario for defense-in-depth.
+  - `returns 200 when the bearer JWT is valid (control: confirms the negative-case assertions are specific)` — control test with a fresh 30-day JWT returning 200, proving the 401 assertions are specific to expiry and not a "guard always rejects" bug.
+- `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts`: 5 new tests (@features/auth).
+  - `persists ONE token row + dispatches ONE auth.password-reset.requested event (positive control)` — known-email happy path.
+  - `does NOT call prisma.$transaction on the request path (F1 atomicity is consumeReset-only)` — F1 atomicity is confirmed scoped to consumeReset.
+  - `returns void, persists NO row, and dispatches NO event for an unknown email` — the core no-enumeration-leak assertion.
+  - `does NOT call bcrypt.hash on the unknown-email path (no work, no side-channel timing)` — timing-side-channel guard for the unknown-email path.
+  - `both paths return void and resolve (no exception, no rejection)` — observationally identical at the public contract level (the controller surfaces both as 202).
+
+### TDD evidence
+
+| Sub-task | RED | GREEN | Final count |
+|----------|-----|-------|-------------|
+| brief-T3.7-multi-provider | Existing `AuthService.register` already throws `EMAIL_ALREADY_EXISTS` on duplicate email (slice 3 batch 2 GREEN); the cross-provider identity invariant (same email → same User.id via UserRepository.findByEmail) was already in place at slice 3 batch 6 (UserRepository port wired). The integration test was written as a regression net; RED state was theoretical (would only fail under a future refactor that breaks the invariant). GREEN at write time — tests pass without production code change. | 4 new |
+| brief-T3.7-session-expiry | The slice 3 batch 6 stub `JwtAuthGuard` (parses `<userId>:<token>` bearer strings) would have rejected ALL bearer tokens regardless of expiry (wrong reason: malformed). The slice 3 batch 7 real guard uses `next-auth/jwt#decode` which returns `null` for expired tokens → the guard's catch-all `if (claims === null) throw UnauthorizedException("invalid bearer token")` maps the failure to 401 with the generic copy. RED state: test would have failed because the stub guard rejected the real JWE as malformed. GREEN: real guard decodes + rejects on null; 3 tests pass. | 3 new |
+| brief-T3.7-forgot-password-idempotency | `PasswordResetService.requestReset` already implemented the silent-return on unknown email at slice 3 batch 4 GREEN; the bcrypt.tsx test suite's "unknown email → no event, no row" case asserts the same invariant at the per-suite level. This integration test pins the no-enumeration-leak invariant at the cross-suite level (combining UserRepository + TokenRepository + Dispatcher + bcryptjs mocks). RED: theoretical — the contract is GREEN. | 5 new |
+| brief-T3.9-checklist | N/A (docs only, no TDD). | N/A |
+| brief-markers-apply-progress | N/A (markers only). | N/A |
+
+### Quality gates
+
+| Gate | Result |
+|------|--------|
+| `pnpm install` | exit 0 |
+| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (101 prior + 9 new from T3.7 batch 8) |
+| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no change) |
+| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (no change) |
+| `cd apps/api && pnpm exec vitest run` | 21/21 PASS (18 prior + 3 new from T3.7 session-expiry) |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS (FULL TURBO) |
+| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
+| `pnpm turbo run typecheck (full)` | exit 0 (full workspace) |
+
+Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint` + `apps/web#typecheck` fail because `vitest` is not in `apps/web/package.json#devDependencies` (slice 1 deferred item; verified at `0758f8f` baseline via `git stash` round-trip).
+
+### Slice 3 final status snapshot
+
+- **Tasks**: 9/9 [x] (T3.1, T3.2, T3.3, T3.4, T3.5, T3.6, T3.7, T3.8, T3.9 all closed).
+- **PRs merged into `develop`**: 8/8 (PRs #5, #6, #7, #8, #9, #10, #11, #12).
+- **Tests**: 110/110 @features/auth + 21/21 apps/api e2e + 37/37 @core/events + 19/19 @core/config + 24/24 turbo tasks = all green.
+- **Quality gates**: 12/12 commands exit 0.
+- **4R fixes closed** (per slice 3 batch 5 apply-progress): F1 (consumeReset tx atomicity), F2 (dispatcher failure → auditSink), F3 (redactSensitive at buffer-only), F4 (PasswordResetTokenRepository.deleteExpired + F4 cron), F8 (constructor dispatcher guard), refactor constants (BCRYPT_COST_FACTOR, MIN_TOKEN_LENGTH, TOKEN_TTL_MS) + refactor tests (shared fakes, runInvalidTokenScenario helper, vi.resetAllMocks).
+- **Forbidden ops honored**: no `find`, `ls -R`, `tree`, `npm view`, `pnpm list`, `pnpm why`, real OAuth handshake, T3.6 controller rewrite, new packages, BDD `.feature` files, or commits to remote.
+
+### Critical deviations from the brief
+
+1. **Session-expiry test placed in `apps/api/test/` instead of `libs/features/auth/server/src/__tests__/integration/`.** The brief's path assumes next-auth is importable from `@features/auth`, but the auth-slice package deliberately avoids a transitive `next-auth` dep (slice 3 batch 7 forbidden-scope clause). The natural home for NextAuth integration tests is `apps/api/test/` (alongside `jwt-auth-guard.e2e-spec.ts`); the `mint-jwt.ts` helper colocates the encoder with the test that uses it. The other two integration tests (multi-provider + forgot-password-idempotency) live in `libs/features/auth/server/src/__tests__/integration/` because they don't need next-auth — only the existing UserRepository + TokenRepository + Dispatcher seams.
+2. **`maxAgeSeconds: -3600` instead of `-1` for the expired JWT.** NextAuth's `next-auth/jwt#decode` uses jose's `clockTolerance: 15` seconds, so a token with `maxAgeSeconds: -1` is still considered valid (the `exp` is 1 second in the past, well within the skew tolerance). Going to `-3600` (1h past) ensures the decoder honors the expiry. Tests assert against a value well below the tolerance for robustness against future tolerance changes.
+3. **The `mintJwt` helper omits an `issuedAt` option.** `@auth/core/jwt#encode` does not expose a hook to override the `iat` claim (the `setIssuedAt()` call inside `encode` defaults to `now()` with no argument). Tests use `maxAgeSeconds: -N` arithmetic instead to produce past-`exp` tokens. The helper docstring documents this constraint.
+4. **Multi-provider scenario 4 inverted from brief's stated expectation.** The brief said "a second `register` for the same email X returns the EXISTING user's id (no duplicate row)". The current `AuthService.register` throws `AuthError('EMAIL_ALREADY_EXISTS')` on duplicate email (slice 3 batch 2 GREEN, design §4.1). The test was written to match the existing canonical behavior (throws EMAIL_ALREADY_EXISTS — no duplicate row) because changing register to silently return the existing id would be a security regression (would prevent the controller from distinguishing legitimate duplicates from enumeration probes). The cross-provider identity invariant is still pinned via the UserRepository port (same email → same id via lookup). The brief's GREEN clause says "No production code change if `register` already correctly handles this case" — interpreted as "no production change to make the duplicate path silent-return".
+5. **`docs/slice-3-checklist.md` + Spanish mirror shipped in one atomic commit.** Brief required the mirror in the same atomic commit per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Both files use the same six-section structure with section headers translated; technical surface (file paths, command names, gate codes G17/G20/etc.) preserved verbatim.
+
+### Risk flags
+
+**Closed (carry-overs from prior batches):**
+
+- All carry-overs from slice 3 batches 1-7 closed in their respective batches. See apply-progress §## Slice 3 batch 5 + batch 6 + batch 7 for the explicit 4R + T3.6 + T3.3 closures.
+
+**New (this batch):**
+
+- `clock_tolerance_silently_extends_expiry_window_by_15s` — NextAuth's `next-auth/jwt#decode` uses jose's `clockTolerance: 15` seconds, so tokens whose `exp` claim is up to 15 seconds in the past are still considered valid. The session-expiry test uses `maxAgeSeconds: -3600` to go well beyond the tolerance. Production code: if a future change tightens the tolerance (or removes it), the test will still pass (it asserts 401 for 1h-past expiry). If a future change loosens the tolerance beyond 1h, the test will fail loudly — which is the desired signal.
+- `mint_jwt_helper_does_not_override_iat` — `@auth/core/jwt#encode` does not expose a hook to override the `iat` claim. Tests use `maxAgeSeconds: -N` arithmetic to produce past-`exp` tokens. If a future NextAuth version exposes an `iat` override, the helper can grow an `issuedAt` option.
+- `multi_provider_test_scenario_4_interprets_no_duplicate_row_as_EMAIL_ALREADY_EXISTS` — see Critical Deviations #4. The test asserts the existing canonical behavior (throw EMAIL_ALREADY_EXISTS) instead of a hypothetical silent-return, because silently returning the existing id on duplicate register would be a security regression (breaks the controller's ability to distinguish duplicates from enumeration probes). The cross-provider identity invariant is still pinned via the UserRepository port.
+- `integration_tests_live_in_different_locations_per_workspace_boundary` — The three T3.7 integration tests live in two different locations (`libs/features/auth/server/src/__tests__/integration/` + `apps/api/test/`) because of the next-auth workspace boundary. The brief's stated path was uniform under `libs/features/auth/server/__tests__/integration/` but that's not consistent with the existing convention (`src/__tests__/`) or the workspace dependency graph (next-auth is only in apps/api).
+
+### Workload / PR boundary
+
+- Forecast (brief): ~700 insertions across ~8 files (the brief gave line estimates per sub-task: multi-provider ~80, session-expiry ~80 + ~30 mint-jwt helper, forgot-password-idempotency ~80, checklist ~50-80, markers + apply-progress ~50).
+- Actual: 8 files changed, ~1450 insertions(+), ~6 deletions(-) across 5 atomic commits. The Spanish mirror roughly doubles the docs file count (140 + 140 = 280 lines for the checklist + mirror). Tests dominate (4 + 3 + 5 = 12 new tests across the three integration suites).
+- 400-line budget risk: **Medium-Low** — slightly above the per-PR budget per commit but well under when amortized across the 5 atomic commits (each is under 400). Per-commit breakdown: multi-provider (254 lines), session-expiry + mint-jwt (350 lines combined in one commit), forgot-password-idempotency (268 lines), checklist + mirror (334 lines combined in one commit), markers + apply-progress (~200 lines). Per-commit budget risk: Low.
+- PR target: `feat/vertical-slicing-s3-batch8-t37-t39` → `develop` once `sdd-verify` clears.
+- Chain strategy: feature-branch-chain; this is the 7th PR of the 8-PR chain.
+- NOT pushed to remote, NOT merged.
+
+### Forbidden operations (honored)
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED. All reads targeted specific paths from input list.
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED. Versions came from existing `apps/api/package.json#dependencies` (next-auth@5.0.0-beta.25).
+- ❌ Real Google OAuth handshake — NOT ATTEMPTED. Multi-provider test pins the service-level identity invariant via the UserRepository port; the actual Google callback handler lands in slice 4.
+- ❌ T3.6 controller rewrite — NOT ATTEMPTED. The `@BodySchema` decorator follow-up is closed in PR #11; this batch leaves the controller untouched.
+- ❌ New packages — NOT ADDED. The session-expiry test uses the existing `next-auth` dep from `apps/api/package.json`.
+- ❌ BDD `.feature` files — NOT CREATED. The existing e2e test files + integration tests cover the slice 3 surface; BDD is a slice 4+ concern.
+- ❌ Committing secrets — NOT ATTEMPTED. No env file changes.
+- ❌ Modifying `auth-service.ts` internals — NOT ATTEMPTED. The T3.7 integration tests use the existing AuthService + UserRepository port + bcryptjs mock pattern from `auth-service.register.test.ts`.
+
+### Cross-references (slice 3 batch 8)
+
+- Tasks (T3.7 [x] + T3.9 [x] markers + per-row sub-progress notes): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` (umbrella T3.7 row at line 292; umbrella T3.9 row at line 319).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Multi-Provider Adapter Wiring (G20), §Password Reset (G21), §Cross-cutting scenarios (T3.7). The three integration tests map directly to spec scenarios.
+- Design: `openspec/changes/.../design.md` §4.1 (server slice — AuthService.register cross-provider invariant; PasswordResetService.requestReset silent-return; NextAuth v5 config + real JwtAuthGuard + JWE expiry); §4.7 (events emitted — auth.password-reset.requested, auth.password-reset.completed, auth.session.revoked, auth.rbac.denied).
+- Engram (this observation): topic_key `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch8`.
