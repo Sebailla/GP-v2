@@ -234,7 +234,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T3.2-sha>`.
 - **Files touched (rough).** `libs/features/auth/shared/**` (~50 lines).
 
-### Task T3.3 — `libs/features/auth/server/auth.config.ts` (NextAuth v5) (~50 lines)
+### Task T3.3 — `libs/features/auth/server/auth.config.ts` (NextAuth v5) (~50 lines) [x]
 
 - **Description.** NextAuth v5 config: `CredentialsProvider` (delegates to `AuthService.verifyPassword`), `GoogleProvider` (uses `clientId`/`clientSecret` from env; happy-stub via `NEXTAUTH_URL` switch), `@auth/prisma-adapter` against `@core/database`, JWT strategy, callbacks (`jwt` embeds `role` + `userId`; `session` projects them). `pages.signIn` is a locale-aware factory resolved at runtime.
 - **Discovery / file targets.** Create `libs/features/auth/server/auth.config.ts` and `libs/features/auth/server/__tests__/auth.config.test.ts` (asserts the providers array contains exactly `credentials` + `google`, that the adapter is wired, and that the JWT callback populates `token.role` on first sign-in).
