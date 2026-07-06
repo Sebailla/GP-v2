@@ -38,22 +38,40 @@ export default defineConfig({
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
   },
-  resolve: {
-    alias: {
-      // `@/` aliases mirror the tsconfig paths so primitives can
-      // `import { cn } from "@/lib/utils"`.
-      "@": path.resolve(__dirname, "."),
-      // `next-intl/server` uses React-Server-Conditional Exports which
-      // require the consuming environment to declare itself. The `ssr:
-      // false` boundary tells next-intl it's safe to load the client
-      // build in this vitest context. We declare it globally so any
-      // test that imports the middleware doesn't trip the warning.
-      "next-intl/navigation": path.resolve(
-        "node_modules/next-intl/dist/navigation.client.js",
-      ),
-      "next-intl/server": path.resolve(
-        "node_modules/next-intl/dist/server.react-client.js",
-      ),
-    },
+resolve: {
+alias: [
+      {
+        find: /^@features\/auth\/shared\/schemas$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../libs/features/auth/shared/schemas/index.ts",
+        ),
+      },
+      {
+        find: /^@features\/auth$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../libs/features/auth/server/src/index.ts",
+        ),
+      },
+      {
+        find: "@",
+        replacement: path.resolve(__dirname, "."),
+      },
+      {
+        find: /^next-intl\/navigation$/,
+        replacement: path.resolve(
+          __dirname,
+          "node_modules/next-intl/dist/navigation.client.js",
+        ),
+      },
+      {
+        find: /^next-intl\/server$/,
+        replacement: path.resolve(
+          __dirname,
+          "node_modules/next-intl/dist/server.react-client.js",
+        ),
+      },
+],
   },
 });
