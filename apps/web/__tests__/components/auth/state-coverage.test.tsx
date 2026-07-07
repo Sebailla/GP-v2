@@ -42,63 +42,63 @@ vi.mock("@core/config", () => ({
 	},
 }));
 
-    const mockFetch = vi.fn();
-    vi.stubGlobal("fetch", mockFetch);
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
-    // Mock `next/navigation` — ResetPasswordForm + SignUpForm call
-    // `router.replace` on success. The form's success path unmounts
-    // the form; without the mock, useRouter() throws "invariant expected
-    // app router to be mounted" in the test env.
-    const mockReplace = vi.fn();
-    vi.mock("next/navigation", () => ({
-      useRouter: () => ({ replace: mockReplace }),
-    }));
+// Mock `next/navigation` — ResetPasswordForm + SignUpForm call
+// `router.replace` on success. The form's success path unmounts
+// the form; without the mock, useRouter() throws "invariant expected
+// app router to be mounted" in the test env.
+const mockReplace = vi.fn();
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ replace: mockReplace }),
+}));
 
-    // Capture document.cookie SETTER so the LoginForm success-path
-    // test can assert the auth-session cookie is set. happy-dom's
-    // document.cookie GETTER only returns `name=value` (real-browser
-    // behavior); the attributes are observable via the setter input.
-    let lastSetCookie: string | null = null;
-    const originalCookieSetter = Object.getOwnPropertyDescriptor(
-      Document.prototype,
-      "cookie",
-    )?.set;
-    function installCookieSpy(): void {
-      const originalGet = Object.getOwnPropertyDescriptor(
-        Document.prototype,
-        "cookie",
-      )?.get;
-      Object.defineProperty(document, "cookie", {
-        configurable: true,
-        get: () => originalGet?.call(document) ?? "",
-        set: (value: string) => {
-          lastSetCookie = value;
-          originalCookieSetter?.call(document, value);
-        },
-      });
-    }
-    function restoreCookieSpy(): void {
-      if (originalCookieSetter) {
-        const originalGet = Object.getOwnPropertyDescriptor(
-          Document.prototype,
-          "cookie",
-        )?.get;
-        Object.defineProperty(document, "cookie", {
-          configurable: true,
-          get: () => originalGet?.call(document) ?? "",
-          set: originalCookieSetter,
-        });
-      }
-    }
-    beforeEach(() => {
-      lastSetCookie = null;
-      installCookieSpy();
-    });
-    afterEach(() => {
-      restoreCookieSpy();
-      document.cookie =
-        "auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-    });
+// Capture document.cookie SETTER so the LoginForm success-path
+// test can assert the auth-session cookie is set. happy-dom's
+// document.cookie GETTER only returns `name=value` (real-browser
+// behavior); the attributes are observable via the setter input.
+let lastSetCookie: string | null = null;
+const originalCookieSetter = Object.getOwnPropertyDescriptor(
+	Document.prototype,
+	"cookie",
+)?.set;
+function installCookieSpy(): void {
+	const originalGet = Object.getOwnPropertyDescriptor(
+		Document.prototype,
+		"cookie",
+	)?.get;
+	Object.defineProperty(document, "cookie", {
+		configurable: true,
+		get: () => originalGet?.call(document) ?? "",
+		set: (value: string) => {
+			lastSetCookie = value;
+			originalCookieSetter?.call(document, value);
+		},
+	});
+}
+function restoreCookieSpy(): void {
+	if (originalCookieSetter) {
+		const originalGet = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			"cookie",
+		)?.get;
+		Object.defineProperty(document, "cookie", {
+			configurable: true,
+			get: () => originalGet?.call(document) ?? "",
+			set: originalCookieSetter,
+		});
+	}
+}
+beforeEach(() => {
+	lastSetCookie = null;
+	installCookieSpy();
+});
+afterEach(() => {
+	restoreCookieSpy();
+	document.cookie =
+		"auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+});
 
 // Lazy-import the forms AFTER the mocks above so the mocks win.
 const { LoginForm } = await import("../../../components/auth/LoginForm");
@@ -156,40 +156,40 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			});
 		});
 
-    		it("loading: submit disabled with auth.common.loading label", async () => {
-    			let resolvePromise: (value: Response) => void = () => {};
-    			mockFetch.mockReturnValueOnce(
-    				new Promise<Response>((resolve) => {
-    					resolvePromise = resolve;
-    				}),
-    			);
-    			render(<LoginForm apiUrl="http://api.test" />);
-    			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
-    				target: { value: VALID.login.email },
-    			});
-    			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
-    				target: { value: VALID.login.password },
-    			});
-    			fireEvent.click(
-    				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
-    			);
-    			await waitFor(() => {
-    				expect(
-    					screen.getByRole("button", { name: /auth\.common\.loading/i }),
-    				).toBeDisabled();
-    			});
-    			resolvePromise(
-    				new Response(
-    					JSON.stringify({
-    						id: "user-1",
-    						email: VALID.login.email,
-    						role: "USER",
-    						sessionToken: "session-token-abc",
-    					}),
-    					{ status: 200 },
-    				),
-    			);
-    		});
+		it("loading: submit disabled with auth.common.loading label", async () => {
+			let resolvePromise: (value: Response) => void = () => {};
+			mockFetch.mockReturnValueOnce(
+				new Promise<Response>((resolve) => {
+					resolvePromise = resolve;
+				}),
+			);
+			render(<LoginForm apiUrl="http://api.test" />);
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
+				target: { value: VALID.login.email },
+			});
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
+				target: { value: VALID.login.password },
+			});
+			fireEvent.click(
+				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
+			);
+			await waitFor(() => {
+				expect(
+					screen.getByRole("button", { name: /auth\.common\.loading/i }),
+				).toBeDisabled();
+			});
+			resolvePromise(
+				new Response(
+					JSON.stringify({
+						id: "user-1",
+						email: VALID.login.email,
+						role: "USER",
+						sessionToken: "session-token-abc",
+					}),
+					{ status: 200 },
+				),
+			);
+		});
 
 		it("api-error: 401 → auth.signIn.error.invalidCredentials banner", async () => {
 			mockFetch.mockResolvedValueOnce(
@@ -212,71 +212,71 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			});
 		});
 
-    		it("success: 200 → calls onSuccess callback (parent navigates)", async () => {
-    			const onSuccess = vi.fn();
-    			mockFetch.mockResolvedValueOnce(
-    				new Response(
-    					JSON.stringify({
-    						id: "user-1",
-    						email: VALID.login.email,
-    						role: "USER",
-    						sessionToken: "session-token-abc",
-    					}),
-    					{ status: 200 },
-    				),
-    			);
-    			render(<LoginForm apiUrl="http://api.test" onSuccess={onSuccess} />);
-    			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
-    				target: { value: VALID.login.email },
-    			});
-    			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
-    				target: { value: VALID.login.password },
-    			});
-    			fireEvent.click(
-    				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
-    			);
-    			await waitFor(() => {
-    				expect(onSuccess).toHaveBeenCalledTimes(1);
-    			});
-    		});
+		it("success: 200 → calls onSuccess callback (parent navigates)", async () => {
+			const onSuccess = vi.fn();
+			mockFetch.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						id: "user-1",
+						email: VALID.login.email,
+						role: "USER",
+						sessionToken: "session-token-abc",
+					}),
+					{ status: 200 },
+				),
+			);
+			render(<LoginForm apiUrl="http://api.test" onSuccess={onSuccess} />);
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
+				target: { value: VALID.login.email },
+			});
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
+				target: { value: VALID.login.password },
+			});
+			fireEvent.click(
+				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
+			);
+			await waitFor(() => {
+				expect(onSuccess).toHaveBeenCalledTimes(1);
+			});
+		});
 
-    		it("success: 200 → writes the auth-session cookie before the parent's onSuccess fires", async () => {
-    			// Slice 4 batch 2: the LoginForm persists the session
-    			// via setSessionCookie BEFORE calling the parent's
-    		// onSuccess. This test asserts the cookie set is
-    		// observable on document.cookie.
-    		const onSuccess = vi.fn();
-    		mockFetch.mockResolvedValueOnce(
-    		new Response(
-    				JSON.stringify({
-    					id: "user-1",
-    					email: VALID.login.email,
-    					role: "USER",
-    					sessionToken: "session-token-abc",
-    				}),
-    				{ status: 200 },
-    				),
-    		);
-    		render(<LoginForm apiUrl="http://api.test" onSuccess={onSuccess} />);
-    		fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
-    				target: { value: VALID.login.email },
-    		});
-    		fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
-    				target: { value: VALID.login.password },
-    		});
-    		fireEvent.click(
-    				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
-    		);
-    		await waitFor(() => {
-    				expect(onSuccess).toHaveBeenCalledTimes(1);
-    		});
-    		expect(lastSetCookie).not.toBeNull();
-    		const cookieStr = String(lastSetCookie);
-    		expect(cookieStr.startsWith("auth-session=")).toBe(true);
-    		expect(cookieStr).toMatch(/path=\//i);
-    		expect(cookieStr).toMatch(/max-age=86400/i);
-    		expect(cookieStr).toMatch(/samesite=lax/i);
-    		});
+		it("success: 200 → writes the auth-session cookie before the parent's onSuccess fires", async () => {
+			// Slice 4 batch 2: the LoginForm persists the session
+			// via setSessionCookie BEFORE calling the parent's
+			// onSuccess. This test asserts the cookie set is
+			// observable on document.cookie.
+			const onSuccess = vi.fn();
+			mockFetch.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						id: "user-1",
+						email: VALID.login.email,
+						role: "USER",
+						sessionToken: "session-token-abc",
+					}),
+					{ status: 200 },
+				),
+			);
+			render(<LoginForm apiUrl="http://api.test" onSuccess={onSuccess} />);
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
+				target: { value: VALID.login.email },
+			});
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
+				target: { value: VALID.login.password },
+			});
+			fireEvent.click(
+				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
+			);
+			await waitFor(() => {
+				expect(onSuccess).toHaveBeenCalledTimes(1);
+			});
+			expect(lastSetCookie).not.toBeNull();
+			const cookieStr = String(lastSetCookie);
+			expect(cookieStr.startsWith("auth-session=")).toBe(true);
+			expect(cookieStr).toMatch(/path=\//i);
+			expect(cookieStr).toMatch(/max-age=86400/i);
+			expect(cookieStr).toMatch(/samesite=lax/i);
+		});
 
 		it("api-error: 10_000ms timeout → auth.common.error.timeout banner (regression test)", async () => {
 			// Simulate the AbortSignal.timeout(10_000) firing by having fetch
@@ -423,7 +423,9 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			expect(screen.getByLabelText(/auth\.forgotPassword\.email/i)).toHaveValue(
 				"",
 			);
-			expect(screen.queryByTestId("forgot-password-form-error")).not.toBeInTheDocument();
+			expect(
+				screen.queryByTestId("forgot-password-form-error"),
+			).not.toBeInTheDocument();
 		});
 
 		it("validation: shows a field-level error on empty submit", async () => {
@@ -432,7 +434,9 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 				screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }),
 			);
 			await waitFor(() => {
-				expect(screen.getByTestId("forgot-password-email-error")).toBeInTheDocument();
+				expect(
+					screen.getByTestId("forgot-password-email-error"),
+				).toBeInTheDocument();
 			});
 		});
 
@@ -470,9 +474,9 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 				screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }),
 			);
 			await waitFor(() => {
-				expect(screen.getByTestId("forgot-password-form-error")).toHaveTextContent(
-					/auth\.common\.genericError/,
-				);
+				expect(
+					screen.getByTestId("forgot-password-form-error"),
+				).toHaveTextContent(/auth\.common\.genericError/);
 			});
 		});
 
@@ -515,7 +519,9 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			expect(
 				screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
 			).toHaveValue("");
-			expect(screen.queryByTestId("reset-password-form-error")).not.toBeInTheDocument();
+			expect(
+				screen.queryByTestId("reset-password-form-error"),
+			).not.toBeInTheDocument();
 		});
 
 		it("validation: shows a field-level error on empty submit", async () => {
@@ -584,9 +590,9 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 				screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
 			);
 			await waitFor(() => {
-				expect(screen.getByTestId("reset-password-form-error")).toHaveTextContent(
-					/auth\.resetPassword\.error\.invalidToken/,
-				);
+				expect(
+					screen.getByTestId("reset-password-form-error"),
+				).toHaveTextContent(/auth\.resetPassword\.error\.invalidToken/);
 			});
 		});
 

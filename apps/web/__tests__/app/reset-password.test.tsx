@@ -46,6 +46,24 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ replace: mockReplace }),
 }));
 
+// Mock `next/headers` cookies() so the page's
+// getSession() redirect-if-already-authenticated check is
+// testable.
+let cookieStore: Record<string, string> = {};
+const mockCookiesImpl = (): Promise<{
+	get: (name: string) => { name: string; value: string } | undefined;
+}> => {
+	return Promise.resolve({
+		get: (name: string) =>
+			name in cookieStore
+				? { name, value: cookieStore[name] as string }
+				: undefined,
+	});
+};
+vi.mock("next/headers", () => ({
+	cookies: vi.fn(() => mockCookiesImpl()),
+}));
+
 // Stub `fetch` per test via `vi.fn()`.
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -78,6 +96,7 @@ describe("ResetPasswordPage — slice 4 batch 4d (T4.11)", () => {
 	beforeEach(() => {
 		mockFetch.mockReset();
 		mockReplace.mockReset();
+		cookieStore = {};
 	});
 
 	afterEach(() => {
@@ -192,5 +211,21 @@ describe("ResetPasswordPage — slice 4 batch 4d (T4.11)", () => {
 		});
 
 		expect(mockReplace).not.toHaveBeenCalled();
+	});
+
+	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+		// Slice 4 batch 2: the ResetPasswordPage MUST call
+		// getSession() and redirect(/${locale}/) if a session is
+		// present. The user can request a new reset even if
+		// authenticated; this check is a UX nicety (avoid
+		// showing the reset form to an authed user who probably
+		// just landed there from a stale email link).
+		cookieStore = {
+			"auth-session": JSON.stringify({
+				token: "session-token-abc",
+				user: { id: "user-1", email: "alice@example.com", role: "USER" },
+			}),
+		};
+		await expect(renderPage("en", TOKEN)).rejects.toThrow();
 	});
 });

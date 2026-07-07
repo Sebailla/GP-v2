@@ -46,6 +46,24 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ replace: mockReplace }),
 }));
 
+// Mock `next/headers` cookies() so the page's
+// getSession() redirect-if-already-authenticated check is
+// testable.
+let cookieStore: Record<string, string> = {};
+const mockCookiesImpl = (): Promise<{
+	get: (name: string) => { name: string; value: string } | undefined;
+}> => {
+	return Promise.resolve({
+		get: (name: string) =>
+			name in cookieStore
+				? { name, value: cookieStore[name] as string }
+				: undefined,
+	});
+};
+vi.mock("next/headers", () => ({
+	cookies: vi.fn(() => mockCookiesImpl()),
+}));
+
 // Stub `fetch` per test via `vi.fn()`.
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
@@ -74,6 +92,7 @@ describe("ForgotPasswordPage — slice 4 batch 4d (T4.10)", () => {
 	beforeEach(() => {
 		mockFetch.mockReset();
 		mockReplace.mockReset();
+		cookieStore = {};
 	});
 
 	afterEach(() => {
@@ -164,5 +183,24 @@ describe("ForgotPasswordPage — slice 4 batch 4d (T4.10)", () => {
 		expect(
 			screen.getByRole("link", { name: /auth\.common\.backToLoginLink/i }),
 		).toHaveAttribute("href", "/es/sign-in");
+	});
+
+	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+		// The user can request a password reset even if they're
+		// already authenticated (the brief notes this is a
+		// deliberate carve-out — an authed user might want to
+		// change their password from a different device). The
+		// redirect check on the FORGOT page is therefore
+		// optional; we keep the symmetric implementation across
+		// the 4 auth pages (sign-in, sign-up, forgot, reset) so
+		// an already-authed user doesn't accidentally land on
+		// a stale forgot-password form.
+		cookieStore = {
+			"auth-session": JSON.stringify({
+				token: "session-token-abc",
+				user: { id: "user-1", email: "alice@example.com", role: "USER" },
+			}),
+		};
+		await expect(renderPage("en")).rejects.toThrow();
 	});
 });

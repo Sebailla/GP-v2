@@ -55,8 +55,8 @@ export const AUTH_SESSION_COOKIE = "auth-session";
  * is the user projection the API embeds in the same response.
  */
 export type Session = {
-  token: string;
-  user: { id: string; email: string; role: string };
+	token: string;
+	user: { id: string; email: string; role: string };
 };
 
 /**
@@ -66,41 +66,41 @@ export type Session = {
  * wrapper around `cookies()` + this decoder.
  */
 function decodeSession(raw: string | undefined): Session | null {
-  if (raw === undefined || raw === "") return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
-  } catch {
-    return null;
-  }
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    !("user" in parsed) ||
-    !("token" in parsed)
-  ) {
-    return null;
-  }
-  const candidate = parsed as { token: unknown; user: unknown };
-  if (
-    typeof candidate.token !== "string" ||
-    typeof candidate.user !== "object" ||
-    candidate.user === null
-  ) {
-    return null;
-  }
-  const user = candidate.user as { id: unknown; email: unknown; role: unknown };
-  if (
-    typeof user.id !== "string" ||
-    typeof user.email !== "string" ||
-    typeof user.role !== "string"
-  ) {
-    return null;
-  }
-  return {
-    token: candidate.token,
-    user: { id: user.id, email: user.email, role: user.role },
-  };
+	if (raw === undefined || raw === "") return null;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
+	} catch {
+		return null;
+	}
+	if (
+		typeof parsed !== "object" ||
+		parsed === null ||
+		!("user" in parsed) ||
+		!("token" in parsed)
+	) {
+		return null;
+	}
+	const candidate = parsed as { token: unknown; user: unknown };
+	if (
+		typeof candidate.token !== "string" ||
+		typeof candidate.user !== "object" ||
+		candidate.user === null
+	) {
+		return null;
+	}
+	const user = candidate.user as { id: unknown; email: unknown; role: unknown };
+	if (
+		typeof user.id !== "string" ||
+		typeof user.email !== "string" ||
+		typeof user.role !== "string"
+	) {
+		return null;
+	}
+	return {
+		token: candidate.token,
+		user: { id: user.id, email: user.email, role: user.role },
+	};
 }
 
 /**
@@ -109,10 +109,10 @@ function decodeSession(raw: string | undefined): Session | null {
  * contract without a hand-rolled intersection.
  */
 export type SessionPayload = {
-  id: string;
-  email: string;
-  role: string;
-  sessionToken: string;
+	id: string;
+	email: string;
+	role: string;
+	sessionToken: string;
 };
 
 /**
@@ -123,14 +123,14 @@ export type SessionPayload = {
  * duplicating the shape check.
  */
 export function isSessionPayload(value: unknown): value is SessionPayload {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.email === "string" &&
-    typeof candidate.role === "string" &&
-    typeof candidate.sessionToken === "string"
-  );
+	if (typeof value !== "object" || value === null) return false;
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.id === "string" &&
+		typeof candidate.email === "string" &&
+		typeof candidate.role === "string" &&
+		typeof candidate.sessionToken === "string"
+	);
 }
 
 /**
@@ -141,9 +141,9 @@ export function isSessionPayload(value: unknown): value is SessionPayload {
  * in apply-progress slice 4 batch 2).
  */
 export async function getSession(): Promise<Session | null> {
-  const store = await cookies();
-  const raw = store.get(AUTH_SESSION_COOKIE)?.value;
-  return decodeSession(raw);
+	const store = await cookies();
+	const raw = store.get(AUTH_SESSION_COOKIE)?.value;
+	return decodeSession(raw);
 }
 
 /**
@@ -158,14 +158,14 @@ export async function getSession(): Promise<Session | null> {
  * setup (`http://localhost:3000`); see file-level doc.
  */
 export function setSessionCookie(session: Session): void {
-  const value = encodeURIComponent(JSON.stringify(session));
-  const attributes = [
-    `${AUTH_SESSION_COOKIE}=${value}`,
-    "path=/",
-    "max-age=86400",
-    "SameSite=Lax",
-  ].join("; ");
-  document.cookie = attributes;
+	const value = encodeURIComponent(JSON.stringify(session));
+	const attributes = [
+		`${AUTH_SESSION_COOKIE}=${value}`,
+		"path=/",
+		"max-age=86400",
+		"SameSite=Lax",
+	].join("; ");
+	document.cookie = attributes;
 }
 
 /**
@@ -175,5 +175,5 @@ export function setSessionCookie(session: Session): void {
  * be deleted; its content is irrelevant.
  */
 export function clearSessionCookie(): void {
-  document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
+	document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
 }

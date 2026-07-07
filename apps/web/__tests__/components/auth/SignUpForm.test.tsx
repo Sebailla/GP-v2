@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
+import {
+	render,
+	screen,
+	cleanup,
+	fireEvent,
+	waitFor,
+} from "@testing-library/react";
 
 // RTL v16 no longer auto-registers cleanup — wire it ourselves so DOM
 // nodes from one `it` don't leak into the next.
 afterEach(() => {
-  cleanup();
+	cleanup();
 });
 
 // Mock `next-intl` BEFORE importing the form. The mock returns a `t`
@@ -12,7 +18,7 @@ afterEach(() => {
 // assert on i18n key wiring without depending on a real IntlProvider
 // (which next-intl requires at the top of the tree).
 vi.mock("next-intl", () => ({
-  useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
+	useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
 }));
 
 // Stub `fetch` per test via `vi.fn()`.
@@ -23,41 +29,41 @@ vi.stubGlobal("fetch", mockFetch);
 // string. Mirrors the spy in LoginForm.test.tsx.
 let lastSetCookie: string | null = null;
 const originalCookieSetter = Object.getOwnPropertyDescriptor(
-  Document.prototype,
-  "cookie",
+	Document.prototype,
+	"cookie",
 )?.set;
 
 beforeEach(() => {
-  mockFetch.mockReset();
-  lastSetCookie = null;
-  const originalGet = Object.getOwnPropertyDescriptor(
-    Document.prototype,
-    "cookie",
-  )?.get;
-  Object.defineProperty(document, "cookie", {
-    configurable: true,
-    get: () => originalGet?.call(document) ?? "",
-    set: (value: string) => {
-      lastSetCookie = value;
-      originalCookieSetter?.call(document, value);
-    },
-  });
+	mockFetch.mockReset();
+	lastSetCookie = null;
+	const originalGet = Object.getOwnPropertyDescriptor(
+		Document.prototype,
+		"cookie",
+	)?.get;
+	Object.defineProperty(document, "cookie", {
+		configurable: true,
+		get: () => originalGet?.call(document) ?? "",
+		set: (value: string) => {
+			lastSetCookie = value;
+			originalCookieSetter?.call(document, value);
+		},
+	});
 });
 
 afterEach(() => {
-  if (originalCookieSetter) {
-    const originalGet = Object.getOwnPropertyDescriptor(
-      Document.prototype,
-      "cookie",
-    )?.get;
-    Object.defineProperty(document, "cookie", {
-      configurable: true,
-      get: () => originalGet?.call(document) ?? "",
-      set: originalCookieSetter,
-    });
-  }
-  document.cookie =
-    "auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+	if (originalCookieSetter) {
+		const originalGet = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			"cookie",
+		)?.get;
+		Object.defineProperty(document, "cookie", {
+			configurable: true,
+			get: () => originalGet?.call(document) ?? "",
+			set: originalCookieSetter,
+		});
+	}
+	document.cookie =
+		"auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
 });
 
 import { SignUpForm } from "../../../components/auth/SignUpForm";
@@ -81,127 +87,125 @@ import { AUTH_SESSION_COOKIE } from "../../../lib/auth";
  * page level (`sign-up.test.tsx`).
  */
 describe("SignUpForm — slice 4 batch 2 (cookie-on-success)", () => {
-  function renderForm(
-    overrides: {
-      onSuccess?: ReturnType<typeof vi.fn>;
-      apiUrl?: string;
-    } = {},
-  ): { onSuccess: ReturnType<typeof vi.fn> } {
-    const onSuccess: ReturnType<typeof vi.fn> =
-      overrides.onSuccess ?? vi.fn();
-    render(
-      <SignUpForm
-        apiUrl={overrides.apiUrl ?? "http://api.test"}
-        onSuccess={onSuccess as unknown as (session: {
-          token: string;
-          user: { id: string; email: string; role: string };
-        }) => unknown}
-      />,
-    );
-    return { onSuccess };
-  }
+	function renderForm(
+		overrides: { onSuccess?: ReturnType<typeof vi.fn>; apiUrl?: string } = {},
+	): { onSuccess: ReturnType<typeof vi.fn> } {
+		const onSuccess: ReturnType<typeof vi.fn> = overrides.onSuccess ?? vi.fn();
+		render(
+			<SignUpForm
+				apiUrl={overrides.apiUrl ?? "http://api.test"}
+				onSuccess={
+					onSuccess as unknown as (session: {
+						token: string;
+						user: { id: string; email: string; role: string };
+					}) => unknown
+				}
+			/>,
+		);
+		return { onSuccess };
+	}
 
-  it("calls the API with the form payload and triggers onSuccess on a 201 response", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 201,
-      json: async () => ({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        sessionToken: "session-token-abc",
-      }),
-    });
+	it("calls the API with the form payload and triggers onSuccess on a 201 response", async () => {
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			status: 201,
+			json: async () => ({
+				id: "user-1",
+				email: "alice@example.com",
+				role: "USER",
+				sessionToken: "session-token-abc",
+			}),
+		});
 
-    const { onSuccess } = renderForm();
+		const { onSuccess } = renderForm();
 
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
+			target: { value: "alice@example.com" },
+		});
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
+			target: { value: "valid-password-123" },
+		});
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
+			target: { value: "Alice" },
+		});
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
+		fireEvent.click(
+			screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
+		);
 
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
+		await waitFor(() => {
+			expect(mockFetch).toHaveBeenCalledTimes(1);
+		});
 
-    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("http://api.test/auth/register");
-    expect(init.method).toBe("POST");
-    let requestBody: unknown;
-    try {
-      requestBody = JSON.parse(String(init.body)) as unknown;
-    } catch (error) {
-      throw new Error(
-        `request body did not parse as JSON: ${(error as Error).message}`,
-      );
-    }
-    expect(requestBody).toEqual({
-      email: "alice@example.com",
-      password: "valid-password-123",
-      name: "Alice",
-    });
+		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe("http://api.test/auth/register");
+		expect(init.method).toBe("POST");
+		let requestBody: unknown;
+		try {
+			requestBody = JSON.parse(String(init.body)) as unknown;
+		} catch (error) {
+			throw new Error(
+				`request body did not parse as JSON: ${(error as Error).message}`,
+			);
+		}
+		expect(requestBody).toEqual({
+			email: "alice@example.com",
+			password: "valid-password-123",
+			name: "Alice",
+		});
 
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledTimes(1);
-    });
-    const callArg = onSuccess.mock.calls[0]?.[0] as
-      | { token: string; user: { id: string; email: string; role: string } }
-      | undefined;
-    expect(callArg).toEqual({
-      token: "session-token-abc",
-      user: { id: "user-1", email: "alice@example.com", role: "USER" },
-    });
-  });
+		await waitFor(() => {
+			expect(onSuccess).toHaveBeenCalledTimes(1);
+		});
+		const callArg = onSuccess.mock.calls[0]?.[0] as
+			| { token: string; user: { id: string; email: string; role: string } }
+			| undefined;
+		expect(callArg).toEqual({
+			token: "session-token-abc",
+			user: { id: "user-1", email: "alice@example.com", role: "USER" },
+		});
+	});
 
-  it("writes the auth-session cookie to document.cookie on a 201 response", async () => {
-    // The SignUpForm itself writes the auth-session cookie before
-    // calling the parent's onSuccess (which navigates). This test
-    // asserts the cookie set is observable via document.cookie.
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      status: 201,
-      json: async () => ({
-        id: "user-1",
-        email: "alice@example.com",
-        role: "USER",
-        sessionToken: "session-token-abc",
-      }),
-    });
+	it("writes the auth-session cookie to document.cookie on a 201 response", async () => {
+		// The SignUpForm itself writes the auth-session cookie before
+		// calling the parent's onSuccess (which navigates). This test
+		// asserts the cookie set is observable via document.cookie.
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			status: 201,
+			json: async () => ({
+				id: "user-1",
+				email: "alice@example.com",
+				role: "USER",
+				sessionToken: "session-token-abc",
+			}),
+		});
 
-    const { onSuccess } = renderForm();
+		const { onSuccess } = renderForm();
 
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
+			target: { value: "alice@example.com" },
+		});
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
+			target: { value: "valid-password-123" },
+		});
+		fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
+			target: { value: "Alice" },
+		});
+		fireEvent.click(
+			screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
+		);
 
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledTimes(1);
-    });
-    // The form's success path wrote the cookie via document.cookie
-    // BEFORE invoking the parent's onSuccess.
-    expect(lastSetCookie).not.toBeNull();
-    const cookieStr = String(lastSetCookie);
-    expect(cookieStr.startsWith(`${AUTH_SESSION_COOKIE}=`)).toBe(true);
-    expect(cookieStr).toMatch(/path=\//i);
-    expect(cookieStr).toMatch(/max-age=86400/i);
-    expect(cookieStr).toMatch(/samesite=lax/i);
-  });
+		await waitFor(() => {
+			expect(onSuccess).toHaveBeenCalledTimes(1);
+		});
+		// The form's success path wrote the cookie via document.cookie
+		// BEFORE invoking the parent's onSuccess.
+		expect(lastSetCookie).not.toBeNull();
+		const cookieStr = String(lastSetCookie);
+		expect(cookieStr.startsWith(`${AUTH_SESSION_COOKIE}=`)).toBe(true);
+		expect(cookieStr).toMatch(/path=\//i);
+		expect(cookieStr).toMatch(/max-age=86400/i);
+		expect(cookieStr).toMatch(/samesite=lax/i);
+	});
 });
