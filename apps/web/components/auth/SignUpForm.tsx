@@ -16,6 +16,8 @@ import { FormFieldRow } from "@/components/auth/FormFieldRow";
 import { useAuthApiPost } from "@/lib/useAuthApiPost";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
+import { isSessionPayload, setSessionCookie } from "@/lib/auth";
+import type { Session } from "@/lib/auth";
 
 /**
  * SignUpForm — slice 4 batch 4e (T4.15 REFACTOR).
@@ -31,13 +33,16 @@ export interface SignUpFormProps {
   /** Base URL of the auth API (e.g. `http://localhost:3001`). */
   apiUrl: string;
   /**
-   * Called once the API returns 201. The parent page wires this to the
-   * locale-aware `router.replace('/sign-in')` so a freshly-registered
-   * user lands on the sign-in screen to authenticate (per the brief:
-   * redirect to sign-in on success — NOT auto-sign-in, since the
-   * cookie storage is deferred).
+   * Called once the API returns 201. The form persists the session
+   * via `setSessionCookie(session)` BEFORE calling this callback so
+   * the freshly-registered user is technically authenticated for the
+   * brief window between registration and the sign-in screen
+   * (the parent uses `window.location.href` to navigate, which is
+   * a hard navigation — the cookie MUST be set first or the
+   * landing's redirect-if-already-authenticated check on the next
+   * page load will see a logged-out user).
    */
-  onSuccess?: () => unknown;
+  onSuccess?: (session: Session) => unknown;
   /** Optional className appended to the wrapping `<form>`. */
   className?: string;
 }
@@ -67,9 +72,24 @@ export function SignUpForm({
     errorMap: {
       409: t("error.duplicateEmail"),
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       reset();
-      onSuccess?.();
+      // The API response shape is `{ id, email, role, sessionToken }`.
+      // Map it to the canonical `Session` shape `{ token, user }` so
+      // the parent's onSuccess can navigate without re-parsing the
+      // response. The form ALSO persists the cookie here (before
+      // calling the parent) — see SignUpFormProps#onSuccess JSDoc
+      // for the rationale (the parent's `window.location.href`
+      // triggers a hard navigation; the cookie must be on disk
+      // first).
+      if (isSessionPayload(data)) {
+        const session: Session = {
+          token: data.sessionToken,
+          user: { id: data.id, email: data.email, role: data.role },
+        };
+        setSessionCookie(session);
+        onSuccess?.(session);
+      }
     },
   });
 

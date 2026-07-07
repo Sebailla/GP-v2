@@ -73,10 +73,13 @@ export interface UseAuthApiPostArgs {
   defaultErrorMessage?: string;
   /**
    * Optional success callback. Fires exactly once when the response
-   * is 2xx. The caller wires this to `onSuccess` (e.g. parent redirect
-   * via `router.replace`, the success-state transition, etc.).
+   * is 2xx. Receives the parsed JSON response (the API's success
+   * body, e.g. `{ id, email, role, sessionToken }` for login /
+   * register). The caller wires this to `onSuccess` (e.g. parent
+   * redirect via `router.replace`, the success-state transition,
+   * the cookie-set side effect, etc.).
    */
-  onSuccess?: () => unknown;
+  onSuccess?: (data: unknown) => unknown;
 }
 
 export interface UseAuthApiPostResult {
@@ -136,11 +139,26 @@ const submit = React.useCallback(
         return;
       }
 
-      if (response.ok) {
-        setIsSubmitting(false);
-        onSuccessRef.current?.();
-        return;
-      }
+          if (response.ok) {
+            // Parse the success body so callers (the auth forms) can
+            // extract the sessionToken + user projection without
+            // re-reading the response. Slice 4 batch 2 needs this for
+            // the cookie-on-success wiring: the form passes the
+            // decoded Session to the parent's onSuccess so the parent
+            // can call setSessionCookie + navigate.
+            let data: unknown = null;
+            try {
+              data = (await response.json()) as unknown;
+            } catch {
+              // Empty body — surface as `null`; callers handle
+              // gracefully (a missing body on a 2xx is unusual but
+              // not catastrophic).
+              data = null;
+            }
+            setIsSubmitting(false);
+            onSuccessRef.current?.(data);
+            return;
+          }
 
       const mapped = errorMap[response.status];
       setFormError(mapped ?? fallback);

@@ -104,6 +104,36 @@ function decodeSession(raw: string | undefined): Session | null {
 }
 
 /**
+ * Shape the auth API's login / register response takes. Re-exported
+ * as a type so the form-level `onSuccess` can assert on the API
+ * contract without a hand-rolled intersection.
+ */
+export type SessionPayload = {
+  id: string;
+  email: string;
+  role: string;
+  sessionToken: string;
+};
+
+/**
+ * Type-guard for the auth API's login / register response. Returns
+ * `true` when the parsed JSON has the canonical `SessionPayload`
+ * shape (string `id` + `email` + `role` + `sessionToken`). Used by
+ * the forms to transform the API response into a `Session` without
+ * duplicating the shape check.
+ */
+export function isSessionPayload(value: unknown): value is SessionPayload {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.email === "string" &&
+    typeof candidate.role === "string" &&
+    typeof candidate.sessionToken === "string"
+  );
+}
+
+/**
  * Read the auth-session cookie via `next/headers#cookies` and return
  * the decoded `Session`, or `null` when the cookie is absent /
  * malformed. Async because `cookies()` returns a `Promise` in

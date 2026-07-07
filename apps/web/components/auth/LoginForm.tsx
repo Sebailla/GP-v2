@@ -16,6 +16,8 @@ import { FormFieldRow } from "@/components/auth/FormFieldRow";
 import { useAuthApiPost } from "@/lib/useAuthApiPost";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
+import { isSessionPayload, setSessionCookie } from "@/lib/auth";
+import type { Session } from "@/lib/auth";
 
 /**
  * LoginForm — slice 4 batch 4e (T4.15 REFACTOR).
@@ -41,11 +43,14 @@ export interface LoginFormProps {
   /** Base URL of the auth API (e.g. `http://localhost:3001`). */
   apiUrl: string;
   /**
-   * Called once the API returns 200. The parent page wires this to the
-   * next-intl-aware `router.replace(`/${locale}`)` (so the redirect
-   * preserves the active locale).
+   * Called once the API returns 200. The form persists the session
+   * via `setSessionCookie(session)` BEFORE calling this callback so
+   * the user is technically authenticated across a hard reload. The
+   * form passes the decoded `Session` (`{ token, user }`) so the
+   * parent (SignInClient) can navigate without re-parsing the API
+   * response.
    */
-  onSuccess?: () => unknown;
+  onSuccess?: (session: Session) => unknown;
   /**
    * Optional className appended to the wrapping `<form>` (kept narrow —
    * the page owns layout, this form owns structure + semantics).
@@ -78,9 +83,26 @@ export function LoginForm({
     errorMap: {
       401: t("error.invalidCredentials"),
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       reset();
-      onSuccess?.();
+      // The API response shape is `{ id, email, role, sessionToken }`.
+      // Map it to the canonical `Session` shape `{ token, user }` so
+      // the parent (SignInClient) can navigate without re-parsing the
+      // response. The form ALSO persists the cookie here (before
+      // calling the parent) — the same pattern as SignUpForm. The
+      // parent's `router.replace` is a soft navigation; persisting
+      // the cookie first means a hard reload between the API
+      // success and the redirect (e.g. browser refresh) still lands
+      // on the authenticated landing instead of bouncing back to
+      // sign-in.
+      if (isSessionPayload(data)) {
+        const session: Session = {
+          token: data.sessionToken,
+          user: { id: data.id, email: data.email, role: data.role },
+        };
+        setSessionCookie(session);
+        onSuccess?.(session);
+      }
     },
   });
 

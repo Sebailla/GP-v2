@@ -21,40 +21,67 @@ vi.mock("next-intl", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
+// Capture document.cookie SETTER so we can assert on the attribute
+// string (happy-dom's getter only exposes `name=value`). We replace
+// the property's setter with a spy; the spy forwards to the original
+// setter so the cookie remains visible via the getter.
+let lastSetCookie: string | null = null;
+const originalCookieSetter = Object.getOwnPropertyDescriptor(
+  Document.prototype,
+  "cookie",
+)?.set;
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  lastSetCookie = null;
+  const originalGet = Object.getOwnPropertyDescriptor(
+    Document.prototype,
+    "cookie",
+  )?.get;
+  Object.defineProperty(document, "cookie", {
+    configurable: true,
+    get: () => originalGet?.call(document) ?? "",
+    set: (value: string) => {
+      lastSetCookie = value;
+      originalCookieSetter?.call(document, value);
+    },
+  });
+});
+
+afterEach(() => {
+  // Restore the original cookie descriptor.
+  if (originalCookieSetter) {
+    const originalGet = Object.getOwnPropertyDescriptor(
+      Document.prototype,
+      "cookie",
+    )?.get;
+    Object.defineProperty(document, "cookie", {
+      configurable: true,
+      get: () => originalGet?.call(document) ?? "",
+      set: originalCookieSetter,
+    });
+  }
+  // Clear any cookie that the test set.
+  document.cookie = "auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+});
+
 // Component under test — imported AFTER the mocks above so the mocks win.
 import { LoginForm } from "../../../components/auth/LoginForm";
+import { AUTH_SESSION_COOKIE } from "../../../lib/auth";
 
 /**
  * TDD contract for `apps/web/components/auth/LoginForm.tsx` — slice 4
- * follow-ups (per-form test slim).
+ * batch 2 (cookie-on-success).
  *
- * **Form-specific scope.** This file now asserts ONLY the form-specific
- * wiring that the consolidated `state-coverage.test.tsx` (T4.14) does not
- * cover: the `onSuccess` callback is the parent's redirect signal — the
- * form calls `onSuccess()` on a 200 response, and the parent (SignInClient)
- * wires it to `router.replace(`/${locale}`)`. The state-coverage harness
- * tests the empty / validation / loading / api-error / success RENDER
- * states via a mock `onSuccess`, but it does not exercise the
- * **request shape** (URL + method + body) that this form-specific file
- * pins. The 5-state rendering tests for LoginForm were consolidated into
- * `state-coverage.test.tsx` in slice 4 follow-up cleanup (per the
- * `Decision needed before apply` marker; see apply-progress slice 4
- * follow-ups).
- *
- * (consolidated into state-coverage.test.tsx; see T4.14)
- *  - empty / validation / loading / 401 / 500 rendering
- *    → covered by `state-coverage.test.tsx` LoginForm describe block.
- *
- * **Form-specific test kept here.**
- *  - The form calls `onSuccess()` exactly once on a 200 response, with the
- *    expected request shape (URL = `${apiUrl}/auth/login`, method = POST,
- *    body = JSON-encoded `{ email, password }`).
+ * **Form-specific scope.** This file now asserts the slice 4 batch 2
+ * cookie-on-success wiring: on a 200 response, the form MUST pass a
+ * `Session` object (the canonical cookie shape: `{ token, user }`) to
+ * the parent's `onSuccess` callback so the parent (SignInClient) can
+ * call `setSessionCookie(session)` + `router.replace(/${locale}/)`.
+ * The 5-state rendering tests for LoginForm remain consolidated in
+ * `state-coverage.test.tsx` (T4.14).
  */
-describe("LoginForm — slice 4 follow-ups (per-form test slim)", () => {
-  beforeEach(() => {
-    mockFetch.mockReset();
-  });
-
+describe("LoginForm — slice 4 batch 2 (cookie-on-success)", () => {
   function renderForm(
     overrides: { onSuccess?: ReturnType<typeof vi.fn>; apiUrl?: string } = {},
   ): { onSuccess: ReturnType<typeof vi.fn> } {
@@ -62,13 +89,16 @@ describe("LoginForm — slice 4 follow-ups (per-form test slim)", () => {
     render(
       <LoginForm
         apiUrl={overrides.apiUrl ?? "http://api.test"}
-        onSuccess={onSuccess as unknown as () => unknown}
+        onSuccess={onSuccess as unknown as (session: {
+          token: string;
+          user: { id: string; email: string; role: string };
+        }) => unknown}
       />,
     );
     return { onSuccess };
   }
 
-  it("calls the API with the form payload and triggers onSuccess on a 200 response", async () => {
+  it("calls the API with the form payload and passes a Session to onSuccess on 200", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -101,13 +131,71 @@ describe("LoginForm — slice 4 follow-ups (per-form test slim)", () => {
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://api.test/auth/login");
     expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual({
+    let requestBody: unknown;
+    try {
+      requestBody = JSON.parse(String(init.body)) as unknown;
+    } catch (error) {
+      throw new Error(
+        `request body did not parse as JSON: ${(error as Error).message}`,
+      );
+    }
+    expect(requestBody).toEqual({
       email: "alice@example.com",
       password: "valid-password-123",
     });
 
+    // The form MUST pass a `Session` (the canonical cookie shape) to
+    // the parent's onSuccess so the parent can call setSessionCookie +
+    // router.replace without re-parsing the API response.
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalledTimes(1);
     });
+    const callArg = onSuccess.mock.calls[0]?.[0] as
+      | { token: string; user: { id: string; email: string; role: string } }
+      | undefined;
+    expect(callArg).toEqual({
+      token: "session-token-abc",
+      user: { id: "user-1", email: "alice@example.com", role: "USER" },
+    });
+  });
+
+  it("writes the auth-session cookie to document.cookie on a 200 response", async () => {
+    // The form itself persists the session via setSessionCookie
+    // BEFORE calling the parent's onSuccess. This test asserts the
+    // cookie-set side-effect is observable at the form seam.
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        sessionToken: "session-token-abc",
+      }),
+    });
+
+    const { onSuccess } = renderForm();
+
+    fireEvent.change(screen.getByLabelText(/auth\.signIn\.email/i), {
+      target: { value: "alice@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText(/auth\.signIn\.password/i), {
+      target: { value: "valid-password-123" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
+    );
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+    });
+    // The form's success path wrote the cookie via document.cookie
+    // BEFORE invoking the parent's onSuccess.
+    expect(lastSetCookie).not.toBeNull();
+    const cookieStr = String(lastSetCookie);
+    expect(cookieStr.startsWith(`${AUTH_SESSION_COOKIE}=`)).toBe(true);
+    expect(cookieStr).toMatch(/path=\//i);
+    expect(cookieStr).toMatch(/max-age=86400/i);
+    expect(cookieStr).toMatch(/samesite=lax/i);
   });
 });
