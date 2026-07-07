@@ -5,7 +5,7 @@
   "description": "Next.js 15 App Router app for gastos-personales-reference. Slice 1 ships a minimal landing shell; full UI lands in slices 4 and 6.",
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "next build --webpack",
     "dev": "next dev --port 3000",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
