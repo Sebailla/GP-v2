@@ -1008,3 +1008,99 @@ Every gate G1–G47 from `proposal.md` §7 + §11.3, mapped to the slice + task(
 - **G40–G47 (UI gates, §11.3)**: 8/8 covered.
 
 Total: 47/47 gates mapped to a concrete slice + task and a verifiable command. None are aspirational; every gate ties to a test or a file/path check that `sdd-verify` can replay from a fresh clone.
+
+---
+
+## Slice 4 follow-ups (post-4e)
+
+**Goal recap.** Slice 4 closed in PR #18 with T4.13 + T4.14 + T4.15. The 4R reviews of the slice 4 PRs surfaced a set of small follow-ups (SUGGESTION-level + 1 WARNING). Per the parent's decision, this batch handles the **cleanup** follow-ups: per-form test slim, fetch timeout, Referrer-Policy header on (auth) routes, magic-number extraction in DevMailbox, and Input-primitive unused-prop cleanup.
+
+**Branch.** `feat/vertical-slicing-s4-followups-cleanup` (cut from `develop` @ `723ae89`, post-PR #18 slice 4 batch 4e merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`.
+
+**Out of scope (deferred).**
+
+- DevMailbox real API fetch — slice 5+.
+- Session-token storage (T3.3 deferred) — slice 4 follow-up batch 2.
+- Clipboard write failure `copyFailed` state — SUGGESTION-level.
+- No `AbortSignal` for the dev-mailbox read — SUGGESTION-level.
+- Test count drops because per-form files slim (duplicates consolidated into state-coverage.test.tsx; the 105-baseline → 83-after-slim + 1 new timeout test = 83 final).
+
+### Sub-task brief-test-slim [x]
+
+**Per-form test file slim** — the 4 per-form test files (LoginForm.test.tsx, SignUpForm.test.tsx, ForgotPasswordForm.test.tsx, ResetPasswordForm.test.tsx) duplicated the 5-state assertions that the consolidated `state-coverage.test.tsx` (T4.14, 20 tests) already covers. Slim each per-form file to keep ONLY form-specific tests:
+
+- `LoginForm.test.tsx` — KEEP: the `onSuccess` callback wiring test (the parent navigates after a successful login; the state-coverage harness tests the success-state rendering via a mock `onSuccess`, not the `onSuccess` invocation + the request shape). REMOVE: the empty / validation / loading / 401 / 500 rendering tests.
+- `SignUpForm.test.tsx` — KEEP: the `apiUrl` propagation + `onSuccess` callback test (the form POSTs to `${apiUrl}/auth/register` with the 3-field body `{ email, password, name }`). REMOVE: the 5-state assertions. (Note: `locale` is NOT a prop on SignUpForm — it lives on the parent `SignUpClient` wrapper; the locale-aware redirect is tested at the page level in `sign-up.test.tsx`.)
+- `ForgotPasswordForm.test.tsx` — KEEP: the idempotent 202 response test (the form transitions to the success state for BOTH known and unknown emails — design's enumeration-leak prevention — with the `locale`-preserved back-to-signin link `href`). REMOVE: the 5-state assertions.
+- `ResetPasswordForm.test.tsx` — KEEP: the `token` prop test (the form passes the URL's `[token]` dynamic segment into the API body alongside `newPassword`; the state-coverage harness doesn't pin the request body shape). REMOVE: the 5-state assertions.
+
+After the slim, the per-form FILES remain (form-specific tests + import setup). The state-coverage file is the source of truth for the 5 states. Test count: 105 baseline → 83 after slim (-22 duplicates removed).
+
+### Sub-task brief-fetch-timeout [x]
+
+**Add `AbortSignal.timeout(10_000)` to the 4 forms' `fetch` calls.** The hook `useAuthApiPost` in `apps/web/lib/useAuthApiPost.ts` is the natural place to add the timeout — all 4 forms use this hook. Without a timeout, a stalled API leaves the form in the loading state indefinitely.
+
+Add `signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)` (where `FETCH_TIMEOUT_MS = 10_000`) to the `fetch` call. Distinguish timeout from other errors in the catch block:
+
+```ts
+} catch (error) {
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    setFormError(tc("error.timeout"));
+  } else {
+    setFormError(fallback);
+  }
+  setIsSubmitting(false);
+  return;
+}
+```
+
+Add the i18n key `auth.common.error.timeout` to both `en.json` + `es.json` (mirrored translations).
+
+The state-coverage test file adds a regression test for the timeout path:
+
+- `api-error: 10_000ms timeout → auth.common.error.timeout banner (regression test)` — simulates the timeout by mocking the fetch to throw a `DOMException` with `name === "TimeoutError"`.
+
+### Sub-task brief-referrer-policy [x]
+
+**`Referrer-Policy: same-origin` header on the `(auth)` route group.** Add the header in `apps/web/next.config.ts` (the existing `headers()` block is empty — the project doesn't currently set any security headers). Scope the header to the `(auth)` route group's URL pattern:
+
+```ts
+async headers() {
+  return [
+    {
+      source: "/:locale(en|es)/(sign-in|sign-up|forgot-password|reset-password|dev/mailbox)/:path*",
+      headers: [{ key: "Referrer-Policy", value: "same-origin" }],
+    },
+  ];
+}
+```
+
+The pattern matches `/{locale}/<auth-page>/*` (e.g. `/en/sign-in`, `/es/reset-password/<token>`). Other routes (the slice-1 placeholder landing `/` and the slice-3-protected `/(auth)/sessions`) inherit Next.js's default.
+
+The reset-password URL is the most security-sensitive: the token is in the URL path. A future CDN or asset on the page making a request would otherwise leak the full URL (including the token) as `Referer`. `same-origin` eliminates the surface.
+
+**No new test for this** — the e2e suite is best-effort. The behavior is verified by inspecting the response headers in the dev tools.
+
+### Sub-task brief-magic-constant [x]
+
+**Extract the literal `2000` in `DevMailbox.tsx` to a named constant.** `apps/web/components/auth/DevMailbox.tsx` has `const handle = setTimeout(() => setCopied(false), 2000);` — the `2000` is the "Copied" indicator timeout. Extracted to:
+
+```ts
+/**
+ * Duration of the "Copied to clipboard" indicator on the DevMailbox
+ * copy button. After this many ms the indicator resets to the
+ * pre-copy state. Tuned for human perception — long enough to be
+ * noticed, short enough to not block the next interaction.
+ */
+const COPY_INDICATOR_TIMEOUT_MS = 2_000;
+```
+
+Used in the `setTimeout` call. Trivial refactor; no behavior change.
+
+### Sub-task brief-input-prop-cleanup [x]
+
+**Remove the unused `label` + `error` props from the `Input` primitive.** **Verified to be a NO-OP.** The `Input` primitive in `apps/web/components/ui/input.tsx` does NOT have `label` or `error` props on its interface (it extends just `React.InputHTMLAttributes<HTMLInputElement>` without those props). The brief's assumption about batch 4c's auto-formatter adding them was outdated — per batch 4c's deviation #8 in the apply-progress, that modification appeared spontaneously during batch 4c, was caught + reverted via `git checkout HEAD -- <file>` + `rm` before each commit, and never landed. Confirmed by `git log --follow apps/web/components/ui/input.tsx` showing only the original batch 4b commit (`5418944 feat(web): GREEN 4 shadcn-style primitives (T4.4 batch 4b)`).
+
+A grep for `label\?\:|error\?\:\|InputProps` in `apps/web/components/ui/` returns no matches. The 4 forms use the `FormFieldRow` primitive (T4.15) which wraps the label + error JSX; the `Input` primitive never had those props on this codebase. No code change required.
