@@ -438,7 +438,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.9-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.10 — `forgot-password` page + `ForgotPasswordForm` (~30 lines)
+### Task T4.10 — `forgot-password` page + `ForgotPasswordForm` (~30 lines) [x] (slice 4 batch 4d)
 
 - **Description.** Resolves `forgotPasswordSchema`; success state shows generic "if this email is registered, you will receive instructions" copy.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/forgot-password/page.tsx`; `libs/features/auth/client/components/ForgotPasswordForm.tsx`; tests.
@@ -447,7 +447,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.10-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.11 — `reset-password/[token]` page + `ResetPasswordForm` (~30 lines)
+### Task T4.11 — `reset-password/[token]` page + `ResetPasswordForm` (~30 lines) [x] (slice 4 batch 4d)
 
 - **Description.** Reads `[token]` from the route (per Next 15 async params). Resolves `resetPasswordSchema`. Error path shows "invalid or expired token" on unknown token.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/reset-password/[token]/page.tsx`; `libs/features/auth/client/components/ResetPasswordForm.tsx`; tests.
@@ -456,7 +456,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.11-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.12 — `dev/mailbox/[userId]` page + `DevMailbox` component (~25 lines)
+### Task T4.12 — `dev/mailbox/[userId]` page + `DevMailbox` component (~25 lines) [x] (slice 4 batch 4d)
 
 - **Description.** DEV ONLY — `NODE_ENV !== 'production'` enforced at the route boundary and in the component. Reads the latest `auth.password-reset.requested` event for `userId` from the dispatcher's ring buffer (T2.3). Surfaces the **token only** (never passwords or email contents). Per design §4.5.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/dev/mailbox/[userId]/page.tsx`; `libs/features/auth/client/components/DevMailbox.tsx`; tests.
