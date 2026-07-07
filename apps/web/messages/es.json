@@ -1,11 +1,14 @@
 {
   "auth": {
-    "common": {
-      "loading": "Cargando…",
-      "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
-      "cancel": "Cancelar",
-      "backToLoginLink": "Volver a iniciar sesión"
-    },
+"common": {
+          "loading": "Cargando…",
+          "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
+          "cancel": "Cancelar",
+          "backToLoginLink": "Volver a iniciar sesión",
+          "error": {
+            "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
+          }
+        },
     "signIn": {
       "title": "Iniciar sesión",
       "description": "Inicia sesión para acceder a tu cuenta.",

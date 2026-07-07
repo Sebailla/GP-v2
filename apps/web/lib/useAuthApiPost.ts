@@ -4,6 +4,16 @@ import * as React from "react";
 import { useTranslations } from "next-intl";
 
 /**
+ * Hard upper bound on how long a single auth `fetch` may be in-flight
+ * before the browser aborts the request via `AbortSignal.timeout(ms)`.
+ * Without this, a stalled API would leave the form in the loading state
+ * indefinitely (the user sees a disabled button + an `aria-busy` form
+ * with no resolution). 10 seconds is generous for a localhost API call
+ * and short enough that the user gets a timely timeout error.
+ */
+const FETCH_TIMEOUT_MS = 10_000;
+
+/**
  * useAuthApiPost — slice 4 batch 4e (T4.15 REFACTOR).
  *
  * Small hook that wraps the `fetch → try/catch → status-code mapping →
@@ -98,7 +108,7 @@ export function useAuthApiPost({
     onSuccessRef.current = onSuccess;
   }, [onSuccess]);
 
-  const submit = React.useCallback(
+const submit = React.useCallback(
     async (values: unknown): Promise<void> => {
       setFormError(null);
       setIsSubmitting(true);
@@ -108,9 +118,20 @@ export function useAuthApiPost({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
-      } catch {
-        setFormError(fallback);
+      } catch (error) {
+        // Distinguish the `AbortSignal.timeout(ms)` deadline from
+        // generic network failures (DNS, offline, CORS preflight
+        // failure, etc.) so the user gets a meaningful message.
+        // `AbortSignal.timeout` rejects with a DOMException whose
+        // name is `"TimeoutError"`; any other failure shape gets
+        // the generic fallback.
+        if (error instanceof DOMException && error.name === "TimeoutError") {
+          setFormError(tc("error.timeout"));
+        } else {
+          setFormError(fallback);
+        }
         setIsSubmitting(false);
         return;
       }

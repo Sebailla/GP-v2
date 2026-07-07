@@ -177,6 +177,34 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 				expect(onSuccess).toHaveBeenCalledTimes(1);
 			});
 		});
+
+		it("api-error: 10_000ms timeout → auth.common.error.timeout banner (regression test)", async () => {
+			// Simulate the AbortSignal.timeout(10_000) firing by having fetch
+			// throw a DOMException with name === "TimeoutError". This is the
+			// shape that `AbortSignal.timeout(ms)` raises when the deadline
+			// elapses; matching the shape keeps the catch block in
+			// `useAuthApiPost` correctly distinguishing timeouts from
+			// generic network failures (which fall through to the
+			// `genericError` fallback).
+			mockFetch.mockImplementationOnce(() => {
+				throw new DOMException("signal timed out", "TimeoutError");
+			});
+			render(<LoginForm apiUrl="http://api.test" />);
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.email/i), {
+				target: { value: VALID.login.email },
+			});
+			fireEvent.input(screen.getByLabelText(/auth\.signIn\.password/i), {
+				target: { value: VALID.login.password },
+			});
+			fireEvent.click(
+				screen.getByRole("button", { name: /auth\.signIn\.submit/i }),
+			);
+			await waitFor(() => {
+				expect(screen.getByTestId("login-form-error")).toHaveTextContent(
+					/auth\.common\.error\.timeout/,
+				);
+			});
+		});
 	});
 
 	// -----------------------------------------------------------------------
