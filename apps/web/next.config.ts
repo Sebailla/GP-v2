@@ -16,35 +16,37 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
-  reactStrictMode: true,
-  poweredByHeader: false,
-  // Next.js 16 moved typedRoutes out of `experimental` to the top level.
-  // Keep it disabled for now (slice 1 minimal landing has no typed links
-  // to validate). Enable when slices 4+ add typed routes.
-  typedRoutes: false,
-  // Next.js 16 makes Turbopack the default for `next build`. Turbopack
-  // fails to resolve relative `.js` imports to their `.ts` siblings
-  // (the canonical NodeNext pattern) when the workspace uses
-  // `moduleResolution: "Bundler"` — it tries the literal `.js` first
-  // and reports `Module not found: Can't resolve './foo.js'`. Webpack,
-  // by contrast, exposes `resolve.extensionAlias` which rewrites `.js`
-  // requests to `.ts`/`.tsx`/`.js`. Until Turbopack adds the
-  // equivalent (tracked upstream as a 16.x regression for cross-
-  // package monorepo imports), we opt the `next build` script into
-  // the webpack path so the auth-slice barrel at
-  // `libs/features/auth/shared/schemas/index.ts` resolves cleanly.
-  // `next dev` keeps Turbopack (faster HMR) because the dev server
-  // uses SWC to compile each workspace package separately and the
-  // `.js` extension issue does not surface there.
-  webpack: (config) => {
-    config.resolve = config.resolve ?? {};
-    config.resolve.extensionAlias = {
-      ...(config.resolve.extensionAlias as Record<string, string[]> | undefined),
-      ".js": [".ts", ".tsx", ".js"],
-      ".mjs": [".mts", ".mjs"],
-    };
-    return config;
-  },
+	reactStrictMode: true,
+	poweredByHeader: false,
+	// Next.js 16 moved typedRoutes out of `experimental` to the top level.
+	// Keep it disabled for now (slice 1 minimal landing has no typed links
+	// to validate). Enable when slices 4+ add typed routes.
+	typedRoutes: false,
+	// Next.js 16 makes Turbopack the default for `next build`. Turbopack
+	// fails to resolve relative `.js` imports to their `.ts` siblings
+	// (the canonical NodeNext pattern) when the workspace uses
+	// `moduleResolution: "Bundler"` — it tries the literal `.js` first
+	// and reports `Module not found: Can't resolve './foo.js'`. Webpack,
+	// by contrast, exposes `resolve.extensionAlias` which rewrites `.js`
+	// requests to `.ts`/`.tsx`/`.js`. Until Turbopack adds the
+	// equivalent (tracked upstream as a 16.x regression for cross-
+	// package monorepo imports), we opt the `next build` script into
+	// the webpack path so the auth-slice barrel at
+	// `libs/features/auth/shared/schemas/index.ts` resolves cleanly.
+	// `next dev` keeps Turbopack (faster HMR) because the dev server
+	// uses SWC to compile each workspace package separately and the
+	// `.js` extension issue does not surface there.
+	webpack: (config) => {
+		config.resolve = config.resolve ?? {};
+		config.resolve.extensionAlias = {
+			...(config.resolve.extensionAlias as
+				| Record<string, string[]>
+				| undefined),
+			".js": [".ts", ".tsx", ".js"],
+			".mjs": [".mts", ".mjs"],
+		};
+		return config;
+	},
 };
 
 export default withNextIntl(nextConfig);

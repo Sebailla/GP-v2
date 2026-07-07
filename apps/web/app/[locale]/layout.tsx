@@ -41,40 +41,41 @@ import "../globals.css";
  * `generateStaticParams`). The `es` locale is rendered on demand.
  */
 interface LayoutProps {
-  children: ReactNode;
-  params: Promise<{ locale: string }>;
+	children: ReactNode;
+	params: Promise<{ locale: string }>;
 }
 
 export const dynamic = "force-static";
 
 export default async function RootLayout({ children, params }: LayoutProps) {
-  const { locale } = await params;
+	const { locale } = await params;
 
-  // Defensive: if the URL prefix carries an unsupported locale (e.g.
-  // `/en/...` when the layout was migrated and the old locale is still
-  // in the URL), fall back to the default locale rather than letting
-  // `getMessages` throw `MISSING_MESSAGE` for the entire tree.
-  const safeLocale: (typeof routing.locales)[number] =
-    (routing.locales as readonly string[]).includes(locale)
-      ? (locale as (typeof routing.locales)[number])
-      : routing.defaultLocale;
+	// Defensive: if the URL prefix carries an unsupported locale (e.g.
+	// `/en/...` when the layout was migrated and the old locale is still
+	// in the URL), fall back to the default locale rather than letting
+	// `getMessages` throw `MISSING_MESSAGE` for the entire tree.
+	const safeLocale: (typeof routing.locales)[number] = (
+		routing.locales as readonly string[]
+	).includes(locale)
+		? (locale as (typeof routing.locales)[number])
+		: routing.defaultLocale;
 
-  // `getMessages` returns the messages catalog for the resolved locale
-  // (via the `getRequestConfig` wiring in `i18n/request.ts`).
-  const messages = await getMessages({ locale: safeLocale });
+	// `getMessages` returns the messages catalog for the resolved locale
+	// (via the `getRequestConfig` wiring in `i18n/request.ts`).
+	const messages = await getMessages({ locale: safeLocale });
 
-  return (
-    <html lang={safeLocale}>
-      <body>
-        <NextIntlClientProvider locale={safeLocale} messages={messages}>
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
-  );
+	return (
+		<html lang={safeLocale}>
+			<body>
+				<NextIntlClientProvider locale={safeLocale} messages={messages}>
+					{children}
+				</NextIntlClientProvider>
+			</body>
+		</html>
+	);
 }
 
 export function generateStaticParams() {
-  // Slice 4 expands this to the full locale list (en, es).
-  return [{ locale: "en" }];
+	// Slice 4 expands this to the full locale list (en, es).
+	return [{ locale: "en" }];
 }

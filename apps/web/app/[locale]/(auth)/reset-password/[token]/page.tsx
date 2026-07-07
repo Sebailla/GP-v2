@@ -1,12 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { env } from "@core/config";
 
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
@@ -27,7 +22,7 @@ import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
  * the slice-4 follow-up alongside the NextAuth client config.
  */
 interface ResetPasswordPageProps {
-  params: Promise<{ locale: string; token: string }>;
+	params: Promise<{ locale: string; token: string }>;
 }
 
 // Force-dynamic: same rationale as the forgot-password page (see
@@ -39,33 +34,33 @@ interface ResetPasswordPageProps {
 export const dynamic = "force-dynamic";
 
 export default async function ResetPasswordPage({
-  params,
+	params,
 }: ResetPasswordPageProps): Promise<React.JSX.Element> {
-  const { locale, token } = await params;
-  const t = await getTranslations("auth.resetPassword");
+	const { locale, token } = await params;
+	const t = await getTranslations("auth.resetPassword");
 
-  return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        display: "grid",
-        placeItems: "center",
-        padding: "2rem",
-        background: "var(--ui-bg)",
-      }}
-    >
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResetPasswordForm
-            apiUrl={env.API_URL}
-            token={token}
-            locale={locale}
-          />
-        </CardContent>
-      </Card>
-    </main>
-  );
+	return (
+		<main
+			style={{
+				minHeight: "100dvh",
+				display: "grid",
+				placeItems: "center",
+				padding: "2rem",
+				background: "var(--ui-bg)",
+			}}
+		>
+			<Card className="w-full max-w-sm">
+				<CardHeader>
+					<CardTitle>{t("title")}</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<ResetPasswordForm
+						apiUrl={env.API_URL}
+						token={token}
+						locale={locale}
+					/>
+				</CardContent>
+			</Card>
+		</main>
+	);
 }

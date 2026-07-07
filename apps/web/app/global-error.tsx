@@ -30,75 +30,74 @@
  */
 
 export default function GlobalError({
-  error,
-  reset,
+	error,
+	reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+	error: Error & { digest?: string };
+	reset: () => void;
 }): React.JSX.Element {
-  return (
-    <html lang="en">
-      <body
-        style={{
-          fontFamily:
-            'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-          minHeight: "100dvh",
-          display: "grid",
-          placeItems: "center",
-          padding: "2rem",
-          background: "var(--ui-bg, #fff)",
-          color: "var(--ui-fg, #171717)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "32rem",
-            padding: "2rem",
-            border: "1px solid var(--ui-border, #e5e7eb)",
-            borderRadius: "0.5rem",
-            background: "var(--ui-bg-muted, #f9fafb)",
-          }}
-        >
-          <h1 style={{ margin: "0 0 0.75rem 0", fontSize: "1.5rem" }}>
-            Something went wrong
-          </h1>
-          <p style={{ margin: "0 0 1.25rem 0", lineHeight: 1.5 }}>
-            An unexpected error occurred. You can try again, or come back
-            later.
-          </p>
-          {error.digest ? (
-            <p
-              style={{
-                margin: "0 0 1rem 0",
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                fontSize: "0.75rem",
-                color: "var(--ui-fg-muted, #6b7280)",
-              }}
-            >
-              Reference: <code>{error.digest}</code>
-            </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => reset()}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0.5rem 1rem",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              border: "1px solid var(--ui-border, #e5e7eb)",
-              borderRadius: "0.375rem",
-              background: "var(--ui-accent, #171717)",
-              color: "var(--ui-accent-fg, #fff)",
-              cursor: "pointer",
-            }}
-          >
-            Try again
-          </button>
-        </div>
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en">
+			<body
+				style={{
+					fontFamily:
+						'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+					minHeight: "100dvh",
+					display: "grid",
+					placeItems: "center",
+					padding: "2rem",
+					background: "var(--ui-bg, #fff)",
+					color: "var(--ui-fg, #171717)",
+				}}
+			>
+				<div
+					style={{
+						maxWidth: "32rem",
+						padding: "2rem",
+						border: "1px solid var(--ui-border, #e5e7eb)",
+						borderRadius: "0.5rem",
+						background: "var(--ui-bg-muted, #f9fafb)",
+					}}
+				>
+					<h1 style={{ margin: "0 0 0.75rem 0", fontSize: "1.5rem" }}>
+						Something went wrong
+					</h1>
+					<p style={{ margin: "0 0 1.25rem 0", lineHeight: 1.5 }}>
+						An unexpected error occurred. You can try again, or come back later.
+					</p>
+					{error.digest ? (
+						<p
+							style={{
+								margin: "0 0 1rem 0",
+								fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+								fontSize: "0.75rem",
+								color: "var(--ui-fg-muted, #6b7280)",
+							}}
+						>
+							Reference: <code>{error.digest}</code>
+						</p>
+					) : null}
+					<button
+						type="button"
+						onClick={() => reset()}
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							justifyContent: "center",
+							padding: "0.5rem 1rem",
+							fontSize: "0.875rem",
+							fontWeight: 500,
+							border: "1px solid var(--ui-border, #e5e7eb)",
+							borderRadius: "0.375rem",
+							background: "var(--ui-accent, #171717)",
+							color: "var(--ui-accent-fg, #fff)",
+							cursor: "pointer",
+						}}
+					>
+						Try again
+					</button>
+				</div>
+			</body>
+		</html>
+	);
 }
