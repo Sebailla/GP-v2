@@ -215,4 +215,40 @@ describe("ResetPasswordForm — slice 4 batch 4d (T4.11)", () => {
 
 		expect(mockReplace).not.toHaveBeenCalled();
 	});
+
+	it("disables the submit button and sets aria-busy='true' while the request is in-flight (loading state)", async () => {
+		// Mirror of ForgotPasswordForm's loading test. The fix for
+		// R4 #1 (fresh-4R follow-up): the form's JSDoc claims a
+		// "Loading" state but no test exercised it before this commit.
+		let resolvePromise: (value: Response) => void = () => {};
+		mockFetch.mockReturnValueOnce(
+			new Promise<Response>((resolve) => {
+				resolvePromise = resolve;
+			}),
+		);
+
+		render(<ResetPasswordForm apiUrl="http://api.test" locale="en" token={TOKEN} />);
+		fireEvent.change(
+			screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
+			{
+				target: { value: "new-valid-password-123" },
+			},
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
+		);
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: /auth\.common\.loading/i,
+				}),
+			).toBeDisabled();
+		});
+
+		// Resolve to clean up.
+		resolvePromise(
+			new Response(JSON.stringify({ id: "user-1" }), { status: 200 }),
+		);
+	});
 });
