@@ -28,6 +28,13 @@ export const envSchema = z.object({
 	DATABASE_URL: z.string().url(),
 	NEXTAUTH_URL: z.string().url(),
 	NEXTAUTH_SECRET: z.string().min(32),
+	// T4.8 (slice 4 batch 4c) — the web client needs the API base URL
+	// to call POST /auth/login + POST /auth/register from the LoginForm /
+	// SignUpForm. Required at the workspace boundary so a missing or
+	// malformed value fails-fast at startup instead of surfacing as a
+	// network error inside the form. Dev value: http://localhost:3001
+	// (the API runs on 3001 per apps/api/.env.example).
+	API_URL: z.string().url(),
 	// T3.3 (slice 3 batch 7) — Google OAuth credentials are OPTIONAL.
 	// The Credentials provider is always wired; the Google provider is
 	// added to the providers array only when BOTH id and secret are

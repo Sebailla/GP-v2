@@ -8,6 +8,7 @@
     },
     "signIn": {
       "title": "Sign in",
+      "description": "Sign in to access your account.",
       "email": "Email",
       "password": "Password",
       "submit": "Sign in",
@@ -17,6 +18,7 @@
     },
     "signUp": {
       "title": "Create your account",
+      "description": "Create an account to start tracking your finances.",
       "email": "Email",
       "password": "Password",
       "name": "Display name",

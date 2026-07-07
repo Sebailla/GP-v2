@@ -338,7 +338,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run lint typecheck test --filter web` exits 0; `@axe-core/playwright` audit reports zero violations per critical screen; manual keyboard tab-test passes on each form.
 **Rollback.** Per atomic commit; the slice's commit chain is revertible as a group because no slice depends on internal CSS-class names.
 
-### Task T4.1 — RED: component test for `LoginForm` happy path (~25 lines)
+### Task T4.1 — RED: component test for `LoginForm` happy path (~25 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Write the failing test FIRST: a Vitest + Testing Library test that mounts `LoginForm` with `next-intl` provider stubbed, asserts the empty state is visible on initial render, types a valid email + password, submits, and asserts the loading state transitions to the success state's destination redirect mock.
 - **Discovery / file targets.** Test file at `libs/features/auth/client/components/__tests__/login-form.test.tsx`; component file at `libs/features/auth/client/components/LoginForm.tsx` is just a stub for now.
@@ -420,7 +420,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
   - **Sub-task brief-T4.7-design-tokens [x]** — `apps/web/app/globals.css` (NEW, ~150 lines: `@import "tailwindcss";` + `@theme inline` block exposing 21 token groups as Tailwind utilities + `:root` light-mode tokens + `.dark` dark-mode tokens + `prefers-reduced-motion` + `prefers-reduced-transparency` fallbacks). `apps/web/postcss.config.mjs` (NEW, ~15 lines: single `@tailwindcss/postcss` plugin). `apps/web/app/[locale]/layout.tsx` (MODIFIED, +1 line: `import "../globals.css";`). Verification: `pnpm --filter web build` (with env vars set per the pre-existing slice-1 env-validation constraint) compiles successfully with no Tailwind warnings.
   - **Sub-task brief-deps-partial [x]** — `tailwindcss@4.3.2` + `@tailwindcss/postcss@4.3.2` + `postcss@8.5.16` + `autoprefixer@10.5.2` installed via `pnpm add -F web`.
 
-### Task T4.8 — `sign-in` page + `LoginForm` (~50 lines)
+### Task T4.8 — `sign-in` page + `LoginForm` (~50 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Implement `apps/web/app/[locale]/(auth)/sign-in/page.tsx` and the **full** `LoginForm` (T4.1's stub). Implement all 5 states (loading, error, success, empty, validation-error) per spec §UI requirement "Complete Form States". Wire `react-hook-form` + `@hookform/resolvers/zod` against `loginSchema` from `@features/auth/shared/schemas/login`.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/sign-in/page.tsx`; `libs/features/auth/client/components/LoginForm.tsx` (replace stub).
@@ -429,7 +429,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.8-sha>`.
 - **Files touched (rough).** Page + form + tests (~50 lines).
 
-### Task T4.9 — `sign-up` page + `SignUpForm` (~30 lines)
+### Task T4.9 — `sign-up` page + `SignUpForm` (~30 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Same shape as T4.8: register screen resolves `registerSchema` from `@features/auth/shared/schemas/register`; 5-state form.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/sign-up/page.tsx`; `libs/features/auth/client/components/SignUpForm.tsx`; tests under `libs/features/auth/client/components/__tests__/sign-up-form.test.tsx`.

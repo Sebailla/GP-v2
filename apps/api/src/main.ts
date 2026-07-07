@@ -22,6 +22,21 @@ async function bootstrap() {
     logger: ["log", "error", "warn"],
   });
 
+  // CORS — the web client at env.WEB_ORIGIN (default http://localhost:3000)
+  // POSTs cross-origin to this API on :3001. Without `enableCors`, the
+  // browser refuses the preflight (OPTIONS) on `Content-Type: application/json`
+  // and the LoginForm / SignUpForm never reach the auth routes. The
+  // `credentials: true` flag allows the NextAuth session cookie (T3.3
+  // deferred) to flow when wired up.
+  //
+  // Slice 4 batch 4c (R1 review) — pre-existing gap. Slice 3's
+  // `.env.example` documented WEB_ORIGIN as the CORS allow-list target
+  // but no code wired it up. This commit closes that gap.
+  app.enableCors({
+    origin: env.WEB_ORIGIN,
+    credentials: true,
+  });
+
   const port = Number.parseInt(process.env.PORT ?? "3001", 10);
   await app.listen(port);
 

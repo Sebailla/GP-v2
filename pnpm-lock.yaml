@@ -111,6 +111,9 @@ importers:
       '@core/config':
         specifier: workspace:*
         version: link:../../libs/core/config
+      '@hookform/resolvers':
+        specifier: 3.10.0
+        version: 3.10.0(react-hook-form@7.54.0(react@19.2.7))
       '@radix-ui/react-label':
         specifier: ^2.1.11
         version: 2.1.11(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -147,12 +150,18 @@ importers:
       react-dom:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
+      react-hook-form:
+        specifier: 7.54.0
+        version: 7.54.0(react@19.2.7)
       tailwind-merge:
         specifier: 2.5.5
         version: 2.5.5
       tailwindcss:
         specifier: ^4.3.2
         version: 4.3.2
+      zod:
+        specifier: 3.24.1
+        version: 3.24.1
     devDependencies:
       '@testing-library/jest-dom':
         specifier: ^6.9.1
@@ -507,6 +516,11 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hookform/resolvers@3.10.0':
+    resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
+    peerDependencies:
+      react-hook-form: ^7.0.0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3053,6 +3067,12 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
+  react-hook-form@7.54.0:
+    resolution: {integrity: sha512-PS05+UQy/IdSbJNojBypxAo9wllhHgGmyr8/dyGQcPoiMf3e7Dfb9PWYVRco55bLbxH9S+1yDDJeTdlYCSxO3A==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^16.8.0 || ^17 || ^18 || ^19
+
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
@@ -3658,6 +3678,9 @@ packages:
   zeptomatch@2.1.0:
     resolution: {integrity: sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA==}
 
+  zod@3.24.1:
+    resolution: {integrity: sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==}
+
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -3882,6 +3905,10 @@ snapshots:
   '@hono/node-server@1.19.11(hono@4.12.27)':
     dependencies:
       hono: 4.12.27
+
+  '@hookform/resolvers@3.10.0(react-hook-form@7.54.0(react@19.2.7))':
+    dependencies:
+      react-hook-form: 7.54.0(react@19.2.7)
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -6262,6 +6289,10 @@ snapshots:
       react: 19.2.7
       scheduler: 0.27.0
 
+  react-hook-form@7.54.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+
   react-is@17.0.2: {}
 
   react@19.2.7: {}
@@ -6829,5 +6860,7 @@ snapshots:
     dependencies:
       grammex: 3.1.12
       graphmatch: 1.1.1
+
+  zod@3.24.1: {}
 
   zod@4.4.3: {}

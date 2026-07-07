@@ -20,6 +20,7 @@
 const env = process.env as Record<string, string>;
 env["NODE_ENV"] = "test";
 env["PORT"] = "3001";
+env["API_URL"] = "http://localhost:3001";
 env["WEB_ORIGIN"] = "http://localhost:3000";
 env["DATABASE_URL"] = "postgresql://placeholder@localhost:5432/db";
 env["NEXTAUTH_URL"] = "http://localhost:3000";

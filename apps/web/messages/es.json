@@ -8,6 +8,7 @@
     },
     "signIn": {
       "title": "Iniciar sesión",
+      "description": "Inicia sesión para acceder a tu cuenta.",
       "email": "Correo electrónico",
       "password": "Contraseña",
       "submit": "Iniciar sesión",
@@ -17,6 +18,7 @@
     },
     "signUp": {
       "title": "Crea tu cuenta",
+      "description": "Crea una cuenta para empezar a registrar tus finanzas.",
       "email": "Correo electrónico",
       "password": "Contraseña",
       "name": "Nombre para mostrar",
