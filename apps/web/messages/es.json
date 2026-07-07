@@ -40,7 +40,7 @@
       "error": {
         "invalidToken": "Este enlace de restablecimiento no es válido o ha caducado."
       },
-      "success": "Tu contraseña ha sido restablecida. Ya puedes iniciar sesión."
+      "success": "Tu contraseña ha sido restablecido. Ya puedes iniciar sesión."
     },
     "sessions": {
       "title": "Sesiones activas",
@@ -52,7 +52,8 @@
       "title": "Buzón de desarrollo",
       "noTokensHint": "Aún no se ha despachado ningún token de restablecimiento de contraseña.",
       "tokenLabel": "Token de restablecimiento",
-      "copyButton": "Copiar token"
+      "copyButton": "Copiar token",
+      "copiedToClipboard": "Copiado al portapapeles"
     },
     "locale": {
       "en": "Inglés",
