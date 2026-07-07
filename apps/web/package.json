@@ -16,6 +16,7 @@
     "clean": "rm -rf .next"
   },
   "dependencies": {
+    "@auth/core": "0.37.4",
     "@core/config": "workspace:*",
     "@hookform/resolvers": "3.10.0",
     "@radix-ui/react-label": "^2.1.11",
@@ -26,6 +27,7 @@
     "clsx": "2.1.1",
     "lucide-react": "^1.23.0",
     "next": "16.2.10",
+    "next-auth": "5.0.0-beta.25",
     "next-intl": "3.26.5",
     "postcss": "^8.5.16",
     "react": "19.2.7",
