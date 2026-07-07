@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "start": "next start --port 3000",
+    "e2e": "playwright test",
     "clean": "rm -rf .next"
   },
   "dependencies": {
@@ -35,12 +36,15 @@
     "zod": "3.24.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "~4.10.2",
+    "@playwright/test": "~1.49.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "22.18.0",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
+    "axe-core": "~4.10.3",
     "eslint": "10.6.0",
     "happy-dom": "^20.10.6",
     "typescript": "6.0.3",

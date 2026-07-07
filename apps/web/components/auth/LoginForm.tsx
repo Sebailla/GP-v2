@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
@@ -10,24 +10,22 @@ import {
 } from "@features/auth/shared/schemas";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";
+import { AuthFormErrorBanner } from "@/components/auth/AuthFormErrorBanner";
+import { FormFieldRow } from "@/components/auth/FormFieldRow";
+import { useAuthApiPost } from "@/lib/useAuthApiPost";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
 
 /**
- * LoginForm — slice 4 batch 4c (T4.1 + T4.8).
+ * LoginForm — slice 4 batch 4e (T4.15 REFACTOR).
  *
- * Client component that wraps the canonical `loginSchema` (from
- * `libs/features/auth/shared/schemas/login`) via `react-hook-form`
- * + the local `@/lib/zod-resolver` adapter. On submit, POSTs
- * `{ email, password }` to `${apiUrl}/auth/login` and surfaces the
- * result through:
- *
- *  - `onSuccess()` — 200 → the parent page triggers the redirect.
- *  - 401 → form-level banner with `auth.signIn.error.invalidCredentials`.
- *  - Other non-2xx (or network failure) → form-level banner with
- *    `auth.common.genericError`.
+ * Refactored in batch 4e to use the shared `FormFieldRow`,
+ * `AuthFormErrorBanner`, and `useAuthApiPost` hook instead of inlining
+ * the label/input/error/banner/fetch boilerplate. The public contract
+ * (the rendered DOM tree, the 5 form states, the i18n keys, the test
+ * selectors) is byte-for-byte identical to the batch 4c shape, so the
+ * existing tests continue to pass without modification.
  *
  * Five form states per convention `ui-complete-not-scaffold` (id 2133):
  *  1. **Empty** — both fields empty, no error.
@@ -38,16 +36,6 @@ import { zodResolver } from "@/lib/zod-resolver";
  *  4. **API-error** — form-level `<div role="alert">` banner above the
  *     fields.
  *  5. **Success** — `onSuccess` fires; the parent unmounts the form.
- *
- * The form does NOT wrap its content in a `<Card>` — the parent
- * page is responsible for the visual container (see
- * `app/[locale]/(auth)/sign-in/page.tsx`). This keeps the form
- * composable inside any surface (Card, plain `<main>`, modal, etc.).
- *
- * The session token returned by the API is NOT stored in this batch —
- * that lands in the slice 4 follow-up alongside the NextAuth client
- * config (T3.3 deferred). The success path simply notifies the parent;
- * the user is NOT actually authenticated across reloads.
  */
 export interface LoginFormProps {
   /** Base URL of the auth API (e.g. `http://localhost:3001`). */
@@ -65,23 +53,6 @@ export interface LoginFormProps {
   className?: string;
 }
 
-/**
- * LoginForm — see file header for the contract.
- *
- * Implementation notes:
- *  - `useForm` is wired with the Zod resolver so RHF owns the field-level
- *    error rendering. `mode: "onSubmit"` keeps the initial render quiet
- *    (the "empty" state) and only fires validation on submit.
- *  - The submit handler does NOT call `event.preventDefault()` directly —
- *    `react-hook-form`'s `handleSubmit` wraps the user callback and
- *    handles preventDefault internally.
- *  - `fetch` is called with `Content-Type: application/json` so the
- *    NestJS controller's `Body()` decorator parses the payload via
- *    `ZodValidationPipe(loginSchema)`.
- *  - Form-level errors are tracked via the local `formError` state,
- *    kept separate from RHF's field errors so a 401 doesn't get reported
- *    under a specific field.
- */
 export function LoginForm({
   apiUrl,
   onSuccess,
@@ -93,7 +64,7 @@ export function LoginForm({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting: rhfIsSubmitting },
     reset,
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -101,43 +72,28 @@ export function LoginForm({
     defaultValues: { email: "", password: "" },
   });
 
-  const [formError, setFormError] = React.useState<string | null>(null);
-
-  const onSubmit = handleSubmit(async (values) => {
-    setFormError(null);
-    let response: Response;
-    try {
-      response = await fetch(`${apiUrl}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-    } catch {
-      setFormError(tc("genericError"));
-      return;
-    }
-
-    if (response.ok) {
-      // Cookie storage lands in the slice 4 follow-up (NextAuth client
-      // config — T3.3 deferred). For this batch we simply notify the
-      // parent and reset the form's internal state.
+  const { submit, isSubmitting: apiIsSubmitting, formError } = useAuthApiPost({
+    apiBaseUrl: apiUrl,
+    endpoint: "/auth/login",
+    errorMap: {
+      401: t("error.invalidCredentials"),
+    },
+    onSuccess: () => {
       reset();
       onSuccess?.();
-      return;
-    }
-
-    if (response.status === 401) {
-      setFormError(t("error.invalidCredentials"));
-      return;
-    }
-
-    setFormError(tc("genericError"));
+    },
   });
+
+  // The form is "submitting" while EITHER react-hook-form is validating
+  // (the brief moment between submit and resolution) OR the API call is
+  // in-flight. We OR the two flags so the button stays disabled across
+  // the whole submit → fetch → resolve window.
+  const isSubmitting = rhfIsSubmitting || apiIsSubmitting;
+
+  const onSubmit = handleSubmit(submit);
 
   const emailError = errors.email?.message;
   const passwordError = errors.password?.message;
-  const emailErrorId = emailError ? "login-email-error" : undefined;
-  const passwordErrorId = passwordError ? "login-password-error" : undefined;
 
   return (
     <Form
@@ -147,67 +103,27 @@ export function LoginForm({
       aria-describedby={formError ? "login-form-error" : undefined}
       className={cn("flex flex-col gap-ui-space-4", className)}
     >
-      {formError ? (
-        <div
-          id="login-form-error"
-          role="alert"
-          className="rounded-ui-md border border-ui-danger bg-ui-danger/10 px-ui-space-3 py-ui-space-2 text-ui-text-sm text-ui-danger"
-          data-testid="login-form-error"
-        >
-          {formError}
-        </div>
-      ) : null}
+      <AuthFormErrorBanner id="login-form-error" message={formError} />
 
-      <div className="flex flex-col gap-ui-space-1">
-        <label htmlFor="login-email" className="text-ui-text-sm font-ui-font-medium text-ui-fg">
-          {t("email")}
-        </label>
-        <Input
-          id="login-email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={emailError ? true : undefined}
-          aria-describedby={emailErrorId}
-          disabled={isSubmitting}
-          {...register("email")}
-        />
-        {emailError ? (
-          <p
-            id={emailErrorId}
-            className="text-ui-text-sm text-ui-danger"
-            data-testid="login-email-error"
-          >
-            {emailError}
-          </p>
-        ) : null}
-      </div>
+      <FormFieldRow
+        id="login-email"
+        label={t("email")}
+        type="email"
+        autoComplete="email"
+        error={emailError}
+        registration={register("email")}
+        disabled={isSubmitting}
+      />
 
-      <div className="flex flex-col gap-ui-space-1">
-        <label
-          htmlFor="login-password"
-          className="text-ui-text-sm font-ui-font-medium text-ui-fg"
-        >
-          {t("password")}
-        </label>
-        <Input
-          id="login-password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={passwordError ? true : undefined}
-          aria-describedby={passwordErrorId}
-          disabled={isSubmitting}
-          {...register("password")}
-        />
-        {passwordError ? (
-          <p
-            id={passwordErrorId}
-            className="text-ui-text-sm text-ui-danger"
-            data-testid="login-password-error"
-          >
-            {passwordError}
-          </p>
-        ) : null}
-      </div>
+      <FormFieldRow
+        id="login-password"
+        label={t("password")}
+        type="password"
+        autoComplete="current-password"
+        error={passwordError}
+        registration={register("password")}
+        disabled={isSubmitting}
+      />
 
       <Button type="submit" disabled={isSubmitting} className="self-end">
         {isSubmitting ? tc("loading") : t("submit")}
