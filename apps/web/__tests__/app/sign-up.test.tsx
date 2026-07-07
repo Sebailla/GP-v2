@@ -130,11 +130,11 @@ describe("SignUpPage — slice 4 batch 4c (T4.9)", () => {
 		expect(screen.getByLabelText(/auth\.signUp\.email/i)).toBeInTheDocument();
 	});
 
-	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+	it("redirects to /{locale}/ when the authjs.session-token cookie is set (slice 4 cookie migration final)", async () => {
 		// Slice 4 batch 2: the SignUpPage MUST call getSession()
 		// and redirect(/${locale}/) if a session is present.
 		cookieStore = {
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: { id: "user-1", email: "alice@example.com", role: "USER" },
 			}),

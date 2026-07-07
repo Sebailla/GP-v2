@@ -62,8 +62,8 @@ afterEach(() => {
 			set: originalCookieSetter,
 		});
 	}
-	document.cookie =
-		"auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+document.cookie =
+		"authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
 });
 
 import { SignUpForm } from "../../../components/auth/SignUpForm";
@@ -75,7 +75,7 @@ import { AUTH_SESSION_COOKIE } from "../../../lib/auth";
  *
  * **Form-specific scope.** This file now asserts the slice 4 batch 2
  * cookie-on-success wiring: on a 201 response, the form MUST write
- * the auth-session cookie via `setSessionCookie(session)` AND call
+ * the authjs.session-token cookie via `setSessionCookie(session)` AND call
  * the parent's `onSuccess(session)` so the parent (SignUpClient) can
  * navigate to `/${locale}/sign-in`. The 5-state rendering tests for
  * SignUpForm remain consolidated in `state-coverage.test.tsx` (T4.14).
@@ -166,8 +166,8 @@ describe("SignUpForm — slice 4 batch 2 (cookie-on-success)", () => {
 		});
 	});
 
-	it("writes the auth-session cookie to document.cookie on a 201 response", async () => {
-		// The SignUpForm itself writes the auth-session cookie before
+it("writes the authjs.session-token cookie to document.cookie on a 201 response", async () => {
+		// The SignUpForm itself writes the authjs.session-token cookie before
 		// calling the parent's onSuccess (which navigates). This test
 		// asserts the cookie set is observable via document.cookie.
 		mockFetch.mockResolvedValueOnce({
@@ -199,7 +199,7 @@ describe("SignUpForm — slice 4 batch 2 (cookie-on-success)", () => {
 		await waitFor(() => {
 			expect(onSuccess).toHaveBeenCalledTimes(1);
 		});
-		// The form's success path wrote the cookie via document.cookie
+// The form's success path wrote the cookie via document.cookie
 		// BEFORE invoking the parent's onSuccess.
 		expect(lastSetCookie).not.toBeNull();
 		const cookieStr = String(lastSetCookie);
@@ -207,5 +207,6 @@ describe("SignUpForm — slice 4 batch 2 (cookie-on-success)", () => {
 		expect(cookieStr).toMatch(/path=\//i);
 		expect(cookieStr).toMatch(/max-age=86400/i);
 		expect(cookieStr).toMatch(/samesite=lax/i);
+		expect(cookieStr).toMatch(/httponly/i);
 	});
 });

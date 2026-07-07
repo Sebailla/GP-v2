@@ -144,7 +144,7 @@ describe("SignInPage — slice 4 batch 4c (T4.8)", () => {
 		expect(screen.getByLabelText(/auth\.signIn\.email/i)).toBeInTheDocument();
 	});
 
-	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+	it("redirects to /{locale}/ when the authjs.session-token cookie is set (slice 4 cookie migration final)", async () => {
 		// Slice 4 batch 2: the SignInPage MUST call `getSession()`
 		// and `redirect(/${locale}/)` if a session is present, so an
 		// already-authenticated visitor who lands on the sign-in
@@ -153,7 +153,7 @@ describe("SignInPage — slice 4 batch 4c (T4.8)", () => {
 		// `next/navigation#redirect` which throws a special error
 		// that the test harness intercepts.
 		cookieStore = {
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: { id: "user-1", email: "alice@example.com", role: "USER" },
 			}),

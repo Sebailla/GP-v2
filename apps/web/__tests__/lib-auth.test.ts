@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cookies } from "next/headers";
 
 /**
- * TDD contract for `apps/web/lib/auth.ts` — slice 4 batch 2 (post-4e
- * T3.3 deferred follow-up).
+ * TDD contract for `apps/web/lib/auth.ts` — slice 4 cookie migration
+ * (final, post-NextAuth integration).
  *
- * The web client uses a custom cookie (`auth-session`) to persist the
- * session token + user projection returned by `POST /auth/login` and
- * `POST /auth/register`. The cookie is opaque to the rest of the app;
- * helpers in `auth.ts` are the only surface that reads / writes /
- * clears it.
+ * The web client uses the canonical NextAuth v5 cookie
+ * (`authjs.session-token`) to persist the session token + user
+ * projection returned by `POST /auth/login` and `POST /auth/register`.
+ * The cookie is opaque to the rest of the app; helpers in `auth.ts` are
+ * the only surface that reads / writes / clears it.
  *
  * Two distinct execution contexts:
  *  - **Server side** (`getSession`): RSC pages call `cookies()` from
@@ -21,11 +21,11 @@ import { cookies } from "next/headers";
  *    cookie. happy-dom's `document.cookie` simulation is enough to
  *    exercise this surface.
  *
- * The cookie name is `auth-session` (NOT NextAuth's
- * `authjs.session-token`) to avoid collisions with a future NextAuth
- * integration — the sessionToken minted by the auth API is a
- * `randomUUID()` string, NOT a NextAuth JWT, so the cookie format is
- * intentionally different.
+ * The cookie name is `authjs.session-token` (canonical NextAuth v5).
+ * A future drop-in `auth()` integration (the slice 6+ deploy hardening
+ * step that wires the server-side `Set-Cookie` header) will read the
+ * same name; the migration to the canonical name in this batch
+ * pre-aligns the cookie with the NextAuth ecosystem.
  */
 
 vi.mock("next/headers", () => ({
@@ -55,6 +55,7 @@ const {
 	setSessionCookie,
 	clearSessionCookie,
 	AUTH_SESSION_COOKIE,
+	SESSION_TTL_SECONDS,
 } = await import("../lib/auth");
 
 const SAMPLE_SESSION = {
@@ -62,16 +63,16 @@ const SAMPLE_SESSION = {
 	user: { id: "user-1", email: "alice@example.com", role: "USER" },
 } as const;
 
-describe("apps/web/lib/auth.ts — session helpers (slice 4 batch 2)", () => {
+describe("apps/web/lib/auth.ts — session helpers (slice 4 cookie migration final)", () => {
 	// -----------------------------------------------------------------------
 	// document.cookie capture helper
 	//
 	// happy-dom's `document.cookie` GETTER only returns the
 	// `name=value` portion of the cookie (matching real-browser
-	// behavior) — the attributes (path, max-age, samesite) are stored
-	// internally but not observable via the getter. To assert on the
-	// full attribute string, we override the setter with a spy that
-	// captures the entire input.
+	// behavior) — the attributes (path, max-age, samesite, httponly)
+	// are stored internally but not observable via the getter. To
+	// assert on the full attribute string, we override the setter with
+	// a spy that captures the entire input.
 	// -----------------------------------------------------------------------
 	let lastSetCookie: string | null = null;
 
@@ -103,13 +104,13 @@ describe("apps/web/lib/auth.ts — session helpers (slice 4 batch 2)", () => {
 	// getSession — server side
 	// -----------------------------------------------------------------------
 	describe("getSession()", () => {
-		it("returns null when the auth-session cookie is not set", async () => {
+		it("returns null when the authjs.session-token cookie is not set", async () => {
 			mockCookieStore({});
 			const result = await getSession();
 			expect(result).toBeNull();
 		});
 
-		it("returns the parsed session when the auth-session cookie is set", async () => {
+		it("returns the parsed session when the authjs.session-token cookie is set", async () => {
 			mockCookieStore({
 				[AUTH_SESSION_COOKIE]: JSON.stringify(SAMPLE_SESSION),
 			});
@@ -149,12 +150,15 @@ describe("apps/web/lib/auth.ts — session helpers (slice 4 batch 2)", () => {
 	// setSessionCookie — client side
 	// -----------------------------------------------------------------------
 	describe("setSessionCookie()", () => {
-		it("writes a JSON-encoded session to document.cookie with the canonical name", () => {
+		it("writes a JSON-encoded session to document.cookie with the canonical NextAuth v5 name (authjs.session-token)", () => {
 			setSessionCookie(SAMPLE_SESSION);
 			expect(lastSetCookie).not.toBeNull();
 			const cookieStr = String(lastSetCookie);
 			const cookieName = AUTH_SESSION_COOKIE;
 			expect(cookieStr.startsWith(`${cookieName}=`)).toBe(true);
+			// Canonical NextAuth v5 cookie name — not the slice 4 batch 2
+			// bespoke `auth-session`.
+			expect(cookieName).toBe("authjs.session-token");
 			const valuePart = cookieStr.split(";")[0] ?? "";
 			const encoded = valuePart.split("=").slice(1).join("=");
 			let parsed: unknown;
@@ -180,13 +184,32 @@ describe("apps/web/lib/auth.ts — session helpers (slice 4 batch 2)", () => {
 			expect(cookieStr).toMatch(/path=\//i);
 		});
 
-		it("writes the cookie with SameSite=Lax so cross-origin POSTs do not include it", () => {
+		it("writes the cookie with SameSite=lax (lowercase) so cross-origin POSTs do not include it", () => {
 			setSessionCookie(SAMPLE_SESSION);
 			const cookieStr = String(lastSetCookie);
 			expect(cookieStr).toMatch(/samesite=lax/i);
 		});
 
-		it("overwrites a previous auth-session cookie with the new value (last-write-wins)", () => {
+		it("writes the HttpOnly attribute as a canonical NextAuth v5 hint (browsers ignore it set via document.cookie)", () => {
+			setSessionCookie(SAMPLE_SESSION);
+			const cookieStr = String(lastSetCookie);
+			expect(cookieStr).toMatch(/httponly/i);
+		});
+
+		it("uses SESSION_TTL_SECONDS=24*60*60 to compose the max-age directive (matches API's SESSION_TTL_MS)", () => {
+			// Slice 4 cookie migration final — the max-age value is the
+			// SESSION_TTL_SECONDS constant (24*60*60 = 86400). Pinning
+			// the literal here too so a future drift between the
+			// constant and the literal is caught.
+			expect(SESSION_TTL_SECONDS).toBe(24 * 60 * 60);
+			setSessionCookie(SAMPLE_SESSION);
+			const cookieStr = String(lastSetCookie);
+			const match = cookieStr.match(/max-age=(\d+)/i);
+			expect(match).not.toBeNull();
+			expect(Number(match?.[1])).toBe(SESSION_TTL_SECONDS);
+		});
+
+		it("overwrites a previous authjs.session-token cookie with the new value (last-write-wins)", () => {
 			setSessionCookie(SAMPLE_SESSION);
 			const NEW_SESSION = {
 				token: "session-token-xyz",

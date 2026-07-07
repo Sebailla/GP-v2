@@ -6,7 +6,7 @@ import { render, screen, cleanup } from "@testing-library/react";
  * (post-4e T3.3 deferred follow-up).
  *
  * The slice-1 placeholder landing page is upgraded to:
- *  - Read the auth-session cookie via `getSession()` (server side).
+ *  - Read the authjs.session-token cookie via `getSession()` (server side).
  *  - If the session is non-null, render the user's email + a
  *    "Welcome" message + (in a future batch) a sign-out button.
  *  - If the session is null, render the slice-1 placeholder
@@ -78,7 +78,7 @@ describe("LandingPage — slice 4 batch 2 (post-4e T3.3 deferred follow-up)", ()
 		render(element);
 	}
 
-	it("renders the slice-1 placeholder when no auth-session cookie is set", async () => {
+	it("renders the slice-1 placeholder when no authjs.session-token cookie is set", async () => {
 		await mockCookieStore({});
 		await renderPage("en");
 		// The slice-1 placeholder copy is the indicator that the page
@@ -87,9 +87,9 @@ describe("LandingPage — slice 4 batch 2 (post-4e T3.3 deferred follow-up)", ()
 		expect(screen.getByText(/Auth UI lands in slice 4/i)).toBeInTheDocument();
 	});
 
-	it("renders the user's email when the auth-session cookie is set", async () => {
+it("renders the user's email when the authjs.session-token cookie is set", async () => {
 		await mockCookieStore({
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: {
 					id: "user-1",
@@ -104,9 +104,9 @@ describe("LandingPage — slice 4 batch 2 (post-4e T3.3 deferred follow-up)", ()
 		expect(screen.getByText(/auth\.dashboard\.welcome/i)).toBeInTheDocument();
 	});
 
-	it("does NOT render the unauthenticated placeholder when the session is present", async () => {
+it("does NOT render the unauthenticated placeholder when the session is present", async () => {
 		await mockCookieStore({
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: {
 					id: "user-1",

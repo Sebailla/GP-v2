@@ -28,7 +28,7 @@ import { getSession } from "@/lib/auth";
  * the i18n catalog via `getTranslations("auth.signIn")`.
  *
  * **Slice 4 batch 2 wiring.** Before rendering the form, the page
- * calls `getSession()` to check the auth-session cookie. If a
+ * calls `getSession()` to check the authjs.session-token cookie. If a
  * session is present, the page calls `redirect(/${locale}/)` to
  * bounce the visitor to the landing. The redirect happens BEFORE
  * the form renders, so an already-authed user never sees the
