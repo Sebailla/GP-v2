@@ -1,8 +1,8 @@
-import { randomUUID } from "node:crypto";
-
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
 import bcrypt from "bcryptjs";
+import { encode as encodeJwt } from "next-auth/jwt";
+import { env } from "@core/config";
 
 import { AuthError, ValidationError } from "./errors.js";
 import { BCRYPT_COST_FACTOR } from "./constants.js";
@@ -158,12 +158,41 @@ export class AuthService {
       throw new AuthError("INVALID_CREDENTIALS");
     }
 
-    // 4. Create the session. sessionToken is a random UUID; expires is
-    // now + SESSION_TTL_MS. The Session model (User-session relation) is
-    // declared in libs/core/database/prisma/schema.prisma.
-    const sessionToken = randomUUID();
+// 4. Create the session. sessionToken is a NextAuth v5 JWE
+    // (encrypted via @auth/core/jwt#encode); expires is now +
+    // SESSION_TTL_MS. The Session model (User-session relation) is
+    // declared in libs/core/database/prisma/schema.prisma. The JWT
+    // payload mirrors the canonical `jwt` callback projection in
+    // apps/api/src/lib/auth.config.ts: `sub`, `email`, `role`,
+    // `userId`, plus `name` + `picture` (the NextAuth default claims).
+    // The `salt` MUST match `NEXTAUTH_SESSION_TOKEN_NAME` so the
+    // API's `JwtAuthGuard` and the web client's `auth()` helper
+    // decode the cookie with the same HKDF-derived key.
+    const sessionToken = await encodeJwt({
+      token: {
+        name: null,
+        email: user.email,
+        picture: null,
+        sub: user.id,
+        userId: user.id,
+        role: String(user.role),
+      },
+      secret: env.NEXTAUTH_SECRET,
+      salt: "authjs.session-token",
+      maxAge: Math.floor(SESSION_TTL_MS / 1000),
+    });
     const expires = new Date(Date.now() + SESSION_TTL_MS);
-    const session = await this.prisma.session.create({
+    // The Session row is still created (for audit + TTL — slice 3 batch
+    // 6b's `PrismaSessionRepository` reads it for the
+    // GET /auth/sessions + DELETE /auth/sessions/:id endpoints), but the
+    // token returned to the caller is the freshly-minted NextAuth JWE
+    // (`sessionToken` variable), NOT the value returned by
+    // `prisma.session.create` (which Prisma may transform if the column
+    // has a @default or a setter). The two values are equal in this
+    // slice; we deliberately return `sessionToken` so future refactors
+    // (e.g. dropping the Session row) don't accidentally surface a
+    // raw DB value instead of the canonical JWT.
+    await this.prisma.session.create({
       data: {
         sessionToken,
         userId: user.id,
@@ -171,16 +200,16 @@ export class AuthService {
       },
     });
 
-// 5. Project the public result. role is whatever Prisma returns
-        // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
-        // local role type if needed.
-        return {
-          id: user.id,
-          email: user.email,
-          role: String(user.role),
-          sessionToken: session.sessionToken,
-        };
-      }
+    // 5. Project the public result. role is whatever Prisma returns
+            // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
+            // local role type if needed.
+            return {
+              id: user.id,
+              email: user.email,
+              role: String(user.role),
+              sessionToken,
+            };
+          }
 
       /**
        * Register a new user with email + password (optional display name).
@@ -261,12 +290,29 @@ export class AuthService {
           },
         });
 
-        // 6. Mint the session. sessionToken is a random UUID; expires is
-        // now + SESSION_TTL_MS — matches the login flow so a freshly
-        // registered user lands authenticated for the same duration.
-        const sessionToken = randomUUID();
+// 6. Mint the session. sessionToken is a NextAuth v5 JWE
+        // (encrypted via @auth/core/jwt#encode) — same shape as the
+        // login flow. The canonical user projection lives in the
+        // JWT payload: `sub`, `email`, `role`, `userId`, plus
+        // NextAuth defaults `name` + `picture`. The `salt` MUST
+        // match `NEXTAUTH_SESSION_TOKEN_NAME` so the API's
+        // `JwtAuthGuard` and the web client's `auth()` helper
+        // decode the cookie with the same HKDF-derived key.
+        const sessionToken = await encodeJwt({
+          token: {
+            name: normalizedName,
+            email: user.email,
+            picture: null,
+            sub: user.id,
+            userId: user.id,
+            role: String(user.role),
+          },
+          secret: env.NEXTAUTH_SECRET,
+          salt: "authjs.session-token",
+          maxAge: Math.floor(SESSION_TTL_MS / 1000),
+        });
         const expires = new Date(Date.now() + SESSION_TTL_MS);
-        const session = await this.prisma.session.create({
+        await this.prisma.session.create({
           data: {
             sessionToken,
             userId: user.id,
@@ -281,7 +327,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           role: String(user.role),
-          sessionToken: session.sessionToken,
+          sessionToken,
         };
       }
     }

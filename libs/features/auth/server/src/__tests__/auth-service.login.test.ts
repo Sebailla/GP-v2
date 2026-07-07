@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
  * TDD contract for AuthService.login (slice 3 / T3.1 RED step).
@@ -26,25 +26,47 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 vi.mock("@core/database", () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    session: {
-      create: vi.fn(),
-    },
-  },
+	prisma: {
+		user: {
+			findUnique: vi.fn(),
+		},
+		session: {
+			create: vi.fn(),
+		},
+	},
 }));
 
 vi.mock("bcryptjs", () => ({
-  default: {
-    compare: vi.fn(),
-    hash: vi.fn(),
-  },
+	default: {
+		compare: vi.fn(),
+		hash: vi.fn(),
+	},
 }));
 
 import { prisma } from "@core/database";
 import bcrypt from "bcryptjs";
+import { decode as decodeJwt } from "next-auth/jwt";
+
+/**
+ * Slice 4 NextAuth integration follow-up (post-batch 2).
+ *
+ * The sessionToken returned by AuthService.login + AuthService.register is
+ * now a NextAuth v5 JWE (encrypted via `@auth/core/jwt#encode`) — NOT a
+ * `randomUUID()` opaque string. The round-trip test below mints the
+ * JWT via the production code path and asserts:
+ *
+ *   1. The returned `sessionToken` is a valid NextAuth JWE (decodes
+ *      successfully via `@auth/core/jwt#decode` with the SAME
+ *      `secret` + `salt` the API's guard uses).
+ *   2. The decoded payload carries the canonical user projection
+ *      (`sub`, `email`, `role`, `userId`) so the web client + the
+ *      API's `JwtAuthGuard` see the same shape.
+ *
+ * The secret is read from `env.NEXTAUTH_SECRET`; the salt is the
+ * canonical `NEXTAUTH_SESSION_TOKEN_NAME` constant. Both must match
+ * the API's `JwtAuthGuard` exactly.
+ */
+const NEXTAUTH_SECRET_FOR_TEST = "test-secret-at-least-32-characters-long-for-hkdf";
 
 describe("AuthService.login", () => {
   beforeEach(() => {
@@ -52,7 +74,7 @@ describe("AuthService.login", () => {
   });
 
   // AC-1: success path
-  it("returns { id, email, role, sessionToken } for valid credentials and creates a session", async () => {
+it("returns { id, email, role, sessionToken } for valid credentials and creates a session", async () => {
     const { AuthService } = await import("../auth-service.js");
 
     const fakeUser = {
@@ -73,12 +95,20 @@ describe("AuthService.login", () => {
     const auth = new AuthService(prisma);
     const result = await auth.login("alice@example.com", "correct-password");
 
-    expect(result).toEqual({
-      id: "user-1",
-      email: "alice@example.com",
-      role: "USER",
-      sessionToken: "session-token-abc",
-    });
+    // Slice 4 NextAuth integration follow-up: the `sessionToken`
+    // is now a NextAuth v5 JWE (5-segment dot-separated string),
+    // NOT the old `randomUUID()` opaque value. The assertion below
+    // pins the shape (id, email, role) and asserts the token is a
+    // non-empty string; the round-trip test (further down) asserts
+    // the token decodes as a valid NextAuth JWE with the canonical
+    // claims.
+    expect(result.id).toBe("user-1");
+    expect(result.email).toBe("alice@example.com");
+    expect(result.role).toBe("USER");
+    expect(typeof result.sessionToken).toBe("string");
+    expect(result.sessionToken.length).toBeGreaterThan(0);
+    // The JWE has 5 segments (header.encryptedKey.iv.ciphertext.tag).
+    expect(result.sessionToken.split(".")).toHaveLength(5);
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: "alice@example.com" },
     });
@@ -165,7 +195,7 @@ describe("AuthService.login", () => {
   });
 
   // AC-4b: validation rejects malformed email
-  it("throws ValidationError when email is not a valid address", async () => {
+it("throws ValidationError when email is not a valid address", async () => {
     const { AuthService, ValidationError } = await import("../auth-service.js");
     const auth = new AuthService(prisma);
 
@@ -179,5 +209,86 @@ describe("AuthService.login", () => {
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
     expect(bcrypt.compare).not.toHaveBeenCalled();
     expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+});
+
+// -------------------------------------------------------------------------
+// Slice 4 NextAuth integration follow-up — round-trip JWT assertion.
+//
+// The sessionToken returned by AuthService.login is now a real
+// NextAuth v5 JWE (encrypted via @auth/core/jwt#encode). This block
+// asserts that the returned token:
+//
+//   - decodes successfully via @auth/core/jwt#decode with the
+//     SAME secret + salt the API's JwtAuthGuard uses (round-trip),
+//   - carries the canonical user projection claims (sub, email,
+//     role, userId) so the web client's `auth()` helper + the
+//     API's guard see the same shape.
+//
+// The secret is stubbed via vi.stubEnv to match the guard's
+// runtime read of `env.NEXTAUTH_SECRET`. The salt is the
+// canonical `NEXTAUTH_SESSION_TOKEN_NAME` constant (already
+// used by the guard).
+// -------------------------------------------------------------------------
+describe("AuthService.login — round-trip JWT (NextAuth integration)", () => {
+  const NEXTAUTH_SESSION_TOKEN_NAME = "authjs.session-token";
+
+  beforeEach(() => {
+    // The production code reads `env.NEXTAUTH_SECRET` at runtime
+    // (via @core/config). Stub it before each test so the
+    // @core/config singleton sees the same value the decoder
+    // uses here.
+    vi.stubEnv("NEXTAUTH_SECRET", NEXTAUTH_SECRET_FOR_TEST);
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("DATABASE_URL", "postgresql://test@localhost/db");
+    vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000");
+    vi.stubEnv("API_URL", "http://localhost:3001");
+    vi.stubEnv("WEB_ORIGIN", "http://localhost:3000");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("returns a sessionToken that decodes as a valid NextAuth JWT with the canonical user claims", async () => {
+    const { AuthService } = await import("../auth-service.js");
+
+    const fakeUser = {
+      id: "user-1",
+      email: "alice@example.com",
+      role: "USER" as const,
+      hashedPassword: "$2a$10$irrelevant-hash-for-mock",
+    };
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(fakeUser);
+    vi.mocked(bcrypt.compare).mockResolvedValue(true);
+    vi.mocked(prisma.session.create).mockResolvedValue({
+      id: "session-1",
+      sessionToken: "session-token-abc",
+      userId: "user-1",
+      expires: new Date(Date.now() + 60_000),
+    });
+
+const auth = new AuthService(prisma);
+    const result = await auth.login("alice@example.com", "correct-password");
+
+    // Round-trip: the returned sessionToken MUST decode via
+    // @auth/core/jwt#decode with the same secret + salt the API's
+    // guard uses (apps/api/src/shared/guards/jwt.guard.ts). This
+    // is the canonical "NextAuth integration" verification: the
+    // token the web client stores in its cookie is the SAME token
+    // the API's guard accepts.
+    const decoded = await decodeJwt({
+      token: result.sessionToken,
+      secret: NEXTAUTH_SECRET_FOR_TEST,
+      salt: NEXTAUTH_SESSION_TOKEN_NAME,
+    });
+
+    expect(decoded).not.toBeNull();
+    expect(decoded).toMatchObject({
+      sub: "user-1",
+      email: "alice@example.com",
+      role: "USER",
+      userId: "user-1",
+    });
   });
 });

@@ -86,15 +86,21 @@ describe("AuthService.register", () => {
       expires: new Date(Date.now() + 60_000),
     });
 
-    const auth = new AuthService(prisma);
+const auth = new AuthService(prisma);
     const result = await auth.register("alice@example.com", "StrongP@ss123", "Alice");
 
-    expect(result).toEqual({
-      id: "user-new",
-      email: "alice@example.com",
-      role: "USER",
-      sessionToken: "session-token-xyz",
-    });
+    // Slice 4 NextAuth integration follow-up: the `sessionToken`
+    // is now a NextAuth v5 JWE (5-segment dot-separated string),
+    // NOT the old `randomUUID()` opaque value. The assertion below
+    // pins the shape (id, email, role) and asserts the token is a
+    // non-empty 5-segment string; the round-trip test further
+    // down asserts the token decodes as a valid NextAuth JWE.
+    expect(result.id).toBe("user-new");
+    expect(result.email).toBe("alice@example.com");
+    expect(result.role).toBe("USER");
+    expect(typeof result.sessionToken).toBe("string");
+    expect(result.sessionToken.length).toBeGreaterThan(0);
+    expect(result.sessionToken.split(".")).toHaveLength(5);
 
     // 1. Uniqueness check ran first
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
@@ -208,7 +214,7 @@ describe("AuthService.register", () => {
   // invalid input that throws ValidationError at the boundary BEFORE
   // any DB or bcrypt call. This matches design §4.2 verbatim: name is
   // a user-visible display name, not an optional handle.
-  it("throws ValidationError when name is empty (canonical schema makes name REQUIRED)", async () => {
+it("throws ValidationError when name is empty (canonical schema makes name REQUIRED)", async () => {
     const { AuthService, ValidationError } = await import("../auth-service.js");
     const auth = new AuthService(prisma);
 
@@ -225,5 +231,62 @@ describe("AuthService.register", () => {
     expect(bcrypt.hash).not.toHaveBeenCalled();
     expect(prisma.user.create).not.toHaveBeenCalled();
     expect(prisma.session.create).not.toHaveBeenCalled();
+  });
+});
+
+// -------------------------------------------------------------------------
+// Slice 4 NextAuth integration follow-up — round-trip JWT assertion.
+// Mirrors the test added to auth-service.login.test.ts.
+// -------------------------------------------------------------------------
+describe("AuthService.register — round-trip JWT (NextAuth integration)", () => {
+  const NEXTAUTH_SESSION_TOKEN_NAME = "authjs.session-token";
+  const NEXTAUTH_SECRET_FOR_TEST =
+    "test-secret-at-least-32-characters-long-for-hkdf";
+
+  it("returns a sessionToken that decodes as a valid NextAuth JWT with the canonical user claims", async () => {
+    const { AuthService } = await import("../auth-service.js");
+
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null); // email not taken
+    vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$mocked-hash-value");
+    vi.mocked(prisma.user.create).mockResolvedValue({
+      id: "user-new",
+      email: "alice@example.com",
+      name: "Alice",
+      role: "USER" as const,
+      hashedPassword: "$2a$10$mocked-hash-value",
+      emailVerified: null,
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(prisma.session.create).mockResolvedValue({
+      id: "session-1",
+      sessionToken: "session-token-xyz",
+      userId: "user-new",
+      expires: new Date(Date.now() + 60_000),
+    });
+
+    const auth = new AuthService(prisma);
+    const result = await auth.register(
+      "alice@example.com",
+      "StrongP@ss123",
+      "Alice",
+    );
+
+    const { decode: decodeJwt } = await import("next-auth/jwt");
+    const decoded = await decodeJwt({
+      token: result.sessionToken,
+      secret: NEXTAUTH_SECRET_FOR_TEST,
+      salt: NEXTAUTH_SESSION_TOKEN_NAME,
+    });
+
+    expect(decoded).not.toBeNull();
+    expect(decoded).toMatchObject({
+      sub: "user-new",
+      email: "alice@example.com",
+      role: "USER",
+      userId: "user-new",
+      name: "Alice",
+    });
   });
 });

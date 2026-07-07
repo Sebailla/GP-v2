@@ -22,5 +22,11 @@ export default defineConfig({
 		environment: "node",
 		globals: false,
 		clearMocks: true,
+		// Slice 4 NextAuth integration follow-up — AuthService now mints
+		// real NextAuth JWEs via @auth/core/jwt#encode, which reads
+		// env.NEXTAUTH_SECRET at module-load time. The setup file mirrors
+		// apps/api/test/setup-env.ts so the auth-feature + the API agree
+		// on the same secret (the guard's decode uses the same string).
+		setupFiles: ["./vitest.setup.ts"],
 	},
 });
