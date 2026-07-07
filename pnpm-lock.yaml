@@ -108,6 +108,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@auth/core':
+        specifier: 0.37.4
+        version: 0.37.4
       '@core/config':
         specifier: workspace:*
         version: link:../../libs/core/config
@@ -138,6 +141,9 @@ importers:
       next:
         specifier: 16.2.10
         version: 16.2.10(@playwright/test@1.49.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      next-auth:
+        specifier: 5.0.0-beta.25
+        version: 5.0.0-beta.25(next@16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
       next-intl:
         specifier: 3.26.5
         version: 3.26.5(next@16.2.10(@playwright/test@1.49.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
