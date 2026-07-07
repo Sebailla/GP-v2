@@ -56,7 +56,7 @@ export default async function SignUpPage({
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>
-          <CardDescription>{t("email")}</CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <SignUpClient apiUrl={env.API_URL} locale={locale} />

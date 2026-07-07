@@ -65,9 +65,9 @@ export default async function SignInPage({
     >
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("title")}</CardTitle>
-          <CardDescription>{t("email")}</CardDescription>
-        </CardHeader>
+            <CardTitle>{t("title")}</CardTitle>
+            <CardDescription>{t("description")}</CardDescription>
+          </CardHeader>
         <CardContent>
           <SignInClient apiUrl={env.API_URL} locale={locale} />
         </CardContent>
