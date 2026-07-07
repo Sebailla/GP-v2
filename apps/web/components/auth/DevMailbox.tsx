@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
+ * Duration of the "Copied to clipboard" indicator on the DevMailbox
+ * copy button. After this many ms the indicator resets to the
+ * pre-copy state. Tuned for human perception — long enough to be
+ * noticed, short enough to not block the next interaction.
+ */
+const COPY_INDICATOR_TIMEOUT_MS = 2_000;
+
+/**
  * DevMailbox — slice 4 batch 4d (T4.12).
  *
  * DEV-ONLY client component that lists the stubbed
@@ -113,9 +121,9 @@ function DevMailboxRow({
 	const [copied, setCopied] = React.useState(false);
 	// Reset the "Copied" indicator after 2s so the user gets a clear
 	// visual signal but the button doesn't stay stuck.
-	React.useEffect(() => {
+React.useEffect(() => {
 		if (!copied) return;
-		const handle = setTimeout(() => setCopied(false), 2000);
+		const handle = setTimeout(() => setCopied(false), COPY_INDICATOR_TIMEOUT_MS);
 		return () => clearTimeout(handle);
 	}, [copied]);
 

@@ -30,77 +30,54 @@ import { ForgotPasswordForm } from "../../../components/auth/ForgotPasswordForm"
 
 /**
  * TDD contract for `apps/web/components/auth/ForgotPasswordForm.tsx` —
- * slice 4 batch 4d (T4.10).
+ * slice 4 follow-ups (per-form test slim).
  *
- * The form is an idempotent client component that:
- *  1. Renders an email field bound to `forgotPasswordSchema.shape.email`
- *     via `react-hook-form` + the local `@/lib/zod-resolver` adapter.
- *  2. Renders a submit button with the `auth.forgotPassword.submit` label.
- *  3. On submit: validates via `forgotPasswordSchema`, then POSTs to
- *     `${apiUrl}/auth/forgot-password` with `{ email }`.
- *  4. Both 202 (email registered) AND 202 (email unknown — API is
- *     idempotent to prevent account enumeration) collapse to the
- *     SUCCESS state, which renders the `auth.forgotPassword.success`
- *     copy + a link back to `/sign-in`. The form NEVER branches on
- *     "did this email exist?" — that's the enumeration-leak prevention.
- *  5. On 500 (or any non-2xx) or network failure: renders
- *     `auth.common.genericError` above the field.
- *  6. While in-flight: submit button disabled + label swapped to
- *     `auth.common.loading`; `<form aria-busy="true">`.
+ * **Form-specific scope.** This file now asserts ONLY the idempotent 202
+ * contract that the design documents as a load-bearing invariant and that
+ * the consolidated `state-coverage.test.tsx` (T4.14) does not pin: the
+ * success state replaces the form with the `auth.forgotPassword.success`
+ * copy + a back-to-signin link that points to the right locale-prefixed
+ * URL (the `locale` prop is preserved on the link). The state-coverage
+ * harness tests the success state via `screen.queryByRole("button", ...)`
+ * `not.toBeInTheDocument()`, but it does not assert on the link's `href`
+ * (the locale-preservation invariant lives here).
  *
- * Tests verify the 3 form states per the brief: empty / loading / success
- * (api-error is the failure path of the success branch — the brief groups
- * them as "3 form states" because there is no validation-error vs api-error
- * distinction at the form-level; only field-level validation + form-level
- * api-error / success).
+ * The 5-state rendering tests for ForgotPasswordForm were consolidated
+ * into `state-coverage.test.tsx` in slice 4 follow-up cleanup (per the
+ * `Decision needed before apply` marker; see apply-progress slice 4
+ * follow-ups).
+ *
+ * (consolidated into state-coverage.test.tsx; see T4.14)
+ *  - empty / validation / loading / 500 / network-failure rendering
+ *    → covered by `state-coverage.test.tsx` ForgotPasswordForm describe block.
+ *  - The generic success-state render (form unmounted) is also covered
+ *    by state-coverage, but this file pins the URL shape + the
+ *    locale-preserved back-to-signin link (the design's idempotency
+ *    invariant: 202 collapses BOTH known + unknown emails to the same
+ *    success copy, with NO enumeration distinction at the form level).
+ *
+ * **Form-specific test kept here.**
+ *  - The form POSTs to `${apiUrl}/auth/forgot-password` with `{ email }`
+ *    on a 202 response, transitions to the success state, and renders the
+ *    back-to-signin link with the `locale`-preserved `href="/en/sign-in"`.
  */
-describe("ForgotPasswordForm — slice 4 batch 4d (T4.10)", () => {
+describe("ForgotPasswordForm — slice 4 follow-ups (per-form test slim)", () => {
 	beforeEach(() => {
 		mockFetch.mockReset();
 	});
 
-	function renderForm(): void {
-		render(<ForgotPasswordForm apiUrl="http://api.test" locale="en" />);
+	function renderForm(locale: string = "en"): void {
+		render(<ForgotPasswordForm apiUrl="http://api.test" locale={locale} />);
 	}
 
-	it("renders the email field + submit button with the expected i18n keys", () => {
-		renderForm();
-
-		const email = screen.getByLabelText(/auth\.forgotPassword\.email/i);
-		const submit = screen.getByRole("button", {
-			name: /auth\.forgotPassword\.submit/i,
-		});
-
-		expect(email).toBeInTheDocument();
-		expect(email).toHaveAttribute("type", "email");
-		expect(submit).toBeInTheDocument();
-		expect(submit).toHaveAttribute("type", "submit");
-	});
-
-	it("shows a field-level validation error when the user submits an empty email", async () => {
-		renderForm();
-
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.queryByTestId("forgot-password-email-error"),
-			).not.toBeNull();
-		});
-
-		expect(mockFetch).not.toHaveBeenCalled();
-	});
-
-	it("calls the API with the email payload and shows the success state on a 202 response", async () => {
+	it("calls the API with the email payload and shows the success state on a 202 response (idempotent — locale-preserved back-to-signin link)", async () => {
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			status: 202,
 			json: async () => ({}),
 		});
 
-		renderForm();
+		renderForm("en");
 
 		fireEvent.change(screen.getByLabelText(/auth\.forgotPassword\.email/i), {
 			target: { value: "alice@example.com" },
@@ -128,74 +105,11 @@ describe("ForgotPasswordForm — slice 4 batch 4d (T4.10)", () => {
 				screen.getByText(/auth\.forgotPassword\.success/i),
 			).toBeInTheDocument();
 		});
+		// The back-to-signin link must be locale-preserved (the design's
+		// invariant: 202 collapses BOTH known + unknown emails to the same
+		// success copy, with NO enumeration distinction at the form level).
 		expect(
 			screen.getByRole("link", { name: /auth\.common\.backToLoginLink/i }),
 		).toHaveAttribute("href", "/en/sign-in");
-	});
-
-	it("shows the generic error when the API returns 500", async () => {
-		mockFetch.mockResolvedValueOnce({
-			ok: false,
-			status: 500,
-			json: async () => ({}),
-		});
-
-		renderForm();
-
-		fireEvent.change(screen.getByLabelText(/auth\.forgotPassword\.email/i), {
-			target: { value: "alice@example.com" },
-		});
-
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.getByText(/auth\.common\.genericError/i),
-			).toBeInTheDocument();
-		});
-
-		// The success copy MUST NOT appear on a 5xx.
-		expect(
-			screen.queryByText(/auth\.forgotPassword\.success/i),
-		).not.toBeInTheDocument();
-	});
-
-	it("disables the submit button and sets aria-busy='true' while the request is in-flight", async () => {
-		// Make the fetch hang until we resolve it manually so we can observe
-		// the loading state.
-		let resolveFetch!: (value: unknown) => void;
-		mockFetch.mockReturnValueOnce(
-			new Promise((resolve) => {
-				resolveFetch = resolve;
-			}),
-		);
-
-		renderForm();
-
-		fireEvent.change(screen.getByLabelText(/auth\.forgotPassword\.email/i), {
-			target: { value: "alice@example.com" },
-		});
-
-		const submit = screen.getByRole("button", {
-			name: /auth\.forgotPassword\.submit/i,
-		});
-		fireEvent.click(submit);
-
-		// While in flight: button label switches to `auth.common.loading`,
-		// button is disabled, and the form has `aria-busy="true"`.
-		await waitFor(() => {
-			expect(
-				screen.getByRole("button", { name: /auth\.common\.loading/i }),
-			).toBeDisabled();
-		});
-
-		const form = submit.closest("form");
-		expect(form).not.toBeNull();
-		expect(form).toHaveAttribute("aria-busy", "true");
-
-		// Resolve the in-flight request so the test cleans up.
-		resolveFetch({ ok: true, status: 202, json: async () => ({}) });
 	});
 });

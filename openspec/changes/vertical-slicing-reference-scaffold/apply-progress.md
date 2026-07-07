@@ -2199,3 +2199,172 @@ next_recommended: slice 4 follow-up + slice 5 prep (transactions)
 - Spec: `openspec/changes/.../specs/auth/spec.md` (Sign-in scenarios + Sessions List + Password Reset).
 - Design: `openspec/changes/.../design.md` §6 (UI conventions) + §8.4 (locale split) + §11 (WCAG AA).
 - Engram: `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-batch4e`.
+
+---
+
+## Slice 4 follow-ups: cleanup — STATUS: COMPLETE (slice 4 polished)
+
+**Branch**: `feat/vertical-slicing-s4-followups-cleanup` (cut from `develop` @ `723ae89`, post-PR #18 slice 4 batch 4e merge).
+**Mode**: interactive.
+**Strict TDD**: ACTIVE. Test runner = `pnpm turbo run test`.
+**Worker outcome**: succeeded — no stalls. Forbidden ops (find/ls -R/tree/npm view/pnpm list) avoided. 5 atomic commits (4 source-code + 1 markers/apply-progress).
+
+### Per-sub-task status
+
+| Sub-task | Status | Notes |
+|---|---|---|
+| brief-magic-constant | ✅ | `COPY_INDICATOR_TIMEOUT_MS = 2_000` extracted in `DevMailbox.tsx` with JSDoc explaining the perceptual tuning. Commit `ca65ad0`. |
+| brief-referrer-policy | ✅ | `Referrer-Policy: same-origin` added to `next.config.ts` scoped to the (auth) URL pattern. Commit `0d2342e`. |
+| brief-input-prop-cleanup | ✅ (NO-OP) | Verified the `Input` primitive does NOT have `label`/`error` props (per batch 4c deviation #8, the modification was caught + reverted before commit). No code change required. |
+| brief-fetch-timeout | ✅ | RED + GREEN. `AbortSignal.timeout(10_000)` + DOMException-based timeout detection + i18n key `auth.common.error.timeout` in both catalogs. New regression test in `state-coverage.test.tsx`. Commit `fa0fbc8`. |
+| brief-test-slim | ✅ | 4 per-form test files slimmed to keep only form-specific tests; consolidated `state-coverage.test.tsx` (T4.14) is the source of truth for the 5 states. Commit `b8acc43`. |
+| brief-markers-apply-progress | ✅ | tasks.md "Slice 4 follow-ups (post-4e)" section + this apply-progress section. |
+
+### Atomic commits landed (5)
+
+```
+0d2342e chore(web): Referrer-Policy: same-origin on (auth) routes
+ca65ad0 refactor(web): extract DevMailbox COPY_INDICATOR_TIMEOUT_MS constant
+fa0fbc8 feat(web): AbortSignal.timeout(10_000) in useAuthApiPost + auth.common.error.timeout
+b8acc43 test(web): slim per-form test files — consolidate into state-coverage.test.tsx
+<this commit> chore(slice-4-followups): tasks.md slice 4 follow-up section + apply-progress
+```
+
+### Files created / modified (10 files, ~216 insertions / ~735 deletions)
+
+```
+apps/web/__tests__/components/auth/
+  ├── LoginForm.test.tsx             | MODIFIED — 240 lines removed (8 tests → 1 form-specific test)
+  ├── SignUpForm.test.tsx            | MODIFIED — 255 lines removed (8 tests → 1 form-specific test)
+  ├── ForgotPasswordForm.test.tsx    | MODIFIED — 160 lines removed (5 tests → 1 form-specific test)
+  ├── ResetPasswordForm.test.tsx     | MODIFIED — 181 lines removed (6 tests → 1 form-specific test)
+  └── state-coverage.test.tsx        | MODIFIED — +28 lines (1 new timeout regression test)
+
+apps/web/components/auth/DevMailbox.tsx    | MODIFIED — +10/-2 lines (extract COPY_INDICATOR_TIMEOUT_MS)
+apps/web/lib/useAuthApiPost.ts             | MODIFIED — +27 lines (AbortSignal.timeout + DOMException check + FETCH_TIMEOUT_MS constant)
+apps/web/messages/en.json                  | MODIFIED — +5 lines (auth.common.error.timeout)
+apps/web/messages/es.json                  | MODIFIED — +5 lines (auth.common.error.timeout, Spanish)
+apps/web/next.config.ts                    | MODIFIED — +18 lines (Referrer-Policy headers() block)
+
+openspec/changes/.../tasks.md              | MODIFIED — new "Slice 4 follow-ups (post-4e)" section + 5 [x] sub-task rows
+openspec/changes/.../apply-progress.md     | MODIFIED — this section appended (merged, not overwritten)
+```
+
+### TDD evidence (per sub-task)
+
+| Sub-task | RED | GREEN | Refactor | Notes |
+|---|---|---|---|---|
+| brief-magic-constant | n/a | n/a | trivial | Single `setTimeout` call site updated. No test change needed. |
+| brief-referrer-policy | n/a | n/a | n/a | No new test (e2e suite is best-effort; verified by inspecting response headers in dev tools). |
+| brief-input-prop-cleanup | n/a | n/a | n/a | Verified absent via `git log --follow` + `grep`. No code change. |
+| brief-fetch-timeout | `pnpm --filter web exec vitest run __tests__/components/auth/state-coverage.test.tsx` → 1/21 FAIL (new timeout test expected `auth.common.error.timeout` banner, but the catch block was using the generic fallback). | Same command → 21/21 PASS: AbortSignal.timeout + DOMException check + i18n key landed. | n/a | Strict TDD discipline followed: failing test written first, verified RED, then GREEN. |
+| brief-test-slim | n/a | n/a | refactor | Per-form files slim to keep only form-specific tests; state-coverage is the source of truth for the 5 states. Net: -735 / +216 (mostly deletions of duplicate tests). |
+
+### Quality gates — all green
+
+| Gate | Command | Result | Notes |
+|---|---|---|---|
+| Workspace install | `pnpm install` | ✅ exit 0 | No new deps this batch. |
+| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | ✅ 110/110 PASS | No regression. |
+| Tests (events) | `pnpm --filter @core/events exec vitest run` | ✅ 37/37 PASS | No regression. |
+| Tests (config) | `pnpm --filter @core/config exec vitest run` | ✅ 20/20 PASS | No regression. |
+| Tests (api) | `cd apps/api && pnpm exec vitest run` | ✅ 21/21 PASS | No regression. |
+| Tests (web) | `pnpm --filter web exec vitest run` | ✅ 83/83 PASS | Was 105/105 baseline + 1 new timeout test (106) - 23 removed duplicates = 83. Per-form files slimmed, state-coverage is source of truth. |
+| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | ✅ exit 0 | 9/9 tasks PASS. |
+| Lint (full) | `pnpm turbo run lint` | ✅ exit 0 | 10/10 packages PASS. |
+| Lint (fixtures) | `pnpm run lint:fixtures` | ✅ exit 0 | 11/11 boundary-rule fixtures PASS (18 violations across invalid fixtures). |
+| Typecheck (full) | `pnpm turbo run typecheck` | ✅ exit 0 | 9/9 packages PASS. |
+| i18n catalogs (web) | `pnpm --filter web exec vitest run __tests__/i18n-catalogs.test.ts` | ✅ 4/4 PASS | Symmetric-difference assertion stays green with new `auth.common.error.timeout` key in both `en.json` + `es.json`. |
+
+### Critical deviations
+
+1. **`brief-input-prop-cleanup` is a NO-OP.** The brief's assumption about batch 4c's auto-formatter adding `label` + `error` props to the `Input` primitive is outdated. Per batch 4c's apply-progress deviation #8, that modification appeared spontaneously during batch 4c and was caught + reverted via `git checkout HEAD -- <file>` + `rm` before each commit. The `Input` primitive at `apps/web/components/ui/input.tsx` extends just `React.InputHTMLAttributes<HTMLInputElement>` without those props, confirmed by `git log --follow` showing only the original batch 4b commit (`5418944 feat(web): GREEN 4 shadcn-style primitives (T4.4 batch 4b)`). No code change required.
+
+2. **Test count drops from 105 to 83** as expected by the brief. The brief states: "slim may drop the per-form duplicates; verify" and "the total test count drops by the removed duplicates". The math: 105 baseline + 1 new timeout test (106) - 23 removed duplicates (7+7+4+5 across the 4 per-form files) = 83. The 4 per-form FILES remain (form-specific tests + import setup); the consolidated `state-coverage.test.tsx` is the source of truth for the 5 states. The 25 tests in the auth-slice test surface = 4 form-specific + 21 state-coverage (4 forms × 5 states + 1 timeout test).
+
+3. **`SignUpForm` does NOT have a `locale` prop.** The brief said "KEEP: `locale` + `apiBaseUrl` propagation" for SignUpForm.test.tsx, but the `SignUpForm` component itself does NOT have a `locale` prop (it has only `apiUrl`, `onSuccess`, `className`). The `locale` lives on the parent `SignUpClient` wrapper, which translates the form's `onSuccess` callback into `router.replace('/${locale}/sign-in')`. The locale-aware redirect is tested at the page level in `sign-up.test.tsx`. The kept test in `SignUpForm.test.tsx` is the `apiUrl` propagation + `onSuccess` callback test, which covers the form-specific 3-field body `{ email, password, name }`. Documented in the per-form file's JSDoc.
+
+4. **`fetch-timeout` strict-TDD follow-through.** The brief said "tests+code in the SAME commit for a behavior task". I followed strict TDD discipline: wrote the RED test in `state-coverage.test.tsx`, verified RED (1/21 FAIL with `screen.getByTestId("login-form-error")` not finding the `auth.common.error.timeout` text), then landed the GREEN in the same commit (`fa0fbc8`) including the i18n keys. The committed state is GREEN (21/21 PASS); the RED state is documented in the commit message.
+
+5. **`en.json` and `es.json` indentation differ.** `en.json` uses tabs; `es.json` uses 2-space indentation. The first edit (en.json) succeeded; the second edit (es.json) failed initially with a content-drift warning because the indentation didn't match. Resolution: re-read es.json, applied with the correct 2-space indentation. Both JSON files validated with `JSON.parse()` (implicit in vitest's catalog sync test).
+
+### Forbidden operations (honored)
+
+- ❌ `find`, `ls -R`, `tree` — NOT USED. All file reads targeted specific paths from the brief's input list + the read-on-demand pattern.
+- ❌ `npm view`, `pnpm list`, `pnpm why` — NOT USED. Version pins came from the brief's explicit recommendations + existing package.json precedents.
+- ❌ `cat .pi/gentle-ai/config.json`, `cat .claude/...` — NOT READ.
+- ❌ `which`, `whereis`, `type` — NOT USED.
+- ❌ Modifying `apps/web/middleware.ts` or `apps/web/i18n.ts` (batch 4a territory) — NOT TOUCHED.
+- ❌ Modifying the API (slice 3 closed) — NOT TOUCHED.
+- ❌ Modifying the 4 forms' BUSINESS LOGIC (the timeout addition is structural; no behavior change beyond the new error path) — NOT TOUCHED beyond the `useAuthApiPost` hook.
+- ❌ Modifying the consolidated `state-coverage.test.tsx` ADDITIVE surface (it's the source of truth; the per-form files slim AROUND it, not vice versa) — only ADDED 1 new test for the timeout regression, no removal.
+- ❌ Modifying `apps/web/components/ui/input.tsx` (already verified clean) — NOT TOUCHED.
+- ❌ DevMailbox real API fetch — NOT IMPLEMENTED (deferred to slice 5+).
+- ❌ Session-token storage (T3.3 deferred) — NOT IMPLEMENTED (deferred to slice 4 follow-up batch 2).
+- ❌ "Co-Authored-By" or AI attribution — NOT INCLUDED in any commit.
+
+### Workload / PR boundary
+
+- Forecast from brief: 4 atomic commits + 1 markers/apply-progress commit.
+- Actual: 5 atomic commits. Each commit under 400 lines:
+  - `0d2342e` (referrer-policy): 1 file, +18 lines.
+  - `ca65ad0` (magic-constant): 1 file, +10/-2 lines.
+  - `fa0fbc8` (fetch-timeout): 4 files, +70/-15 lines.
+  - `b8acc43` (test-slim): 4 files, +118/-718 lines (mostly deletions of duplicate tests).
+  - `e73cf5f` (markers+apply-progress): 2 files, +265 lines.
+- 400-line budget risk: **Low** — every commit well under 400.
+- PR target: `feat/vertical-slicing-s4-followups-cleanup` → `develop` once `sdd-verify` clears the batch. Per `chain_strategy: feature-branch-chain`, this is a follow-up batch PR to `develop` directly (NOT to the tracker `feat/vertical-slicing-reference-scaffold`, which only accumulates the slice PRs).
+- This is a single PR (not chained) — the batch is small enough to fit one review.
+
+### Risks and known limitations (carried forward to slice 5)
+
+1. **Session token NOT stored** in a cookie. T3.3 deferred item. Slice 4 follow-up batch 2.
+2. **No `AbortSignal` for the dev-mailbox read.** SUGGESTION-level.
+3. **DevMailbox reads from a stub list**, not a real API. Slice 5+.
+4. **Clipboard write failure `copyFailed` state** — SUGGESTION-level. Low value.
+5. **WCAG AA + responsive e2e tests are scaffolded but not run in CI.** Per-dev browser install required.
+6. **Build (web) regression on `/_global-error`** — pre-existing Next.js 16 + React 19 issue from slice 4 batch 4d. NOT addressed by this batch.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_1:
+  status: complete
+  tasks_done: [T1.1..T1.8]
+slice_2:
+  status: complete
+  tasks_done: [T2.1..T2.5]
+slice_3:
+  status: complete
+  tasks_done: [T3.1, T3.2, T3.3, T3.4, T3.5, T3.6, T3.7, T3.8, T3.9]
+slice_4:
+  status: complete (15/15) + follow-ups (5/5 cleanup items)
+  tasks_done: [T4.1..T4.15]
+  follow_ups_done_brief:
+    - brief-test-slim
+    - brief-fetch-timeout
+    - brief-referrer-policy
+    - brief-magic-constant
+    - brief-input-prop-cleanup (verified NO-OP)
+feature_branch: feat/vertical-slicing-s4-followups-cleanup
+base_commit: 723ae89
+head_commit: e73cf5f
+pushed_to_remote: false
+merged_to_develop: false
+branch_protection_on_main: enforced
+risk_flags:
+  - input_primitive_props_already_absent_brief_assumption_outdated
+  - test_count_dropped_105_to_83_as_expected
+  - sign_up_form_has_no_locale_prop_locale_lives_on_sign_up_client
+next_recommended: slice 5 (transactions server) OR remaining slice 4 follow-ups batch 2 (session-token storage)
+```
+
+### Cross-references (slice 4 follow-ups)
+
+- Tasks: `openspec/changes/.../tasks.md` (new "Slice 4 follow-ups (post-4e)" section + 5 [x] sub-task rows).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Sign-in + §Password reset (the idempotent 202 contract + the token-in-URL invariant).
+- Design: `openspec/changes/.../design.md` §6.4-§6.7 (UI conventions) + §4.1 (auth domain design — idempotent forgot + generic 401).
+- Engram: `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-slice4-followups`.

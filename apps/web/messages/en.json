@@ -1,11 +1,14 @@
 {
   "auth": {
-    "common": {
-      "loading": "Loading…",
-      "genericError": "Something went wrong. Please try again.",
-      "cancel": "Cancel",
-      "backToLoginLink": "Back to sign-in"
-    },
+"common": {
+          "loading": "Loading…",
+          "genericError": "Something went wrong. Please try again.",
+          "cancel": "Cancel",
+          "backToLoginLink": "Back to sign-in",
+          "error": {
+            "timeout": "Request timed out. Please check your connection and try again."
+          }
+        },
     "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",

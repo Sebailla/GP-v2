@@ -22,6 +22,24 @@ const nextConfig: NextConfig = {
 	// Keep it disabled for now (slice 1 minimal landing has no typed links
 	// to validate). Enable when slices 4+ add typed routes.
 	typedRoutes: false,
+	// Defense-in-depth for the reset-password token URL: the token is in
+	// the URL path, so a `Referrer-Policy: same-origin` header ensures the
+	// full URL (including the token) is NEVER sent as the `Referer` header
+	// on any cross-origin request originating from these auth pages. The
+	// browser's default policy (`strict-origin-when-cross-origin`) already
+	// strips the path for cross-origin requests, but this header eliminates
+	// the surface entirely. Scoped to the (auth) route group so it does
+	// not affect the slice-1 landing or the slice-3-protected `/(auth)/sessions`.
+	async headers() {
+		return [
+			{
+				source: "/:locale(en|es)/(sign-in|sign-up|forgot-password|reset-password|dev/mailbox)/:path*",
+				headers: [
+					{ key: "Referrer-Policy", value: "same-origin" },
+				],
+			},
+		];
+	},
 	// Next.js 16 makes Turbopack the default for `next build`. Turbopack
 	// fails to resolve relative `.js` imports to their `.ts` siblings
 	// (the canonical NodeNext pattern) when the workspace uses
