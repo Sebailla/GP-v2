@@ -58,6 +58,10 @@
       "copyButton": "Copy token",
       "copiedToClipboard": "Copied to clipboard"
     },
+    "dashboard": {
+      "welcome": "Welcome, {email}.",
+      "signOut": "Sign out"
+    },
     "locale": {
       "en": "English",
       "es": "Spanish"

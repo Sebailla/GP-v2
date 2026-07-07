@@ -1,12 +1,15 @@
 import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 import { env } from "@core/config";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+import { getSession } from "@/lib/auth";
 
 /**
- * ResetPasswordPage — slice 4 batch 4d (T4.11).
+ * ResetPasswordPage — slice 4 batch 4d (T4.11) + slice 4 batch 2
+ * (redirect-if-already-authed).
  *
  * Server Component (RSC) for the `/[locale]/(auth)/reset-password/[token]`
  * route. The page reads the `token` from the dynamic route segment per
@@ -16,10 +19,15 @@ import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
  * wraps the ResetPasswordForm in a Card with the title sourced from the
  * i18n catalog via `getTranslations("auth.resetPassword")`.
  *
+ * **Slice 4 batch 2 wiring.** Redirect-if-already-authenticated
+ * short-circuit: same carve-out as the forgot-password page. A stale
+ * reset link clicked by an already-authed visitor is bounced to the
+ * landing instead of showing the form.
+ *
  * On 200 (successful reset) the form calls
  * `router.replace('/{locale}/sign-in')` (the page preserves the active
- * locale). The user is NOT auto-signed-in — cookie storage lands in
- * the slice-4 follow-up alongside the NextAuth client config.
+ * locale). The user is NOT auto-signed-in; the cookie storage lands
+ * in slice 4 batch 2 alongside the NextAuth client config.
  */
 interface ResetPasswordPageProps {
 	params: Promise<{ locale: string; token: string }>;
@@ -37,6 +45,13 @@ export default async function ResetPasswordPage({
 	params,
 }: ResetPasswordPageProps): Promise<React.JSX.Element> {
 	const { locale, token } = await params;
+
+	// Redirect-if-already-authenticated (slice 4 batch 2).
+	const session = await getSession();
+	if (session !== null) {
+		redirect(`/${locale}`);
+	}
+
 	const t = await getTranslations("auth.resetPassword");
 
 	return (

@@ -1104,3 +1104,71 @@ Used in the `setTimeout` call. Trivial refactor; no behavior change.
 **Remove the unused `label` + `error` props from the `Input` primitive.** **Verified to be a NO-OP.** The `Input` primitive in `apps/web/components/ui/input.tsx` does NOT have `label` or `error` props on its interface (it extends just `React.InputHTMLAttributes<HTMLInputElement>` without those props). The brief's assumption about batch 4c's auto-formatter adding them was outdated — per batch 4c's deviation #8 in the apply-progress, that modification appeared spontaneously during batch 4c, was caught + reverted via `git checkout HEAD -- <file>` + `rm` before each commit, and never landed. Confirmed by `git log --follow apps/web/components/ui/input.tsx` showing only the original batch 4b commit (`5418944 feat(web): GREEN 4 shadcn-style primitives (T4.4 batch 4b)`).
 
 A grep for `label\?\:|error\?\:\|InputProps` in `apps/web/components/ui/` returns no matches. The 4 forms use the `FormFieldRow` primitive (T4.15) which wraps the label + error JSX; the `Input` primitive never had those props on this codebase. No code change required.
+
+---
+
+## Slice 4 batch 2 (post-4e — T3.3 deferred follow-up)
+
+**Goal recap.** Slice 4 closed in PR #18 (T4.13 + T4.14 + T4.15) and PR #19 closed the 5/5 cleanup follow-ups. The remaining T3.3 deferred item is the **session-token storage on the web client**: the form receives `{ id, email, role, sessionToken }` from `POST /auth/login` and `POST /auth/register` but the sessionToken was thrown away. This batch wires the session into a custom cookie (`auth-session`) and short-circuits the 4 auth pages when a session is present.
+
+**Branch.** `feat/vertical-slicing-s4-batch2-auth-cookie` (cut from `develop` @ `6535271`, post-PR #19 slice 4 follow-ups cleanup merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`.
+
+**Strategy (per design notes).**
+
+- **Web client uses a custom cookie** (NOT NextAuth's). Cookie name is `auth-session` (avoids collision with future NextAuth integration per R-SPEC-1). Cookie stores `{ token, user: { id, email, role } }`.
+- `apps/web/lib/auth.ts` exports the helpers: `getSession()` (server side, reads via `next/headers#cookies()`), `setSessionCookie()` (client side, writes to `document.cookie` with `path=/`, `max-age=86400`, `SameSite=Lax`), `clearSessionCookie()` (client side, `Max-Age=0`).
+- The LoginForm + SignUpForm persist the session via `setSessionCookie()` BEFORE calling the parent's `onSuccess` so a mid-redirect hard reload still sees the cookie. The parents (SignInClient + SignUpClient) just navigate.
+- The 4 auth pages (sign-in / sign-up / forgot / reset) call `getSession()` at the top of the RSC and `redirect(/${locale}/)` if a session is present. Symmetric across the 4 pages for consistency.
+- The slice-1 placeholder landing is upgraded: unauthenticated visitors see the slice-1 copy; authenticated visitors see `auth.dashboard.welcome` with the user's email.
+
+**Out of scope (deferred).**
+
+- NextAuth's `apps/web/auth.ts` (canonical NextAuth v5 client config) — this batch uses a custom cookie. The NextAuth integration is a separate concern that requires API changes to mint a NextAuth JWT (NOT in scope for this batch).
+- Real Google OAuth handshake — slice 4+ if/when added.
+- BDD `.feature` files — slice 7+.
+- e2e (Playwright) tests for the cookie + redirect behavior — slice 4 follow-up. Unit tests cover the surface; e2e would add the browser-context cookie persistence check.
+- Sign-out button (the `auth.dashboard.signOut` i18n key is reserved for slice 6+ when the dashboard lands).
+
+### Sub-task brief-auth-helper [x]
+
+**`apps/web/lib/auth.ts` (NEW) + `apps/web/__tests__/lib-auth.test.ts` (NEW).** Custom session helpers (server-side read + client-side write/clear). Strict TDD: 11 RED-then-GREEN tests covering the `getSession` (5 cases: no cookie / valid / malformed JSON / missing user / wrong-shape user), `setSessionCookie` (5 cases: canonical name + JSON value / 24h max-age / path=/ / SameSite=Lax / last-write-wins), and `clearSessionCookie` (1 case: writes Max-Age=0). happy-dom's `document.cookie` GETTER only returns `name=value` (real-browser behavior); the attribute assertions (path, max-age, samesite) capture the SETTER input via a spy.
+
+### Sub-task brief-cookie-on-success [x]
+
+**Wire the auth-session cookie persistence into the LoginForm + SignUpForm success paths.** Surface changes:
+
+- `useAuthApiPost`: `onSuccess` callback signature widens from `() => unknown` to `(data: unknown) => unknown`; the hook parses the response JSON and passes it to the callback.
+- `auth.ts`: adds `SessionPayload` type + `isSessionPayload` type-guard (the auth API's `{ id, email, role, sessionToken }` response shape).
+- `LoginForm` + `SignUpForm`: parse the response via `isSessionPayload`, call `setSessionCookie(session)` BEFORE the parent's `onSuccess(session)`. Symmetric across both forms (the brief originally described an asymmetric SignInClient responsibility; the unified form-persists / parent-navigates design is simpler and matches the brief's test description).
+- `SignInClient` + `SignUpClient`: no functional change beyond the `onSuccess` argument type — just navigate (the cookie is already on disk).
+
+Tests: `LoginForm.test.tsx` (+1 cookie-set test), `SignUpForm.test.tsx` (+1 cookie-set test), `state-coverage.test.tsx` LoginForm success block (+1 cookie-set test; updated the success/loading mock responses to use a full `SessionPayload`).
+
+### Sub-task brief-redirect-if-authed [x]
+
+**`getSession()` + `redirect(/${locale}/)` check at the top of the 4 auth RSC pages + the slice-1 landing upgrade.**
+
+- `sign-in/page.tsx` + `sign-up/page.tsx` + `forgot-password/page.tsx` + `reset-password/[token]/page.tsx`: all call `getSession()` and `redirect(/${locale}/)` if non-null. The reset + forgot carve-out is documented (the brief's carve-out was "an authed user might want to request a reset"; the symmetric check is the simpler UX).
+- `apps/web/[locale]/page.tsx` (slice-1 landing): upgraded to a two-state surface — unauthenticated renders the slice-1 placeholder; authenticated renders the welcome message via `getTranslations("auth.dashboard")`.
+
+Tests: +1 redirect test per page (4 tests; uses a per-test `next/headers#cookies()` mock to simulate the session). New `apps/web/__tests__/app/landing.test.tsx` (3 tests: no cookie / valid cookie / placeholder-absence-on-auth).
+
+### Sub-task brief-i18n-keys [x]
+
+**`apps/web/messages/{en,es}.json` — add the `auth.dashboard` namespace.**
+
+- `auth.dashboard.welcome`: `"Welcome, {email}."` / `"Bienvenido/a, {email}."` — used by the authenticated landing.
+- `auth.dashboard.signOut`: `"Sign out"` / `"Cerrar sesión"` — reserved for the slice 6+ sign-out button (the cookie persistence is in place; the clickable control is not in this batch).
+
+The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates the key-tree parity; no separate test was added. **No TDD per the brief** — this is a data-only change driven by the landing surface's i18n call.
+
+### TDD evidence (per sub-task)
+
+| Sub-task | RED | GREEN | Refactor |
+|----------|-----|-------|----------|
+| brief-auth-helper | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import '../lib/auth'`. | 11/11 PASS after `auth.ts` ships. | None — surface is small + self-contained. |
+| brief-cookie-on-success | `vitest run` on LoginForm/SignUpForm/state-coverage → 3 failures (`callArg` is `undefined`, `lastSetCookie` is `null`). | 4/4 form tests PASS + 22/22 state-coverage tests PASS + 4/4 page tests PASS. | None — the `isSessionPayload` guard absorbs the shape-check complexity that would otherwise leak into the forms. |
+| brief-redirect-if-authed | 4 page redirect tests + 2 landing tests fail (`promise resolved 'undefined' instead of rejecting` / `expected document not to contain element`). | 4/4 page redirect tests + 3/3 landing tests PASS after the `getSession()` + `redirect(...)` wiring lands. | None. |
+| brief-i18n-keys | NO TDD. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates. | N/A (data-only). | N/A. |
