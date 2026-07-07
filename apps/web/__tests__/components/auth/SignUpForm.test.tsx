@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
-// (RTL v16 cleanup is registered in the global setup.ts.)
 
-// RTL v16 no longer auto-registers cleanup — wire it ourselves so
-// DOM nodes from one `it` don't leak into the next.
+// RTL v16 no longer auto-registers cleanup — wire it ourselves so DOM
+// nodes from one `it` don't leak into the next.
 afterEach(() => {
   cleanup();
 });
 
 // Mock `next-intl` BEFORE importing the form. The mock returns a `t`
-// function that produces a deterministic key-shaped string so the
-// tests assert on i18n key wiring without depending on a real
-// IntlProvider (which next-intl requires at the top of the tree).
+// function that produces a deterministic key-shaped string so the tests
+// assert on i18n key wiring without depending on a real IntlProvider
+// (which next-intl requires at the top of the tree).
 vi.mock("next-intl", () => ({
   useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
 }));
@@ -23,28 +22,37 @@ vi.stubGlobal("fetch", mockFetch);
 import { SignUpForm } from "../../../components/auth/SignUpForm";
 
 /**
- * TDD contract for `apps/web/components/auth/SignUpForm.tsx` —
- * slice 4 batch 4c (T4.9).
+ * TDD contract for `apps/web/components/auth/SignUpForm.tsx` — slice 4
+ * follow-ups (per-form test slim).
  *
- * Same shape as the LoginForm (T4.1) but bound to `registerSchema`
- * (email + password + name) and POSTed to `${apiUrl}/auth/register`.
+ * **Form-specific scope.** This file now asserts ONLY the form-specific
+ * wiring that the consolidated `state-coverage.test.tsx` (T4.14) does not
+ * cover: the `apiUrl` propagation (POSTs to `${apiUrl}/auth/register`)
+ * and the `onSuccess` callback (the parent's redirect to `/${locale}/sign-in`).
+ * The state-coverage harness tests the empty / validation / loading /
+ * api-error / success RENDER states via a mock `onSuccess`, but it does
+ * not pin the **request shape** for this 3-field form (the request body
+ * carries `name` in addition to `email` + `password`). The 5-state
+ * rendering tests for SignUpForm were consolidated into
+ * `state-coverage.test.tsx` in slice 4 follow-up cleanup (per the
+ * `Decision needed before apply` marker; see apply-progress slice 4
+ * follow-ups).
  *
- * Five form states per convention `ui-complete-not-scaffold` (id 2133):
- *  1. Empty (initial render): all 3 fields empty, no error.
- *  2. Validation-error: Zod issues surface under the offending field.
- *  3. Loading: submit button disabled + label swapped to
- *     `auth.common.loading` + the form has `aria-busy="true"`.
- *  4. API-error:
- *     - 409 → form-level `auth.signUp.error.duplicateEmail`
- *     - 400 → form-level `auth.common.genericError`
- *     - other / network → `auth.common.genericError`
- *  5. Success (201): parent-supplied `onSuccess()` fires.
+ * **Note on `locale`.** `locale` is NOT a prop on `SignUpForm` — it lives
+ * on the parent `SignUpClient` wrapper, which translates the form's
+ * `onSuccess` callback into a `router.replace('/${locale}/sign-in')`. The
+ * locale-aware redirect is tested at the page level (`sign-up.test.tsx`).
  *
- * The session token returned by POST /auth/register is NOT stored
- * in this batch — cookie storage lands alongside the NextAuth
- * client config (T3.3 deferred).
+ * (consolidated into state-coverage.test.tsx; see T4.14)
+ *  - empty / validation / loading / 409 / 500 / network-failure rendering
+ *    → covered by `state-coverage.test.tsx` SignUpForm describe block.
+ *
+ * **Form-specific test kept here.**
+ *  - The form POSTs to `${apiUrl}/auth/register` with the 3-field payload
+ *    `{ email, password, name }` and calls `onSuccess()` exactly once on
+ *    a 201 response.
  */
-describe("SignUpForm — slice 4 batch 4c (T4.9)", () => {
+describe("SignUpForm — slice 4 follow-ups (per-form test slim)", () => {
   beforeEach(() => {
     mockFetch.mockReset();
   });
@@ -65,42 +73,6 @@ describe("SignUpForm — slice 4 batch 4c (T4.9)", () => {
     );
     return { onSuccess };
   }
-
-  it("renders email + password + name fields + submit button with the expected i18n keys", () => {
-    renderForm();
-
-    const email = screen.getByLabelText(/auth\.signUp\.email/i);
-    const password = screen.getByLabelText(/auth\.signUp\.password/i);
-    const name = screen.getByLabelText(/auth\.signUp\.name/i);
-    const submit = screen.getByRole("button", {
-      name: /auth\.signUp\.submit/i,
-    });
-
-    expect(email).toBeInTheDocument();
-    expect(email).toHaveAttribute("type", "email");
-    expect(password).toBeInTheDocument();
-    expect(password).toHaveAttribute("type", "password");
-    expect(name).toBeInTheDocument();
-    expect(name).toHaveAttribute("type", "text");
-    expect(submit).toBeInTheDocument();
-    expect(submit).toHaveAttribute("type", "submit");
-  });
-
-  it("shows field-level validation errors when the user submits empty fields", async () => {
-    renderForm();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("signup-email-error")).not.toBeNull();
-      expect(screen.queryByTestId("signup-password-error")).not.toBeNull();
-      expect(screen.queryByTestId("signup-name-error")).not.toBeNull();
-    });
-
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
 
   it("calls the API with the form payload and triggers onSuccess on a 201 response", async () => {
     mockFetch.mockResolvedValueOnce({
@@ -146,168 +118,5 @@ describe("SignUpForm — slice 4 batch 4c (T4.9)", () => {
     await waitFor(() => {
       expect(onSuccess).toHaveBeenCalledTimes(1);
     });
-  });
-
-  it("shows the form-level duplicateEmail error when the API returns 409", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 409,
-      json: async () => ({ error: "EMAIL_ALREADY_EXISTS", message: "nope" }),
-    });
-
-    renderForm();
-
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/auth\.signUp\.error\.duplicateEmail/i),
-      ).toBeInTheDocument();
-    });
-  });
-
-  it("shows the generic error when the API returns 500", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({}),
-    });
-
-    renderForm();
-
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText(/auth\.common\.genericError/i)).toBeInTheDocument();
-    });
-  });
-
-  it("disables the submit button and sets aria-busy='true' while the request is in-flight", async () => {
-    let resolveFetch!: (value: unknown) => void;
-    mockFetch.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveFetch = resolve;
-      }),
-    );
-
-    renderForm();
-
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-
-    const submit = screen.getByRole("button", {
-      name: /auth\.signUp\.submit/i,
-    });
-    fireEvent.click(submit);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /auth\.common\.loading/i }),
-      ).toBeDisabled();
-    });
-
-    const form = submit.closest("form");
-    expect(form).not.toBeNull();
-    expect(form).toHaveAttribute("aria-busy", "true");
-
-    // Resolve the in-flight request so the test cleans up.
-    resolveFetch({
-      ok: true,
-      status: 201,
-      json: async () => ({ id: "u", email: "e", role: "USER", sessionToken: "t" }),
-    });
-  });
-
-  it("shows the generic error when fetch itself rejects (network failure)", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("network down"));
-
-    renderForm();
-
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText(/auth\.common\.genericError/i)).toBeInTheDocument();
-    });
-  });
-
-  it("clears the form-level error when the user resets the form via re-mount", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 409,
-      json: async () => ({}),
-    });
-
-    renderForm();
-
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.email/i), {
-      target: { value: "alice@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.password/i), {
-      target: { value: "valid-password-123" },
-    });
-    fireEvent.change(screen.getByLabelText(/auth\.signUp\.name/i), {
-      target: { value: "Alice" },
-    });
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /auth\.signUp\.submit/i }),
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(/auth\.signUp\.error\.duplicateEmail/i),
-      ).toBeInTheDocument();
-    });
-
-    // Re-mount = the canonical reset idiom for the unit-test scope.
-    cleanup();
-    renderForm();
-
-    expect(
-      screen.queryByText(/auth\.signUp\.error\.duplicateEmail/i),
-    ).not.toBeInTheDocument();
   });
 });

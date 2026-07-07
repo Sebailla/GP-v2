@@ -35,33 +35,32 @@ import { ResetPasswordForm } from "../../../components/auth/ResetPasswordForm";
 
 /**
  * TDD contract for `apps/web/components/auth/ResetPasswordForm.tsx` —
- * slice 4 batch 4d (T4.11).
+ * slice 4 follow-ups (per-form test slim).
  *
- * The form is a client component that:
- *  1. Receives the `token` from the page via props (the page reads
- *     `[token]` from the dynamic segment per Next.js 15 async params).
- *  2. Renders a new-password field bound to
- *     `resetPasswordSchema.shape.newPassword` via `react-hook-form` +
- *     the local `@/lib/zod-resolver` adapter.
- *  3. Renders a submit button with the `auth.resetPassword.submit` label.
- *  4. On submit: validates via `resetPasswordSchema`, then POSTs to
- *     `${apiUrl}/auth/reset-password` with `{ token, newPassword }`.
- *  5. On 200 (success): `router.replace('/{locale}/sign-in')`.
- *  6. On 401 (invalid/expired/consumed token — generic copy per
- *     design §4.1 / D-AUTH-1, no enumeration leak): renders the
- *     form-level `auth.resetPassword.error.invalidToken` banner.
- *  7. On 500 or any non-2xx (or network failure): renders the form-
- *     level `auth.common.genericError` banner.
+ * **Form-specific scope.** This file now asserts ONLY the form-specific
+ * `token` prop wiring that the consolidated `state-coverage.test.tsx`
+ * (T4.14) does not cover: the form passes the URL's `[token]` segment
+ * (received via the `token` prop from the page) into the API request
+ * body alongside `newPassword`. The state-coverage harness tests the
+ * success-state render via `mockFetch.mockResolvedValueOnce(...)`, but it
+ * does not pin the request body shape — which is the load-bearing
+ * contract for this form (the API rejects the request if `token` is
+ * missing or malformed).
  *
- * Form states per the T4.11 brief:
- *  1. **Empty** — the new-password field is empty.
- *  2. **Validation-error** — Zod issue surfaces under the field.
- *  3. **Loading** — submit disabled + `auth.common.loading` label.
- *  4. **API-error (401)** — form-level `auth.resetPassword.error.invalidToken`.
- *  5. **API-error (5xx/network)** — form-level `auth.common.genericError`.
- *  6. **Success (200)** — parent-level redirect to `/{locale}/sign-in`.
+ * The 5-state rendering tests for ResetPasswordForm were consolidated
+ * into `state-coverage.test.tsx` in slice 4 follow-up cleanup (per the
+ * `Decision needed before apply` marker; see apply-progress slice 4
+ * follow-ups).
+ *
+ * (consolidated into state-coverage.test.tsx; see T4.14)
+ *  - empty / validation / loading / 401 / 500 rendering
+ *    → covered by `state-coverage.test.tsx` ResetPasswordForm describe block.
+ *
+ * **Form-specific test kept here.**
+ *  - The form passes the `token` prop into the API request body alongside
+ *    `newPassword`, and on a 200 response calls `router.replace('/${locale}/sign-in')`.
  */
-describe("ResetPasswordForm — slice 4 batch 4d (T4.11)", () => {
+describe("ResetPasswordForm — slice 4 follow-ups (per-form test slim)", () => {
 	const TOKEN =
 		"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
@@ -85,39 +84,7 @@ describe("ResetPasswordForm — slice 4 batch 4d (T4.11)", () => {
 		return { onSuccessRouter: mockReplace };
 	}
 
-	it("renders the new-password field + submit button with the expected i18n keys", () => {
-		renderForm();
-
-		const newPassword = screen.getByLabelText(
-			/auth\.resetPassword\.newPassword/i,
-		);
-		const submit = screen.getByRole("button", {
-			name: /auth\.resetPassword\.submit/i,
-		});
-
-		expect(newPassword).toBeInTheDocument();
-		expect(newPassword).toHaveAttribute("type", "password");
-		expect(submit).toBeInTheDocument();
-		expect(submit).toHaveAttribute("type", "submit");
-	});
-
-	it("shows a field-level validation error when the user submits an empty new-password", async () => {
-		renderForm();
-
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.queryByTestId("reset-password-new-password-error"),
-			).not.toBeNull();
-		});
-
-		expect(mockFetch).not.toHaveBeenCalled();
-	});
-
-	it("calls the API with the token + new-password and navigates to /{locale}/sign-in on 200", async () => {
+	it("passes the token prop into the API body and navigates to /{locale}/sign-in on 200", async () => {
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			status: 200,
@@ -142,7 +109,8 @@ describe("ResetPasswordForm — slice 4 batch 4d (T4.11)", () => {
 		});
 
 		// Verify the request shape — POST {apiUrl}/auth/reset-password with
-		// { token, newPassword } in the JSON body.
+		// { token, newPassword } in the JSON body. The `token` here is the
+		// URL's [token] dynamic segment passed via the `token` prop.
 		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
 		expect(url).toBe("http://api.test/auth/reset-password");
 		expect(init.method).toBe("POST");
@@ -155,100 +123,5 @@ describe("ResetPasswordForm — slice 4 batch 4d (T4.11)", () => {
 		await waitFor(() => {
 			expect(onSuccessRouter).toHaveBeenCalledWith("/en/sign-in");
 		});
-	});
-
-	it("shows the invalidToken error when the API returns 401", async () => {
-		mockFetch.mockResolvedValueOnce({
-			ok: false,
-			status: 401,
-			json: async () => ({}),
-		});
-
-		renderForm();
-
-		fireEvent.change(
-			screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
-			{
-				target: { value: "new-valid-password-123" },
-			},
-		);
-
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.getByText(/auth\.resetPassword\.error\.invalidToken/i),
-			).toBeInTheDocument();
-		});
-
-		// The form MUST NOT navigate on a 401.
-		expect(mockReplace).not.toHaveBeenCalled();
-	});
-
-	it("shows the generic error when the API returns 500", async () => {
-		mockFetch.mockResolvedValueOnce({
-			ok: false,
-			status: 500,
-			json: async () => ({}),
-		});
-
-		renderForm();
-
-		fireEvent.change(
-			screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
-			{
-				target: { value: "new-valid-password-123" },
-			},
-		);
-
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.getByText(/auth\.common\.genericError/i),
-			).toBeInTheDocument();
-		});
-
-		expect(mockReplace).not.toHaveBeenCalled();
-	});
-
-	it("disables the submit button and sets aria-busy='true' while the request is in-flight (loading state)", async () => {
-		// Mirror of ForgotPasswordForm's loading test. The fix for
-		// R4 #1 (fresh-4R follow-up): the form's JSDoc claims a
-		// "Loading" state but no test exercised it before this commit.
-		let resolvePromise: (value: Response) => void = () => {};
-		mockFetch.mockReturnValueOnce(
-			new Promise<Response>((resolve) => {
-				resolvePromise = resolve;
-			}),
-		);
-
-		render(<ResetPasswordForm apiUrl="http://api.test" locale="en" token={TOKEN} />);
-		fireEvent.change(
-			screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
-			{
-				target: { value: "new-valid-password-123" },
-			},
-		);
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
-		);
-
-		await waitFor(() => {
-			expect(
-				screen.getByRole("button", {
-					name: /auth\.common\.loading/i,
-				}),
-			).toBeDisabled();
-		});
-
-		// Resolve to clean up.
-		resolvePromise(
-			new Response(JSON.stringify({ id: "user-1" }), { status: 200 }),
-		);
 	});
 });
