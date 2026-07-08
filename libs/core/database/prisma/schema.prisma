@@ -48,6 +48,12 @@ model User {
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
 
+  // Slice 5 back-relations (T5.1)
+  transactionsCreated Transaction[]    @relation("TransactionCreatedBy")
+  transactionsUpdated Transaction[]    @relation("TransactionUpdatedBy")
+  idempotencyKeys     IdempotencyKey[]
+  auditLogs           AuditLog[]       @relation("AuditLogActor")
+
   @@map("users")
 }
 
@@ -109,4 +115,153 @@ model PasswordResetToken {
   @@index([userId, consumedAt])
   @@index([expiresAt, consumedAt])
   @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// TRANSACTIONS slice (slice 5 — T5.1)
+//
+// Single source of truth for money math lives in @shared-utils/decimal
+// (`decimal.js`-backed). The Prisma `Decimal` column type stores values as
+// `numeric` on Postgres. Adapters in `libs/features/transactions/server/`
+// convert Prisma's runtime Decimal → `@shared-utils/decimal`'s `Decimal`
+// at the boundary so the domain layer keeps a single numeric vocabulary.
+// ---------------------------------------------------------------------------
+
+enum CategoryKind {
+  income
+  expense
+}
+
+enum TransactionKind {
+  income
+  expense
+}
+
+model Currency {
+  // ISO 4217 alphabetic code (USD, ARS, EUR). Natural key — no cuid here
+  // because currencies are reference data and the code is the canonical id.
+  code      String   @id
+  name      String
+  symbol    String
+  decimals  Int      @default(2)
+  createdAt DateTime @default(now())
+
+  fxRatesFrom           FxRate[]      @relation("FxRateFrom")
+  fxRatesTo             FxRate[]      @relation("FxRateTo")
+  transactionsFrom      Transaction[] @relation("TransactionCurrency")
+  transactionsReporting Transaction[] @relation("TransactionReportingCurrency")
+
+  @@map("currencies")
+}
+
+model FxRate {
+  id         String   @id @default(cuid())
+  fromCode   String
+  toCode     String
+  rate       Decimal
+  recordedAt DateTime
+
+  from Currency @relation("FxRateFrom", fields: [fromCode], references: [code], onDelete: Restrict)
+  to   Currency @relation("FxRateTo", fields: [toCode], references: [code], onDelete: Restrict)
+
+  // Back-relation: a single FxRate can be referenced by many Transactions
+  // (until the rate is superseded). The Transaction.fxRate FK uses
+  // onDelete: SetNull, so deleting an FxRate leaves the transaction intact
+  // but signals "no FX rate is associated anymore" — the reportingAmount
+  // stays valid because it was computed at write time.
+  transactions Transaction[]
+
+  // Most-recent lookup: "give me the latest FX rate from X to Y".
+  // The DESC on `recordedAt` lets the Prisma adapter use a bounded index scan.
+  @@index([fromCode, toCode, recordedAt(sort: Desc)])
+  @@map("fx_rates")
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  kind      CategoryKind
+  deletedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  transactions Transaction[]
+
+  @@index([kind, deletedAt])
+  @@map("categories")
+}
+
+model Transaction {
+  id                    String          @id @default(cuid())
+  // D-TX-6: Decimal (numeric on Postgres), NEVER BigInt — BigInt truncates cents.
+  // Positive magnitude; sign is derived from `kind` (expense → negative for totals;
+  // income → positive). The TotalsService owns that translation; this column is
+  // always positive.
+  amount                Decimal
+  currencyCode          String
+  kind                  TransactionKind
+  reportingAmount       Decimal?
+  reportingCurrencyCode String?
+  fxRateId              String?
+  categoryId            String
+  notes                 String?
+  occurredAt            DateTime
+  createdBy             String
+  updatedBy             String
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  deletedAt             DateTime?
+
+  currency          Currency  @relation("TransactionCurrency", fields: [currencyCode], references: [code], onDelete: Restrict)
+  reportingCurrency Currency? @relation("TransactionReportingCurrency", fields: [reportingCurrencyCode], references: [code], onDelete: Restrict)
+  fxRate            FxRate?   @relation(fields: [fxRateId], references: [id], onDelete: SetNull)
+  category          Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdByUser     User      @relation("TransactionCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updatedByUser     User      @relation("TransactionUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  idempotencyKeys IdempotencyKey[]
+
+  @@index([createdBy, occurredAt(sort: Desc)])
+  @@index([categoryId, deletedAt])
+  @@index([currencyCode, occurredAt(sort: Desc)])
+  @@map("transactions")
+}
+
+model IdempotencyKey {
+  id                 String   @id @default(cuid())
+  key                String
+  userId             String
+  requestFingerprint String
+  responsePayload    Json
+  responseStatus     Int
+  transactionId      String?
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  // (userId, key) is the unique replay key: the same key from a different
+  // user is a different slot, the same key from the same user is the same slot.
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  entityType String // "Transaction" | "Category"
+  // Polymorphic id; resolved by `entityType` at read time. Intentionally NOT
+  // a Prisma FK — the same column holds Transaction or Category IDs.
+  entityId   String
+  action     String // "create" | "update" | "softDelete"
+  actorId    String
+  payload    Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }
