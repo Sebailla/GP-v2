@@ -297,6 +297,34 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@types/node@22.18.0)(happy-dom@20.10.6)(vite@8.1.3(@types/node@22.18.0)(jiti@2.7.0)(terser@5.48.0))
 
+  libs/features/transactions/server:
+    dependencies:
+      '@core/config':
+        specifier: workspace:*
+        version: link:../../../core/config
+      '@core/database':
+        specifier: workspace:*
+        version: link:../../../core/database
+      '@core/events':
+        specifier: workspace:*
+        version: link:../../../core/events
+      '@shared-utils/decimal':
+        specifier: workspace:*
+        version: link:../../../shared-utils/decimal
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 22.18.0
+        version: 22.18.0
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.9
+        version: 4.1.9(@types/node@22.18.0)(happy-dom@20.10.6)(vite@8.1.3(@types/node@22.18.0)(jiti@2.7.0)(terser@5.48.0))
+
   libs/shared-utils: {}
 
   libs/shared-utils/currency:

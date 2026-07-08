@@ -442,3 +442,187 @@ next_recommended: slice 5 (transactions server) — el siguiente slice canónico
 - Working tree: limpio tras este commit.
 - Estado de push: no pusheado.
 - Estado de merge: no mergeado.
+
+---
+
+## Slice 5 PR #1 — Foundations (capa de tipos) — STATUS: COMPLETO (4/13)
+
+**Goal recap (español).** Slice 5 / PR #1 de la estrategia chained-3-PR. Solo capa de tipos: T5.1 (esquema Prisma), T5.4 (schemas Zod canónicos), T5.5 (entidades de dominio), T5.6 (puertos de dominio). Sin comportamiento, sin apply de migración Prisma, sin controllers NestJS. El límite del PR sigue el orchestrator reviewer-burnout guard: ~110 LOC de producción + ~600 LOC de tests/config = ~1.1K inserciones netas, bien dentro del presupuesto por PR pero claramente separado de la capa de comportamiento que aterriza en PR #3.
+
+**Rama.** `feat/vertical-slicing-s5-transactions-server` (cortada de `develop @ 4d5c282`, post-merge del release v1.0.0).
+
+**Strict TDD.** ACTIVO. Test runner = `pnpm test`. Disciplina RED → GREEN al momento de escribir según tarea:
+
+- Esquema T5.1: `pnpm prisma format` exits 0 (sin apply de migración en PR #1; eso es T5.2 en PR #2).
+- Schemas Zod T5.4: 5 specs Vitest co-localizadas (`shared/schemas/__tests__/*.test.ts`) se escribieron primero como RED, luego los schemas aterrizaron como GREEN. 27 aserciones todas pasan.
+- Entidades T5.5: no es tarea TDD (tipos estáticos); `tsc --noEmit` es el gate.
+- Puertos T5.6: no es tarea behavior-first TDD; el test contractual (invariante D-TX-5 soft-delete) aterriza en PR #2 donde los tests del adaptador Prisma aseguran que se aplica el filtro.
+
+**Worker outcome.** Succeeded — 4 commits atómicos aterrizados (1 chore + 1 schema + 1 schema+scaffold + 1 entities+ports). Working tree limpio, todos los quality gates en verde.
+
+**Nota del orchestrator.** La delegación inicial a `sdd-apply` para este PR se estancó en modo context-bloat (el subagente quemó 13 turnos leyendo patrones existentes y se quedó sin tiempo a los 120s). El orchestrator corrió un subagente `project-scout` para una lectura ajustada de patrones, luego implementó PR #1 inline. Resultado neto: PR #1 aterrizó con el mismo contenido que el brief de sdd-apply pero a ~50% del costo en tokens del intento fallido + retry. Documentado para referencia futura: cuando el brief de sdd-apply carga >6 paths de skills Y una expectativa de "leer 4-5 archivos de referencia", preferir scout-luego-inline sobre un único mega-prompt.
+
+### Sub-tareas completadas (4/4)
+
+| Sub-tarea | Asunto | Status | Commit |
+|-----------|--------|--------|--------|
+| chore-repo-merge-markers | Remoción mecánica de marcadores `<<<<<<<` sin resolver de 9 archivos `package.json` (ambos lados coincidían en `1.0.0`). | HECHO | `98c651e` |
+| T5.1 | Extensión del esquema Prisma (6 tablas + 2 enums + back-relations en User/FxRate; Decimal por D-TX-6). | HECHO | `478fd7c` |
+| T5.4 | Schemas Zod canónicos + scaffold del slice (5 schemas + 5 specs Vitest + esqueleto del paquete del server). | HECHO | `a4f531e` |
+| T5.5 + T5.6 | Entidades de dominio (5) + puertos de dominio (6) + invariante JSDoc D-TX-5 en `CategoryRepository`. | HECHO | `1802dd5` |
+
+### Commits atómicos (5 producción + 2 workflow + 1 chore-off-tracker)
+
+**Commits de producción (1–4) en la rama del tracker** (`feat/vertical-slicing-s5-transactions-server`):
+
+1. `478fd7c feat(database): add transactions tables (slice 5 foundations)` — 1 archivo, 156 inserciones netas. Extensión del esquema Prisma. Apply de migración diferido a PR #2 (T5.2).
+2. `a4f531e feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 archivos, 523 inserciones netas. Scaffolding (package.json, tsconfig, vitest.config, barrel público) + 5 schemas + 5 specs Vitest + barrel.
+3. `1802dd5 feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 archivos, 593 inserciones netas. 5 interfaces de entidades + 6 interfaces de puertos + 2 barrels + actualización del barrel en `src/index.ts`.
+
+**Commit de workflow (sin cambio de producción) en la rama del tracker:**
+
+1. `cf0d14b chore(slice-5-pr-1): workflow markers + apply-progress + Spanish mirror` — 4 archivos, 486 inserciones. Filas de markers en `tasks.md` + esta sección en `apply-progress.md` + mirror en español neutral/profesional bajo `Documents-es/`. El SHA pre-rebase era `809b688`; el body de este commit aún referencia los números pre-rebase porque los mensajes de git commit son inmutables una vez escritos — el contenido in-file es autoritativo.
+
+**Refresh de SHA post-rebase en la rama del tracker (sin cambio de producción):**
+
+1. `a1a2b99 docs(slice-5-pr-1): refresh SHA references after chore/feature split` — 4 archivos, 36 reemplazos de SHA-reference. El chore se movió a su propia rama de PR #0 (`feat/chore-merge-markers`) y los SHA de commit del tracker cambiaron post-rebase; este commit re-sincroniza cada referencia `0…`-style en tasks + apply-progress (EN + ES) para apuntar a la nueva cadena de SHA.
+
+**Commit de chore (NO en la rama del tracker; vive en PR #0):**
+
+- `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 archivos cambiados, 36 deletions, 0 insertions. Mecánico. Desbloquea `pnpm install` de completarse limpiamente. Vive en `feat/chore-merge-markers` y se abre como PR #0 contra `develop`.
+
+### Archivos creados / modificados
+
+NUEVOS (24):
+
+- `libs/core/database/prisma/schema.prisma` (modificado — 156 líneas netas nuevas)
+- `libs/features/transactions/server/package.json` (nuevo)
+- `libs/features/transactions/server/tsconfig.json` (nuevo)
+- `libs/features/transactions/server/vitest.config.ts` (nuevo)
+- `libs/features/transactions/server/src/index.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/create.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/update.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/list.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/category-create.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/category-update.ts` (nuevo)
+- `libs/features/transactions/shared/schemas/index.ts` (nuevo barrel)
+- `libs/features/transactions/shared/schemas/__tests__/create.test.ts` (nuevo — 7 tests)
+- `libs/features/transactions/shared/schemas/__tests__/update.test.ts` (nuevo — 4 tests)
+- `libs/features/transactions/shared/schemas/__tests__/list.test.ts` (nuevo — 6 tests)
+- `libs/features/transactions/shared/schemas/__tests__/category-create.test.ts` (nuevo — 6 tests)
+- `libs/features/transactions/shared/schemas/__tests__/category-update.test.ts` (nuevo — 4 tests)
+- `libs/features/transactions/server/src/domain/entities/currency.entity.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/entities/category.entity.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/entities/transaction.entity.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/entities/fx-rate.entity.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/entities/idempotency-key.entity.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/entities/index.ts` (nuevo barrel)
+- `libs/features/transactions/server/src/domain/interfaces/{transaction,category,currency,fx-rate,idempotency}.repository.ts` (5 nuevos)
+- `libs/features/transactions/server/src/domain/interfaces/fx-rate.provider.ts` (nuevo)
+- `libs/features/transactions/server/src/domain/interfaces/index.ts` (nuevo barrel)
+
+MODIFICADO (1): `libs/core/database/prisma/schema.prisma`.
+
+WORKFLOW (4): `openspec/changes/.../tasks.md`, `Documents-es/.../tasks.md`, `openspec/changes/.../apply-progress.md`, `Documents-es/.../apply-progress.md` (esta sección appendeada; commit `TBD`).
+
+### Cambio en conteo de tests
+
+| Workspace | Antes | Después | Delta |
+|-----------|-------|---------|-------|
+| `@features/transactions` (nuevo) | 0/0 | 27/27 | +27 (5 archivos de test nuevos) |
+| `apps/web` | 106/106 | 106/106 | 0 |
+| `@features/auth` | 112/112 | 112/112 | 0 |
+| `@core/events` | 37/37 | 37/37 | 0 |
+| `@core/config` | 20/20 | 20/20 | 0 |
+| `@core/database` | 3/3 | 3/3 | 0 |
+| `apps/api` | 21/21 | 21/21 | 0 |
+| **Total** | **299** | **326** | **+27** |
+
+### Evidencia TDD
+
+| Sub-tarea | RED | GREEN | Conteo final |
+|-----------|-----|-------|--------------|
+| Esquema T5.1 | N/A — el gate de la migración es T5.2 (PR #2). | `prisma format` exits 0; back-relations validan; Decimal mapea correctamente por D-TX-6. | 0 |
+| Schemas Zod T5.4 | Specs Vitest escritas primero bajo `shared/schemas/__tests__/` — los archivos spec aseguran amount positivo, currency code de 3 letras, kind enum, notes ≤ 500 chars, defaults de list, slug kebab-case, etc. | Schemas aterrizados; las 27 aserciones pasan. Sin regresión en otros slices. | +27 |
+| Entidades T5.5 | N/A — los tipos son estáticos. | `tsc --noEmit` exits 0; tipos de entidades referenciados desde el barrel `src/index.ts`; los puertos importan desde entidades sin conflicto. | 0 |
+| Puertos T5.6 | N/A — la invariante JSDoc del puerto está documentada; el guard compile-time (D-TX-5) lo aseguran los tests del adaptador en PR #2 (T5.7). | `tsc --noEmit` exits 0; los puertos compilan, las interfaces se exportan desde el barrel, los callers pueden `import type { TransactionRepository } from "@features/transactions"`. | 0 |
+
+### Desviaciones críticas del brief (2)
+
+1. **No hay puerto `AuditLogRepository`.** Design §5.1 lista 6 puertos, ninguno para auditoría. Los servicios en PR #3 necesitan un path de escritura de auditoría. Decisión diferida a PR #3 — probablemente un puerto nuevo introducido junto a los servicios (preferido) O un helper del adaptador que agrupe la escritura de auditoría con la escritura de la entidad (fallback). Surgirá como brief en PR #3.
+2. **El patrón del scaffold del slice sigue a auth, no a un paquete shared separado.** Inicialmente se creó `@features/transactions-shared` como package.json separado; revertido al modelo de auth "shared/ sin package.json; el barrel del server re-exporta" para cohesión del slice. Los schemas compartidos siguen alcanzables como `@features/transactions/shared/schemas/...` vía catchall path-mapped.
+
+### Risk flags (nuevos en este PR)
+
+- `slice5_pr1_audit_log_port_deferred_to_pr3` — la tabla `AuditLog` aterriza en el esquema (T5.1) pero el puerto de dominio para ella no. PR #3 puede necesitar introducirlo; el diseño calla sobre esto.
+- `slice5_pr1_decimal_boundary_adaptation_in_pr2` — las entidades de dominio usan el `Decimal` de `@shared-utils/decimal` (de `decimal.js`), pero el runtime de Prisma emite su propio `Decimal`. La conversión vive en los adaptadores de PR #2; si olvida convertir, la capa de dominio recibe un value con shape incorrecto en runtime. `tsc --noEmit` NO captura esto — el sistema de tipos acepta ambos. El test de frontera en PR #2 debe asegurar la conversión.
+- `slice5_pr1_idempotency_lookup_schema_purposely_omitted` — el spec menciona un schema `idempotency-lookup.ts` "puede ser apropiado para los endpoints admin/debug". No se creó ninguno en T5.4. Si PR #3 lo necesita, añadir inline; si no, dejarlo fuera.
+
+### Quality gates — todos en verde
+
+| Gate | Resultado |
+|------|-----------|
+| `pnpm install` | exit 0 |
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
+| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 archivos) |
+| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
+
+### Workload / PR boundary
+
+- Forecast (tasks.md): ~110 LOC de producción. Actual: ~1.1K inserciones netas entre producción + tests + config + actualizaciones de barrel.
+- 400-line budget risk: **Bajo** — el código de producción es pequeño; los tests + config + scaffolding inflan el diff pero no afectan el foco de review.
+- Target del PR: `feat/vertical-slicing-s5-transactions-server` → `develop` una vez que `sdd-verify` apruebe PR #1. **NO pusheado al remoto, NO mergeado aún.**
+- Este es **PR #1 de 3** en la cadena del slice 5. PR #2 aterriza `T5.2 + T5.7 + T5.8 + T5.10` (apply de migración Prisma + 5 adaptadores + `InMemoryFxRateProvider` + token DI `FX_RATE_PROVIDER`). PR #3 aterriza `T5.3 + T5.9 + T5.11 + T5.12 + T5.13` (servicios + controller + triangulate + refactor).
+
+### Snapshot de status estructurado
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_1: complete (8/8)
+slice_2: complete (5/5)
+slice_3: complete (9/9)
+slice_4:
+  status: complete (27/27)
+  tasks_done: [T4.1..T4.15, brief-test-slim, brief-fetch-timeout, brief-referrer-policy,
+              brief-magic-constant, brief-input-prop-cleanup, brief-auth-helper,
+              brief-cookie-on-success, brief-redirect-if-authed, brief-i18n-keys,
+              brief-cookie-name-migration, brief-server-cookie-read, brief-markers-apply-progress]
+slice_5:
+  status: in-progress (4/13 — PR #1 hecho; PR #2 + PR #3 pendientes)
+  pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
+  pr1_commits: [478fd7c, a4f531e, 1802dd5, cf0d14b, a1a2b99]
+  pr1_chore: 98c651e (en feat/chore-merge-markers, NO en el tracker)
+  pr1_workflow_commits: [cf0d14b, a1a2b99]
+  pr2_tasks_pending: [T5.2, T5.7, T5.8, T5.10]
+  pr3_tasks_pending: [T5.3, T5.9, T5.11, T5.12, T5.13]
+feature_branch: feat/vertical-slicing-s5-transactions-server
+base_commit: 4d5c282 (post-merge del release v1.0.0)
+head_commit: a1a2b99 (docs SHA-refresh post-rebase); commit de producción previo = cf0d14b (workflow + apply-progress append)
+pushed_to_remote: false
+merged_to_develop: false
+branch_protection_on_main: enforced
+risk_flags:
+  - slice5_pr1_audit_log_port_deferred_to_pr3
+  - slice5_pr1_decimal_boundary_adaptation_in_pr2
+  - slice5_pr1_idempotency_lookup_schema_purposely_omitted
+next_recommended: slice 5 PR #2 — T5.2 (apply de migración) + T5.7 (5 adaptadores Prisma, incluyendo la verificación de la invariante D-TX-5 soft-delete) + T5.8 (InMemoryFxRateProvider + helper de test advanceClock) + T5.10 (wiring del token DI FX_RATE_PROVIDER en apps/api/modules/transactions).
+```
+
+### Cross-references (slice 5 PR #1)
+
+- **Tasks:** `openspec/changes/.../tasks.md` (nueva sección "Slice 5 PR #1 — Foundations (type layer)" + 4 filas de sub-task `[x]` + quality gates + desviaciones + cross-references).
+- **Mirror en español:** `Documents-es/openspec/changes/.../tasks.md` (español neutral/profesional según AGENTS.md §13 / convención id 2132).
+- **Spec:** `openspec/changes/.../specs/transactions/spec.md` §Data Model + Decisions (D-TX-1..D-TX-7).
+- **Design:** `openspec/changes/.../design.md` §5.1 (entidades + puertos), §5.5 (Zod schemas).
+- **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (esta sección appendeada).
+- **Mirror en español:** `Documents-es/openspec/changes/.../apply-progress.md` (mirror en español de esta sección).
+- **Commits atómicos:** PR #0 (`98c651e` chore); PR #1 (`478fd7c` T5.1, `a4f531e` T5.4 + scaffold, `1802dd5` T5.5 + T5.6, `cf0d14b` workflow, `a1a2b99` SHA-refresh). Total = 4 producción + 2 workflow + 1 chore-off-tracker.
+- **Rama:** `feat/vertical-slicing-s5-transactions-server`.
+- **Commit base:** `4d5c282` (post-merge del release v1.0.0).
+- **Working tree:** limpio tras este commit.
+- **Estado de push:** no pusheado.
+- **Estado de merge:** no mergeado.
+- **PR boundary:** PR #1 de 3 en la cadena del slice 5. Producción LOC ~110; diff total ~1.7K (incluyendo tests + config + scaffolding). PR #0 carga la fix mecánica de 9 package.json.

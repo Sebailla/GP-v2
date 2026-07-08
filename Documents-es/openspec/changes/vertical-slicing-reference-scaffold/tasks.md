@@ -1087,3 +1087,74 @@ Es el mismo comportamiento que en slice 4 batch 2 — no se necesita lógica de 
 - Working tree: limpio tras este commit.
 - Estado de push: no pusheado.
 - Estado de merge: no mergeado.
+
+---
+
+## Slice 5 PR #1 — Foundations (capa de tipos)
+
+**Recap (español).** Este es el primer PR de la estrategia chained-3-PR para el slice 5 (trackeada en `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` Slice 5 mapping + design §5.1 / §5.5). Alcance: solo la capa de tipos — extensión de esquema Prisma (T5.1), schemas Zod canónicos (T5.4), entidades de dominio (T5.5), puertos de dominio (T5.6). Sin comportamiento, sin adaptadores Prisma (PR #2), sin controllers NestJS (PR #3).
+
+**Rama.** `feat/vertical-slicing-s5-transactions-server` (cortada de `develop @ 4d5c282`, post-merge del release v1.0.0).
+
+**Strict TDD.** ACTIVO. Test runner = `pnpm test`. RED → GREEN honrados al momento de escribir según la tarea (T5.4 schemas tienen specs Vitest co-localizados escritos primero). T5.1 + T5.5 + T5.6 no son tareas behavior-first según el contrato strict-TDD de `openspec/config.yaml`; los tests contractuales para los puertos aterrizan en PR #2 (lado del adaptador, verificación D-TX-5).
+
+### Sub-tarea T5.1 [x]
+
+Extensión del esquema Prisma. `libs/core/database/prisma/schema.prisma` gana: enums `CategoryKind` / `TransactionKind`, modelos `Currency` / `FxRate` / `Category` / `Transaction` / `IdempotencyKey` / `AuditLog`, más back-relations en `User` + `FxRate`. **D-TX-6**: las columnas monetarias son `Decimal`, NUNCA `BigInt`. El esquema parsea (`prisma format` exits 0). El apply de la migración está gateado para PR #2 (T5.2). Commit: `478fd7c`.
+
+### Sub-tarea T5.4 [x]
+
+Schemas Zod canónicos. `libs/features/transactions/shared/schemas/{create,update,list,category-create,category-update,index}.ts` + 5 specs Vitest co-localizadas bajo `shared/schemas/__tests__/`. 27 aserciones a través de 5 archivos, todas GREEN. El scaffold del slice (`server/package.json`, `tsconfig.json`, `vitest.config.ts`, `src/index.ts`) co-committed. Commit: `a4f531e`.
+
+### Sub-tarea T5.5 [x]
+
+Entidades de dominio. `libs/features/transactions/server/src/domain/entities/{transaction,category,currency,fx-rate,idempotency-key}.entity.ts` + barrel índice. 5 interfaces TS + 2 uniones discriminadoras + 2 proyecciones de insert. `Decimal` es el re-export de `@shared-utils/decimal` desde `decimal.js` (D-TX-6); la frontera del adaptador convierte el `Decimal` runtime de Prisma a este shape en PR #2. Commit: `1802dd5`.
+
+### Sub-tarea T5.6 [x]
+
+Puertos de dominio. `libs/features/transactions/server/src/domain/interfaces/{transaction,category,currency,fx-rate,idempotency}.repository.ts` + `fx-rate.provider.ts` + barrel índice. 6 interfaces de puertos + 9 shapes de input/filter. **El JSDoc de `CategoryRepository` carga la invariante D-TX-5 verbatim**: cada path de lectura DEBE filtrar `deletedAt IS NULL`, sin flag `includeDeleted`, sin parámetro `bypassFilter`. El guard compile-time aterriza en PR #2 (T5.7) donde los tests del adaptador Prisma aseguran que ninguna query de lectura llega al adaptador sin ese where-clause. Commit: `1802dd5`.
+
+### Quality gates (por slice 5 PR #1)
+
+| Gate | Resultado |
+|------|-----------|
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
+| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 archivos) |
+| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
+
+### Fuera de alcance para PR #1 (diferido)
+
+- **T5.2** Apply de migración (`pnpm prisma migrate dev --name transactions_init`) — PR #2.
+- **T5.3** Test RED para `TransactionService.create` — PR #3 (depende de los adaptadores de PR #2).
+- **T5.7** Adaptadores Prisma (5 repos) + verificación D-TX-5 — PR #2.
+- **T5.8** `InMemoryFxRateProvider` + helper de test `advanceClock()` — PR #2.
+- **T5.9** Cuatro servicios (TransactionService / CategoryService / TotalsService / ThresholdService) — PR #3.
+- **T5.10** Wiring del token DI `FX_RATE_PROVIDER` en `apps/api/modules/transactions/` — PR #2 (o PR #3 si se pre-bound ahí).
+- **T5.11** Controller NestJS — PR #3.
+- **T5.12** Suite de triangulación (8 escenarios cross-cutting) — PR #3.
+- **T5.13** Refactor + lint + typecheck + test green — PR #3.
+
+### Desviaciones críticas del brief
+
+1. **`AuditLogRepository` port NO introducido en T5.6.** Design §5.1 lista seis puertos, ninguno para auditoría. Los servicios en PR #3 necesitarán un path de escritura de auditoría; ya sea vía un NUEVO puerto introducido en PR #3 mismo, o vía Prisma directo en el servicio (que violaría `no-prisma-outside-core`). Decisión diferida a PR #3 — surgirá como brief al aterrizar los servicios.
+2. **La estructura del scaffold del slice sigue al slice de auth, no al patrón de paquete per-slice del usuario.** Inicialmente se creó un paquete separado `@features/transactions-shared`, luego se revirtió al modelo de auth "shared/ existe, sin package.json; el barrel del server re-exporta" para cohesión del slice. Los schemas compartidos son alcanzables como `@features/transactions/shared/schemas/...` vía path-mapped catchall.
+
+### Landmark de chore (pre-PR #1)
+
+- `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 archivos `package.json` (apps + libs) tenían marcadores de merge sin resolver `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` en la línea de version (ambos lados decían `1.0.0`). Limpieza mecánica: se mantuvo una línea de versión, se quitaron los marcadores. JSON ahora válido. Bloqueó `pnpm install` de completarse limpiamente antes de este PR.
+
+### Cross-references
+
+- **Hashes de commits atómicos (PR #1):** `478fd7c` (T5.1), `a4f531e` (T5.4 + scaffold), `1802dd5` (T5.5 + T5.6), más el chore `98c651e`. Commit de workflow (este): `TBD`.
+- **Spec:** `openspec/changes/.../specs/transactions/spec.md` (sección Data Model, decisiones D-TX-1..D-TX-7).
+- **Design:** `openspec/changes/.../design.md` §5.1 (entidades + puertos), §5.5 (Zod schemas).
+- **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (sección slice 5 PR #1 appendeada).
+- **Mirror en español:** `Documents-es/openspec/changes/.../tasks.md` + `apply-progress.md` (español neutral/profesional según AGENTS.md §13).
+- **Rama:** `feat/vertical-slicing-s5-transactions-server`.
+- **Commit base:** `4d5c282` (post-merge del release v1.0.0 de vuelta en develop).
+- **Pusheado:** no.
+- **Mergeado:** no.
+- **Working tree:** limpio tras este commit.
+- **PR boundary:** este es el PR #1 de 3 (`T5.1+T5.4+T5.5+T5.6`, ~type layer + 523 LOC + 593 LOC entre schemas + entities/ports = ~1.1K inserciones netas incluyendo tests/config). PR #2 aterriza `T5.2+T5.7+T5.8+T5.10` (adaptadores + FX + DI wiring). PR #3 aterriza `T5.3+T5.9+T5.11+T5.12+T5.13` (servicios + controller + triangulate + refactor).
+- **Siguiente recomendado:** slice 5 PR #2 — apply de migración Prisma + 5 adaptadores prisma + `InMemoryFxRateProvider` + token DI `FX_RATE_PROVIDER` (T5.2, T5.7, T5.8, T5.10).
