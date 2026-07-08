@@ -1,3 +1,5 @@
+import type { Decimal } from "@shared-utils/decimal";
+
 import type {
   Transaction,
   TransactionKind,
@@ -32,10 +34,10 @@ export interface TransactionListFilter {
  * `create(input)`, which is the final persistence step on success.
  */
 export interface TransactionCreate {
-  readonly amount: import("@shared-utils/decimal").Decimal;
+  readonly amount: Decimal;
   readonly currencyCode: string;
   readonly kind: TransactionKind;
-  readonly reportingAmount: import("@shared-utils/decimal").Decimal | null;
+  readonly reportingAmount: Decimal | null;
   readonly reportingCurrencyCode: string | null;
   readonly fxRateId: string | null;
   readonly categoryId: string;
@@ -52,10 +54,10 @@ export interface TransactionCreate {
  * change), not the repository's.
  */
 export interface TransactionUpdate {
-  readonly amount?: import("@shared-utils/decimal").Decimal;
+  readonly amount?: Decimal;
   readonly currencyCode?: string;
   readonly kind?: TransactionKind;
-  readonly reportingAmount?: import("@shared-utils/decimal").Decimal | null;
+  readonly reportingAmount?: Decimal | null;
   readonly reportingCurrencyCode?: string | null;
   readonly fxRateId?: string | null;
   readonly categoryId?: string;

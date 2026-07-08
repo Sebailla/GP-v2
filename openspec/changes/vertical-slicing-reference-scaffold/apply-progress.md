@@ -2732,12 +2732,25 @@ next_recommended: slice 5 (transactions server) — the canonical next slice in 
 | T5.4 | Canonical Zod schemas + slice scaffolding (5 schemas + 5 Vitest specs + server package skeleton). | DONE | `a4f531e` |
 | T5.5 + T5.6 | Domain entities (5) + domain ports (6) + D-TX-5 JSDoc invariant on `CategoryRepository`. | DONE | `1802dd5` |
 
-### Atomic commits (4)
+### Atomic commits (5 production + 2 workflow + 1 chore-on-separate-branch)
 
-1. `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 files changed, 36 deletions, 0 insertions. Mechanical. Unblocks `pnpm install` from completing cleanly.
-2. `478fd7c feat(database): add transactions tables (slice 5 foundations)` — 1 file, 156 net insertions. Prisma schema extension. Migration apply deferred to PR #2 (T5.2).
-3. `a4f531e feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 files, 523 net insertions. Scaffolding (package.json, tsconfig, vitest.config, public barrel) + 5 schemas + 5 Vitest specs + barrel.
-4. `1802dd5 feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 files, 593 net insertions. 5 entity interfaces + 6 port interfaces + 2 barrels + barrel update on `src/index.ts`.
+**Production commits (1–4) on the tracker branch** (`feat/vertical-slicing-s5-transactions-server`):
+
+1. `478fd7c feat(database): add transactions tables (slice 5 foundations)` — 1 file, 156 net insertions. Prisma schema extension. Migration apply deferred to PR #2 (T5.2).
+2. `a4f531e feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 files, 523 net insertions. Scaffolding (package.json, tsconfig, vitest.config, public barrel) + 5 schemas + 5 Vitest specs + barrel.
+3. `1802dd5 feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 files, 593 net insertions. 5 entity interfaces + 6 port interfaces + 2 barrels + barrel update on `src/index.ts`.
+
+**Workflow commit (no production change) on the tracker branch:**
+
+1. `cf0d14b chore(slice-5-pr-1): workflow markers + apply-progress + Spanish mirror` — 4 files, 486 insertions. Marker rows in `tasks.md` + this `apply-progress.md` section + neutral/professional Spanish mirror under `Documents-es/`. Pre-rebase SHA was `809b688`; this commit's body still references the pre-rebase numbers because git commit messages are immutable once written — the in-file content is authoritative.
+
+**Post-rebase SHA refresh on the tracker branch (no production change):**
+
+1. `a1a2b99 docs(slice-5-pr-1): refresh SHA references after chore/feature split` — 4 files, 36 SHA-reference replacements. The chore moved to its own PR #0 branch (`feat/chore-merge-markers`) and the tracker's commit SHAs changed post-rebase; this commit re-syncs every `0…`-style SHA reference in tasks + apply-progress (EN + ES) to point at the new SHA chain.
+
+**Chore commit (NOT on the tracker branch; lives on PR #0):**
+
+- `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 files changed, 36 deletions, 0 insertions. Mechanical. Unblocks `pnpm install` from completing cleanly. Lives on `feat/chore-merge-markers` and opens as PR #0 against `develop`.
 
 ### Files created / modified
 
@@ -2841,14 +2854,14 @@ slice_4:
 slice_5:
   status: in-progress (4/13 — PR #1 done; PR #2 + PR #3 pending)
   pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
-  pr1_commits: [478fd7c, a4f531e, 1802dd5]
-  pr1_chore: 98c651e
-  pr1_workflow_commit: TBD
+  pr1_commits: [478fd7c, a4f531e, 1802dd5, cf0d14b, a1a2b99]
+  pr1_chore: 98c651e (on feat/chore-merge-markers, NOT on tracker)
+  pr1_workflow_commits: [cf0d14b, a1a2b99]
   pr2_tasks_pending: [T5.2, T5.7, T5.8, T5.10]
   pr3_tasks_pending: [T5.3, T5.9, T5.11, T5.12, T5.13]
 feature_branch: feat/vertical-slicing-s5-transactions-server
 base_commit: 4d5c282 (post-v1.0.0 release merge)
-head_commit: TBD (workflow commit); prior commit = 1802dd5
+head_commit: a1a2b99 (docs SHA-refresh post-rebase); prior production commit = cf0d14b (workflow + apply-progress append)
 pushed_to_remote: false
 merged_to_develop: false
 branch_protection_on_main: enforced
@@ -2867,11 +2880,10 @@ next_recommended: slice 5 PR #2 — T5.2 (migration apply) + T5.7 (5 Prisma adap
 - **Design:** `openspec/changes/.../design.md` §5.1 (entities + ports), §5.5 (Zod schemas).
 - **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (this section appended).
 - **Spanish mirror:** `Documents-es/openspec/changes/.../apply-progress.md` (Spanish mirror of this section).
-- **Atomic commits:** `98c651e` (chore), `478fd7c` (T5.1), `a4f531e` (T5.4 + scaffold), `1802dd5` (T5.5 + T5.6).
-- **Workflow commit:** `TBD` (this commit).
+- **Atomic commits:** PR #0 (`98c651e` chore); PR #1 (`478fd7c` T5.1, `a4f531e` T5.4 + scaffold, `1802dd5` T5.5 + T5.6, `cf0d14b` workflow, `a1a2b99` SHA-refresh). Total = 4 production + 2 workflow + 1 chore-off-tracker.
 - **Branch:** `feat/vertical-slicing-s5-transactions-server`.
 - **Base commit:** `4d5c282` (post-v1.0.0 release merge).
 - **Working tree:** clean after this commit.
 - **Push status:** not pushed.
 - **Merge status:** not merged.
-- **PR boundary:** PR #1 of 3 in the slice 5 chain. Production LOC ~110; total diff ~1.1K (incl. tests + config + scaffolding).
+- **PR boundary:** PR #1 of 3 in the slice 5 chain. Production LOC ~110; total diff ~1.7K (incl. tests + config + scaffolding). PR #0 carries the 9 package.json mechanical fix.

@@ -14,10 +14,13 @@ import type {
 export interface IdempotencyRepository {
   /**
    * Look up an idempotency record by `(userId, key)`. Returns `null`
-   * if no record exists OR the record is past its `expiresAt`. The
-   * caller is expected to check `expiresAt > now` and treat an
-   * expired record as a miss (the cron-driven purge is a separate
-   * concern).
+   * if no record exists. The adapter also returns `null` for records
+   * whose `expiresAt <= now` — expiry is a clock-policy the service
+   * does NOT need to re-check at the call site. (This matches the
+   * boundary discipline on `CategoryRepository.findById` — the
+   * repository owns the `deletedAt IS NULL` filter rather than
+   * pushing it to every caller. The cron-driven purge remains a
+   * separate, operational concern.)
    */
   find(userId: string, key: string): Promise<IdempotencyKey | null>;
 
