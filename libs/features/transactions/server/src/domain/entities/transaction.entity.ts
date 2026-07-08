@@ -1,7 +1,5 @@
 import type { Decimal } from "@shared-utils/decimal";
 
-import type { Category } from "./category.entity.js";
-
 /**
  * Domain entity: `Transaction`.
  *
@@ -55,10 +53,3 @@ export interface Transaction {
  * full row via `findById`.
  */
 export type TransactionListItem = Omit<Transaction, "notes" | "createdBy" | "updatedBy">;
-
-/**
- * Re-export so callers that already pull `Category` from this module
- * don't need a second import statement. Tree-shakeable: bundlers drop
- * this when unused.
- */
-export type { Category } from "./category.entity.js";
