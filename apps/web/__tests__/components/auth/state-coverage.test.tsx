@@ -55,7 +55,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Capture document.cookie SETTER so the LoginForm success-path
-// test can assert the auth-session cookie is set. happy-dom's
+// test can assert the authjs.session-token cookie is set. happy-dom's
 // document.cookie GETTER only returns `name=value` (real-browser
 // behavior); the attributes are observable via the setter input.
 let lastSetCookie: string | null = null;
@@ -96,8 +96,8 @@ beforeEach(() => {
 });
 afterEach(() => {
 	restoreCookieSpy();
-	document.cookie =
-		"auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+document.cookie =
+		"authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
 });
 
 // Lazy-import the forms AFTER the mocks above so the mocks win.
@@ -240,8 +240,8 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			});
 		});
 
-		it("success: 200 → writes the auth-session cookie before the parent's onSuccess fires", async () => {
-			// Slice 4 batch 2: the LoginForm persists the session
+		it("success: 200 → writes the authjs.session-token cookie before the parent's onSuccess fires", async () => {
+			// Slice 4 cookie migration final: the LoginForm persists the session
 			// via setSessionCookie BEFORE calling the parent's
 			// onSuccess. This test asserts the cookie set is
 			// observable on document.cookie.
@@ -272,7 +272,7 @@ describe("Slice 4 form state coverage (T4.14)", () => {
 			});
 			expect(lastSetCookie).not.toBeNull();
 			const cookieStr = String(lastSetCookie);
-			expect(cookieStr.startsWith("auth-session=")).toBe(true);
+			expect(cookieStr.startsWith("authjs.session-token=")).toBe(true);
 			expect(cookieStr).toMatch(/path=\//i);
 			expect(cookieStr).toMatch(/max-age=86400/i);
 			expect(cookieStr).toMatch(/samesite=lax/i);

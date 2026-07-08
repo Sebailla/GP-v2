@@ -185,7 +185,7 @@ describe("ForgotPasswordPage — slice 4 batch 4d (T4.10)", () => {
 		).toHaveAttribute("href", "/es/sign-in");
 	});
 
-	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+	it("redirects to /{locale}/ when the authjs.session-token cookie is set (slice 4 cookie migration final)", async () => {
 		// The user can request a password reset even if they're
 		// already authenticated (the brief notes this is a
 		// deliberate carve-out — an authed user might want to
@@ -196,7 +196,7 @@ describe("ForgotPasswordPage — slice 4 batch 4d (T4.10)", () => {
 		// an already-authed user doesn't accidentally land on
 		// a stale forgot-password form.
 		cookieStore = {
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: { id: "user-1", email: "alice@example.com", role: "USER" },
 			}),

@@ -67,9 +67,9 @@ afterEach(() => {
 			set: originalCookieSetter,
 		});
 	}
-	// Clear any cookie that the test set.
+// Clear any cookie that the test set.
 	document.cookie =
-		"auth-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+		"authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
 });
 
 // Component under test — imported AFTER the mocks above so the mocks win.
@@ -168,7 +168,7 @@ describe("LoginForm — slice 4 batch 2 (cookie-on-success)", () => {
 		});
 	});
 
-	it("writes the auth-session cookie to document.cookie on a 200 response", async () => {
+	it("writes the authjs.session-token cookie to document.cookie on a 200 response", async () => {
 		// The form itself persists the session via setSessionCookie
 		// BEFORE calling the parent's onSuccess. This test asserts the
 		// cookie-set side-effect is observable at the form seam.
@@ -198,7 +198,7 @@ describe("LoginForm — slice 4 batch 2 (cookie-on-success)", () => {
 		await waitFor(() => {
 			expect(onSuccess).toHaveBeenCalledTimes(1);
 		});
-		// The form's success path wrote the cookie via document.cookie
+// The form's success path wrote the cookie via document.cookie
 		// BEFORE invoking the parent's onSuccess.
 		expect(lastSetCookie).not.toBeNull();
 		const cookieStr = String(lastSetCookie);
@@ -206,5 +206,6 @@ describe("LoginForm — slice 4 batch 2 (cookie-on-success)", () => {
 		expect(cookieStr).toMatch(/path=\//i);
 		expect(cookieStr).toMatch(/max-age=86400/i);
 		expect(cookieStr).toMatch(/samesite=lax/i);
+		expect(cookieStr).toMatch(/httponly/i);
 	});
 });

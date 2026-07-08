@@ -213,7 +213,7 @@ describe("ResetPasswordPage — slice 4 batch 4d (T4.11)", () => {
 		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
-	it("redirects to /{locale}/ when the auth-session cookie is set (slice 4 batch 2 redirect-if-already-authed)", async () => {
+	it("redirects to /{locale}/ when the authjs.session-token cookie is set (slice 4 cookie migration final)", async () => {
 		// Slice 4 batch 2: the ResetPasswordPage MUST call
 		// getSession() and redirect(/${locale}/) if a session is
 		// present. The user can request a new reset even if
@@ -221,7 +221,7 @@ describe("ResetPasswordPage — slice 4 batch 4d (T4.11)", () => {
 		// showing the reset form to an authed user who probably
 		// just landed there from a stale email link).
 		cookieStore = {
-			"auth-session": JSON.stringify({
+			"authjs.session-token": JSON.stringify({
 				token: "session-token-abc",
 				user: { id: "user-1", email: "alice@example.com", role: "USER" },
 			}),

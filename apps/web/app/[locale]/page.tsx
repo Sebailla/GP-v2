@@ -12,7 +12,7 @@ import { getSession } from "@/lib/auth";
  * fails-fast on a missing or malformed variable. The page renders
  * a minimal landing with the `env.NODE_ENV` indicator.
  *
- * **Slice 4 batch 2 upgrade.** The page now reads the auth-session
+ * **Slice 4 cookie migration final.** The page now reads the authjs.session-token
  * cookie via `getSession()` and renders a different tree when a
  * session is present:
  *  - **Unauthenticated** (no cookie): the slice-1 placeholder.

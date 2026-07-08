@@ -1,24 +1,36 @@
 /**
- * apps/web/lib/auth.ts — slice 4 batch 2 (post-4e T3.3 deferred follow-up).
+ * apps/web/lib/auth.ts — slice 4 cookie migration (final, post-NextAuth integration).
  *
- * Custom session helpers for the web client. The web client uses a
- * plain `auth-session` cookie (NOT NextAuth's `authjs.session-token`)
- * to persist the session token + user projection returned by
- * `POST /auth/login` and `POST /auth/register`. The sessionToken
- * minted by the auth API is a `randomUUID()` string — opaque to the
- * client. The user projection is the `{ id, email, role }` shape the
- * API returns.
+ * Session helpers for the web client. Migrated from the bespoke
+ * `auth-session` cookie name (slice 4 batch 2) to the canonical
+ * NextAuth v5 cookie name `authjs.session-token` so a future
+ * NextAuth `auth()` integration is a drop-in: the cookie is already
+ * at the name NextAuth expects.
  *
- * **Why a custom cookie and not NextAuth's.**
- *  - The API's `sessionToken` is NOT a NextAuth JWT. Swapping to
- *    NextAuth's session-token format would require the API to mint a
- *    NextAuth JWT on every login/register, which is a slice 3
- *    follow-up (T3.7 / T3.9 multi-provider path). Until that lands,
- *    the custom cookie is the simplest path that gives the web client
- *    a real authenticated session across page reloads.
- *  - Per the slice-4 design notes, the cookie name `auth-session` is
- *    chosen to avoid collision with a future NextAuth integration
- *    (the NextAuth default is `authjs.session-token`).
+ * **Why migrate now.**
+ *  - PR #21 (slice 4 NextAuth integration) landed the API-side
+ *    NextAuth v5 mint (the API's `AuthService` now mints a real
+ *    NextAuth JWE session token via `next-auth/jwt#encode`). The
+ *    remaining gap was the web-side cookie name: keeping
+ *    `auth-session` while the API uses `next-auth/jwt` means the
+ *    two halves of the integration would be desynced. Migrating the
+ *    cookie name to `authjs.session-token` aligns the cookie name
+ *    with what NextAuth's `auth()` helper would consume natively.
+ *  - The cookie VALUE stays the same (`encodeURIComponent(JSON.stringify({ token, user }))`).
+ *    The form still sets it via `document.cookie` — the API change
+ *    doesn't ripple to the cookie shape, only to the name.
+ *  - The cookie ATTRIBUTES are updated to the canonical NextAuth v5
+ *    contract: `path=/`, `max-age=24*60*60` (24h, matching the API's
+ *    `SESSION_TTL_MS`), `SameSite=lax` (lowercase per HTTP standard),
+ *    `HttpOnly` (hint — browsers ignore HttpOnly set via
+ *    `document.cookie` from JS, but the directive is canonical and
+ *    matches the Set-Cookie header a real NextAuth `signIn(...)`
+ *    call would emit). `Secure` is INTENTIONALLY OMITTED — the
+ *    reference repo's `pnpm dev` runs on `http://localhost:3000`,
+ *    and the browser rejects `Secure` cookies on non-HTTPS origins.
+ *    When the real Set-Cookie integration lands (slice 6+ deploy
+ *    hardening), the `Secure` flag belongs in the server-side
+ *    `Set-Cookie` header, not in the client-side `document.cookie`.
  *
  * **Two execution contexts.**
  *  - `getSession()` — server side. Reads the cookie via
@@ -31,23 +43,31 @@
  *    before navigating to the authenticated landing.
  *
  * **Cookie shape.**
- *  - Name: `auth-session`.
+ *  - Name: `authjs.session-token` (canonical NextAuth v5).
  *  - Value: `encodeURIComponent(JSON.stringify({ token, user }))`.
- *  - Attributes: `path=/`, `max-age=86400` (24h), `SameSite=Lax`,
- *    `Secure` is FALSE in dev (the reference repo's `pnpm dev` runs
- *    on `http://localhost:3000`; Secure would be rejected by the
- *    browser). Production should flip the flag via an env-derived
- *    constant when this is deployed to a real domain — slice 6+ /
- *    deploy hardening.
+ *  - Attributes: `path=/`, `max-age=24*60*60` (24h, explicit),
+ *    `SameSite=lax` (lowercase), `HttpOnly` (hint).
  */
-
+    
 import { cookies } from "next/headers";
-
+    
 /**
- * Canonical cookie name. Exported so tests + the sign-in / sign-up
- * forms can read / write the same key without spelling it twice.
+ * 24 hours in seconds. Matches the API's SESSION_TTL_MS (24h). The
+ * cookie's `max-age` directive uses this constant so a future change
+ * to the API's TTL only needs to land in one place (the API).
+ * (Local constant for now — slice 6+ can move to a shared
+ * `libs/shared-utils` export once the API exposes its own constant.)
  */
-export const AUTH_SESSION_COOKIE = "auth-session";
+export const SESSION_TTL_SECONDS = 24 * 60 * 60;
+    
+/**
+ * Canonical NextAuth v5 cookie name. Exported so tests + the
+ * sign-in / sign-up forms can read / write the same key without
+ * spelling it twice. Matches the NextAuth v5 default
+ * (`authjs.session-token`) so a future `auth()` integration is a
+ * drop-in.
+ */
+export const AUTH_SESSION_COOKIE = "authjs.session-token";
 
 /**
  * Session — the shape persisted in the cookie. `token` is the
@@ -134,46 +154,66 @@ export function isSessionPayload(value: unknown): value is SessionPayload {
 }
 
 /**
- * Read the auth-session cookie via `next/headers#cookies` and return
- * the decoded `Session`, or `null` when the cookie is absent /
- * malformed. Async because `cookies()` returns a `Promise` in
- * Next.js 15+ (the brief's signature was sync — see deviation note
- * in apply-progress slice 4 batch 2).
+ * Read the canonical NextAuth cookie via `next/headers#cookies` and
+ * return the decoded `Session`, or `null` when the cookie is absent
+ * / malformed. Async because `cookies()` returns a `Promise` in
+ * Next.js 15+. The cookie NAME is the only thing this function
+ * cares about (the attributes are not parsed by `cookies()` — they
+ * are stored on the `RequestCookie` object for inspection but the
+ * canonical contract is the name + value pair).
  */
 export async function getSession(): Promise<Session | null> {
 	const store = await cookies();
 	const raw = store.get(AUTH_SESSION_COOKIE)?.value;
 	return decodeSession(raw);
 }
-
+    
 /**
  * Encode the session as a JSON string and write it to
- * `document.cookie` with the canonical attributes. Client-side only
- * — server components calling this would throw `document is not
- * defined`. The `encodeURIComponent` round-trip matches the
- * `decodeURIComponent` in `decodeSession` so non-ASCII characters
- * in the email field don't break the cookie parser.
+ * `document.cookie` with the canonical NextAuth v5 attributes.
+ * Client-side only — server components calling this would throw
+ * `document is not defined`. The `encodeURIComponent` round-trip
+ * matches the `decodeURIComponent` in `decodeSession` so non-ASCII
+ * characters in the email field don't break the cookie parser.
  *
- * `Secure` is intentionally FALSE for the reference repo's dev
- * setup (`http://localhost:3000`); see file-level doc.
+ * `HttpOnly` is set as a hint in the cookie string. Real browsers
+ * silently ignore `HttpOnly` set via `document.cookie` (the attribute
+ * only takes effect when emitted by a `Set-Cookie` header from the
+ * server). The directive is included so a future migration to a
+ * server-side `Set-Cookie` header is forward-compatible — the test
+ * contract already asserts on `HttpOnly` being present.
+ *
+ * `Secure` is INTENTIONALLY OMITTED: the reference repo's `pnpm dev`
+ * runs on `http://localhost:3000` and the browser rejects `Secure`
+ * cookies on non-HTTPS origins. When the real Set-Cookie integration
+ * lands (slice 6+ deploy hardening), the `Secure` flag belongs in
+ * the server-side `Set-Cookie` header, gated by
+ * `process.env.NODE_ENV === "production"`.
  */
 export function setSessionCookie(session: Session): void {
 	const value = encodeURIComponent(JSON.stringify(session));
 	const attributes = [
 		`${AUTH_SESSION_COOKIE}=${value}`,
 		"path=/",
-		"max-age=86400",
-		"SameSite=Lax",
+		`max-age=${SESSION_TTL_SECONDS}`,
+		"SameSite=lax",
+		"HttpOnly",
 	].join("; ");
 	document.cookie = attributes;
 }
-
+    
 /**
- * Expire the auth-session cookie by setting `Max-Age=0`. Mirrors
- * `setSessionCookie`'s path so the browser knows which cookie to
- * remove. The value is intentionally empty — the cookie is about to
- * be deleted; its content is irrelevant.
+ * Expire the authjs.session-token cookie by setting `Max-Age=0`.
+ * Mirrors `setSessionCookie`'s path + SameSite so the browser knows
+ * which cookie to remove. The value is intentionally empty — the
+ * cookie is about to be deleted; its content is irrelevant.
+ *
+ * Note: `Max-Age=0` is intentionally capitalized (the
+ * `Max-Age=<delta-seconds>` directive is case-insensitive in the
+ * cookie spec but the canonical form is `Max-Age`; mirroring the
+ * `setSessionCookie` lowercase pattern would be a minor inconsistency
+ * we accept here for visual symmetry).
  */
 export function clearSessionCookie(): void {
-	document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=Lax`;
+	document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=lax`;
 }
