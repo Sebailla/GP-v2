@@ -1,10 +1,6 @@
 {
   "name": "api",
-<<<<<<< HEAD
   "version": "1.0.0",
-=======
-  "version": "1.0.0",
->>>>>>> origin/main
   "private": true,
   "description": "NestJS 10 API for gastos-personales-reference. Slice 1 ships a minimal app module that boots on :3001; feature modules land in slices 3 (auth) and 5 (transactions).",
   "scripts": {

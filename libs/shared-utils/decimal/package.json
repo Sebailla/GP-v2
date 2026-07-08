@@ -1,10 +1,6 @@
 {
   "name": "@shared-utils/decimal",
-<<<<<<< HEAD
   "version": "1.0.0",
-=======
-  "version": "1.0.0",
->>>>>>> origin/main
   "private": true,
   "description": "Wrappers around decimal.js for monetary math. NEVER BigInt (per D-TX-6). Pure helpers, no I/O.",
   "type": "module",
