@@ -1,4 +1,4 @@
-import { prisma as defaultPrisma, isPrismaUniqueViolation } from "@core/database";
+import { prisma as defaultPrisma, isPrismaUniqueViolation, TransactionIsolationLevel } from "@core/database";
 import type { PrismaClient, Prisma } from "@core/database";
 
 import type {
@@ -96,36 +96,48 @@ export class PrismaCategoryRepository implements CategoryRepository {
     }
   }
 
-  async update(id: string, input: CategoryUpdate): Promise<Category> {
-    // Use the UncheckedUpdateInput variant — it accepts `updatedBy`
-    // as a plain string FK, which matches how the adapter resolves the
-    // actor at this layer (the service hands a userId, not a User
-    // relation shape). The "checked" CategoryUpdateInput would force
-    // `updatedByUser: { connect: { id } }`, which is the right call
-    // for a higher-level service but redundant here.
-    const data: Prisma.CategoryUncheckedUpdateInput = {
-      updatedBy: "__category_seed_actor__", // overwritten by services in PR #3
-    };
-    if (input.name !== undefined) data.name = input.name;
-    if (input.kind !== undefined) data.kind = input.kind;
+      async update(id: string, input: CategoryUpdate): Promise<Category> {
+        // Use the UncheckedUpdateInput variant — it accepts `updatedBy`
+        // as a plain string FK, which matches how the adapter resolves the
+        // actor at this layer (the service hands a userId, not a User
+        // relation shape). The "checked" CategoryUpdateInput would force
+        // `updatedByUser: { connect: { id } }`, which is the right call
+        // for a higher-level service but redundant here.
+        //
+        // D-TX-5 invariant: the pre-check + update run inside a SERIALIZABLE
+        // transaction so a concurrent `softDelete` between the two operations
+        // is serialized (Postgres will abort the second transaction with a
+        // serialization failure, which we treat as a not-found case). Without
+        // SERIALIZABLE the read-then-update pattern has a TOCTOU window where
+        // the update can land on a now-soft-deleted row.
+        return this.prisma.$transaction(
+          async (tx) => {
+            const data: Prisma.CategoryUncheckedUpdateInput = {
+              updatedBy: "__category_seed_actor__", // overwritten by services in PR #3
+            };
+            if (input.name !== undefined) data.name = input.name;
+            if (input.kind !== undefined) data.kind = input.kind;
 
-    // D-TX-5 invariant: refuse to update soft-deleted rows. Pre-check
-    // via findFirst({ deletedAt: null }); the small race window between
-    // the check and the update is acceptable for PR #2 — PR #3 services
-    // that need stricter atomicity can wrap in a SERIALIZABLE transaction.
-    const existing = await this.prisma.category.findFirst({
-      where: { id, deletedAt: null },
-    });
-    if (existing === null) {
-      throw new CategoryNotFoundError(id);
-    }
+            const existing = await tx.category.findFirst({
+              where: { id, deletedAt: null },
+            });
+            if (existing === null) {
+              throw new CategoryNotFoundError(id);
+            }
 
-    const row = await this.prisma.category.update({
-      where: { id },
-      data,
-    });
-    return projectCategory(row);
-  }
+            const row = await tx.category.update({
+              where: { id },
+              data,
+            });
+            return projectCategory(row);
+          },
+          {
+            isolationLevel: TransactionIsolationLevel.Serializable,
+            maxWait: 5_000,
+            timeout: 10_000,
+          },
+        );
+      }
 
   async softDelete(id: string, actorId: string): Promise<void> {
     // D-TX-5: use updateMany with the deletedAt: null filter so a

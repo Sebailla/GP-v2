@@ -25,7 +25,7 @@ export { prisma } from "./client.js";
 
 export type { PrismaClient } from "./generated/client.js";
 
-export { PrismaClientKnownRequestError } from "./generated/internal/prismaNamespace.js";
+export { PrismaClientKnownRequestError, TransactionIsolationLevel } from "./generated/internal/prismaNamespace.js";
 export type { Decimal as PrismaDecimal } from "./generated/internal/prismaNamespace.js";
 
 // Re-export the namespace as a type-only surface so adapters can write

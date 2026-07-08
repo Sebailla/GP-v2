@@ -26,16 +26,25 @@ import {
 
 vi.mock("@core/database", async () => {
 	const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
+	const category = {
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		create: vi.fn(),
+		update: vi.fn(),
+		updateMany: vi.fn(),
+	};
 	return {
 		...actual,
 		prisma: {
-			category: {
-				findFirst: vi.fn(),
-				findMany: vi.fn(),
-				create: vi.fn(),
-				update: vi.fn(),
-				updateMany: vi.fn(),
-			},
+			category,
+			// The $transaction wrapper accepts a callback that receives a
+			// transaction client (`tx`). We forward the calls to the same
+			// mock surface so the existing assertions (`prisma.category.findFirst`,
+			// `prisma.category.update`) keep working without duplicating mocks.
+			$transaction: vi.fn(
+				async (fn: (tx: { category: typeof category }) => unknown) =>
+					fn({ category }),
+			),
 		},
 	};
 });
@@ -238,6 +247,46 @@ describe("PrismaCategoryRepository", () => {
     		// D-TX-5 invariant: the pre-check MUST filter `deletedAt: null`.
     		expect(callArg.where.id).toBe("cat-1");
     		expect(callArg.where.deletedAt).toBeNull();
+    		});
+
+    		it("wraps the pre-check + update in a SERIALIZABLE transaction (4R review fix)", async () => {
+    		vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    		id: "cat-1",
+    		name: "Groceries",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "user-1",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    		} as never);
+    		vi.mocked(prisma.category.update).mockResolvedValue({
+    		id: "cat-1",
+    		name: "New Name",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "__category_seed_actor__",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+    		} as never);
+
+    		const repo = new PrismaCategoryRepository();
+    		await repo.update("cat-1", { name: "New Name" });
+
+    		// D-TX-5 contract: the pre-check + update run inside a
+    		// SERIALIZABLE transaction so a concurrent softDelete cannot
+    		// land between the two operations. Without Serializable
+    		// isolation, the read-then-update pattern admits a TOCTOU
+    		// window where the update lands on a now-soft-deleted row.
+    		const $transaction = vi.mocked(prisma.$transaction);
+    		expect($transaction).toHaveBeenCalledTimes(1);
+    		const txCallArg = $transaction.mock.calls[0] as unknown as [
+    		(tx: unknown) => unknown,
+    		{ isolationLevel: string | { Serializable: string } },
+    		];
+    		expect(typeof txCallArg[0]).toBe("function");
+    		expect(txCallArg[1].isolationLevel).toBe("Serializable");
     		});
     	});
 

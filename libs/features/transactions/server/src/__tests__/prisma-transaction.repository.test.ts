@@ -26,17 +26,29 @@ import {
 
 vi.mock("@core/database", async () => {
 	const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
+	const transaction = {
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		count: vi.fn(),
+		create: vi.fn(),
+		update: vi.fn(),
+		updateMany: vi.fn(),
+	};
 	return {
 		...actual,
 		prisma: {
-			transaction: {
-				findFirst: vi.fn(),
-				findMany: vi.fn(),
-				count: vi.fn(),
-				create: vi.fn(),
-				update: vi.fn(),
-				updateMany: vi.fn(),
-			},
+			transaction,
+			// The $transaction wrapper accepts a callback that receives a
+			// transaction client (`tx`). We forward the calls to the same
+			// mock surface so the existing assertions keep working without
+			// duplicating mocks. The D-TX-5 SERIALIZABLE contract in
+			// PrismaCategoryRepository.update + PrismaTransactionRepository.update
+			// runs the pre-check + the update inside this transaction.
+			$transaction: vi.fn(
+				async (
+					fn: (tx: { transaction: typeof transaction }) => unknown,
+				) => fn({ transaction }),
+			),
 		},
 	};
 });
@@ -358,6 +370,32 @@ describe("PrismaTransactionRepository", () => {
     		// D-TX-5 invariant: the pre-check MUST filter `deletedAt: null`.
     		expect(findCallArg.where.id).toBe("txn-1");
     		expect(findCallArg.where.deletedAt).toBeNull();
+    		});
+
+    		it("wraps the pre-check + update in a SERIALIZABLE transaction (4R review fix)", async () => {
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(fakeRow() as never);
+    		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
+
+    		const repo = new PrismaTransactionRepository();
+    		await repo.update("txn-1", { updatedBy: "user-1" });
+
+    		// $transaction must be called exactly once for the update path,
+    		// and the isolation level MUST be Serializable — without it, a
+    		// concurrent softDelete could land between the pre-check and
+    		// the update, violating D-TX-5.
+    		const $transaction = vi.mocked(prisma.$transaction);
+    		expect($transaction).toHaveBeenCalledTimes(1);
+    		const txCallArg = $transaction.mock.calls[0] as unknown as [
+    		(tx: unknown) => unknown,
+    		{ isolationLevel: string | { Serializable: string } },
+    		];
+    		expect(typeof txCallArg[0]).toBe("function");
+    		// `TransactionIsolationLevel.Serializable` is the runtime enum
+    		// entry, which is the string "Serializable". The 4R review
+    		// contract: the update path MUST run at Serializable isolation
+    		// so a concurrent softDelete cannot land between the pre-check
+    		// and the update.
+    		expect(txCallArg[1].isolationLevel).toBe("Serializable");
     		});
 
     		it("serializes a patched `amount` via .toString()", async () => {

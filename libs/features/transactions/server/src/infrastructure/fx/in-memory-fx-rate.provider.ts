@@ -95,14 +95,24 @@ export class InMemoryFxRateProvider implements FxRateProvider {
 	 * against the deterministic value.
 	 */
 	advanceClock(deltaMs: number): Date {
-		let lastRecordedAt: Date = this.pairs.values().next().value!.recordedAt;
+		// Initialize from the first pair's recordedAt (the map is seeded
+		// at construction time, so values().next() is always defined for
+		// the canonical 4-pair seed). The `!` non-null assertion was
+		// removed in the 4R fix — we now guard against the empty-provider
+		// case explicitly (e.g. a future test refactor that builds a
+		// provider without seeding).
+		const firstPair = this.pairs.values().next().value;
+		if (firstPair === undefined) {
+		throw new Error("InMemoryFxRateProvider: cannot advanceClock on empty provider");
+		}
+		let lastRecordedAt: Date = firstPair.recordedAt;
 		for (const [key, pair] of this.pairs) {
-			const bumped = new Date(pair.recordedAt.getTime() + deltaMs);
-			lastRecordedAt = bumped;
-			this.pairs.set(key, {
-				...pair,
-				recordedAt: bumped,
-			});
+		const bumped = new Date(pair.recordedAt.getTime() + deltaMs);
+		lastRecordedAt = bumped;
+		this.pairs.set(key, {
+		...pair,
+		recordedAt: bumped,
+		});
 		}
 		return lastRecordedAt;
 	}

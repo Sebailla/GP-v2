@@ -1,7 +1,7 @@
 import {
   prisma as defaultPrisma,
-  isPrismaNotFound,
   isPrismaUniqueViolation,
+  TransactionIsolationLevel,
 } from "@core/database";
 import type {
   Prisma,
@@ -139,46 +139,56 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }
   }
 
-  async update(id: string, input: TransactionUpdate): Promise<Transaction> {
-    // D-TX-5 invariant: refuse to update soft-deleted rows. Pre-check
-    // via `findFirst({ id, deletedAt: null })`; the small race window
-    // between the check and the update is acceptable for PR #2 — PR #3
-    // services that need stricter atomicity can wrap in a SERIALIZABLE
-    // transaction. Today the pre-check catches the D-TX-5 violation
-    // before the actual update is attempted.
-    const existing = await this.prisma.transaction.findFirst({
-      where: { id, deletedAt: null },
-    });
-    if (existing === null) {
-      throw new TransactionNotFoundError(id);
-    }
+      async update(id: string, input: TransactionUpdate): Promise<Transaction> {
+        // D-TX-5 invariant: refuse to update soft-deleted rows. The pre-check
+        // and the update run inside a SERIALIZABLE transaction so a
+        // concurrent `softDelete` between the two operations is serialized
+        // (Postgres will abort the second transaction with a serialization
+        // failure, which we treat as a P2025-like not-found case). Without
+        // SERIALIZABLE the read-then-update pattern has a TOCTOU window
+        // where the update can land on a now-soft-deleted row.
+        return this.prisma.$transaction(
+          async (tx) => {
+            const existing = await tx.transaction.findFirst({
+              where: { id, deletedAt: null },
+            });
+            if (existing === null) {
+              throw new TransactionNotFoundError(id);
+            }
 
-    const data: Prisma.TransactionUncheckedUpdateInput = {
-      updatedBy: input.updatedBy,
-    };
-    if (input.amount !== undefined) data.amount = input.amount.toString();
-    if (input.currencyCode !== undefined) data.currencyCode = input.currencyCode;
-    if (input.kind !== undefined) data.kind = input.kind;
-    if (input.reportingAmount !== undefined) {
-      data.reportingAmount =
-        input.reportingAmount === null
-          ? null
-          : input.reportingAmount.toString();
-    }
-    if (input.reportingCurrencyCode !== undefined) {
-      data.reportingCurrencyCode = input.reportingCurrencyCode;
-    }
-    if (input.fxRateId !== undefined) data.fxRateId = input.fxRateId;
-    if (input.categoryId !== undefined) data.categoryId = input.categoryId;
-    if (input.notes !== undefined) data.notes = input.notes;
-    if (input.occurredAt !== undefined) data.occurredAt = input.occurredAt;
+            const data: Prisma.TransactionUncheckedUpdateInput = {
+              updatedBy: input.updatedBy,
+            };
+            if (input.amount !== undefined) data.amount = input.amount.toString();
+            if (input.currencyCode !== undefined) data.currencyCode = input.currencyCode;
+            if (input.kind !== undefined) data.kind = input.kind;
+            if (input.reportingAmount !== undefined) {
+              data.reportingAmount =
+                input.reportingAmount === null
+                  ? null
+                  : input.reportingAmount.toString();
+            }
+            if (input.reportingCurrencyCode !== undefined) {
+              data.reportingCurrencyCode = input.reportingCurrencyCode;
+            }
+            if (input.fxRateId !== undefined) data.fxRateId = input.fxRateId;
+            if (input.categoryId !== undefined) data.categoryId = input.categoryId;
+            if (input.notes !== undefined) data.notes = input.notes;
+            if (input.occurredAt !== undefined) data.occurredAt = input.occurredAt;
 
-    const row = await this.prisma.transaction.update({
-      where: { id },
-      data,
-    });
-    return projectTransaction(row);
-  }
+            const row = await tx.transaction.update({
+              where: { id },
+              data,
+            });
+            return projectTransaction(row);
+          },
+          {
+            isolationLevel: TransactionIsolationLevel.Serializable,
+            maxWait: 5_000,
+            timeout: 10_000,
+          },
+        );
+      }
 
   async softDelete(id: string, actorId: string): Promise<void> {
     // D-TX-5: use `updateMany` with the `deletedAt: null` filter so a
@@ -269,4 +279,3 @@ function projectTransaction(row: {
 // Suppress unused-import warning — the only `TransactionKind` reference
 // is via the projection's narrowing. The sentinel was removed in the 4R
 // review fix; this comment marks the import as intentionally retained.
-void isPrismaNotFound;
