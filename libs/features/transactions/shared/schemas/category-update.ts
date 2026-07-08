@@ -9,9 +9,16 @@ import { z } from "zod";
  * slug is a separate destructive operation that would land in a future
  * slice.
  */
-export const categoryUpdateSchema = z.object({
-  name: z.string().min(1).max(80).optional(),
-  kind: z.enum(["income", "expense"]).optional(),
-});
+export const categoryUpdateSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1)
+      .max(80)
+      .regex(/^[\P{Cc}]+$/u, "no control characters")
+      .optional(),
+    kind: z.enum(["income", "expense"]).optional(),
+  })
+  .strict();
 
 export type UpdateCategoryInput = z.infer<typeof categoryUpdateSchema>;

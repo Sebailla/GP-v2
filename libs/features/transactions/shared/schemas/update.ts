@@ -11,11 +11,18 @@ import { z } from "zod";
  */
 export const updateSchema = z.object({
   amount: z.coerce.number().positive().multipleOf(0.01).optional(),
-  currencyCode: z.string().length(3).optional(),
+  currencyCode: z
+    .string()
+    .regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code")
+    .optional(),
   kind: z.enum(["income", "expense"]).optional(),
   categoryId: z.string().cuid().optional(),
-  notes: z.string().max(500).optional(),
+  notes: z
+    .string()
+    .max(500)
+    .regex(/^[\P{Cc}]+$/u, "no control characters")
+    .optional(),
   occurredAt: z.coerce.date().optional(),
-});
+}).strict();
 
 export type UpdateTransactionInput = z.infer<typeof updateSchema>;

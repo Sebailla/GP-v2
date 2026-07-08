@@ -21,4 +21,19 @@ describe("updateSchema (PATCH /transactions/:id)", () => {
       updateSchema.parse({ kind: "transfer" }),
     ).toThrow();
   });
+
+  // ---- 4R review fixes ----
+
+  it("rejects a non-ISO-4217 3-character currencyCode in update", () => {
+    expect(() => updateSchema.parse({ currencyCode: "$€¥" })).toThrow();
+    expect(() => updateSchema.parse({ currencyCode: "usd" })).toThrow();
+  });
+
+  it("rejects notes with control characters in update", () => {
+    expect(() => updateSchema.parse({ notes: "abc\x00" })).toThrow();
+  });
+
+  it("rejects unknown keys in update (.strict())", () => {
+    expect(() => updateSchema.parse({ rogueField: "x" })).toThrow();
+  });
 });

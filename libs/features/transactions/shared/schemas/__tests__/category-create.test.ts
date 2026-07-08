@@ -60,4 +60,66 @@ describe("categoryCreateSchema (POST /categories)", () => {
       }),
     ).toThrow();
   });
+
+  // ---- 4R review fixes ----
+
+  it("rejects a name with control characters", () => {
+    expect(() =>
+      categoryCreateSchema.parse({
+        name: "Grocer\x07ies",
+        slug: "groceries",
+        kind: "expense",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a name of 81 characters (W2 — max(80) tested)", () => {
+    expect(() =>
+      categoryCreateSchema.parse({
+        name: "x".repeat(81),
+        slug: "ok",
+        kind: "expense",
+      }),
+    ).toThrow();
+  });
+
+  it("accepts a name of exactly 80 characters", () => {
+    const result = categoryCreateSchema.parse({
+      name: "x".repeat(80),
+      slug: "ok",
+      kind: "expense",
+    });
+    expect(result.name).toHaveLength(80);
+  });
+
+  it("rejects a slug of 81 characters (W3 — slug max(80) tested)", () => {
+    expect(() =>
+      categoryCreateSchema.parse({
+        name: "ok",
+        slug: "a".repeat(81),
+        kind: "expense",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an empty slug (W4 — min(1) belt-and-suspenders)", () => {
+    expect(() =>
+      categoryCreateSchema.parse({
+        name: "ok",
+        slug: "",
+        kind: "expense",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects unknown keys in category-create (.strict())", () => {
+    expect(() =>
+      categoryCreateSchema.parse({
+        name: "x",
+        slug: "x",
+        kind: "expense",
+        rogueField: "should-not-pass",
+      }),
+    ).toThrow();
+  });
 });

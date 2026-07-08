@@ -38,4 +38,37 @@ describe("listSchema (GET /transactions)", () => {
   it("rejects a currencyCode of wrong length", () => {
     expect(() => listSchema.parse({ currencyCode: "us" })).toThrow();
   });
+
+  // ---- 4R review fixes ----
+
+  it("rejects a non-ISO-4217 3-character currencyCode in list query", () => {
+    expect(() => listSchema.parse({ currencyCode: "$€¥" })).toThrow();
+    expect(() => listSchema.parse({ currencyCode: "usd" })).toThrow();
+  });
+
+  it("rejects a cursor longer than 128 characters (S-risk S2)", () => {
+    expect(() => listSchema.parse({ cursor: "x".repeat(129) })).toThrow();
+  });
+
+  it("accepts a cursor up to 128 characters", () => {
+    const result = listSchema.parse({ cursor: "x".repeat(128) });
+    expect(result.cursor).toHaveLength(128);
+  });
+
+  it("accepts an inverted date range (no .refine — pinned current behavior)", () => {
+    // Pins the current spec-silent behavior: fromDate > toDate is
+    // accepted, returns a zero-result query. Pin documented per the 4R
+    // review (S-resilience S3) so a future tightening is a deliberate
+    // spec change, not silent drift.
+    const result = listSchema.parse({
+      fromDate: "2026-12-01T00:00:00.000Z",
+      toDate: "2026-01-01T00:00:00.000Z",
+    });
+    expect(result.fromDate).toBeInstanceOf(Date);
+    expect(result.toDate).toBeInstanceOf(Date);
+  });
+
+  it("rejects unknown keys in list query (.strict())", () => {
+    expect(() => listSchema.parse({ rogueField: "x" })).toThrow();
+  });
 });

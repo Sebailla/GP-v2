@@ -19,13 +19,28 @@ import { z } from "zod";
  *  - notes: optional, max 500 chars.
  *  - occurredAt: ISO 8601 date string, coerced to Date.
  */
-export const createSchema = z.object({
-  amount: z.coerce.number().positive().multipleOf(0.01),
-  currencyCode: z.string().length(3),
-  kind: z.enum(["income", "expense"]),
-  categoryId: z.string().cuid(),
-  notes: z.string().max(500).optional(),
-  occurredAt: z.coerce.date(),
-});
+export const createSchema = z
+  .object({
+    amount: z.coerce.number().positive().multipleOf(0.01),
+    currencyCode: z
+      .string()
+      .regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code"),
+    kind: z.enum(["income", "expense"]),
+    categoryId: z.string().cuid(),
+    notes: z
+      .string()
+      .max(500)
+      // Reject ASCII control chars (Cc) — defensive against log
+      // injection, CSV export rendering, and terminal escape
+      // sequences. Letters / emoji / diacritics (L, M, N) preserved.
+      .regex(/^[\P{Cc}]+$/u, "no control characters")
+      .optional(),
+    occurredAt: z.coerce.date(),
+  })
+  // Reject unknown keys with a 400 instead of silently stripping
+  // them (4R review-risk W2 defense-in-depth: future callers adding
+  // privilege-bearing fields like `isAdmin: true` must NOT silently
+  // pass through the boundary).
+  .strict();
 
 export type CreateTransactionInput = z.infer<typeof createSchema>;

@@ -24,4 +24,16 @@ describe("categoryUpdateSchema (PATCH /categories/:id)", () => {
       categoryUpdateSchema.parse({ kind: "transfer" }),
     ).toThrow();
   });
+
+  // ---- 4R review fixes ----
+
+  it("rejects a name with control characters", () => {
+    expect(() => categoryUpdateSchema.parse({ name: "abc\x1b" })).toThrow(); // ESC
+  });
+
+  it("rejects unknown keys in category-update (.strict())", () => {
+    expect(() =>
+      categoryUpdateSchema.parse({ rogueField: "x" }),
+    ).toThrow();
+  });
 });
