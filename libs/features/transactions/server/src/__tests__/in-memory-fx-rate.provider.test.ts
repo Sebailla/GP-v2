@@ -87,26 +87,31 @@ describe("InMemoryFxRateProvider", () => {
 	});
 
 	describe("advanceClock — TEST-ONLY helper for the 24h staleness boundary (D-TX-4)", () => {
-		it("bumps every seeded pair's recordedAt by deltaMs", async () => {
-			const provider = new InMemoryFxRateProvider(SEED);
-			const beforeUsdArs = await provider.getRate("USD", "ARS");
-			expect(beforeUsdArs!.recordedAt.getTime()).toBe(SEED.getTime());
+    		it("bumps every seeded pair's recordedAt by deltaMs and returns the last-written timestamp", async () => {
+    		const provider = new InMemoryFxRateProvider(SEED);
+    		const beforeUsdArs = await provider.getRate("USD", "ARS");
+    		expect(beforeUsdArs!.recordedAt.getTime()).toBe(SEED.getTime());
 
-			const HOURS_25 = 25 * 60 * 60 * 1000;
-			provider.advanceClock(HOURS_25);
+    		const HOURS_25 = 25 * 60 * 60 * 1000;
+    		const returned = provider.advanceClock(HOURS_25);
 
-			const afterUsdArs = await provider.getRate("USD", "ARS");
-			const afterEurArs = await provider.getRate("EUR", "ARS");
-			const afterArsUsd = await provider.getRate("ARS", "USD");
-			const afterArsEur = await provider.getRate("ARS", "EUR");
+    		const afterUsdArs = await provider.getRate("USD", "ARS");
+    		const afterEurArs = await provider.getRate("EUR", "ARS");
+    		const afterArsUsd = await provider.getRate("ARS", "USD");
+    		const afterArsEur = await provider.getRate("ARS", "EUR");
 
-			// Every pair must be pushed by exactly 25h — the helper is uniform
-			// across the seeded set so staleness evaluation stays predictable.
-			expect(afterUsdArs!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
-			expect(afterEurArs!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
-			expect(afterArsUsd!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
-			expect(afterArsEur!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
-		});
+    		// Every pair must be pushed by exactly 25h — the helper is uniform
+    		// across the seeded set so staleness evaluation stays predictable.
+    		expect(afterUsdArs!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
+    		expect(afterEurArs!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
+    		expect(afterArsUsd!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
+    		expect(afterArsEur!.recordedAt.getTime()).toBe(SEED.getTime() + HOURS_25);
+
+    		// 4R review fix: the return value is the last-written recordedAt
+    		// timestamp (deterministic), not `new Date()` (now). Pins the
+    		// contract so callers can assert against the bumped value.
+    		expect(returned.getTime()).toBe(SEED.getTime() + HOURS_25);
+    		});
 
 		it("pushes past the 24h staleness window in a single call (the point of the helper)", async () => {
 			const provider = new InMemoryFxRateProvider(SEED);

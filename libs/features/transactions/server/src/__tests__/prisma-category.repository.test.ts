@@ -24,16 +24,21 @@ import {
  * `vi.mock("@core/database")` stubs the singleton.
  */
 
-vi.mock("@core/database", () => ({
-	prisma: {
-		category: {
-			findFirst: vi.fn(),
-			findMany: vi.fn(),
-			create: vi.fn(),
-			update: vi.fn(),
+vi.mock("@core/database", async () => {
+	const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
+	return {
+		...actual,
+		prisma: {
+			category: {
+				findFirst: vi.fn(),
+				findMany: vi.fn(),
+				create: vi.fn(),
+				update: vi.fn(),
+				updateMany: vi.fn(),
+			},
 		},
-	},
-}));
+	};
+});
 
 import { prisma } from "@core/database";
 
@@ -168,51 +173,119 @@ describe("PrismaCategoryRepository", () => {
 		});
 	});
 
-	describe("update", () => {
-		it("translates Prisma's P2025 (row not found) into `CategoryNotFoundError`", async () => {
-			vi.mocked(prisma.category.update).mockRejectedValue({
-				code: "P2025",
-			} as never);
+    	describe("update", () => {
+    		it("throws CategoryNotFoundError when the row is missing (pre-check findFirst returns null)", async () => {
+    		// The D-TX-5 pre-check (`findFirst({ where: { id, deletedAt: null } })`)
+    		// catches the not-found case before the update is attempted. The
+    		// adapter throws the typed error directly; the service layer
+    		// translates it.
+    		vi.mocked(prisma.category.findFirst).mockResolvedValue(null as never);
 
-			const repo = new PrismaCategoryRepository();
-			await expect(
-				repo.update("cat-missing", { name: "New Name" }),
-			).rejects.toBeInstanceOf(CategoryNotFoundError);
-		});
-	});
+    		const repo = new PrismaCategoryRepository();
+    		await expect(
+    		repo.update("cat-missing", { name: "New Name" }),
+    		).rejects.toBeInstanceOf(CategoryNotFoundError);
+    		// The update is NEVER attempted when the pre-check fails.
+    		expect(prisma.category.update).not.toHaveBeenCalled();
+    		});
 
-	describe("softDelete", () => {
-		it("swallows Prisma's P2025 silently (idempotent)", async () => {
-			vi.mocked(prisma.category.update).mockRejectedValue({
-				code: "P2025",
-			} as never);
+    		it("refuses to update soft-deleted rows (D-TX-5 invariant — pre-check returns null)", async () => {
+    		// The pre-check filters on `deletedAt: null`. A soft-deleted row
+    		// returns null from `findFirst`; the adapter throws NotFoundError
+    		// and the update is NOT attempted. This is the D-TX-5 invariant
+    		// on the update path — soft-deleted rows are immutable through
+    		// the adapter's update method.
+    		vi.mocked(prisma.category.findFirst).mockResolvedValue(null as never);
 
-			const repo = new PrismaCategoryRepository();
-			// MUST NOT throw — soft-deleting an already-deleted (or missing)
-			// row is a no-op.
-			await expect(
-				repo.softDelete("cat-missing", "user-1"),
-			).resolves.toBeUndefined();
-		});
+    		const repo = new PrismaCategoryRepository();
+    		await expect(
+    		repo.update("cat-soft-deleted", { name: "New Name" }),
+    		).rejects.toBeInstanceOf(CategoryNotFoundError);
+    		expect(prisma.category.update).not.toHaveBeenCalled();
+    		});
 
-		it("calls update with `deletedAt: Date, updatedBy: actorId`", async () => {
-			vi.mocked(prisma.category.update).mockResolvedValue({} as never);
+    		it("calls findFirst with `where: { id, deletedAt: null }` on the pre-check", async () => {
+    		vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    		id: "cat-1",
+    		name: "Groceries",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "user-1",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    		} as never);
+    		vi.mocked(prisma.category.update).mockResolvedValue({
+    		id: "cat-1",
+    		name: "New Name",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "__category_seed_actor__",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-07-01T00:00:00.000Z"),
+    		} as never);
 
-			const repo = new PrismaCategoryRepository();
-			await repo.softDelete("cat-1", "user-42");
+    		const repo = new PrismaCategoryRepository();
+    		await repo.update("cat-1", { name: "New Name" });
 
-			expect(prisma.category.update).toHaveBeenCalledTimes(1);
-			const callArg = (
-				vi.mocked(prisma.category.update).mock.calls[0] as unknown as [
-					{
-						where: { id: string };
-						data: { deletedAt: Date; updatedBy: string };
-					},
-				]
-			)[0];
-			expect(callArg.where.id).toBe("cat-1");
-			expect(callArg.data.deletedAt).toBeInstanceOf(Date);
-			expect(callArg.data.updatedBy).toBe("user-42");
-		});
-	});
+    		expect(prisma.category.findFirst).toHaveBeenCalledTimes(1);
+    		const callArg = (
+    		vi.mocked(prisma.category.findFirst).mock.calls[0] as unknown as [
+    		{ where: { id: string; deletedAt: null } },
+    		]
+    		)[0];
+    		// D-TX-5 invariant: the pre-check MUST filter `deletedAt: null`.
+    		expect(callArg.where.id).toBe("cat-1");
+    		expect(callArg.where.deletedAt).toBeNull();
+    		});
+    	});
+
+    	describe("softDelete", () => {
+    		it("is a no-op when the row is missing (updateMany returns count=0; no throw)", async () => {
+    		// The atomic updateMany replaces the prior `update` + P2025-swallow
+    		// pattern. When the row is missing, the count is 0 and the adapter
+    		// resolves without throwing.
+    		vi.mocked(prisma.category.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    		const repo = new PrismaCategoryRepository();
+    		await expect(
+    			repo.softDelete("cat-missing", "user-1"),
+    		).resolves.toBeUndefined();
+    	});
+
+    	it("is a no-op when the row is already soft-deleted (updateMany filters on deletedAt: null)", async () => {
+    		// The where: { id, deletedAt: null } filter means an already-deleted
+    		// row matches no rows; updateMany returns count: 0; no throw.
+    		vi.mocked(prisma.category.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    		const repo = new PrismaCategoryRepository();
+    		await expect(
+    			repo.softDelete("cat-already-deleted", "user-1"),
+    		).resolves.toBeUndefined();
+    	});
+
+    	it("calls updateMany with `deletedAt: null` filter + `deletedAt: Date, updatedBy: actorId` payload", async () => {
+    		vi.mocked(prisma.category.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    		const repo = new PrismaCategoryRepository();
+    		await repo.softDelete("cat-1", "user-42");
+
+    		expect(prisma.category.updateMany).toHaveBeenCalledTimes(1);
+    		const callArg = (
+    		vi.mocked(prisma.category.updateMany).mock.calls[0] as unknown as [
+    		{
+    		where: { id: string; deletedAt: null };
+    		data: { deletedAt: Date; updatedBy: string };
+    		},
+    		]
+    	)[0];
+    		// D-TX-5 invariant: the where filter MUST include `deletedAt: null`
+    		// so a concurrent soft-deleted row is not re-mutated.
+    		expect(callArg.where.id).toBe("cat-1");
+    		expect(callArg.where.deletedAt).toBeNull();
+    		expect(callArg.data.deletedAt).toBeInstanceOf(Date);
+    		expect(callArg.data.updatedBy).toBe("user-42");
+    	});
+    });
 });

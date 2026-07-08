@@ -1,4 +1,4 @@
-import { Decimal, toDecimal } from "@shared-utils/decimal";
+import { type Decimal, toDecimal } from "@shared-utils/decimal";
 
 import type { FxRateProvider } from "../../domain/interfaces/fx-rate.provider.js";
 
@@ -17,6 +17,17 @@ interface SeededPair {
 
 /**
  * Default `FxRateProvider` implementation per design §5.2 (D-TX-2).
+ *
+ * **Dev / test implementation.** The 4R review (review-risk WARNING)
+ * flagged that this class is exported via the slice's public barrel
+ * (`@features/transactions`) alongside the `FxRateProvider` port and
+ * the `FX_RATE_PROVIDER_TOKEN` DI token. A production consumer that
+ * imports the wrong symbol gets the hard-coded seeded rates
+ * (`1000.001`, `1050.5`, etc.) silently. Mitigation: this doc marks
+ * the class as dev/test only, and the slice's barrel JSDoc flags the
+ * same. Production adapters (HTTP-backed, cache-aware) MUST replace
+ * this binding in the `TransactionsModule.useFactory` without
+ * touching the slice's domain code.
  *
  * Seeded at construction time with the four pairs the spec mandates:
  *   USD → ARS, EUR → ARS, ARS → USD, ARS → EUR.
@@ -77,17 +88,22 @@ export class InMemoryFxRateProvider implements FxRateProvider {
 	 * by `deltaMs`. Use `advanceClock(25 * 60 * 60 * 1000)` to push the
 	 * pair past the 24h staleness window (D-TX-4 + design §5.2).
 	 *
-	 * Returns the new recordedAt for chaining.
+	 * Returns the new recordedAt timestamp that was just written to the
+	 * last updated pair. The contract was previously mis-documented as
+	 * "for chaining" returning `new Date()` (now); the 4R review fix
+	 * returns the actual last-written recordedAt so callers can assert
+	 * against the deterministic value.
 	 */
 	advanceClock(deltaMs: number): Date {
-		const next = new Date();
+		let lastRecordedAt: Date = this.pairs.values().next().value!.recordedAt;
 		for (const [key, pair] of this.pairs) {
+			const bumped = new Date(pair.recordedAt.getTime() + deltaMs);
+			lastRecordedAt = bumped;
 			this.pairs.set(key, {
 				...pair,
-				recordedAt: new Date(pair.recordedAt.getTime() + deltaMs),
+				recordedAt: bumped,
 			});
 		}
-		void next;
-		return new Date();
+		return lastRecordedAt;
 	}
 }

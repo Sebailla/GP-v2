@@ -24,17 +24,22 @@ import {
  * `vi.mock("@core/database")` stubs the singleton.
  */
 
-vi.mock("@core/database", () => ({
-	prisma: {
-		transaction: {
-			findFirst: vi.fn(),
-			findMany: vi.fn(),
-			count: vi.fn(),
-			create: vi.fn(),
-			update: vi.fn(),
+vi.mock("@core/database", async () => {
+	const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
+	return {
+		...actual,
+		prisma: {
+			transaction: {
+				findFirst: vi.fn(),
+				findMany: vi.fn(),
+				count: vi.fn(),
+				create: vi.fn(),
+				update: vi.fn(),
+				updateMany: vi.fn(),
+			},
 		},
-	},
-}));
+	};
+});
 
 import { prisma } from "@core/database";
 
@@ -312,61 +317,156 @@ describe("PrismaTransactionRepository", () => {
 		});
 	});
 
-	describe("update", () => {
-		it("translates P2025 into `TransactionNotFoundError`", async () => {
-			vi.mocked(prisma.transaction.update).mockRejectedValue({
-				code: "P2025",
-			} as never);
+    	describe("update", () => {
+    		it("translates a missing pre-check row into `TransactionNotFoundError` (D-TX-5 invariant)", async () => {
+    		// The pre-check `findFirst({ id, deletedAt: null })` returns null
+    		// when the row is missing OR already soft-deleted. The adapter
+    		// throws NotFoundError BEFORE the update is attempted.
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null as never);
 
-			const repo = new PrismaTransactionRepository();
-			await expect(
-				repo.update("txn-missing", { updatedBy: "user-1" }),
-			).rejects.toBeInstanceOf(TransactionNotFoundError);
-		});
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.update("txn-missing", { updatedBy: "user-1" }),
+    		).rejects.toBeInstanceOf(TransactionNotFoundError);
+    		// The update is NEVER attempted when the pre-check fails.
+    		expect(prisma.transaction.update).not.toHaveBeenCalled();
+    		});
 
-		it("serializes a patched `amount` via .toString()", async () => {
-			vi.mocked(prisma.transaction.update).mockResolvedValue(
-				fakeRow() as never,
-			);
+    		it("refuses to update soft-deleted rows (D-TX-5 — pre-check filters on deletedAt: null)", async () => {
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null as never);
 
-			const repo = new PrismaTransactionRepository();
-			await repo.update("txn-1", {
-				amount: toDecimal("99.99"),
-				updatedBy: "user-1",
-			});
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.update("txn-soft-deleted", { updatedBy: "user-1" }),
+    		).rejects.toBeInstanceOf(TransactionNotFoundError);
+    		expect(prisma.transaction.update).not.toHaveBeenCalled();
+    		});
 
-			const callArg = (
-				vi.mocked(prisma.transaction.update).mock.calls[0] as unknown as [
-					{ data: { amount: unknown } },
-				]
-			)[0];
-			expect(callArg.data.amount).toBe("99.99");
-		});
-	});
+    		it("calls findFirst with `where: { id, deletedAt: null }` on the pre-check", async () => {
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(fakeRow() as never);
+    		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
 
-	describe("softDelete", () => {
-		it("swallows P2025 silently (idempotent — soft-deleting a soft-deleted row is a no-op)", async () => {
-			vi.mocked(prisma.transaction.update).mockRejectedValue({
-				code: "P2025",
-			} as never);
+    		const repo = new PrismaTransactionRepository();
+    		await repo.update("txn-1", { updatedBy: "user-1" });
 
-			const repo = new PrismaTransactionRepository();
-			await expect(
-				repo.softDelete("txn-missing", "user-1"),
-			).resolves.toBeUndefined();
-		});
+    		expect(prisma.transaction.findFirst).toHaveBeenCalledTimes(1);
+    		const findCallArg = (
+    		vi.mocked(prisma.transaction.findFirst).mock.calls[0] as unknown as [
+    		{ where: { id: string; deletedAt: null } },
+    		]
+    		)[0];
+    		// D-TX-5 invariant: the pre-check MUST filter `deletedAt: null`.
+    		expect(findCallArg.where.id).toBe("txn-1");
+    		expect(findCallArg.where.deletedAt).toBeNull();
+    		});
 
-		it("calls update with `deletedAt: Date, updatedBy: actorId`", async () => {
-			vi.mocked(prisma.transaction.update).mockResolvedValue({} as never);
+    		it("serializes a patched `amount` via .toString()", async () => {
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(fakeRow() as never);
+    		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
 
-			const repo = new PrismaTransactionRepository();
-			await repo.softDelete("txn-1", "user-42");
+    		const repo = new PrismaTransactionRepository();
+    		await repo.update("txn-1", {
+    		amount: toDecimal("99.99"),
+    		updatedBy: "user-1",
+    		});
 
-			const callArg = (
-				vi.mocked(prisma.transaction.update).mock.calls[0] as unknown as [
-					{
-						where: { id: string };
-						data: { deletedAt: Date; updatedBy: string };
+    		const callArg = (
+    		vi.mocked(prisma.transaction.update).mock.calls[0] as unknown as [
+    		{ data: { amount: unknown } },
+    		]
+    		)[0];
+    		expect(callArg.data.amount).toBe("99.99");
+    		});
+    	});
+
+    	describe("create — P2002 translation (forward-looking guard)", () => {
+    		it("translates a P2002 unique-constraint violation into `TransactionAlreadyExistsError`", async () => {
+    		// Today the schema has no `@@unique(...)` on Transaction, but the
+    		// translation is wired now so a future unique constraint cannot leak
+    		// the raw Prisma error. We mock the Prisma P2002 shape that the
+    		// shared `isPrismaUniqueViolation` helper recognizes (target as
+    		// string or string[] both work).
+    		vi.mocked(prisma.transaction.create).mockRejectedValue({
+    		code: "P2002",
+    		meta: { target: "id" },
+    		} as never);
+
+    		const { TransactionAlreadyExistsError } = await import(
+    		"../infrastructure/repositories/prisma-transaction.repository.js"
+    		);
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.create({
+    		amount: toDecimal("12.34"),
+    		currencyCode: "USD",
+    		kind: "expense",
+    		reportingAmount: null,
+    		reportingCurrencyCode: null,
+    		fxRateId: null,
+    		categoryId: "cat-1",
+    		notes: null,
+    		occurredAt: new Date("2026-06-01T12:00:00.000Z"),
+    		createdBy: "user-1",
+    		updatedBy: "user-1",
+    		}),
+    		).rejects.toBeInstanceOf(TransactionAlreadyExistsError);
+    		});
+
+    		it("passes through Prisma errors other than P2002 (no translation)", async () => {
+    		vi.mocked(prisma.transaction.create).mockRejectedValue(
+    		new Error("connection reset") as never,
+    		);
+
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.create({
+    		amount: toDecimal("12.34"),
+    		currencyCode: "USD",
+    		kind: "expense",
+    		reportingAmount: null,
+    		reportingCurrencyCode: null,
+    		fxRateId: null,
+    		categoryId: "cat-1",
+    		notes: null,
+    		occurredAt: new Date("2026-06-01T12:00:00.000Z"),
+    		createdBy: "user-1",
+    		updatedBy: "user-1",
+    		}),
+    		).rejects.toThrow("connection reset");
+    		});
+    	});
+
+    	describe("softDelete", () => {
+    		it("is a no-op when the row is missing (updateMany returns count=0; no throw)", async () => {
+    		vi.mocked(prisma.transaction.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.softDelete("txn-missing", "user-1"),
+    		).resolves.toBeUndefined();
+    		});
+
+    		it("is a no-op when the row is already soft-deleted (updateMany filters on deletedAt: null)", async () => {
+    		vi.mocked(prisma.transaction.updateMany).mockResolvedValue({ count: 0 } as never);
+
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.softDelete("txn-already-deleted", "user-1"),
+    		).resolves.toBeUndefined();
+    		});
+
+    		it("calls updateMany with `deletedAt: null` filter + `deletedAt: Date, updatedBy: actorId` payload", async () => {
+    		vi.mocked(prisma.transaction.updateMany).mockResolvedValue({ count: 1 } as never);
+
+    		const repo = new PrismaTransactionRepository();
+    		await repo.softDelete("txn-1", "user-42");
+
+    		expect(prisma.transaction.updateMany).toHaveBeenCalledTimes(1);
+    		const callArg = (
+    		vi.mocked(prisma.transaction.updateMany).mock.calls[0] as unknown as [
+    		{
+    		where: { id: string; deletedAt: null };
+    		data: { deletedAt: Date; updatedBy: string };
 					},
 				]
 			)[0];

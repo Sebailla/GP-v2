@@ -8,7 +8,6 @@ import {
 	PrismaFxRateRepository,
 	PrismaIdempotencyRepository,
 	PrismaTransactionRepository,
-	type FxRateProvider,
 } from "@features/transactions";
 
 /**
@@ -83,9 +82,3 @@ export class TransactionsModule {
 	 */
 	static readonly FX_RATE_PROVIDER_TOKEN = FX_RATE_PROVIDER_TOKEN;
 }
-
-/**
- * Convenience type alias for consumer services that inject the FX
- * provider through the NestJS container.
- */
-export type InjectedFxRateProvider = FxRateProvider;

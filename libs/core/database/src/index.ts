@@ -33,3 +33,13 @@ export type { Decimal as PrismaDecimal } from "./generated/internal/prismaNamesp
 // without reaching into the generated internal paths.
 import type * as PrismaNamespace from "./generated/internal/prismaNamespace.js";
 export type { PrismaNamespace as Prisma };
+
+// Shared Prisma error-code guards (PR #2 4R review fix). Every Prisma-backed
+// adapter in the workspace reaches for these to translate P2002 / P2025 into
+// domain-friendly error classes or to swallow P2025 silently in idempotent
+// paths. The implementation handles both `string` and `string[]` shapes for
+// `meta.target` (single-field vs. compound unique constraints).
+export {
+  isPrismaUniqueViolation,
+  isPrismaNotFound,
+} from "./prisma-error-guards.js";

@@ -85,10 +85,6 @@ export class PrismaIdempotencyRepository implements IdempotencyRepository {
   }
 }
 
-// Local type alias removed in favor of the public re-export `Prisma`
-// from @core/database (see libs/core/database/src/index.ts for the
-// namespace surface).
-
 function projectIdempotencyKey(row: {
   id: string;
   key: string;

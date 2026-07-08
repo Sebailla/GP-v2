@@ -10,6 +10,12 @@
  * Slice 5 PR #2 (T5.7 + T5.8 + T5.10) adds the persistence boundary:
  *  - Five `Prisma*Repository` classes implementing the domain ports.
  *  - `InMemoryFxRateProvider`, the default `FxRateProvider` for dev/test.
+ *    **Dev/test only** — production adapters (HTTP-backed, cache-aware)
+ *    must replace this binding in `TransactionsModule.useFactory`.
+ *    Importing the concrete class directly in production code is a
+ *    silent smell: the seeded rates are hard-coded and stale. Prefer
+ *    importing the `FxRateProvider` port + `FX_RATE_PROVIDER_TOKEN` and
+ *    letting the NestJS container resolve the binding.
  *  - `FX_RATE_PROVIDER_TOKEN`, the DI token bound in
  *    `apps/api/src/modules/transactions/transactions.module.ts`.
  *  - The four domain error classes that translate Prisma's
@@ -92,4 +98,5 @@ export {
 } from "./infrastructure/repositories/prisma-transaction.repository.js";
 
 // Live FX rate provider (T5.8) — bound through `FX_RATE_PROVIDER_TOKEN`.
+// Dev/test impl; production swaps this binding in the NestJS module.
 export { InMemoryFxRateProvider } from "./infrastructure/fx/in-memory-fx-rate.provider.js";

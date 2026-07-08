@@ -1,9 +1,8 @@
-import { prisma as defaultPrisma } from "@core/database";
+import { prisma as defaultPrisma, isPrismaUniqueViolation } from "@core/database";
 import type { PrismaClient, Prisma } from "@core/database";
 
 import type {
   Category,
-  CategoryKind,
 } from "../../domain/entities/category.entity.js";
 import type {
   CategoryRepository,
@@ -110,40 +109,39 @@ export class PrismaCategoryRepository implements CategoryRepository {
     if (input.name !== undefined) data.name = input.name;
     if (input.kind !== undefined) data.kind = input.kind;
 
-    try {
-      const row = await this.prisma.category.update({
-        where: { id },
-        data,
-      });
-      return projectCategory(row);
-    } catch (err) {
-      if (isPrismaNotFound(err)) {
-        // Soft-deleted rows are not-found; surface as null at the
-        // call-site by returning a typed marker. We throw to keep the
-        // port signature honest; the service layer translates this
-        // into the right error class.
-        throw new CategoryNotFoundError(id);
-      }
-      throw err;
+    // D-TX-5 invariant: refuse to update soft-deleted rows. Pre-check
+    // via findFirst({ deletedAt: null }); the small race window between
+    // the check and the update is acceptable for PR #2 — PR #3 services
+    // that need stricter atomicity can wrap in a SERIALIZABLE transaction.
+    const existing = await this.prisma.category.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (existing === null) {
+      throw new CategoryNotFoundError(id);
     }
+
+    const row = await this.prisma.category.update({
+      where: { id },
+      data,
+    });
+    return projectCategory(row);
   }
 
   async softDelete(id: string, actorId: string): Promise<void> {
-    try {
-      await this.prisma.category.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          updatedBy: actorId,
-        },
-      });
-    } catch (err) {
-      // Idempotent: soft-deleting a soft-deleted (or non-existent) row
-      // is a no-op. Mirror the `P2025` swallow pattern from
-      // `prisma-session.repository.ts`.
-      if (isPrismaNotFound(err)) return;
-      throw err;
-    }
+    // D-TX-5: use updateMany with the deletedAt: null filter so a
+    // soft-deleted (or non-existent) row is a silent no-op. The count
+    // is intentionally discarded — we don't surface "did it actually
+    // delete" to the port (the port contract is idempotent void).
+    // The atomic updateMany replaces the prior `update` + P2025-swallow
+    // pattern; it avoids the race window where a concurrent update
+    // could re-mutate a soft-deleted row.
+    await this.prisma.category.updateMany({
+      where: { id, deletedAt: null },
+      data: {
+        deletedAt: new Date(),
+        updatedBy: actorId,
+      },
+    });
   }
 }
 
@@ -159,35 +157,13 @@ export class CategoryNotFoundError extends Error {
  * Recognizes Prisma's P2002 unique-constraint violation. The adapter
  * raises `CategoryAlreadyExistsError` instead of leaking the Prisma
  * error class into the domain layer.
+ *
+ * NOTE: the local copies of `isPrismaUniqueViolation` and
+ * `isPrismaNotFound` were promoted to `@core/database/prisma-error-guards`
+ * in the 4R review fix (commit TBD). The slice no longer owns these
+ * guards; every Prisma-backed adapter in the workspace shares the same
+ * shape recognition.
  */
-function isPrismaUniqueViolation(
-  err: unknown,
-  target: string,
-): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: unknown }).code === "P2002" &&
-    "meta" in err &&
-    typeof (err as { meta?: unknown }).meta === "object" &&
-    (err as { meta?: { target?: unknown } }).meta?.target === target
-  );
-}
-
-/**
- * Recognizes Prisma's P2025 "Record not found". Used to mask the
- * not-found case after softDelete / update so the adapter remains
- * idempotent and the call-site gets a domain-friendly error class.
- */
-function isPrismaNotFound(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: unknown }).code === "P2025"
-  );
-}
 
 function projectCategory(row: {
   id: string;
@@ -213,6 +189,5 @@ function projectCategory(row: {
 
 // Suppress unused-import warning — CategoryKind is intentionally not used in
 // the file body (the projection function narrows the union internally).
-type _CategoryKindSentinel = CategoryKind;
-const _kind: _CategoryKindSentinel | undefined = undefined;
-void _kind;
+// Note: this sentinel was removed in the 4R review fix; the import was
+// unused and is no longer pulled in.
