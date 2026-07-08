@@ -1,0 +1,70 @@
+{
+  "auth": {
+"common": {
+          "loading": "Cargando…",
+          "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
+          "cancel": "Cancelar",
+          "backToLoginLink": "Volver a iniciar sesión",
+          "error": {
+            "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
+          }
+        },
+    "signIn": {
+      "title": "Iniciar sesión",
+      "description": "Inicia sesión para acceder a tu cuenta.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "submit": "Iniciar sesión",
+      "error": {
+        "invalidCredentials": "Correo electrónico o contraseña no válidos."
+      }
+    },
+    "signUp": {
+      "title": "Crea tu cuenta",
+      "description": "Crea una cuenta para empezar a registrar tus finanzas.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "name": "Nombre para mostrar",
+      "submit": "Crear cuenta",
+      "error": {
+        "duplicateEmail": "Ya existe una cuenta registrada con este correo."
+      }
+    },
+    "forgotPassword": {
+      "title": "¿Olvidaste tu contraseña?",
+      "email": "Correo electrónico",
+      "submit": "Enviar enlace de restablecimiento",
+      "success": "Si este correo está registrado, recibirás un enlace de restablecimiento en breve."
+    },
+    "resetPassword": {
+      "title": "Elige una nueva contraseña",
+      "newPassword": "Nueva contraseña",
+      "submit": "Restablecer contraseña",
+      "error": {
+        "invalidToken": "Este enlace de restablecimiento no es válido o ha caducado."
+      },
+      "success": "Tu contraseña ha sido restablecido. Ya puedes iniciar sesión."
+    },
+    "sessions": {
+      "title": "Sesiones activas",
+      "list": "Dispositivos con la sesión iniciada",
+      "revokeButton": "Revocar",
+      "empty": "No se han encontrado sesiones activas."
+    },
+    "devMailbox": {
+      "title": "Buzón de desarrollo",
+      "noTokensHint": "Aún no se ha despachado ningún token de restablecimiento de contraseña.",
+      "tokenLabel": "Token de restablecimiento",
+      "copyButton": "Copiar token",
+      "copiedToClipboard": "Copiado al portapapeles"
+    },
+    "dashboard": {
+      "welcome": "Bienvenido/a, {email}.",
+      "signOut": "Cerrar sesión"
+    },
+    "locale": {
+      "en": "Inglés",
+      "es": "Español"
+    }
+  }
+}

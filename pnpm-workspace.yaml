@@ -1,0 +1,16 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+  - "libs/*/*"
+  - "libs/*/*/*"
+  - "tools/*"
+  - "tools/*/*"
+
+# pnpm 11 settings (moved from "pnpm" field in package.json).
+# See https://pnpm.io/settings for the canonical list.
+allowBuilds:
+  "@nestjs/core": true
+  "@prisma/engines": true
+  bcryptjs: true
+  prisma: true
+  "sharp": true

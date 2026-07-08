@@ -1,0 +1,198 @@
+/**
+ * Design-system token table for `apps/web`.
+ *
+ * Tokens extracted from the sibling reference repo
+ * `/Users/sebailla/Documents/Proyectos/2026/on-line/gastos-personales/app/_ui/tokens.css`
+ * (per design §6.4: "Read during apply — gastos-personales/app/globals.css
+ * to extract CSS variables under :root").
+ *
+ * The 14 pre-existing color roles (--ui-bg, --ui-fg, --ui-accent, etc.),
+ * the radius scale, the elevation scale, the spacing scale, and the
+ * typography scale are byte-for-byte the same values declared in the
+ * source. The seven glass/gradient/shadow tokens (REQ-UI-19 in the
+ * source) are also extracted so the visual language matches.
+ *
+ * The dark-mode block mirrors the source `.dark` scope (the selector
+ * was renamed from `[data-theme="dark"]` to `.dark` in the source to
+ * match the modern Tailwind v4 / shadcn convention).
+ *
+ * Tailwind v4 setup: a single `@import "tailwindcss";` directive
+ * bundles base + components + utilities layers (the v3 split into
+ * three `@tailwind base/components/utilities` is no longer needed).
+ * The `@theme inline` block exposes the token CSS custom properties
+ * as Tailwind utility classes (`bg-ui-bg`, `text-ui-fg`, `rounded-ui-md`,
+ * `shadow-ui-shadow-sm`, etc.) consumed by the shadcn-style primitives
+ * in `apps/web/components/ui/`. No hex value is hard-coded in any
+ * primitive; tokens are the single source of styling.
+ *
+ * This file is imported ONCE in `app/[locale]/layout.tsx` so the utility
+ * classes are available in every page of the App Router.
+ *
+ * Spec: openspec/changes/vertical-slicing-reference-scaffold/proposal.md §11.1 UI-1.
+ * Design: openspec/changes/vertical-slicing-reference-scaffold/design.md §6.4 (token
+ *   extraction contract) + §6.5 (shadcn-style primitives setup).
+ */
+
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+    Monaco, Consolas, monospace;
+
+  /* Color roles — light theme defaults; overridden under `.dark` below. */
+  --color-ui-bg: var(--ui-bg);
+  --color-ui-bg-muted: var(--ui-bg-muted);
+  --color-ui-bg-subtle: var(--ui-bg-subtle);
+  --color-ui-fg: var(--ui-fg);
+  --color-ui-fg-muted: var(--ui-fg-muted);
+  --color-ui-border: var(--ui-border);
+  --color-ui-accent: var(--ui-accent);
+  --color-ui-accent-fg: var(--ui-accent-fg);
+  --color-ui-danger: var(--ui-danger);
+  --color-ui-danger-fg: var(--ui-danger-fg);
+  --color-ui-success: var(--ui-success);
+  --color-ui-success-fg: var(--ui-success-fg);
+  --color-ui-warning: var(--ui-warning);
+  --color-ui-warning-fg: var(--ui-warning-fg);
+
+  /* Glass + gradient + shadow (REQ-UI-19). */
+  --color-ui-glass-1: var(--ui-glass-bg);
+  --color-ui-glass-2: var(--ui-glass-bg);
+  --color-ui-glass-border: var(--ui-glass-border);
+  --color-ui-glass-bg-solid: var(--ui-glass-bg-solid);
+  --color-ui-gradient-from: var(--ui-gradient-from);
+  --color-ui-gradient-via: var(--ui-gradient-via);
+  --color-ui-gradient-to: var(--ui-gradient-to);
+  --shadow-glass: var(--ui-shadow-glass);
+}
+
+/*
+ * Light-mode tokens (`:root`) — single source of styling per REQ-UI-9.
+ */
+:root {
+  /* Spacing scale — ui-space-{1..8} maps to 4..32px (0.25rem steps). */
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.25rem;
+  --ui-space-6: 1.5rem;
+  --ui-space-7: 2rem;
+  --ui-space-8: 2.5rem;
+
+  /* Color roles — light theme (v1 rendered defaults). */
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #f9fafb;
+  --ui-bg-subtle: #f3f4f6;
+  --ui-fg: #111827;
+  --ui-fg-muted: #6b7280;
+  --ui-border: #e5e7eb;
+  --ui-accent: #2563eb;
+  --ui-accent-fg: #ffffff;
+  --ui-danger: #dc2626;
+  --ui-danger-fg: #ffffff;
+  --ui-success: #16a34a;
+  --ui-success-fg: #ffffff;
+  --ui-warning: #d97706;
+  --ui-warning-fg: #ffffff;
+
+  /* Radius scale — 0.25rem / 0.5rem / 0.75rem / pill. */
+  --ui-rounded-sm: 0.25rem;
+  --ui-rounded-md: 0.5rem;
+  --ui-rounded-lg: 0.75rem;
+  --ui-rounded-full: 9999px;
+
+  /* Elevation — subtle → prominent. */
+  --ui-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --ui-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --ui-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+
+  /* Typography scale. */
+  --ui-text-xs: 0.75rem;
+  --ui-text-sm: 0.875rem;
+  --ui-text-base: 1rem;
+  --ui-text-lg: 1.125rem;
+  --ui-text-xl: 1.25rem;
+  --ui-text-2xl: 1.5rem;
+  --ui-text-3xl: 1.875rem;
+  --ui-font-normal: 400;
+  --ui-font-medium: 500;
+  --ui-font-semibold: 600;
+  --ui-font-bold: 700;
+
+  /* Glass + gradient + shadow (REQ-UI-19) — APPENDED in PR 2 of the
+     source repo's `ui-redesign` change. Light-theme values; the dark
+     scope block below overrides for `.dark`. */
+  --ui-glass-bg: oklch(0.99 0.005 250 / 0.6);
+  --ui-glass-bg-solid: oklch(0.99 0.005 250);
+  --ui-glass-border: oklch(1 0 0 / 0.4);
+  --ui-glass-blur-sm: 12px;
+  --ui-glass-blur-lg: 20px;
+  --ui-shadow-glass: 0 8px 32px 0 rgb(0 0 0 / 0.18);
+  --ui-gradient-from: oklch(0.7 0.15 250);
+  --ui-gradient-via: oklch(0.75 0.12 280);
+  --ui-gradient-to: oklch(0.7 0.12 320);
+}
+
+/*
+ * Dark-mode tokens — activated by the `<html class="dark">` class that
+ * a future ThemeProvider will write. The 14 color values and the 7 new
+ * glass/gradient/shadow overrides inside the block are byte-for-byte
+ * unchanged from the source repo.
+ */
+.dark {
+  --ui-bg: #0a0a0a;
+  --ui-bg-muted: #171717;
+  --ui-bg-subtle: #262626;
+  --ui-fg: #fafafa;
+  --ui-fg-muted: #a3a3a3;
+  --ui-border: #404040;
+  --ui-accent: #3b82f6;
+  --ui-accent-fg: #ffffff;
+  --ui-danger: #ef4444;
+  --ui-danger-fg: #ffffff;
+  --ui-success: #22c55e;
+  --ui-success-fg: #ffffff;
+  --ui-warning: #f59e0b;
+  --ui-warning-fg: #ffffff;
+
+  --ui-glass-bg: oklch(0.18 0.02 250 / 0.72);
+  --ui-glass-bg-solid: oklch(0.18 0.02 250);
+  --ui-glass-border: oklch(1 0 0 / 0.08);
+  --ui-shadow-glass: 0 8px 32px 0 rgb(0 0 0 / 0.5);
+  --ui-gradient-from: oklch(0.32 0.14 250);
+  --ui-gradient-via: oklch(0.36 0.11 280);
+  --ui-gradient-to: oklch(0.32 0.1 320);
+}
+
+/*
+ * `prefers-reduced-motion: reduce` (REQ-UI-16) — collapses every
+ * animation + transition to 0.01ms so the user with the OS "reduce
+ * motion" preference set sees no motion. The override is global
+ * (applies to `*, *::before, *::after`) and uses `!important` to win
+ * over the Tailwind `animate-*` utilities a Spinner primitive might
+ * use in a future slice.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * `prefers-reduced-transparency: reduce` (REQ-UI-15) — the WCAG 2.2
+ * fallback that drops the `backdrop-filter: blur(...)` glass effect
+ * and replaces the alpha-blended `--ui-glass-bg` with the solid
+ * alpha-1.0 `--ui-glass-bg-solid`.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  .bg-ui-glass-1,
+  .bg-ui-glass-2 {
+    backdrop-filter: none !important;
+    background-color: var(--ui-glass-bg-solid) !important;
+  }
+}

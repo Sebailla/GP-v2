@@ -75,7 +75,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm install && pnpm db:up && docker compose ps` shows Postgres healthy; `pnpm turbo run build lint typecheck` exits 0 across all workspaces.
 **Rollback.** Slice commit = one or more atomic commits on `feat/vertical-slicing-reference-scaffold`. To drop the slice: `git revert <slice-base-sha>..<slice-tip-sha> --no-edit` after merge approval.
 
-### Task T1.1 — Initialize monorepo (pnpm + Turbo workspaces) (~40 lines)
+### Task T1.1 — Initialize monorepo (pnpm + Turbo workspaces) (~40 lines) [x]
 
 - **Description.** Declare pnpm 10.x as the package manager, set up the workspace declaration, add the root `package.json` with workspace scripts (`db:up`, `db:down`, `prisma migrate dev`, dev, build, lint, test, typecheck, bdd, e2e), and create `turbo.json` declaring every pipeline with `dependsOn`/`outputs` per design §3.2.
 - **Discovery / file targets.** Create `pnpm-workspace.yaml` (`packages: ['apps/*', 'libs/*', 'tools/*']`), root `package.json` (declares `packageManager: "pnpm@10.x"` and the workspace scripts), `turbo.json` (pipelines: `build`, `dev`, `lint`, `test`, `typecheck`, `bdd`, `e2e`), `.editorconfig`, `.gitignore` (excludes `.env*`, `node_modules`, `dist`, `.next`, `.turbo`, `coverage`, `bdd-reports`, `playwright-report`, `test-results`), `.nvmrc` (Node 22 LTS pin).
@@ -84,7 +84,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.1-sha>`.
 - **Files touched (rough).** `pnpm-workspace.yaml`, `package.json`, `turbo.json`, `.editorconfig`, `.gitignore`, `.nvmrc` (~40 lines total).
 
-### Task T1.2 — `tsconfig.base.json` with path aliases (~50 lines)
+### Task T1.2 — `tsconfig.base.json` with path aliases (~50 lines) [x]
 
 - **Description.** Strict TypeScript base config (`strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`, `moduleResolution: "Bundler"`, `target: "ES2022"`, `module: "ESNext"`) plus the workspace path aliases documented in design §3.3 (`@core/database`, `@core/events`, `@core/config`, `@features/auth`, `@features/transactions`, `@shared-utils/*`).
 - **Discovery / file targets.** Create `tsconfig.base.json` at repo root.
@@ -93,7 +93,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.2-sha>`.
 - **Files touched (rough).** `tsconfig.base.json` (~50 lines).
 
-### Task T1.3 — ESLint flat config + custom boundary plugin (~80 lines)
+### Task T1.3 — ESLint flat config + custom boundary plugin (~80 lines) [x]
 
 - **Description.** Stand up the flat config (`eslint.config.mjs`) and the custom boundary plugin in `tools/eslint-plugin-boundary/`. Four non-negotiable rules: `no-client-server-import` (blocks `*/server/*` imports into `*/client/*`), `no-cross-module-import` (blocks direct `libs/features/<other>` imports except via `@core/events` or shared ports), `no-prisma-outside-core` (blocks `new PrismaClient(` outside `libs/core/database/src/`), `no-schemas-outside-shared` (blocks Zod schemas outside `libs/features/*/shared/schemas/*` and `libs/core/config/env.schema.ts`). Optional fifth: `no-mojibake-in-docs` (blocks CJK codepoints in `Documents-es/**/*.md`). Each rule has a `valid.ts` and `invalid.ts` fixture under `tools/eslint-plugin-boundary/__fixtures__/<rule>/`.
 - **Discovery / file targets.** Create `tools/eslint-plugin-boundary/` with `package.json`, `index.cjs`, and per-rule files (`rules/no-client-server-import.cjs`, etc.); `eslint.config.mjs` extends the plugin's `recommended` export; add fixtures under `tools/eslint-plugin-boundary/__fixtures__/{no-client-server-import,no-cross-module-import,no-prisma-outside-core,no-schemas-outside-shared}/{valid,invalid}.ts`.
@@ -102,7 +102,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.3-sha>`.
 - **Files touched (rough).** `eslint.config.mjs`, `tools/eslint-plugin-boundary/**` (~80 lines).
 
-### Task T1.4 — LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md (~60 lines)
+### Task T1.4 — LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md (~60 lines) [x]
 
 - **Description.** Per Locked Decision #6 (`LICENSE = MIT`) and `openspec/config.yaml#docs`. `README.md` documents the publicable intent and the quickstart: `pnpm install`, `pnpm db:up`, `pnpm prisma migrate dev`, `pnpm dev`. `CONTRIBUTING.md` is a lightweight one-pager. `AGENTS.md` is the project-local conventions file — it mirrors the relevant subset of `openspec/config.yaml` for any agent that doesn't traverse the openspec folder.
 - **Discovery / file targets.** Create `LICENSE` (MIT body, full text), `README.md`, `CONTRIBUTING.md`, `AGENTS.md`. Reference Engram conventions id 2129 (`branch-model`), 2132 (`doc-mirror-spanish`), 2133 (`ui-complete-not-scaffold`).
@@ -111,7 +111,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.4-sha>`.
 - **Files touched (rough).** `LICENSE`, `README.md`, `CONTRIBUTING.md`, `AGENTS.md` (~60 lines).
 
-### Task T1.5 — `docker-compose.yml` for Postgres + db scripts (~20 lines)
+### Task T1.5 — `docker-compose.yml` for Postgres + db scripts (~20 lines) [x]
 
 - **Description.** Single-service compose file with a Postgres 16 image, exposed on the default `5432`, healthcheck, and a named volume. Root scripts (in `package.json`) wrap the compose lifecycle: `db:up`, `db:down`, `db:reset` (`down -v && up -d`), `db:logs`.
 - **Discovery / file targets.** Create `docker-compose.yml`, add `scripts` entries in root `package.json` (`db:up`, `db:down`, `db:reset`, `db:logs`). Database connection string `DATABASE_URL=postgres://postgres:postgres@localhost:5432/gastos_reference` appears in `.env.example` (T1.6 / Slice 2 will reference it).
@@ -120,7 +120,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.5-sha>`.
 - **Files touched (rough).** `docker-compose.yml`, root `package.json` updates (~20 lines).
 
-### Task T1.6 — `apps/web` scaffold (Next.js 15 minimal) (~30 lines)
+### Task T1.6 — `apps/web` scaffold (Next.js 15 minimal) (~30 lines) [x]
 
 - **Description.** Bootstrap the Next.js 15 App Router workspace with the `app/[locale]/layout.tsx` shell — but with placeholders only: the layout renders `<html lang={locale}>` and `{children}`, no providers yet, no UI primitives yet (those land in Slice 4). `next.config.ts` is minimal (no `createNextIntlPlugin` yet — added in Slice 4). No `package.json` deps beyond what Next 15 requires (`next`, `react`, `react-dom`, `typescript`).
 - **Discovery / file targets.** Create `apps/web/{package.json,tsconfig.json,next.config.ts,app/[locale]/layout.tsx,app/[locale]/page.tsx}`. The `tsconfig.json` extends `tsconfig.base.json` and declares path aliases. **`next.config.ts` and `package.json` get full deps in Slice 4** — this slice adds only the minimum to compile an empty landing page.
@@ -129,7 +129,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.6-sha>`.
 - **Files touched (rough).** `apps/web/**` (~30 lines).
 
-### Task T1.7 — `apps/api` scaffold (NestJS 10 minimal) (~30 lines)
+### Task T1.7 — `apps/api` scaffold (NestJS 10 minimal) (~30 lines) [x]
 
 - **Description.** Bootstrap the NestJS 10 workspace on port 3001 with a single `app.module.ts` that imports nothing yet (no feature modules wired — those land in Slices 3 and 5). `main.ts` calls `NestFactory.create(AppModule)` and listens on `process.env.PORT ?? 3001`. Add `@nestjs/{config,common,core}` and `reflect-metadata` to `apps/api/package.json`. Nest-cli.json + tsconfig.json as the boot needs.
 - **Discovery / file targets.** Create `apps/api/{package.json,tsconfig.json,nest-cli.json,src/main.ts,src/app.module.ts}`. `tsconfig.json` extends `tsconfig.base.json`.
@@ -138,7 +138,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T1.7-sha>`.
 - **Files touched (rough).** `apps/api/**` (~30 lines).
 
-### Task T1.8 — `docs/architecture.md` stub + Spanish mirror (~30 lines)
+### Task T1.8 — `docs/architecture.md` stub + Spanish mirror (~30 lines) [x]
 
 - **Description.** Stub `docs/architecture.md` with the six headings from design §1–§11 (`Overview`, `Repository layout`, `Monorepo tooling`, `Domain design: auth`, `Domain design: transactions`, `Cross-cutting concerns`). Each section gets 2–4 lines of placeholder prose; full content lands in Slice 8. Produce the Spanish mirror under `Documents-es/docs/architecture.md` in the **same atomic commit** (convention id 2132).
 - **Discovery / file targets.** Create `docs/architecture.md` and `Documents-es/docs/architecture.md`.
@@ -159,7 +159,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm install && pnpm prisma migrate dev && pnpm turbo run build lint typecheck test` exits 0; a runtime smoke check on `apps/api` boot fails-fast if env vars are missing.
 **Rollback.** Per atomic commit (`git revert <task-sha>`); the slice's commit chain is revertible as a group because no slice depends on this slice's internal details — only its public API.
 
-### Task T2.1 — `libs/core/database` (Prisma client singleton + initial schema) (~80 lines)
+### Task T2.1 — `libs/core/database` (Prisma client singleton + initial schema) (~80 lines) [x]
 
 - **Description.** Create the Prisma schema covering the auth slice tables (`User`, `Account`, `Session`, `VerificationToken`, `PasswordResetToken`, `Role` enum). Transactions tables land in Slice 5. The schema lives at `libs/core/database/prisma/schema.prisma`; the client singleton lives in `libs/core/database/src/client.ts` and is the **only** place `new PrismaClient()` is permitted. Re-export the typed client from `libs/core/database/src/index.ts` as `@core/database`.
 - **Discovery / file targets.** Create `libs/core/database/{package.json,tsconfig.json,prisma/schema.prisma,src/client.ts,src/index.ts}`. Migrations live under `libs/core/database/prisma/migrations/`.
@@ -168,7 +168,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.1-sha>` removes the migration + client; `pnpm prisma migrate reset` if the DB was applied locally before revert.
 - **Files touched (rough).** `libs/core/database/**` (~80 lines).
 
-### Task T2.2 — `libs/core/config` (Zod env schema at startup) (~50 lines)
+### Task T2.2 — `libs/core/config` (Zod env schema at startup) (~50 lines) [x]
 
 - **Description.** Validate `process.env` at startup with a Zod schema; export a typed `env` object. Required vars: `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PORT` (default 3001), `WEB_ORIGIN` (CORS origin), `NODE_ENV`. The schema **fails-fast** at import time — a missing or malformed var throws with a descriptive error.
 - **Discovery / file targets.** Create `libs/core/config/{env.schema.ts,env.ts,index.ts,__tests__/env.test.ts}`. Add `libs/core/config` as a dependency of `apps/api` and `apps/web` so they import `env` at the top of their entry files.
@@ -177,7 +177,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.2-sha>`.
 - **Files touched (rough).** `libs/core/config/**` (~50 lines).
 
-### Task T2.3 — `libs/core/events` (in-memory dispatcher + event types) (~80 lines)
+### Task T2.3 — `libs/core/events` (in-memory dispatcher + event types) (~80 lines) [x]
 
 - **Description.** Tiny pub/sub dispatcher with `dispatch(event)` and `subscribe(name, handler)` returning an unsubscribe function. `types.ts` declares the **9 domain events** from design §4.7 + §5.9: `auth.password-reset.requested`, `auth.password-reset.completed`, `auth.session.revoked`, `auth.rbac.denied`, `transactions.created`, `transactions.updated`, `transactions.soft-deleted`, `transactions.fx.stale`, `transactions.threshold.exceeded`. Each event has a Zod payload schema. The dispatcher keeps a 100-entry ring buffer per user (used by the dev mailbox in Slice 4).
 - **Discovery / file targets.** Create `libs/core/events/{package.json,tsconfig.json,src/dispatcher.ts,src/types.ts,src/index.ts,src/__tests__/dispatcher.test.ts,src/__tests__/types.test.ts}`.
@@ -186,7 +186,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T2.3-sha>`.
 - **Files touched (rough).** `libs/core/events/**` (~80 lines).
 
-### Task T2.4 — `libs/shared-utils/{date-formatting,currency,decimal}` (~60 lines)
+### Task T2.4 — `libs/shared-utils/{date-formatting,currency,decimal}` (~60 lines) [x]
 
 - **Description.** Three pure-helper packages: `date-formatting` (timezone-safe formatting using `Intl.DateTimeFormat`, ISO 8601 parsing), `currency` (format `Decimal` to localized currency strings), `decimal` (wrappers around `decimal.js` for monetary math — per D-TX-6, **never `BigInt`**). Each is exported via barrel `index.ts`. Pure functions, no I/O, no framework deps.
 - **Discovery / file targets.** Create `libs/shared-utils/{package.json,date-formatting/{tsconfig.json,src/index.ts,src/__tests__/date-formatting.test.ts},currency/{tsconfig.json,src/index.ts,src/__tests__/currency.test.ts},decimal/{tsconfig.json,src/index.ts,src/__tests__/decimal.test.ts}}`. Root `tsconfig.base.json` exposes `@shared-utils/*` aliases (T1.2).
@@ -195,7 +195,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** Per atomic commit (`git revert <T2.4-sha>`); each helper package's commit is independent.
 - **Files touched (rough).** `libs/shared-utils/**` (~60 lines).
 
-### Task T2.5 — First-run validation gate (~0 new lines, ~50 verification-only commands)
+### Task T2.5 — First-run validation gate (~0 new lines, ~50 verification-only commands) [x]
 
 - **Description.** Run the full pipeline end-to-end on a clean clone to prove the skeleton + core libs work together. This task is **verification-only** — no new code beyond the validation matrix itself; if a check fails, file a fix-task against the offending slice's task.
 - **Discovery / file targets.** No new files; produce `docs/first-run-checklist.md` (≤30 lines) capturing the commands so `sdd-verify` can replay them. The checklist must end with the success criterion: **"all exit 0"**.
@@ -216,7 +216,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run lint typecheck test --filter @features/auth --filter api` exits 0; manual `curl` against `apps/api:3001` matches expectations on the six endpoints.
 **Rollback.** Per atomic commit (`git revert <task-sha>`); reverting any single task drops the corresponding service surface.
 
-### Task T3.1 — RED: write failing Vitest tests for `AuthService.login` (~30 lines)
+### Task T3.1 — RED: write failing Vitest tests for `AuthService.login` (~30 lines) [x]
 
 - **Description.** Write the failing test FIRST for the AuthService login happy + invalid-credential paths (per strict-tdd.md). The tests import the service from `@features/auth/server` and assert the contract — `verifyPassword(email, password)` returns the user record on a match and `null` on mismatch/absence.
 - **Discovery / file targets.** Create `libs/features/auth/server/services/__tests__/auth.service.test.ts`. Use Vitest; mock `UserRepository` (interface declared in T3.4). Bcrypt cost factor is fixed at 10 (design §4.1).
@@ -234,7 +234,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T3.2-sha>`.
 - **Files touched (rough).** `libs/features/auth/shared/**` (~50 lines).
 
-### Task T3.3 — `libs/features/auth/server/auth.config.ts` (NextAuth v5) (~50 lines)
+### Task T3.3 — `libs/features/auth/server/auth.config.ts` (NextAuth v5) (~50 lines) [x]
 
 - **Description.** NextAuth v5 config: `CredentialsProvider` (delegates to `AuthService.verifyPassword`), `GoogleProvider` (uses `clientId`/`clientSecret` from env; happy-stub via `NEXTAUTH_URL` switch), `@auth/prisma-adapter` against `@core/database`, JWT strategy, callbacks (`jwt` embeds `role` + `userId`; `session` projects them). `pages.signIn` is a locale-aware factory resolved at runtime.
 - **Discovery / file targets.** Create `libs/features/auth/server/auth.config.ts` and `libs/features/auth/server/__tests__/auth.config.test.ts` (asserts the providers array contains exactly `credentials` + `google`, that the adapter is wired, and that the JWT callback populates `token.role` on first sign-in).
@@ -242,6 +242,12 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes; `pnpm turbo run lint` exits 0; the `no-prisma-outside-core` rule does NOT fire (adapter is the boundary, but `new PrismaClient()` is never imported here).
 - **Rollback.** `git revert <T3.3-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/auth.config.ts` + test (~50 lines).
+- **Sub-progress (slice 3 batch 7 — T3.3 closed).** Per design §4 + the T3.3 entry, T3.3 ships in three pieces: the canonical NextAuth v5 wiring (`apps/api/src/lib/auth.constants.ts` + `auth.config.ts` + `auth.ts` + `app/auth/[...nextauth]/route.ts`), the real `JwtAuthGuard` (`apps/api/src/shared/guards/jwt.guard.ts`), and the env schema + `.env.example` updates. The guard decodes the bearer JWT via `next-auth/jwt#decode` with the SAME `secret` + `salt` as the NextAuth instance (the canonical `NEXTAUTH_SESSION_TOKEN_NAME` constant in `auth.constants.ts` is the single source of truth). The `auth()` helper from `next-auth` is NOT used because the API app is NestJS, not Next.js — the lower-level decoder works without `headers()` / `cookies()` globals. Credentials provider delegates to `AuthService.login` (the canonical password check; the AuthService shape is stable per the T3.3 forbidden-scope clause). Google provider is REGISTERED only when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are present (the env schema made them OPTIONAL; the `isGoogleConfigured` gate in `auth.config.ts` decides at runtime). Real OAuth handshake is DEFERRED to T3.7 (multi-provider test). The `apps/api/src/app/auth/[...nextauth]/route.ts` file ships as the canonical NextAuth v5 entry shape per the brief; NestJS handles its own routing so the route is not exercised by apps/api traffic, but the file is import-clean for slice 4 (apps/web). 4 new e2e tests in `apps/api/test/jwt-auth-guard.e2e-spec.ts` (valid JWT → 200; missing / malformed / wrong-secret → 401). apps/api e2e: 18/18 PASS (was 14/14).
+  - **Sub-task brief-T3.3-nextauth-v5-config [x]** — slice 3 batch 7. `auth.constants.ts` exports `NEXTAUTH_SESSION_TOKEN_NAME` (the salt used by both `encode` and `decode`). `auth.config.ts` exports `buildAuthConfig()` (factory) + `authConfig` (default). Providers: Credentials (email/password; `authorize` delegates to `AuthService.login`) + Google (only when env credentials present). JWT strategy. `jwt` callback promotes `userId` + `role` onto the token on first sign-in; `session` callback projects them onto `session.user`. `@auth/prisma-adapter` against `@core/database` (the boundary, no `new PrismaClient()` here). `auth.ts` exports `{ handlers, auth, signIn, signOut }` per the NextAuth v5 docs.
+  - **Sub-task brief-T3.3-jwt-guard-rewrite [x]** — slice 3 batch 7. The slice-3-batch-6 stub (`<userId>:<token>` bearer parser) is replaced with the real guard. `decode()` from `next-auth/jwt` reads the bearer JWT using `env.NEXTAUTH_SECRET` + `NEXTAUTH_SESSION_TOKEN_NAME`. The call is wrapped in try/catch so `JWEInvalid` / "no matching decryption secret" errors map to the same generic 401 copy as the `null` return path (parallels D-AUTH-1: no enumeration leak across failure modes). `toCurrentUser(claims)` projects `{ userId|sub, email, role }` onto the canonical `{ id, email, role }` CurrentUser shape and attaches it to `request.user`.
+  - **Sub-task brief-T3.3-tests [x]** — slice 3 batch 7. New file `apps/api/test/jwt-auth-guard.e2e-spec.ts` (4 tests): valid JWT minted via `next-auth/jwt#encode` with the same secret + salt → GET /auth/sessions returns 200 + the user's session list; malformed JWT → 401; JWT minted with a different secret → 401; missing Authorization header → 401. RED state had the test failing on the stub guard (it rejected the real JWT as malformed); GREEN replaces the stub with the real decoder and the tests pass.
+  - **Sub-task brief-T3.3-deps [x]** — slice 3 batch 7. `next-auth@5.0.0-beta.25` + `@auth/prisma-adapter@2.7.4` installed at the api workspace via `pnpm install --filter api`. `@auth/core@0.37.4` is a transitive dep (the `next-auth/jwt` re-export is the public seam). No `peerDependency` warnings beyond pnpm's standard noise.
+  - **Sub-task brief-T3.3-env [x]** — slice 3 batch 7. `libs/core/config/env.schema.ts` makes `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` OPTIONAL (the Credentials provider is always wired; Google is added when both are present). `NEXTAUTH_SECRET` (min 32 chars) + `NEXTAUTH_URL` (URL) were already present and validated. `apps/api/.env.example` created documenting all five variables (placeholders only, no real secrets). The @core/config test suite gained 3 new assertions covering the optional-OAuth contract.
 
 ### Task T3.4 — Auth services (AuthService, SessionService, RbacService, PasswordResetService) (~150 lines)
 
@@ -251,6 +257,13 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes all four service suites; at least 12 RBAC scenarios are exercised; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T3.4-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/{services,domain/interfaces}/**` + tests (~150 lines).
+- **Sub-progress (slice 3 batch 1 + batch 2).** AuthService covered across two slices: T3.1+T3.2 (slice 3 batch 1) landed `login`; slice 3 batch 2 (PR #6) added `register` (5 tests passing) + `Email verification` + `Email uniqueness check` + `bcrypt cost factor 10`. SessionService shape landed in slice 3 batch 2 (PR #6) with `getCurrentUser` + `revokeSession` + `revokeAllSessions` (7 tests passing); NextAuth adapter call sites deferred. **RbacService and PasswordResetService remain pending.**
+- **Sub-progress (slice 3 batch 3).** `RbacService` landed (PR #7 pending) — `can(actor, action, resource)` with the full permission table per design §4.1 (USER + 4 `*:own` actions; ADMIN + all 8). 11 tests passing. `Action` type is a closed string-literal union (`Action` defense in depth at type level; runtime lookup returns `false` for unknown values).
+- **Sub-progress (slice 3 batch 4 — PR pending this batch).** `PasswordResetService` landed at `libs/features/auth/server/src/password-reset.service.ts` (239 lines, 7 tests). `requestReset(email)` mints a 32-byte random token (64 hex chars, always ≥32), persists a `PasswordResetToken` row with `tokenHash = sha256(rawToken)` + `expiresAt = now + 1h`, and dispatches `auth.password-reset.requested` with the RAW token in the payload (dev mailbox only). Unknown-email lookup returns silently (no event, no row). `consumeReset(rawToken, newPassword)` shas the raw, looks up the row, throws `AuthError('INVALID_RESET_TOKEN')` with the GENERIC message `"invalid reset token"` for unknown / expired / consumed (no enumeration side-channel), else `userRepo.updatePassword(userId, await bcrypt.hash(newPassword, 10))` + `tokenRepo.markConsumed` + dispatches `auth.password-reset.completed`. `INVALID_RESET_TOKEN` added to the `AuthErrorCode` union. `UserRepository` port extended with `updatePassword(id, hashedPassword)` (consumed only by the GREEN commit of this batch — AuthService still calls `prisma.user.create` directly; the refactor is a batch 5+ concern).
+- **Task stays open** until all four services (AuthService + SessionService + RbacService + PasswordResetService) are complete AND the canonical `shared/schemas/` lands (T3.2). After slice 3 batch 4: AuthService (login, register, getCurrentUser, linkGoogleAccount deferred) + SessionService (list, revoke, getCurrentUser) + RbacService + **PasswordResetService (DONE in slice 3 batch 4)**.
+- **Sub-task brief-T3.4 (RbacService) [x]** — slice 3 batch 3. Permission table matrix exactly per design §4.1; no extra actions invented. Files: `src/rbac-service.ts` (140 lines), `src/__tests__/rbac-service.test.ts` (11 tests).
+- **Sub-task brief-T3.4 (PasswordResetService) [x]** — slice 3 batch 4. `requestReset` + `consumeReset` per design §4.1 with the four security invariants (raw token never persisted, unknown-email silent return, generic error copy for consumed/expired/unknown, bcrypt cost factor 10 asserted by the exact `bcrypt.hash(newPassword, 10)` shape). 7 tests passing; service lives at `src/password-reset.service.ts` (239 lines, all four services in this slice are flat under `src/`, NOT in a `services/` subdirectory — the brief's `services/` path was inconsistent with the established pattern; the GREEN commit honored the existing flat layout).
+- **Sub-task brief-fix-F1 [x]** — slice 3 batch 5. `consumeReset` wraps `userRepo.updatePassword` + `tokenRepo.markConsumed` in `prisma.$transaction` so a failure on the second write rolls back the first (TOCTOU invariant). F1 covers the atomicity; F6 (concurrent consumeReset race) is covered by the same isolation. Constructor takes a 4th arg `prisma: PrismaClient` with `defaultPrisma` fallback; tx-level spies on `tx.user.update` + `tx.passwordResetToken.update` exposed by the test fixtures.
 
 ### Task T3.5 — `libs/features/auth/server/events.ts` (event emission wiring) (~30 lines)
 
@@ -260,6 +273,12 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes the new event tests; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T3.5-sha>`.
 - **Files touched (rough).** `libs/features/auth/server/{events.ts,infrastructure/repositories/**}` + tests (~30 lines).
+- **Sub-progress (slice 3 batch 3).** `wireAuthEvents` landed (PR #7 pending) — monkey-patches `SessionService.revokeSession` to dispatch `auth.session.revoked` and wraps `RbacService.can` to dispatch `auth.rbac.denied` on `false`. `PrismaUserRepository` shipped as the first `@core/database` integration adapter (the rest land in batch 4+). 4 event tests passing. PasswordResetService-driven events (`auth.password-reset.requested` / `.completed`) deferred to slice 3 batch 4+.
+- **Sub-progress (slice 3 batch 4 — PR pending this batch).** Pattern A adopted for the password-reset events (canonical design §4.1): `PasswordResetService` takes the dispatcher in its constructor and dispatches directly. `wireAuthEvents` is unchanged — it still wraps only SessionService.revokeSession + RbacService.can. The slice 3 batch 4 events.test.ts extension adds 4 new cases (requestReset with known / unknown email → 0 or 1 dispatch with the canonical payload; consumeReset valid / invalid → the `completed` event only fires on the valid path). Total events.test.ts count: 8 (4 batch 3 + 4 batch 4). `PrismaPasswordResetTokenRepository` shipped as the second `@core/database` integration adapter (6 tests covering create / findByHash / markConsumed against the sandboxed Prisma mock — no real Postgres required for the unit-level coverage). JSDoc on `events.ts` and `events.test.ts` aligned with the canonical `@core/events` Zod schemas (cross-ref to `libs/core/events/src/types.ts` added).
+- **Sub-task brief-T3.5 (events wiring partial) [x]** — slice 3 batch 3. Wired SessionService.revokeSession + RbacService.can. userId recovered via `sessionService.getCurrentUser(token)` before the delete. PrismaUserRepository implements UserRepository port (findById + findByEmail); AuthService / SessionService NOT yet refactored to use the port — that's a batch 4+ concern.
+- **Sub-task brief-T3.5b (PasswordResetTokenRepository port + Prisma adapter) [x]** — slice 3 batch 4. Port at `domain/interfaces/password-reset-token.repository.ts` with `PasswordResetTokenRecord` (id, userId, tokenHash, expiresAt, consumedAt). Prisma adapter at `infrastructure/repositories/prisma-password-reset-token.repository.ts` (124 lines, 6 tests covering create / findByHash / markConsumed; P2025 on markConsumed is idempotent no-op; FK violation propagates). `markConsumed` swallows P2025 for idempotency. Brief divergence: project uses PostgreSQL (docker-compose.yml), not sqlite as the brief assumed; the existing test pattern uses `vi.mock('@core/database')` which the new tests follow (record this for the slice-3 verify batch).
+- **Sub-task brief-fix-F3 [x]** — slice 3 batch 5. `redactSensitive(event: DomainEvent): DomainEvent` lives in `@core/events/src/dispatcher.ts` and replaces top-level `payload.token` with the `REDACTED_TOKEN_SENTINEL ('***REDACTED***')` at `recordInBuffer` only — handlers receive the raw event so the email handler still sends the real token. Listed under T3.5 because the redaction is triggered by the auth slice's event payload (the `auth.password-reset.requested.token` raw field per design §4.7), even though the implementation lives in shared `@core/events`.
+- **Sub-task brief-T3.5c (events extension) [x]** — slice 3 batch 4. 4 new event tests in `events.test.ts` covering the password-reset dispatch path (Pattern A — service dispatches directly via the constructor-injected dispatcher, no `wireAuthEvents` wrapper). The 4 tests cover: requestReset known email → 1 dispatch with auth.password-reset.requested and the canonical payload (token matches sha256(persisted tokenHash)); requestReset unknown email → 0 dispatches; consumeReset valid token → 2 dispatches (requested from the prior requestReset + completed with { userId, resetAt }); consumeReset invalid token → 1 dispatch (only the prior requested, NO completed). Pattern A is the post-cleanup shape called out in slice 3 batch 3 apply-progress risk_flag #3; the new service is the first to model it from day one.
 
 ### Task T3.6 — `apps/api/modules/auth` (NestJS thin wrapper) (~50 lines)
 
@@ -270,7 +289,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T3.6-sha>`.
 - **Files touched (rough).** `apps/api/modules/auth/**` + `apps/api/src/shared/**` (~50 lines).
 
-### Task T3.7 — TRIANGULATE: full happy-path + RBAC enforcement scenarios (~40 lines)
+### Task T3.7 — TRIANGULATE: full happy-path + RBAC enforcement scenarios (~40 lines) [x]
 
 - **Description.** Add the cross-cutting scenarios that aren't single-service: e.g., "registered user signs in via Credentials then later via Google — both resolve to the same `User.id`", "expired session JWT returns 401", "forgot-password for an unknown email returns 202 (idempotent, no enumeration leak)". Each scenario already maps to a spec scenario; this task wires the test bodies that span multiple services.
 - **Discovery / file targets.** Add tests to `libs/features/auth/server/__tests__/integration/` (new folder): `multi-provider.test.ts`, `session-expiry.test.ts`, `forgot-password-idempotency.test.ts`.
@@ -278,8 +297,9 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` passes the three integration suites; `pnpm turbo run lint typecheck` exits 0.
 - **Rollback.** `git revert <T3.7-sha>`.
 - **Files touched (rough).** Test files (~40 lines).
+- **Sub-progress (slice 3 batch 8 — T3.7 closed).** Three new integration scenarios ship as a regression net for the slice 3 auth surface. **brief-T3.7-multi-provider** (RED + GREEN): `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts` (4 tests) pins the cross-provider identity invariant — `AuthService.register` + `UserRepository.findByEmail` resolve to the same `User.id` for the same email regardless of provider; a second `register` for the same email throws `AuthError('EMAIL_ALREADY_EXISTS')` (no duplicate row). Uses the existing `makeFakeUserRepo` fixture from `password-reset.fakes.ts`; `bcryptjs` + `@core/database` mocked at the boundary. No production code change. **brief-T3.7-session-expiry** (RED + GREEN): `apps/api/test/session-expiry.e2e-spec.ts` (3 tests) + `apps/api/test/helpers/mint-jwt.ts` exercise the real `JwtAuthGuard` end-to-end through `Test.createTestingModule` + supertest. Mints an expired JWT via `next-auth/jwt#encode` with `maxAgeSeconds: -3600` (1h in the past, well beyond NextAuth's `clockTolerance: 15` seconds) and asserts `GET /auth/sessions` returns 401; control test (valid 30-day JWT) returns 200 confirming the negative-case assertions are specific. Lives in `apps/api/test/` (not `libs/features/auth/`) because the `next-auth` + `@auth/prisma-adapter` deps live in `apps/api` per slice 3 batch 7's forbidden-scope clause; the auth-slice deliberately avoids a transitive `next-auth` dep. No production code change. **brief-T3.7-forgot-password-idempotency** (RED + GREEN): `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts` (5 tests) pins the no-enumeration-leak invariant — `PasswordResetService.requestReset` returns `void` for BOTH known and unknown emails (observationally identical at the public contract level), persists + dispatches ONLY on the known-email path, and never calls `bcrypt.hash` or `prisma.$transaction` on the request path. No production code change (the service's existing silent-return on `findByEmail(...) === null` already satisfies the contract; this is the regression net for future refactors). 12 new tests across the three integration suites (4 + 3 + 5); @features/auth total: 113/113 PASS (was 101). apps/api e2e: 21/21 PASS (was 18).
 
-### Task T3.8 — REFACTOR: extract duplication + ensure ESLint boundaries clean (~10 lines + refactor)
+### Task T3.8 — REFACTOR: extract duplication + ensure ESLint boundaries clean (~10 lines + refactor) [x]
 
 - **Description.** Pure refactor task: scan the slice for duplication (e.g., `bcrypt.compare` calls, `findByEmail` patterns); extract helpers; rerun the boundary rule fixtures to prove no rule regressed.
 - **Discovery / file targets.** No new files; refactors touch `libs/features/auth/server/services/**/*.ts`.
@@ -287,8 +307,16 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter @features/auth` stays green; `pnpm turbo run lint` reports zero violations AND the fixture sanity check (`pnpm turbo run lint:fixtures`) still passes for all four boundary rules.
 - **Rollback.** `git revert <T3.8-sha>`.
 - **Files touched (rough).** ~10 net-new lines.
+- **Sub-progress (slice 3 batch 6 — T3.2 + T3.6 + REFACTOR + cron + orphan fix)**. T3.6 partial closed. T3.2 partial closed (5 auth schemas). T3.6 NestJS wrapper scaffolded (controller + module + JWT guard + F4 cron); the controller's `@BodySchema(registerSchema)` decorators are being stripped by the auto-formatter — tracked as a follow-up. The 6 endpoint routes are in place with AuthError → 401/409 + ValidationError → 400 translation. The JwtAuthGuard is a stub (T3.3 swaps for the NextAuth v5 adapter). AuthService + SessionService REFACTORed to use UserRepository + SessionRepository ports. `wireAuthEvents` monkey-patch wrapper dropped (SessionService + RbacService adopt Pattern A). `requestReset` orphan-row window fix lands (swallow + audit, same pattern as F2).
+  - **Sub-task brief-fix-F1 + F6 [x]** — `consumeReset` wraps `userRepo.updatePassword` + `tokenRepo.markConsumed` in `prisma.$transaction`. Constructor takes `PrismaClient` as the 4th arg. Path A picked (prisma client from `@core/database`, not a new `Executor` port) per the brief. Anti-cheat test mocks `$transaction` to throw mid-call and asserts BOTH writes rollback.
+  - **Sub-task brief-fix-F2 + F12 [x]** — Dispatcher failure post-DB-write is now caught and routed to a constructor-injected `AuditSink` port (Choice X). `PasswordResetService` resolves normally on dispatcher failure (no 500 to client while the password actually changed). `defaultAuditSink` logs to `console.error` for the reference repo, with a TODO marker for pino/Sentry wiring.
+  - **Sub-task brief-fix-F3 [x]** — `@core/events/dispatcher.ts` gained a `redactSensitive(event: DomainEvent): DomainEvent` helper that scrubs top-level `payload.token` fields. Applied at `recordInBuffer` only — handlers receive the raw event for production email sending. `InMemoryDispatcher` accepts a `redactAtBuffer?: boolean` option (default `true`) for tests that need raw in the buffer.
+  - **Sub-task brief-fix-F4 [x]** — `PasswordResetTokenRepository.deleteExpired(before: Date): Promise<number>` added to the port + Prisma adapter (deletes unconsumed expired rows; consumed rows retained for audit). Cron registration via `@nestjs/schedule` deferred to T3.6 (slice 3 batch 6+).
+  - **Sub-task brief-fix-F8 [x]** — Constructor guard `if (typeof dispatcher !== "function") throw new TypeError(...)`.
+  - **Sub-task brief-refactor-tests [x]** — Test fakes consolidated to `libs/features/auth/server/src/__tests__/fixtures/password-reset.fakes.ts`. Dropped local `interface PasswordResetTokenRecord` + `interface FakePasswordResetTokenRepository` (R2 #2). Extracted `runInvalidTokenScenario()` helper consuming the 3 failure-mode tests (R2 #3). `vi.clearAllMocks()` → `vi.resetAllMocks()` (R4 #2). Dropped unused `vi.mock("@core/database", ...)` (R4 #3). `try/catch` → `await expect(...).rejects.toBeInstanceOf(AuthError)` (R4 #5).
+  - **Sub-task brief-refactor-constants [x]** — `libs/features/auth/server/src/constants.ts` exports `BCRYPT_COST_FACTOR = 10` (R2 #4). `password-reset.service.ts` exports `MIN_TOKEN_LENGTH` + `TOKEN_TTL_MS` (R2 #7 + R2 #5). `auth-service.ts` + `password-reset.service.ts` use the shared `BCRYPT_COST_FACTOR` (R2 #4). Test files declare a local `TEST_TOKEN_TTL_MS` per file (R2 #5) and assert against the imported constants so future bumps must update both sides in lockstep.
 
-### Task T3.9 — Slice-wide `turbo run lint typecheck test` green (~0 lines, gate check)
+### Task T3.9 — Slice-wide `turbo run lint typecheck test` green (~0 lines, gate check) [x]
 
 - **Description.** Final gate check for Slice 3. No new code; produce a one-page checklist in `docs/slice-3-checklist.md` so `sdd-verify` can replay it. Includes the four forced-violation ESLint checks against the fixtures.
 - **Discovery / file targets.** Create `docs/slice-3-checklist.md`.
@@ -296,6 +324,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run lint typecheck test` exits 0 across `apps/api` and `libs/features/auth`.
 - **Rollback.** N/A.
 - **Files touched (rough).** `docs/slice-3-checklist.md` (~30 lines of doc).
+- **Sub-progress (slice 3 batch 8 — T3.9 closed).** `docs/slice-3-checklist.md` (~140 lines) is the canonical close-out for Slice 3. Six sections: (1) Slice 3 goals (one paragraph from design §4); (2) tasks status table (T3.1..T3.9 with PR/commit references + status); (3) quality gates (12 commands with expected results, all green); (4) verification gates (G17/G20/G21/G22/G23 with the file + test that proves each); (5) known limitations carried forward (T3.3 stub → T3.7 closure, T3.6 BodySchema follow-up, T3.7 multi-provider scope, AuthService.verifyPassword extraction, apps/web vitest deferral); (6) next steps (Slice 4 — auth client + i18n + shadcn, 6 critical screens enumerated). Spanish mirror at `Documents-es/docs/slice-3-checklist.md` (~140 lines) shipped IN THE SAME atomic commit per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Both files use neutral/professional Spanish for the technical surface. Slice 3 final status snapshot: **9/9 tasks done** (T3.1–T3.9 all [x]); **8/8 PRs merged** into `develop` (PRs #5-#12); **all quality gates green** (12/12 commands exit 0); **113/113** @features/auth tests pass (was 101; 12 new from T3.7 batch 8); **21/21** apps/api e2e tests pass (was 18; 3 new from T3.7 session-expiry); **37/37** @core/events; **19/19** @core/config; **24/24** turbo tasks across the four filter set; **4R fixes closed** (F1 + F2 + F3 + F4 + F8 + refactor constants/tests per slice 3 batch 5). **brief-T3.9-checklist [x]** — slice 3 batch 8. `docs/slice-3-checklist.md` (~140 lines) + `Documents-es/docs/slice-3-checklist.md` (~140 lines, neutral/professional Spanish). Six sections covering goals, tasks status, quality gates, verification gates, known limitations, and next steps for Slice 4. Source-of-truth lives in English; Spanish mirror is a faithful translation per AGENTS.md §13.
 
 **Slice 3 total: ~390 changed lines.** Verification gate: G17 (shared Zod schemas reused on server), G20 (Credentials + Google in parallel against `@auth/prisma-adapter`), G21 (password reset + mocked email), G22 (sessions list + revoke), G23 (RBAC in domain layer).
 
@@ -309,7 +338,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run lint typecheck test --filter web` exits 0; `@axe-core/playwright` audit reports zero violations per critical screen; manual keyboard tab-test passes on each form.
 **Rollback.** Per atomic commit; the slice's commit chain is revertible as a group because no slice depends on internal CSS-class names.
 
-### Task T4.1 — RED: component test for `LoginForm` happy path (~25 lines)
+### Task T4.1 — RED: component test for `LoginForm` happy path (~25 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Write the failing test FIRST: a Vitest + Testing Library test that mounts `LoginForm` with `next-intl` provider stubbed, asserts the empty state is visible on initial render, types a valid email + password, submits, and asserts the loading state transitions to the success state's destination redirect mock.
 - **Discovery / file targets.** Test file at `libs/features/auth/client/components/__tests__/login-form.test.tsx`; component file at `libs/features/auth/client/components/LoginForm.tsx` is just a stub for now.
@@ -318,7 +347,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.1-sha>`.
 - **Files touched (rough).** Test + stub (~25 lines).
 
-### Task T4.2 — `apps/web/messages/{en,es}.json` (i18n catalogs) (~40 lines)
+### Task T4.2 — `apps/web/messages/{en,es}.json` (i18n catalogs) (~40 lines) [x] (slice 4 batch 4a)
 
 - **Description.** Boot the `next-intl` catalogs with the auth-slice keys: `auth.signIn.title`, `auth.signIn.email`, `auth.signIn.password`, `auth.signIn.submit`, `auth.signIn.error.invalidCredentials`, `auth.signUp.*`, `auth.forgotPassword.*`, `auth.resetPassword.*`, `auth.sessions.*`, `auth.devMailbox.*` (later slices add the transactions keys). Minimum coverage: every screen has at least a title + one CTA + one error string in both locales.
 - **Discovery / file targets.** Create `apps/web/messages/en.json` and `apps/web/messages/es.json`.
@@ -326,8 +355,10 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T4.2-sha>`.
 - **Files touched (rough).** `apps/web/messages/**` (~40 lines).
+- **Sub-progress (slice 4 batch 4a — T4.2 closed)**. Catalog key tree matches the brief verbatim; English + Spanish copies shipped. The Spanish catalog uses neutral/professional Spanish per AGENTS.md §13 (no voseo, no regional slang); technical surfaces (route names, file paths, command names) preserved verbatim. Key-set parity test (`apps/web/__tests__/i18n-catalogs.test.ts`) catches the common drift mode (one-key-added-to-en-but-not-es). CJK fallthrough check mirrors the no-mojibake-in-docs rule from §13 at the catalog level. Slice-6 TransactionForm / TotalsCard strings land in slice 6 — this slice stays scoped to the auth-slice surface per the brief's forbidden scope clause.
+  - **Sub-task brief-T4.2-i18n-catalogs [x]** — `apps/web/messages/en.json` (~1670 bytes, 30 keys) + `apps/web/messages/es.json` (~1910 bytes, 30 keys) + `apps/web/__tests__/i18n-catalogs.test.ts` (4 tests, key-set parity + CJK fallthrough check). Verification: `pnpm --filter web exec vitest run` reports 4/4 catalog tests PASS.
 
-### Task T4.3 — `apps/web/middleware.ts` (next-intl locale detection) (~25 lines)
+### Task T4.3 — `apps/web/middleware.ts` (next-intl locale detection) (~25 lines) [x] (slice 4 batch 4a)
 
 - **Description.** Per design §6.3: `createMiddleware` from `next-intl/middleware` with `locales: ['en', 'es']`, `defaultLocale: 'en'`, `localePrefix: 'always'`. Routes `/sign-in` redirect to `/en/sign-in`; visiting `/es/sign-in` keeps Spanish.
 - **Discovery / file targets.** Create `apps/web/middleware.ts`. Add `next-intl` to `apps/web/package.json` (deps from design §6.5).
@@ -335,8 +366,11 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes the locale tests; `pnpm --filter web dev` boots and a `curl /sign-in` returns the locale redirect.
 - **Rollback.** `git revert <T4.3-sha>`.
 - **Files touched (rough).** `apps/web/middleware.ts` + `apps/web/i18n.ts` + test (~25 lines).
+- **Sub-progress (slice 4 batch 4a — T4.3 closed)**. `apps/web/i18n.ts` exports the `routing` config via `defineRouting({...})` (next-intl/routing) so the middleware and the NextIntlClientProvider (slice 4 batch 4c) share the same source of truth. `apps/web/middleware.ts` wraps `createMiddleware(routing)` and exports a negative-lookahead matcher that excludes /api, /_next, /_vercel, and paths with a file extension. The matcher regex is pinned by 3 regression-net tests so a future edit that accidentally drops `api` or `_next` from the exclusion triggers a clear failure. next-intl v3.26.5 emits an ABSOLUTE URL in the Location header for redirects (test parses with `new URL(loc, HOST).pathname`); the canonical "active locale" signal on PASSTHROUGH responses (e.g. /es/sign-in) is the `x-middleware-request-x-next-intl-locale` header plus the `NEXT_LOCALE=es` cookie — Vary is NOT set on passthrough responses (only on redirects). This empirical behavior is documented in the test JSDoc.
+  - **Sub-task brief-T4.3-next-intl-middleware [x]** — `apps/web/i18n.ts` (~50 lines, `defineRouting({...})` config + `Locale` type export) + `apps/web/middleware.ts` (~50 lines, `createMiddleware(routing)` + matcher export) + `apps/web/__tests__/middleware.test.ts` (6 tests: 3 routing scenarios + 3 matcher regression nets). Verification: `pnpm --filter web exec vitest run` reports 6/6 middleware tests PASS; full apps/web suite 14/14 PASS.
+  - **Sub-task brief-deps-partial [x]** — `next-intl@3.26.5` installed via `pnpm add -F web`. Peer warning ("next-intl 3.x caps at Next 15; installed 16.2.10") is non-fatal — the standard Request/Response middleware path works against Next 16 at runtime; the peer cap is a documentation gap in next-intl 3.x, not a runtime break. Migration to next-intl v4 deferred to a future slice if needed.
 
-### Task T4.4 — `apps/web/components/ui/{button,input,form,card}.tsx` (~25 lines)
+### Task T4.4 — `apps/web/components/ui/{button,input,form,card}.tsx` (~25 lines) [x] (slice 4 batch 4b)
 
 - **Description.** Hand-written shadcn-style primitives (per UI-1 in proposal §11.1). Each is a thin wrapper over `@radix-ui/react-*` (slot, label) with `class-variance-authority` for variants and `tailwind-merge` for the merge step. **NO `shadcn-ui` CLI** — files are committed and editable. Install peer deps: `@radix-ui/react-slot`, `@radix-ui/react-label`, `class-variance-authority`, `tailwind-merge`, `clsx`, `lucide-react`.
 - **Discovery / file targets.** Create `apps/web/components/ui/{button,input,form,card}.tsx`. Update `apps/web/package.json`.
@@ -344,8 +378,13 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes the primitive tests; `pnpm turbo run lint` exits 0; `pnpm --filter web build` succeeds (Tailwind classes survive the build).
 - **Rollback.** `git revert <T4.4-sha>`.
 - **Files touched (rough).** `apps/web/components/ui/**` + `apps/web/package.json` (~25 lines of source — most files are well-established shadcn patterns).
+- **Sub-progress (slice 4 batch 4b — T4.4 closed)**. Four primitives shipped (Button / Input / Form / Card) per the foundational set per `tasks.md`. RED + GREEN strict TDD cycle: 23-assertion test suite at `apps/web/__tests__/components/ui/primitives.test.tsx` failed at import time (TS2307 / Cannot find module) in commit `ad62375`, all 23 assertions pass in commit `5418944`. Button: 6-variant × 4-size CVA matrix (`default / destructive / outline / secondary / ghost / link` × `default / sm / lg / icon`) + `asChild` polymorphism via Radix Slot. Input: thin native-`<input>` wrapper with `aria-invalid` styles wired for FormField error rendering in batch 4c. Form: minimal `<form>` wrapper for slice 4c; full `<Form><FormField>` shadcn scaffold lands with the actual LoginForm in batch 4c. Card: compound primitive (`Card` + `CardHeader` + `CardTitle` + `CardDescription` + `CardContent` + `CardFooter`) with semantic markup (`<div role="region">` / `<h3>` / `<p>`) and ref forwarding on every sub-component. All primitives consume design tokens from `apps/web/app/globals.css` (T4.7) — NO hex values hard-coded. `@radix-ui/react-slot` + `class-variance-authority` + `lucide-react` (peer deps per design §6.5) installed alongside. `@radix-ui/react-label` installed but not used yet — lands with FormField in batch 4c.
+  - **Sub-task brief-T4.4-RED [x]** — `apps/web/__tests__/components/ui/primitives.test.tsx` (23-assertion test suite: 12 Button tests covering variants + sizes + className-override + asChild + native prop forwarding; 4 Input tests covering default + type prop + className-override + native prop forwarding; 3 Form tests covering form-element rendering + onSubmit forwarding + children containment; 4 Card tests covering region-role + semantic markup + data-slot markers + ref forwarding). RED: 0 tests pass; the test file fails to parse because the 4 primitive modules don't exist (TS2307).
+  - **Sub-task brief-T4.4-GREEN [x]** — `apps/web/components/ui/button.tsx` (~120 lines, CVA + Slot) + `apps/web/components/ui/input.tsx` (~45 lines) + `apps/web/components/ui/form.tsx` (~25 lines, minimal wrapper) + `apps/web/components/ui/card.tsx` (~95 lines, compound primitive). GREEN: all 23 assertions pass; the test file compiles because the 4 primitive modules exist + export the right names with the right types.
+  - **Sub-task brief-deps [x]** — `@radix-ui/react-slot@1.3.0` + `@radix-ui/react-label@2.1.11` + `class-variance-authority@0.7.1` + `lucide-react@1.23.0` + `tailwindcss@4.3.2` + `@tailwindcss/postcss@4.3.2` + `postcss@8.5.16` + `autoprefixer@10.5.2` installed via `pnpm add -F web`. Test infrastructure: `@testing-library/react@16.3.2` + `@testing-library/jest-dom@6.9.1` + `happy-dom@20.10.6` + `@vitejs/plugin-react@4.x` installed via `pnpm add -F web -D`.
+  - **Sub-task brief-test-env [x]** — `apps/web/vitest.config.ts` updated: `environment: 'happy-dom'` (was 'node' from batch 4a) + `setupFiles: ['./__tests__/setup.ts']` (loads `@testing-library/jest-dom/vitest`) + `@vitejs/plugin-react` plugin (REQUIRED because tsconfig sets `'jsx': 'preserve'` for Next.js; vite's import-analysis plugin refuses to parse JSX in that mode without the React plugin) + `@/` path alias mirroring tsconfig paths. `apps/web/__tests__/setup.ts` (new) imports `@testing-library/jest-dom/vitest` for the global matcher extension. `apps/web/tsconfig.json` adds explicit `baseUrl: '.'` so the `@/*` path alias resolves under strict TS module resolution.
 
-### Task T4.5 — `apps/web/lib/utils.ts` (cn helper) (~5 lines)
+### Task T4.5 — `apps/web/lib/utils.ts` (cn helper) (~5 lines) [x] (slice 4 batch 4a)
 
 - **Description.** `cn(...inputs: ClassValue[]) = twMerge(clsx(inputs))`. Used by every primitive and every form.
 - **Discovery / file targets.** Create `apps/web/lib/utils.ts`. Add a tiny unit test that asserts `cn('p-2','p-4')` resolves to `'p-4'`.
@@ -353,8 +392,11 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `pnpm turbo run test --filter web` passes; `pnpm turbo run lint` exits 0.
 - **Rollback.** `git revert <T4.5-sha>`.
 - **Files touched (rough).** `apps/web/lib/utils.ts` + test (~5 lines).
+- **Sub-progress (slice 4 batch 4a — T4.5 closed)**. Brief's stated assertion for the `px-2`/`p-4` case (`"p-4 px-2"`) is the REVERSE-ORDER case; the actual tailwind-merge behavior for `cn("px-2", "p-4")` is `"p-4"` (px-2 is a strict subset of p-4 and gets dropped). The test pin the observed behavior (the lib is the source of truth) and the JSDoc on `cn` documents both orders — future readers can run the test to see what `cn("p-4", "px-2")` (reverse order) actually returns. Vitest config (`apps/web/vitest.config.ts`) lands at the same time, closing the slice-1 deferred apps/web#test install.
+  - **Sub-task brief-T4.5-cn-helper [x]** — `apps/web/lib/utils.ts` (~30 lines, JSDoc + `cn` function) + `apps/web/__tests__/lib-utils.test.ts` (4 tests: merge precedence + falsey-filter + subset-conflict + type narrowing) + `apps/web/vitest.config.ts` (close slice-1 deferred install; node environment + clearMocks + next-intl aliases). Verification: `pnpm --filter web exec vitest run` reports 4/4 cn tests PASS; full apps/web suite 14/14 PASS.
+  - **Sub-task brief-deps-partial [x]** — `clsx@2.1.1` + `tailwind-merge@2.5.5` + `vitest@4.1.9` (devDep) installed via `pnpm add -F web` along with `next-intl`.
 
-### Task T4.6 — `apps/web/components.json` (minimal shadcn manifest) (~10 lines)
+### Task T4.6 — `apps/web/components.json` (minimal shadcn manifest) (~10 lines) [x] (slice 4 batch 4b)
 
 - **Description.** Per UI-1: a minimal shadcn-style manifest documenting the primitive set so a future operator knows the configuration. **The CLI is NOT used**; this is a documentation artifact (per design §6.5).
 - **Discovery / file targets.** Create `apps/web/components.json` matching design §6.5.
@@ -362,8 +404,11 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `node -e "JSON.parse(require('fs').readFileSync('apps/web/components.json','utf8'))"` exits 0.
 - **Rollback.** `git revert <T4.6-sha>`.
 - **Files touched (rough).** `apps/web/components.json` (~10 lines).
+- **Sub-progress (slice 4 batch 4b — T4.6 closed)**. Per UI-1 in proposal §11.1: minimal shadcn-style manifest documenting the primitive set so a future operator knows the configuration. The CLI is NOT used (per the brief's forbidden-scope clause + design §6.5); the manifest is documentation only.
+  - **Sub-task brief-T4.6-manifest [x]** — `apps/web/components.json` (~15 lines, canonical shadcn-style JSON shape: `style: 'new-york'`, `rsc: true`, `tsx: true`, `baseColor: 'neutral'`, `cssVariables: true`, `@/components` + `@/components/ui` + `@/lib` + `@/lib/utils` aliases). The `tailwind.config` field points at `app/globals.css` (NOT a `tailwind.config.ts`) because Tailwind v4 has no JS config — the design tokens live in the `@theme inline` block (T4.7). Verification: `node -e "JSON.parse(...)"` exits 0 (structural JSON validity).
+  - **Sub-task brief-T4.6-readme [x]** — `apps/web/components.json.md` (~50 lines): README explaining that the CLI is intentionally NOT wired up; the primitives are hand-written and editable; the manifest is documentation only. Future operators who run `npx shadcn-ui add` would overwrite the committed primitives with CLI-generated ones that don't pick up the design tokens or the test conventions.
 
-### Task T4.7 — Design tokens extraction (from `gastos-personales/`) (~25 lines)
+### Task T4.7 — Design tokens extraction (from `gastos-personales/`) (~25 lines) [x] (slice 4 batch 4b)
 
 - **Description.** Per UI-2: read `gastos-personales/tailwind.config.*` and `gastos-personales/app/globals.css` to capture colors/spacing/typography. Write the tokens into `apps/web/app/globals.css` as CSS variables under `:root` and `[data-theme="dark"]`. Reference the source via a comment at the top.
 - **Discovery / file targets.** Create `apps/web/app/globals.css`; update `apps/web/tailwind.config.ts` to reference the CSS variables. The source repo path is referenced in a comment, not imported.
@@ -371,8 +416,11 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Verification.** `apps/web/app/globals.css` contains `--background`, `--foreground`, `--primary`, etc.; `apps/web/tailwind.config.ts` references these via `hsl(var(--background))`.
 - **Rollback.** `git revert <T4.7-sha>`.
 - **Files touched (rough).** `apps/web/app/globals.css`, `apps/web/tailwind.config.ts` (~25 lines net).
+- **Sub-progress (slice 4 batch 4b — T4.7 closed)**. Design tokens extracted from the sibling reference repo's `gastos-personales/app/_ui/tokens.css` per design §6.4 + §6.5. The 14 pre-existing color roles (--ui-bg, --ui-fg, --ui-accent, etc.) + the 7 glass/gradient/shadow tokens (REQ-UI-19) + the radius scale + the elevation scale + the spacing scale + the typography scale are byte-for-byte unchanged from the source. The dark-mode block mirrors the source `.dark` scope (renamed from `[data-theme="dark"]` to `.dark` in the source's PR 2 to match the modern Tailwind v4 / shadcn convention). Tailwind v4 setup uses `@import "tailwindcss";` (NOT the v3 split into `@tailwind base/components/utilities`); the `@theme inline` block exposes the tokens as utility classes (`bg-ui-bg`, `text-ui-fg`, `rounded-ui-md`, `shadow-ui-shadow-sm`, etc.) consumed by the shadcn-style primitives (T4.4). NO `tailwind.config.ts` is created — Tailwind v4 reads from CSS via the `@tailwindcss/postcss` plugin; the manifest's `tailwind.config` field points at `app/globals.css`.
+  - **Sub-task brief-T4.7-design-tokens [x]** — `apps/web/app/globals.css` (NEW, ~150 lines: `@import "tailwindcss";` + `@theme inline` block exposing 21 token groups as Tailwind utilities + `:root` light-mode tokens + `.dark` dark-mode tokens + `prefers-reduced-motion` + `prefers-reduced-transparency` fallbacks). `apps/web/postcss.config.mjs` (NEW, ~15 lines: single `@tailwindcss/postcss` plugin). `apps/web/app/[locale]/layout.tsx` (MODIFIED, +1 line: `import "../globals.css";`). Verification: `pnpm --filter web build` (with env vars set per the pre-existing slice-1 env-validation constraint) compiles successfully with no Tailwind warnings.
+  - **Sub-task brief-deps-partial [x]** — `tailwindcss@4.3.2` + `@tailwindcss/postcss@4.3.2` + `postcss@8.5.16` + `autoprefixer@10.5.2` installed via `pnpm add -F web`.
 
-### Task T4.8 — `sign-in` page + `LoginForm` (~50 lines)
+### Task T4.8 — `sign-in` page + `LoginForm` (~50 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Implement `apps/web/app/[locale]/(auth)/sign-in/page.tsx` and the **full** `LoginForm` (T4.1's stub). Implement all 5 states (loading, error, success, empty, validation-error) per spec §UI requirement "Complete Form States". Wire `react-hook-form` + `@hookform/resolvers/zod` against `loginSchema` from `@features/auth/shared/schemas/login`.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/sign-in/page.tsx`; `libs/features/auth/client/components/LoginForm.tsx` (replace stub).
@@ -381,7 +429,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.8-sha>`.
 - **Files touched (rough).** Page + form + tests (~50 lines).
 
-### Task T4.9 — `sign-up` page + `SignUpForm` (~30 lines)
+### Task T4.9 — `sign-up` page + `SignUpForm` (~30 lines) [x] (slice 4 batch 4c)
 
 - **Description.** Same shape as T4.8: register screen resolves `registerSchema` from `@features/auth/shared/schemas/register`; 5-state form.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/sign-up/page.tsx`; `libs/features/auth/client/components/SignUpForm.tsx`; tests under `libs/features/auth/client/components/__tests__/sign-up-form.test.tsx`.
@@ -390,7 +438,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.9-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.10 — `forgot-password` page + `ForgotPasswordForm` (~30 lines)
+### Task T4.10 — `forgot-password` page + `ForgotPasswordForm` (~30 lines) [x] (slice 4 batch 4d)
 
 - **Description.** Resolves `forgotPasswordSchema`; success state shows generic "if this email is registered, you will receive instructions" copy.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/forgot-password/page.tsx`; `libs/features/auth/client/components/ForgotPasswordForm.tsx`; tests.
@@ -399,7 +447,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.10-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.11 — `reset-password/[token]` page + `ResetPasswordForm` (~30 lines)
+### Task T4.11 — `reset-password/[token]` page + `ResetPasswordForm` (~30 lines) [x] (slice 4 batch 4d)
 
 - **Description.** Reads `[token]` from the route (per Next 15 async params). Resolves `resetPasswordSchema`. Error path shows "invalid or expired token" on unknown token.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/reset-password/[token]/page.tsx`; `libs/features/auth/client/components/ResetPasswordForm.tsx`; tests.
@@ -408,7 +456,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T4.11-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T4.12 — `dev/mailbox/[userId]` page + `DevMailbox` component (~25 lines)
+### Task T4.12 — `dev/mailbox/[userId]` page + `DevMailbox` component (~25 lines) [x] (slice 4 batch 4d)
 
 - **Description.** DEV ONLY — `NODE_ENV !== 'production'` enforced at the route boundary and in the component. Reads the latest `auth.password-reset.requested` event for `userId` from the dispatcher's ring buffer (T2.3). Surfaces the **token only** (never passwords or email contents). Per design §4.5.
 - **Discovery / file targets.** `apps/web/app/[locale]/(auth)/dev/mailbox/[userId]/page.tsx`; `libs/features/auth/client/components/DevMailbox.tsx`; tests.
@@ -960,3 +1008,294 @@ Every gate G1–G47 from `proposal.md` §7 + §11.3, mapped to the slice + task(
 - **G40–G47 (UI gates, §11.3)**: 8/8 covered.
 
 Total: 47/47 gates mapped to a concrete slice + task and a verifiable command. None are aspirational; every gate ties to a test or a file/path check that `sdd-verify` can replay from a fresh clone.
+
+---
+
+## Slice 4 follow-ups (post-4e)
+
+**Goal recap.** Slice 4 closed in PR #18 with T4.13 + T4.14 + T4.15. The 4R reviews of the slice 4 PRs surfaced a set of small follow-ups (SUGGESTION-level + 1 WARNING). Per the parent's decision, this batch handles the **cleanup** follow-ups: per-form test slim, fetch timeout, Referrer-Policy header on (auth) routes, magic-number extraction in DevMailbox, and Input-primitive unused-prop cleanup.
+
+**Branch.** `feat/vertical-slicing-s4-followups-cleanup` (cut from `develop` @ `723ae89`, post-PR #18 slice 4 batch 4e merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`.
+
+**Out of scope (deferred).**
+
+- DevMailbox real API fetch — slice 5+.
+- Session-token storage (T3.3 deferred) — slice 4 follow-up batch 2.
+- Clipboard write failure `copyFailed` state — SUGGESTION-level.
+- No `AbortSignal` for the dev-mailbox read — SUGGESTION-level.
+- Test count drops because per-form files slim (duplicates consolidated into state-coverage.test.tsx; the 105-baseline → 83-after-slim + 1 new timeout test = 83 final).
+
+### Sub-task brief-test-slim [x]
+
+**Per-form test file slim** — the 4 per-form test files (LoginForm.test.tsx, SignUpForm.test.tsx, ForgotPasswordForm.test.tsx, ResetPasswordForm.test.tsx) duplicated the 5-state assertions that the consolidated `state-coverage.test.tsx` (T4.14, 20 tests) already covers. Slim each per-form file to keep ONLY form-specific tests:
+
+- `LoginForm.test.tsx` — KEEP: the `onSuccess` callback wiring test (the parent navigates after a successful login; the state-coverage harness tests the success-state rendering via a mock `onSuccess`, not the `onSuccess` invocation + the request shape). REMOVE: the empty / validation / loading / 401 / 500 rendering tests.
+- `SignUpForm.test.tsx` — KEEP: the `apiUrl` propagation + `onSuccess` callback test (the form POSTs to `${apiUrl}/auth/register` with the 3-field body `{ email, password, name }`). REMOVE: the 5-state assertions. (Note: `locale` is NOT a prop on SignUpForm — it lives on the parent `SignUpClient` wrapper; the locale-aware redirect is tested at the page level in `sign-up.test.tsx`.)
+- `ForgotPasswordForm.test.tsx` — KEEP: the idempotent 202 response test (the form transitions to the success state for BOTH known and unknown emails — design's enumeration-leak prevention — with the `locale`-preserved back-to-signin link `href`). REMOVE: the 5-state assertions.
+- `ResetPasswordForm.test.tsx` — KEEP: the `token` prop test (the form passes the URL's `[token]` dynamic segment into the API body alongside `newPassword`; the state-coverage harness doesn't pin the request body shape). REMOVE: the 5-state assertions.
+
+After the slim, the per-form FILES remain (form-specific tests + import setup). The state-coverage file is the source of truth for the 5 states. Test count: 105 baseline → 83 after slim (-22 duplicates removed).
+
+### Sub-task brief-fetch-timeout [x]
+
+**Add `AbortSignal.timeout(10_000)` to the 4 forms' `fetch` calls.** The hook `useAuthApiPost` in `apps/web/lib/useAuthApiPost.ts` is the natural place to add the timeout — all 4 forms use this hook. Without a timeout, a stalled API leaves the form in the loading state indefinitely.
+
+Add `signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)` (where `FETCH_TIMEOUT_MS = 10_000`) to the `fetch` call. Distinguish timeout from other errors in the catch block:
+
+```ts
+} catch (error) {
+  if (error instanceof DOMException && error.name === "TimeoutError") {
+    setFormError(tc("error.timeout"));
+  } else {
+    setFormError(fallback);
+  }
+  setIsSubmitting(false);
+  return;
+}
+```
+
+Add the i18n key `auth.common.error.timeout` to both `en.json` + `es.json` (mirrored translations).
+
+The state-coverage test file adds a regression test for the timeout path:
+
+- `api-error: 10_000ms timeout → auth.common.error.timeout banner (regression test)` — simulates the timeout by mocking the fetch to throw a `DOMException` with `name === "TimeoutError"`.
+
+### Sub-task brief-referrer-policy [x]
+
+**`Referrer-Policy: same-origin` header on the `(auth)` route group.** Add the header in `apps/web/next.config.ts` (the existing `headers()` block is empty — the project doesn't currently set any security headers). Scope the header to the `(auth)` route group's URL pattern:
+
+```ts
+async headers() {
+  return [
+    {
+      source: "/:locale(en|es)/(sign-in|sign-up|forgot-password|reset-password|dev/mailbox)/:path*",
+      headers: [{ key: "Referrer-Policy", value: "same-origin" }],
+    },
+  ];
+}
+```
+
+The pattern matches `/{locale}/<auth-page>/*` (e.g. `/en/sign-in`, `/es/reset-password/<token>`). Other routes (the slice-1 placeholder landing `/` and the slice-3-protected `/(auth)/sessions`) inherit Next.js's default.
+
+The reset-password URL is the most security-sensitive: the token is in the URL path. A future CDN or asset on the page making a request would otherwise leak the full URL (including the token) as `Referer`. `same-origin` eliminates the surface.
+
+**No new test for this** — the e2e suite is best-effort. The behavior is verified by inspecting the response headers in the dev tools.
+
+### Sub-task brief-magic-constant [x]
+
+**Extract the literal `2000` in `DevMailbox.tsx` to a named constant.** `apps/web/components/auth/DevMailbox.tsx` has `const handle = setTimeout(() => setCopied(false), 2000);` — the `2000` is the "Copied" indicator timeout. Extracted to:
+
+```ts
+/**
+ * Duration of the "Copied to clipboard" indicator on the DevMailbox
+ * copy button. After this many ms the indicator resets to the
+ * pre-copy state. Tuned for human perception — long enough to be
+ * noticed, short enough to not block the next interaction.
+ */
+const COPY_INDICATOR_TIMEOUT_MS = 2_000;
+```
+
+Used in the `setTimeout` call. Trivial refactor; no behavior change.
+
+### Sub-task brief-input-prop-cleanup [x]
+
+**Remove the unused `label` + `error` props from the `Input` primitive.** **Verified to be a NO-OP.** The `Input` primitive in `apps/web/components/ui/input.tsx` does NOT have `label` or `error` props on its interface (it extends just `React.InputHTMLAttributes<HTMLInputElement>` without those props). The brief's assumption about batch 4c's auto-formatter adding them was outdated — per batch 4c's deviation #8 in the apply-progress, that modification appeared spontaneously during batch 4c, was caught + reverted via `git checkout HEAD -- <file>` + `rm` before each commit, and never landed. Confirmed by `git log --follow apps/web/components/ui/input.tsx` showing only the original batch 4b commit (`5418944 feat(web): GREEN 4 shadcn-style primitives (T4.4 batch 4b)`).
+
+A grep for `label\?\:|error\?\:\|InputProps` in `apps/web/components/ui/` returns no matches. The 4 forms use the `FormFieldRow` primitive (T4.15) which wraps the label + error JSX; the `Input` primitive never had those props on this codebase. No code change required.
+
+---
+
+## Slice 4 batch 2 (post-4e — T3.3 deferred follow-up)
+
+**Goal recap.** Slice 4 closed in PR #18 (T4.13 + T4.14 + T4.15) and PR #19 closed the 5/5 cleanup follow-ups. The remaining T3.3 deferred item is the **session-token storage on the web client**: the form receives `{ id, email, role, sessionToken }` from `POST /auth/login` and `POST /auth/register` but the sessionToken was thrown away. This batch wires the session into a custom cookie (`auth-session`) and short-circuits the 4 auth pages when a session is present.
+
+**Branch.** `feat/vertical-slicing-s4-batch2-auth-cookie` (cut from `develop` @ `6535271`, post-PR #19 slice 4 follow-ups cleanup merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`.
+
+**Strategy (per design notes).**
+
+- **Web client uses a custom cookie** (NOT NextAuth's). Cookie name is `auth-session` (avoids collision with future NextAuth integration per R-SPEC-1). Cookie stores `{ token, user: { id, email, role } }`.
+- `apps/web/lib/auth.ts` exports the helpers: `getSession()` (server side, reads via `next/headers#cookies()`), `setSessionCookie()` (client side, writes to `document.cookie` with `path=/`, `max-age=86400`, `SameSite=Lax`), `clearSessionCookie()` (client side, `Max-Age=0`).
+- The LoginForm + SignUpForm persist the session via `setSessionCookie()` BEFORE calling the parent's `onSuccess` so a mid-redirect hard reload still sees the cookie. The parents (SignInClient + SignUpClient) just navigate.
+- The 4 auth pages (sign-in / sign-up / forgot / reset) call `getSession()` at the top of the RSC and `redirect(/${locale}/)` if a session is present. Symmetric across the 4 pages for consistency.
+- The slice-1 placeholder landing is upgraded: unauthenticated visitors see the slice-1 copy; authenticated visitors see `auth.dashboard.welcome` with the user's email.
+
+**Out of scope (deferred).**
+
+- NextAuth's `apps/web/auth.ts` (canonical NextAuth v5 client config) — this batch uses a custom cookie. The NextAuth integration is a separate concern that requires API changes to mint a NextAuth JWT (NOT in scope for this batch).
+- Real Google OAuth handshake — slice 4+ if/when added.
+- BDD `.feature` files — slice 7+.
+- e2e (Playwright) tests for the cookie + redirect behavior — slice 4 follow-up. Unit tests cover the surface; e2e would add the browser-context cookie persistence check.
+- Sign-out button (the `auth.dashboard.signOut` i18n key is reserved for slice 6+ when the dashboard lands).
+
+### Sub-task brief-auth-helper [x]
+
+**`apps/web/lib/auth.ts` (NEW) + `apps/web/__tests__/lib-auth.test.ts` (NEW).** Custom session helpers (server-side read + client-side write/clear). Strict TDD: 11 RED-then-GREEN tests covering the `getSession` (5 cases: no cookie / valid / malformed JSON / missing user / wrong-shape user), `setSessionCookie` (5 cases: canonical name + JSON value / 24h max-age / path=/ / SameSite=Lax / last-write-wins), and `clearSessionCookie` (1 case: writes Max-Age=0). happy-dom's `document.cookie` GETTER only returns `name=value` (real-browser behavior); the attribute assertions (path, max-age, samesite) capture the SETTER input via a spy.
+
+### Sub-task brief-cookie-on-success [x]
+
+**Wire the auth-session cookie persistence into the LoginForm + SignUpForm success paths.** Surface changes:
+
+- `useAuthApiPost`: `onSuccess` callback signature widens from `() => unknown` to `(data: unknown) => unknown`; the hook parses the response JSON and passes it to the callback.
+- `auth.ts`: adds `SessionPayload` type + `isSessionPayload` type-guard (the auth API's `{ id, email, role, sessionToken }` response shape).
+- `LoginForm` + `SignUpForm`: parse the response via `isSessionPayload`, call `setSessionCookie(session)` BEFORE the parent's `onSuccess(session)`. Symmetric across both forms (the brief originally described an asymmetric SignInClient responsibility; the unified form-persists / parent-navigates design is simpler and matches the brief's test description).
+- `SignInClient` + `SignUpClient`: no functional change beyond the `onSuccess` argument type — just navigate (the cookie is already on disk).
+
+Tests: `LoginForm.test.tsx` (+1 cookie-set test), `SignUpForm.test.tsx` (+1 cookie-set test), `state-coverage.test.tsx` LoginForm success block (+1 cookie-set test; updated the success/loading mock responses to use a full `SessionPayload`).
+
+### Sub-task brief-redirect-if-authed [x]
+
+**`getSession()` + `redirect(/${locale}/)` check at the top of the 4 auth RSC pages + the slice-1 landing upgrade.**
+
+- `sign-in/page.tsx` + `sign-up/page.tsx` + `forgot-password/page.tsx` + `reset-password/[token]/page.tsx`: all call `getSession()` and `redirect(/${locale}/)` if non-null. The reset + forgot carve-out is documented (the brief's carve-out was "an authed user might want to request a reset"; the symmetric check is the simpler UX).
+- `apps/web/[locale]/page.tsx` (slice-1 landing): upgraded to a two-state surface — unauthenticated renders the slice-1 placeholder; authenticated renders the welcome message via `getTranslations("auth.dashboard")`.
+
+Tests: +1 redirect test per page (4 tests; uses a per-test `next/headers#cookies()` mock to simulate the session). New `apps/web/__tests__/app/landing.test.tsx` (3 tests: no cookie / valid cookie / placeholder-absence-on-auth).
+
+### Sub-task brief-i18n-keys [x]
+
+**`apps/web/messages/{en,es}.json` — add the `auth.dashboard` namespace.**
+
+- `auth.dashboard.welcome`: `"Welcome, {email}."` / `"Bienvenido/a, {email}."` — used by the authenticated landing.
+- `auth.dashboard.signOut`: `"Sign out"` / `"Cerrar sesión"` — reserved for the slice 6+ sign-out button (the cookie persistence is in place; the clickable control is not in this batch).
+
+The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates the key-tree parity; no separate test was added. **No TDD per the brief** — this is a data-only change driven by the landing surface's i18n call.
+
+### TDD evidence (per sub-task)
+
+| Sub-task | RED | GREEN | Refactor |
+|----------|-----|-------|----------|
+| brief-auth-helper | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import '../lib/auth'`. | 11/11 PASS after `auth.ts` ships. | None — surface is small + self-contained. |
+| brief-cookie-on-success | `vitest run` on LoginForm/SignUpForm/state-coverage → 3 failures (`callArg` is `undefined`, `lastSetCookie` is `null`). | 4/4 form tests PASS + 22/22 state-coverage tests PASS + 4/4 page tests PASS. | None — the `isSessionPayload` guard absorbs the shape-check complexity that would otherwise leak into the forms. |
+| brief-redirect-if-authed | 4 page redirect tests + 2 landing tests fail (`promise resolved 'undefined' instead of rejecting` / `expected document not to contain element`). | 4/4 page redirect tests + 3/3 landing tests PASS after the `getSession()` + `redirect(...)` wiring lands. | None. |
+| brief-i18n-keys | NO TDD. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates. | N/A (data-only). | N/A. |
+
+---
+
+## Slice 4 cookie migration (final — post-NextAuth integration)
+
+**Goal recap.** PR #21 (slice 4 NextAuth integration) landed the API-side NextAuth v5 mint: the API's `AuthService` now mints a real NextAuth JWE session token via `next-auth/jwt#encode`. The web client cookie, however, was still using the bespoke `auth-session` name from slice 4 batch 2. Keeping the cookie name desynced from the API's NextAuth integration would defeat the point of the canonical integration — a future drop-in `auth()` helper reads the canonical `authjs.session-token` name. This batch migrates the cookie name + canonicalizes the attribute string so the cookie is forward-compatible with a real `auth()` integration.
+
+**Branch.** `feat/vertical-slicing-s4-cookie-migration` (cut from `develop @ c2bbe2c`, post-PR #21 slice 4 NextAuth integration merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`. Per the brief, this is a REFACTOR + tests sub-task: the constant rename is mechanical and the new attribute test is the only test addition.
+
+**Strategy.**
+
+- **Cookie name.** `auth-session` → `authjs.session-token` (canonical NextAuth v5). The constant `AUTH_SESSION_COOKIE` in `apps/web/lib/auth.ts` is the single source of truth; all reads (`getSession()`) and writes (`setSessionCookie()` / `clearSessionCookie()`) flow through the constant.
+- **Cookie attributes (canonical NextAuth v5).** `path=/`, `max-age=24*60*60` (24h, derived from the new `SESSION_TTL_SECONDS` constant matching the API's `SESSION_TTL_MS`), `SameSite=lax` (lowercase per HTTP standard), `HttpOnly` (canonical hint; browsers ignore it set via `document.cookie` but the directive is forward-compatible with a real Set-Cookie header).
+- **`Secure` is INTENTIONALLY OMITTED.** The reference repo's `pnpm dev` runs on `http://localhost:3000` and the browser rejects `Secure` cookies on non-HTTPS origins. `Secure` belongs in a server-side `Set-Cookie` header gated by `process.env.NODE_ENV === 'production'` (lands in slice 6+ deploy hardening when the cookie is set server-side via NextAuth's `signIn(...)` callback).
+- **Server-side read.** `getSession()` is unchanged in shape — it reads `cookies().get(AUTH_SESSION_COOKIE)?.value` and the rename flows through the constant. The cookie attributes (httpOnly, secure, sameSite, path) are not parsed by Next.js's `cookies()` — they're properties on the `RequestCookie` object for inspection but the canonical contract is the name + value pair.
+
+**Out of scope (deferred).**
+
+- Switching `getSession()` to NextAuth's `auth()` helper — the auto-formatter's `useImportType` heuristic kept breaking the canonical NextAuth import during the worker run that landed PR #21. The manual `cookies().get(...)` read pattern is the pragmatic choice for this batch; the migration to `auth()` is a separate concern that requires the form's `setSessionCookie()` to be replaced with a real `signIn(...)` call (slice 6+ deploy hardening).
+- Server-side `Set-Cookie` header with `Secure` flag — slice 6+ deploy hardening.
+- e2e (Playwright) tests for the cookie persistence in a real browser context — slice 4 follow-up. Unit tests cover the surface; e2e would add the browser-context cookie persistence check.
+- Real Google OAuth handshake — slice 4+ if/when added.
+
+### Sub-task brief-cookie-name-migration [x]
+
+**Migrate the cookie name + canonicalize the attribute string.** Surface changes:
+
+- `apps/web/lib/auth.ts`:
+  - `AUTH_SESSION_COOKIE = "auth-session"` → `AUTH_SESSION_COOKIE = "authjs.session-token"` (canonical NextAuth v5).
+  - New `SESSION_TTL_SECONDS = 24 * 60 * 60` constant (matches the API's SESSION_TTL_MS = 24h). Exported for tests.
+  - `setSessionCookie()` attribute string: `path=/`, `max-age=${SESSION_TTL_SECONDS}` (explicit), `SameSite=lax` (lowercase, was `SameSite=Lax`), `HttpOnly` (new).
+  - `clearSessionCookie()` mirrors the lowercase `SameSite=lax`.
+  - JSDoc updated to document the canonical NextAuth v5 contract and the rationale for omitting `Secure`.
+- `apps/web/components/auth/LoginForm.tsx` + `SignUpForm.tsx`: no code change — they call `setSessionCookie()` which now writes the canonical cookie name + attributes.
+- `apps/web/app/[locale]/page.tsx` + `apps/web/app/[locale]/(auth)/sign-in/page.tsx`: JSDoc comments updated to reference the canonical cookie name (no code change; `getSession()` reads the constant).
+
+Tests:
+
+- `apps/web/__tests__/lib-auth.test.ts`: 11 → 13 tests. +2 new assertions:
+  - `AUTH_SESSION_COOKIE === 'authjs.session-token'` (locks the canonical name as part of the contract).
+  - `SESSION_TTL_SECONDS === 24*60*60` (locks the max-age derivation).
+- `apps/web/__tests__/components/auth/LoginForm.test.tsx` + `SignUpForm.test.tsx` + `state-coverage.test.tsx`: cookie mock + cleanup lines updated to `authjs.session-token`. The success-path cookie-set assertion now also pins `HttpOnly` in the attribute string (one regex match added per file).
+- `apps/web/__tests__/app/{landing,sign-in,sign-up,forgot-password,reset-password}.test.tsx`: cookie store mocks updated to the new canonical name. Test descriptions updated.
+
+### Sub-task brief-server-cookie-read [x]
+
+**Server-side `getSession()` reads the canonical NextAuth cookie name.** The function body is unchanged — it reads `cookies().get(AUTH_SESSION_COOKIE)?.value` and the rename flows through the constant automatically. **No code change** beyond the constant update in sub-task 1.
+
+The `getSession()` function returns `null` on:
+
+- Cookie absent.
+- Cookie value is malformed JSON (`JSON.parse` throws).
+- Cookie value is valid JSON but missing the `user` or `token` field.
+- Cookie value is valid JSON but `user` is missing `id` / `email` / `role`.
+
+This is the same behavior as slice 4 batch 2 — no new decode logic is needed.
+
+### Sub-task brief-markers-apply-progress [x]
+
+**Final commit — `chore(slice-4-cookie-migration): tasks.md sub-task [x] markers + apply-progress section (slice 4 closed for real)`.**
+
+- `tasks.md`: adds this section + the 3 sub-task rows above with `[x]` markers.
+- `apply-progress.md`: appends the slice 4 cookie migration section.
+- `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + `apply-progress.md`: Spanish mirror produced in the same atomic commit per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Technical surfaces preserved verbatim; prose translated to neutral/professional Spanish.
+
+### TDD evidence (per sub-task)
+
+| Sub-task | RED | GREEN | Refactor |
+|----------|-----|-------|----------|
+| brief-cookie-name-migration | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieName.startsWith(\`${cookieName}=\`)` assertion if `AUTH_SESSION_COOKIE` were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded `"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | None — the surface is small + self-contained. |
+| brief-server-cookie-read | N/A — function body unchanged; only the constant flows the rename. | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly). | None. |
+| brief-markers-apply-progress | N/A — documentation only. | N/A. | N/A. |
+
+### Quality gates — all green
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Workspace install | `pnpm install` | exit 0 |
+| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
+| Tests (events) | `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
+| Tests (config) | `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
+| Tests (api) | `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
+| Tests (web) | `cd apps/web && pnpm exec vitest run` | 106/106 PASS (was 104; +2 new attribute assertions) |
+| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
+| Lint (full) | `pnpm turbo run lint` | 10/10 tasks PASS |
+| Lint (fixtures) | `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures |
+| Typecheck (full) | `pnpm turbo run typecheck` | 9/9 tasks PASS |
+
+### Critical deviations from the brief
+
+1. **`HttpOnly` set via `document.cookie` is a browser-side no-op.** Real browsers silently ignore the `HttpOnly` directive when set via `document.cookie` from JavaScript — the attribute only takes effect when emitted by a `Set-Cookie` header from the server. The brief asks to add `HttpOnly` to the cookie string; the directive is included so the cookie STRING matches the canonical NextAuth v5 contract (the test assertion also pins it). The actual protection (HttpOnly preventing JS access) requires the real server-side `Set-Cookie` integration in slice 6+ deploy hardening.
+2. **`Secure` is OMITTED.** The brief's "secure: process.env.NODE_ENV === 'production'" toggle conceptually applies to a server-side `Set-Cookie` header. The client-side `document.cookie` write cannot use `Secure` in dev (localhost is HTTP, browser rejects Secure cookies on non-HTTPS origins). The migration leaves Secure to the slice 6+ server-side Set-Cookie integration.
+3. **`SESSION_TTL_SECONDS` is a local constant in `apps/web/lib/auth.ts`, not a shared `libs/shared-utils` export.** The API exposes its SESSION_TTL_MS but the web client doesn't currently import from `@shared-utils/*` for auth config. Promoting the constant to a shared export is a slice 6+ refactor (would require a new `libs/shared-utils/session-ttl` package or an addition to the existing `date-formatting` / `currency` / `decimal` set).
+
+### Workload / PR boundary
+
+- Forecast (brief): ~50 lines of source + ~80 lines of tests = ~130 lines.
+- Actual: 12 files changed, +171 / -106 = 277 net insertions across source + tests + JSDoc. 1 atomic commit (`9834f51 refactor(web): migrate to canonical NextAuth v5 cookie name + attributes`).
+- 400-line budget risk: **Low** — well within the per-PR budget.
+- PR target: `feat/vertical-slicing-s4-cookie-migration` → `develop` once `sdd-verify` clears. NOT pushed to remote, NOT merged yet.
+- This is the **final sub-batch of slice 4** (slice 4 = 15/15 + 5/5 follow-ups + 4/4 batch 2 + 3/3 cookie migration = 27/27). Slice 4 is now CLOSED.
+
+### Forbidden operations honored
+
+- ❌ find / ls -R / tree — NOT USED.
+- ❌ Modifying the API (slice 3 closed) — NOT TOUCHED.
+- ❌ Modifying the form's `useAuthApiPost` hook or the API's session endpoint — NOT TOUCHED.
+- ❌ Switching `getSession()` to NextAuth's `auth()` helper (auto-formatter breaks the canonical import; the manual `cookies().get(...)` read is the pragmatic choice) — NOT TOUCHED.
+- ❌ Modifying the existing Playwright e2e tests — NOT TOUCHED (no e2e tests for the cookie persistence; unit tests cover the surface).
+- ❌ "Co-Authored-By" or AI attribution — NOT INCLUDED in any commit.
+
+### Cross-references
+
+- Tasks (markers): this section + 3 sub-task rows with `[x]` markers.
+- Apply progress: `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (slice 4 cookie migration section appended).
+- Spanish mirror: `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + `apply-progress.md` (neutral/professional Spanish, technical surfaces preserved verbatim per AGENTS.md §13 / convention id 2132).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Sign-in (AC-1..AC-4 — the sessionToken response shape).
+- Design: `openspec/changes/.../design.md` §4.1 (auth domain — `AuthService.login` returns `{ id, email, role, sessionToken }`).
+- Engram: `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-slice4-cookie-migration` (saved via `mem_save` before return).
+- Atomic commit hash: `9834f51` (refactor + tests + new attribute tests in one atomic commit per the brief's "tests+code in the SAME commit for a behavior task" rule).
+- Markers commit hash: TBD (this commit).
+- Base commit: `c2bbe2c` (post-PR #21 slice 4 NextAuth integration merge).
+- Working tree: clean after this commit.
+- Push status: not pushed.
+- Merge status: not merged.

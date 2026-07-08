@@ -1,0 +1,6 @@
+{
+  "name": "@shared-utils/root",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Root manifest for libs/shared-utils. The runtime helpers live in the nested date-formatting, currency, and decimal packages — each imported via the @shared-utils/* path alias. Turbo runs each package's scripts independently, so this root has no scripts of its own."
+}

@@ -1,0 +1,70 @@
+{
+  "auth": {
+"common": {
+          "loading": "Loading…",
+          "genericError": "Something went wrong. Please try again.",
+          "cancel": "Cancel",
+          "backToLoginLink": "Back to sign-in",
+          "error": {
+            "timeout": "Request timed out. Please check your connection and try again."
+          }
+        },
+    "signIn": {
+      "title": "Sign in",
+      "description": "Sign in to access your account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "error": {
+        "invalidCredentials": "Invalid email or password."
+      }
+    },
+    "signUp": {
+      "title": "Create your account",
+      "description": "Create an account to start tracking your finances.",
+      "email": "Email",
+      "password": "Password",
+      "name": "Display name",
+      "submit": "Create account",
+      "error": {
+        "duplicateEmail": "An account with this email already exists."
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "email": "Email",
+      "submit": "Send reset link",
+      "success": "If this email is registered, you will receive a reset link shortly."
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "newPassword": "New password",
+      "submit": "Reset password",
+      "error": {
+        "invalidToken": "This reset link is invalid or has expired."
+      },
+      "success": "Your password has been reset. You can now sign in."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "list": "Devices currently signed in",
+      "revokeButton": "Revoke",
+      "empty": "No active sessions found."
+    },
+    "devMailbox": {
+      "title": "Dev mailbox",
+      "noTokensHint": "No password reset tokens have been dispatched yet.",
+      "tokenLabel": "Reset token",
+      "copyButton": "Copy token",
+      "copiedToClipboard": "Copied to clipboard"
+    },
+    "dashboard": {
+      "welcome": "Welcome, {email}.",
+      "signOut": "Sign out"
+    },
+    "locale": {
+      "en": "English",
+      "es": "Spanish"
+    }
+  }
+}

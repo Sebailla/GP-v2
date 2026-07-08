@@ -1,0 +1,32 @@
+{
+    "extends": "../../tsconfig.base.json",
+      "compilerOptions": {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "ES2022",
+        "lib": ["ES2022"],
+        "outDir": "./dist",
+        "rootDir": "../..",
+        "baseUrl": "../..",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "strictPropertyInitialization": false,
+        "ignoreDeprecations": "6.0",
+        "incremental": true,
+        "noEmit": false,
+        "paths": {
+          "@core/database": ["libs/core/database/src"],
+          "@core/database/*": ["libs/core/database/src/*"],
+          "@core/events": ["libs/core/events/src"],
+          "@core/events/*": ["libs/core/events/src/*"],
+          "@core/config": ["libs/core/config"],
+          "@core/config/*": ["libs/core/config/*"],
+          "@features/auth": ["libs/features/auth/server"],
+          "@features/auth/*": ["libs/features/auth/*"]
+        }
+      },
+      "include": ["src/**/*.ts", "test/**/*.ts", "../libs/features/auth/shared/schemas/**/*.ts"],
+      "exclude": ["node_modules", "dist"]
+    }

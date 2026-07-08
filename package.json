@@ -1,0 +1,39 @@
+{
+  "name": "gastos-personales-reference",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference repository validating the vertical-slicing monorepo model (apps/web + apps/api + libs/features/* + libs/core + libs/shared-utils). NOT a 1:1 copy of gastos-personales/. Greenfield.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=22.13.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fixtures": "node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "bdd": "turbo run bdd",
+    "e2e": "turbo run e2e",
+    "coverage": "turbo run coverage",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d postgres",
+    "db:logs": "docker compose logs -f postgres",
+    "prisma": "pnpm --filter @core/database exec prisma",
+    "prisma:migrate:dev": "pnpm --filter @core/database exec prisma migrate dev",
+    "prisma:generate": "pnpm --filter @core/database exec prisma generate",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,yaml,yml}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,yaml,yml}\" --ignore-path .gitignore",
+    "clean": "turbo run clean && rm -rf .turbo node_modules"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "8.62.0",
+    "prettier": "3.9.0",
+    "turbo": "2.10.3",
+    "typescript": "6.0.3"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@core/config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zod-validated environment variables for the gastos-personales-reference monorepo. Fails-fast at import time when required vars are missing or malformed. Consumed via the @core/config path alias from apps/api and apps/web.",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "vitest": "4.1.9",
+    "typescript": "6.0.3"
+  }
+}
