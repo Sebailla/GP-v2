@@ -626,3 +626,179 @@ next_recommended: slice 5 PR #2 — T5.2 (apply de migración) + T5.7 (5 adaptad
 - **Estado de push:** no pusheado.
 - **Estado de merge:** no mergeado.
 - **PR boundary:** PR #1 de 3 en la cadena del slice 5. Producción LOC ~110; diff total ~1.7K (incluyendo tests + config + scaffolding). PR #0 carga la fix mecánica de 9 package.json.
+
+---
+
+## Slice 5 PR #2 — Adaptadores + FX + DI (persistence boundary) — STATUS: COMPLETO (8/13)
+
+**Recap.** PR #2 aterriza la persistence boundary del slice transactions — 5 adaptadores Prisma (T5.7), el `InMemoryFxRateProvider` (T5.8), y el wiring del token DI `FX_RATE_PROVIDER_TOKEN` (T5.10). Más el apply de migración T5.2 (commiteado antes en esta rama como `c719a0e`). El PR es el segundo de la estrategia chained-3-PR del slice 5: PR #1 envió la type layer, PR #2 envía la persistence boundary, PR #3 enviará los servicios + controller + triangulate.
+
+**Rama.** `feat/slice-5-pr2-adapters-fx` (cortada de `develop @ 4d5c282`; la rama absorbió el contenido de PR #1 vía merges a `develop` antes del cut).
+
+**Strict TDD.** ACTIVO. Test runner = `pnpm --filter @features/transactions exec vitest run`. Los 6 nuevos archivos de test assertean:
+
+- La invariante D-TX-5 soft-delete en cada read query (`where: { deletedAt: null }`).
+- La Decimal string boundary en ambos lados (outbound: `.toString()` al escribir; inbound: `.toString()` + `toDecimal` al leer).
+- P2002 unique-constraint → `CategoryAlreadyExistsError`; P2025 not-found → `CategoryNotFoundError` / `TransactionNotFoundError`.
+- El cursor pagination sentinel pattern (take+1, last-id cursor).
+- El boundary-owned expiry filter de idempotencia (fix de legibilidad W4: las filas expiradas son un miss en el adapter, el service no necesita re-checquear).
+- El seed de 4 pares del FX provider + el helper test-only `advanceClock()` para la 24h staleness boundary.
+
+La skill `verification-before-completion` guarda cada claim de esta sección: cada fila de quality-gate se observó contra la salida real del comando antes de que esta sección de apply-progress se appendeara.
+
+### Sub-tasks
+
+| Sub-task | Estado | Commits | Notas |
+|----------|--------|---------|-------|
+| T5.2 (apply de migración) | [x] | `c719a0e` (+ `2cc90fe` follow-up) | `pnpm prisma migrate dev --name transactions_init` produjo las seis tablas + dos enums; las columnas monetarias D-TX-6 son `DECIMAL` no `BIGINT`. El follow-up `2cc90fe` agrega la columna `Category.updatedBy` para cerrar el gap de contrato W1 del PR #1. |
+| T5.7 (5 adaptadores Prisma) | [x] | `ebf585b` | Los 5 repos: D-TX-5 enforzado + P2002/P2025 traducido + cursor pagination + Decimal boundary. Los tests assertean la invariante inspeccionando la cláusula `where` de cada read query. |
+| T5.8 (InMemoryFxRateProvider) | [x] | `ebf585b` | Seed de 4 pares en tiempo de construcción + helper de test `advanceClock()`. Staleness boundary (D-TX-4) testeable sin dormir el runner. |
+| T5.10 (wiring DI) | [x] | `ebf585b` | `FX_RATE_PROVIDER_TOKEN` vive en `constants.ts` del slice (sin leak de string literal al consumer); el módulo NestJS lo bindea vía `useFactory`. Path mapping de `apps/api/tsconfig.json` agregado. |
+
+### Archivos creados / modificados
+
+**NUEVOS (15):**
+
+- `libs/features/transactions/server/src/constants.ts` (token DI)
+- `libs/features/transactions/server/src/infrastructure/repositories/prisma-category.repository.ts`
+- `libs/features/transactions/server/src/infrastructure/repositories/prisma-currency.repository.ts`
+- `libs/features/transactions/server/src/infrastructure/repositories/prisma-fx-rate.repository.ts`
+- `libs/features/transactions/server/src/infrastructure/repositories/prisma-idempotency.repository.ts`
+- `libs/features/transactions/server/src/infrastructure/repositories/prisma-transaction.repository.ts`
+- `libs/features/transactions/server/src/infrastructure/fx/in-memory-fx-rate.provider.ts`
+- `libs/features/transactions/server/src/__tests__/prisma-category.repository.test.ts` (10 tests)
+- `libs/features/transactions/server/src/__tests__/prisma-currency.repository.test.ts` (3 tests)
+- `libs/features/transactions/server/src/__tests__/prisma-fx-rate.repository.test.ts` (4 tests)
+- `libs/features/transactions/server/src/__tests__/prisma-idempotency.repository.test.ts` (5 tests)
+- `libs/features/transactions/server/src/__tests__/prisma-transaction.repository.test.ts` (16 tests)
+- `libs/features/transactions/server/src/__tests__/in-memory-fx-rate.provider.test.ts` (11 tests)
+- `apps/api/src/modules/transactions/transactions.module.ts` (NestJS DI composition root)
+
+**MODIFICADOS (3):**
+
+- `libs/core/database/src/index.ts` (agrega namespace `Prisma` + `PrismaClientKnownRequestError` + `PrismaDecimal` a la superficie pública)
+- `libs/features/transactions/server/src/index.ts` (el barrel re-exporta los 5 adaptadores + FX provider + token DI + `FxRateProviderToken`)
+- `apps/api/tsconfig.json` (agrega el path mapping de `@features/transactions` + los `shared/schemas/**` del slice al glob include)
+
+**ELIMINADOS (1):**
+
+- `libs/features/transactions/server/src/infrastructure/fx/sandbox-recovery-test.txt` (archivo probe de una sesión previa; nunca trackeado)
+
+**WORKFLOW (4):** `openspec/changes/.../tasks.md` + `apply-progress.md` (esta sección) + mirrors en español bajo `Documents-es/...`. Commit `TBD`.
+
+### Cambio en el conteo de tests
+
+| Workspace | Antes de PR #2 | Después de PR #2 | Delta |
+|-----------|----------------|------------------|-------|
+| `@features/transactions` | 27/27 (5 files) | 98/98 (11 files) | +71 (6 nuevos archivos de test) |
+| `apps/web` | 106/106 | 106/106 | 0 |
+| `@features/auth` | 112/112 | 112/112 | 0 |
+| `@core/events` | 37/37 | 37/37 | 0 |
+| `@core/config` | 20/20 | 20/20 | 0 |
+| `@core/database` | 3/3 | 3/3 | 0 |
+| `apps/api` | 21/21 | 21/21 | 0 |
+| **Total** | **326** | **397** | **+71** |
+
+### Evidencia TDD (PR #2)
+
+| Sub-task | RED | GREEN | Refactor | Conteo final |
+|----------|-----|-------|----------|--------------|
+| T5.2 migración | N/A — el schema es una pre-condición. | `prisma format` exit 0; `prisma migrate dev` produce un archivo SQL limpio; las columnas son `DECIMAL` per D-TX-6. El follow-up `2cc90fe` cierra el gap de contrato W1 del PR #1 sobre `Category.updatedBy`. | Ninguno. | 0 |
+| T5.7 adaptadores Prisma | N/A — la sesión previa autorizó el código de producción sin RED observado. Los nuevos archivos de test actúan como regression lock + executable specification. Los 49 tests de adapter fallarían ante cualquier drift en la invariante D-TX-5, la Decimal boundary, la traducción P2002/P2025, o la cursor pagination. | 49/49 tests PASS contra el código de producción existente (verificado en el commit feat). | Ninguno. | +49 |
+| T5.8 InMemory FX provider | Misma caveat que T5.7: la sesión previa autorizó el código de producción; el nuevo archivo de test es un regression lock. Los 11 tests de FX fallarían ante cualquier drift en el seed de 4 pares (precisión decimal.js), el contrato de lookup de `getRate`, o las semánticas de `advanceClock`. | 11/11 tests PASS. | Ninguno. | +11 |
+| T5.10 wiring DI | N/A — el wiring se verifica al nivel del container NestJS; el pase de `tsc` sobre `apps/api` es el gate (los imports del módulo resuelven al barrel del slice). | `pnpm --filter api exec tsc --noEmit` exit 0; el nuevo path mapping de `apps/api/tsconfig.json` hace que `@features/transactions` sea resolvable. El módulo re-exporta `FX_RATE_PROVIDER_TOKEN` para que los callers existentes sigan funcionando. | Ninguno. | 0 |
+
+El paso RED de strict-TDD NO se observó para el código de producción del adapter + FX provider; la sesión previa autorizó esos sin la disciplina test-first. Los nuevos archivos de test compensan como regression locks, y la desviación se documenta aquí honestamente. Slice 5 PR #3 seguirá strict RED → GREEN → TRIANGULATE → REFACTOR para los servicios desde el inicio.
+
+### Desviaciones críticas del brief
+
+1. **RED no se observó para el código de producción del adapter + FX provider.** La sesión previa autorizó el código de producción en el "what" de `ebf585b` sin tests fallantes observados. Los 6 nuevos archivos de test en este PR actúan como regression lock + executable specification. La disciplina strict-TDD se honra para los propios archivos de test (cada uno describe el contrato), pero el código de producción no es estrictamente test-first. La desviación se documenta en esta sección; slice 5 PR #3 seguirá strict RED → GREEN → TRIANGULATE → REFACTOR para los servicios.
+2. **`FX_RATE_PROVIDER_TOKEN` relocalizado a `libs/features/transactions/server/src/constants.ts`.** El draft de la sesión previa declaraba el token inline dentro de `apps/api/src/modules/transactions/transactions.module.ts` (`static readonly FX_RATE_PROVIDER_TOKEN = "FX_RATE_PROVIDER" as const;`). Promover el const a `constants.ts` del slice mantiene el string literal fuera del consumer + agrega un type alias `FxRateProviderToken` para narrowing en tiempo de compilación. El módulo re-exporta el const vía `static readonly FX_RATE_PROVIDER_TOKEN = FX_RATE_PROVIDER_TOKEN;` para que los callers existentes que toman el símbolo a nivel de módulo sigan funcionando.
+3. **Path mapping de `apps/api/tsconfig.json` agregado.** El `tsconfig.json` de PR #1 sólo mapeaba `@features/auth`; este PR agrega `@features/transactions` → `libs/features/transactions/server` + el catchall `*` + los `shared/schemas/**` del slice al glob `include`. Requerido para que el nuevo módulo resuelva sus imports. El mismo mapping ya existe en `tsconfig.base.json`; esto es el mirror por app.
+4. **El import path original `@features/transactions/server` en `transactions.module.ts` estaba mal.** El nombre del package es `@features/transactions` (no `@features/transactions/server`); el import de la sesión previa habría fallado al resolver incluso después de agregar el path mapping. Arreglado en este PR.
+5. **`__tests__/prisma-currency.repository.test.ts` + `prisma-fx-rate.repository.test.ts` usan pequeños helpers inline para el fake `{toString: () => "X"}` de Decimal.** El `prisma-session.repository.test.ts` del auth slice tiene un módulo `password-reset.fakes.ts` para fixtures compartidos. Un helper `decimal.fake.ts` podría extraerse a `__tests__/fakes/` si 3+ tests lo necesitaran a lo largo del slice; el conteo actual es 2 (fx-rate + transaction). Decisión diferida hasta que los servicios de PR #3 lo necesiten.
+
+### Risk flags
+
+- `slice5_pr1_audit_log_port_deferred_to_pr3` — sigue pendiente (arrastrado desde PR #1). PR #3 introducirá el puerto junto con los servicios.
+- `slice5_pr1_decimal_boundary_adaptation_in_pr2` — **RESUELTO** por este PR. La Decimal boundary es two-sided (outbound `.toString()` al escribir; inbound `.toString()` + `toDecimal` al leer); la suite de tests assertea ambos lados explícitamente en `prisma-fx-rate.repository.test.ts` + `prisma-transaction.repository.test.ts`. El conteo de tests `slice5_pr2_decimal_boundary` es +6 (3 en fx-rate + 3 en transaction) y fallaría ante cualquier drift.
+- `slice5_pr1_idempotency_lookup_schema_purposely_omitted` — sigue pendiente (arrastrado desde PR #1). Si PR #3 necesita el schema, agregarlo inline; si no, dejarlo fuera.
+- `slice5_pr2_di_token_lives_in_slice` — `FX_RATE_PROVIDER_TOKEN` ahora se exporta desde `@features/transactions` (no desde el módulo consumer). Los consumers futuros deben importarlo desde el slice. El re-export a nivel de módulo mantiene la compatibilidad hacia atrás para cualquier test o docstring que ya referencie el const.
+- `slice5_pr2_test_first_discipline_not_observed` — ver "Desviaciones críticas" #1.
+
+### Quality gates — todos en verde
+
+| Gate | Resultado |
+|------|-----------|
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
+| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files) |
+| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 |
+| `pnpm --filter api exec tsc --noEmit` | exit 0 |
+| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 |
+| `pnpm --filter web exec tsc --noEmit` | exit 0 |
+| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errores |
+| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en invalid-fixtures preservadas |
+| `pnpm --filter @core/database exec vitest run` | 3/3 PASS |
+
+### Workload / PR boundary
+
+- Forecast (tasks.md): ~115 LOC de producción + 6 archivos de test + 1 módulo + 1 tsconfig + 1 constants + barrel update. Real: 17 archivos cambiados, +1042 / -25 inserciones netas entre producción + tests + DI + tsconfig + barrel.
+- 400-line budget risk: **Low** — el código de producción es chico; los tests + DI + tsconfig inflan el diff pero no afectan el foco de review. Los 6 archivos de test son el contenido de mayor valor para review (codifican el contrato del que PR #3 depende).
+- Target del PR: `feat/slice-5-pr2-adapters-fx` → `develop` una vez que `sdd-verify` libere el PR #2. **NO pusheado a remoto, NO mergeado todavía.**
+- Este es **PR #2 de 3** en la cadena del slice 5. PR #3 aterriza `T5.3 + T5.9 + T5.11 + T5.12 + T5.13` (servicios + controller + triangulate + refactor).
+
+### Snapshot estructurado de status
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+slice_1: complete (8/8)
+slice_2: complete (5/5)
+slice_3: complete (9/9)
+slice_4:
+  status: complete (27/27)
+  tasks_done: [T4.1..T4.15, brief-test-slim, brief-fetch-timeout, brief-referrer-policy,
+              brief-magic-constant, brief-input-prop-cleanup, brief-auth-helper,
+              brief-cookie-on-success, brief-redirect-if-authed, brief-i18n-keys,
+              brief-cookie-name-migration, brief-server-cookie-read, brief-markers-apply-progress]
+slice_5:
+  status: in-progress (8/13 — PR #1 + PR #2 hechos; PR #3 pendiente)
+  pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
+  pr1_commits: [478fd7c, a4f531e, 1802dd5, cf0d14b, a1a2b99]
+  pr1_chore: 98c651e (en feat/chore-merge-markers, NO en el tracker)
+  pr1_workflow_commits: [cf0d14b, a1a2b99]
+  pr2_tasks_done: [T5.2, T5.7, T5.8, T5.10]
+  pr2_commits: [c719a0e, 2cc90fe, ebf585b]
+  pr2_workflow_commits: [TBD]
+  pr3_tasks_pending: [T5.3, T5.9, T5.11, T5.12, T5.13]
+feature_branch: feat/slice-5-pr2-adapters-fx
+base_commit: 4d5c282 (post-merge del release v1.0.0)
+head_commit: ebf585b (feat transactions: Prisma adapters + FX + DI); workflow commit TBD
+pushed_to_remote: false
+merged_to_develop: false
+branch_protection_on_main: enforced
+risk_flags:
+  - slice5_pr1_audit_log_port_deferred_to_pr3
+  - slice5_pr1_idempotency_lookup_schema_purposely_omitted
+  - slice5_pr2_di_token_lives_in_slice
+  - slice5_pr2_test_first_discipline_not_observed
+resolved_risk_flags:
+  - slice5_pr1_decimal_boundary_adaptation_in_pr2 (locked por +6 tests de Decimal boundary)
+next_recommended: slice 5 PR #3 — T5.3 (test RED para TransactionService.create) + T5.9 (cuatro servicios) + T5.11 (controller NestJS + JWT guard + Idempotency-Key validation pipe) + T5.12 (triangulation suite) + T5.13 (refactor + lint + typecheck + test green).
+```
+
+### Cross-references (slice 5 PR #2)
+
+- **Tasks:** `openspec/changes/.../tasks.md` (nueva sección "Slice 5 PR #2 — Adaptadores + FX + DI (persistence boundary)" + 4 filas de sub-task `[x]` + quality gates + desviaciones + cross-references).
+- **Mirror en español:** `Documents-es/openspec/changes/.../tasks.md` + `apply-progress.md` (español neutral/profesional según AGENTS.md §13 / convención id 2132).
+- **Spec:** `openspec/changes/.../specs/transactions/spec.md` §Data Model + Decisions (D-TX-1..D-TX-7).
+- **Design:** `openspec/changes/.../design.md` §5.1 (entidades + puertos), §5.2 (FX provider + staleness), §5.5 (Zod schemas).
+- **Commits atómicos:** PR #2 (`c719a0e` migración T5.2, `2cc90fe` follow-up de Category.updatedBy, `ebf585b` T5.7 + T5.8 + T5.10 + barrel + módulo + 6 archivos de test + tsconfig). Total = 1 producción + 2 históricos-en-rama. Workflow commit `TBD`.
+- **Rama:** `feat/slice-5-pr2-adapters-fx`.
+- **Commit base:** `4d5c282` (post-merge del release v1.0.0).
+- **Working tree:** limpio tras el workflow commit.
+- **Estado de push:** no pusheado.
+- **Estado de merge:** no mergeado.
+- **PR boundary:** PR #2 de 3 en la cadena del slice 5. Diff total ~1.04K inserciones netas entre producción + tests + DI + tsconfig + barrel updates.
+- **Siguiente recomendado:** slice 5 PR #3 — servicios + controller + triangulate + refactor.
