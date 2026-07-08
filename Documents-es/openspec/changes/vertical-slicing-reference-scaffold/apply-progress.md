@@ -466,17 +466,17 @@ next_recommended: slice 5 (transactions server) — el siguiente slice canónico
 
 | Sub-tarea | Asunto | Status | Commit |
 |-----------|--------|--------|--------|
-| chore-repo-merge-markers | Remoción mecánica de marcadores `<<<<<<<` sin resolver de 9 archivos `package.json` (ambos lados coincidían en `1.0.0`). | HECHO | `61ae593` |
-| T5.1 | Extensión del esquema Prisma (6 tablas + 2 enums + back-relations en User/FxRate; Decimal por D-TX-6). | HECHO | `2fa76f2` |
-| T5.4 | Schemas Zod canónicos + scaffold del slice (5 schemas + 5 specs Vitest + esqueleto del paquete del server). | HECHO | `1a9d729` |
-| T5.5 + T5.6 | Entidades de dominio (5) + puertos de dominio (6) + invariante JSDoc D-TX-5 en `CategoryRepository`. | HECHO | `51b618b` |
+| chore-repo-merge-markers | Remoción mecánica de marcadores `<<<<<<<` sin resolver de 9 archivos `package.json` (ambos lados coincidían en `1.0.0`). | HECHO | `98c651e` |
+| T5.1 | Extensión del esquema Prisma (6 tablas + 2 enums + back-relations en User/FxRate; Decimal por D-TX-6). | HECHO | `478fd7c` |
+| T5.4 | Schemas Zod canónicos + scaffold del slice (5 schemas + 5 specs Vitest + esqueleto del paquete del server). | HECHO | `a4f531e` |
+| T5.5 + T5.6 | Entidades de dominio (5) + puertos de dominio (6) + invariante JSDoc D-TX-5 en `CategoryRepository`. | HECHO | `1802dd5` |
 
 ### Commits atómicos (4)
 
-1. `61ae593 chore(repo): remove spurious merge markers from package.json files` — 9 archivos cambiados, 36 deletions, 0 insertions. Mecánico. Desbloquea `pnpm install` de completarse limpiamente.
-2. `2fa76f2 feat(database): add transactions tables (slice 5 foundations)` — 1 archivo, 156 inserciones netas. Extensión del esquema Prisma. Apply de migración diferido a PR #2 (T5.2).
-3. `1a9d729 feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 archivos, 523 inserciones netas. Scaffolding (package.json, tsconfig, vitest.config, barrel público) + 5 schemas + 5 specs Vitest + barrel.
-4. `51b618b feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 archivos, 593 inserciones netas. 5 interfaces de entidades + 6 interfaces de puertos + 2 barrels + actualización del barrel en `src/index.ts`.
+1. `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 archivos cambiados, 36 deletions, 0 insertions. Mecánico. Desbloquea `pnpm install` de completarse limpiamente.
+2. `478fd7c feat(database): add transactions tables (slice 5 foundations)` — 1 archivo, 156 inserciones netas. Extensión del esquema Prisma. Apply de migración diferido a PR #2 (T5.2).
+3. `a4f531e feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 archivos, 523 inserciones netas. Scaffolding (package.json, tsconfig, vitest.config, barrel público) + 5 schemas + 5 specs Vitest + barrel.
+4. `1802dd5 feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 archivos, 593 inserciones netas. 5 interfaces de entidades + 6 interfaces de puertos + 2 barrels + actualización del barrel en `src/index.ts`.
 
 ### Archivos creados / modificados
 
@@ -580,14 +580,14 @@ slice_4:
 slice_5:
   status: in-progress (4/13 — PR #1 hecho; PR #2 + PR #3 pendientes)
   pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
-  pr1_commits: [2fa76f2, 1a9d729, 51b618b]
-  pr1_chore: 61ae593
+  pr1_commits: [478fd7c, a4f531e, 1802dd5]
+  pr1_chore: 98c651e
   pr1_workflow_commit: TBD
   pr2_tasks_pending: [T5.2, T5.7, T5.8, T5.10]
   pr3_tasks_pending: [T5.3, T5.9, T5.11, T5.12, T5.13]
 feature_branch: feat/vertical-slicing-s5-transactions-server
 base_commit: 4d5c282 (post-merge del release v1.0.0)
-head_commit: TBD (commit de workflow); commit previo = 51b618b
+head_commit: TBD (commit de workflow); commit previo = 1802dd5
 pushed_to_remote: false
 merged_to_develop: false
 branch_protection_on_main: enforced
@@ -606,7 +606,7 @@ next_recommended: slice 5 PR #2 — T5.2 (apply de migración) + T5.7 (5 adaptad
 - **Design:** `openspec/changes/.../design.md` §5.1 (entidades + puertos), §5.5 (Zod schemas).
 - **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (esta sección appendeada).
 - **Mirror en español:** `Documents-es/openspec/changes/.../apply-progress.md` (mirror en español de esta sección).
-- **Commits atómicos:** `61ae593` (chore), `2fa76f2` (T5.1), `1a9d729` (T5.4 + scaffold), `51b618b` (T5.5 + T5.6).
+- **Commits atómicos:** `98c651e` (chore), `478fd7c` (T5.1), `a4f531e` (T5.4 + scaffold), `1802dd5` (T5.5 + T5.6).
 - **Commit de workflow:** `TBD` (este commit).
 - **Rama:** `feat/vertical-slicing-s5-transactions-server`.
 - **Commit base:** `4d5c282` (post-merge del release v1.0.0).

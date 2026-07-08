@@ -2727,17 +2727,17 @@ next_recommended: slice 5 (transactions server) — the canonical next slice in 
 
 | Sub-task | Subject | Status | Commit |
 |----------|---------|--------|--------|
-| chore-repo-merge-markers | Mechanical removal of unresolved `<<<<<<<` markers from 9 `package.json` files (both sides matched `1.0.0`). | DONE | `61ae593` |
-| T5.1 | Prisma schema extension (6 tables + 2 enums + User/FxRate back-relations; Decimal per D-TX-6). | DONE | `2fa76f2` |
-| T5.4 | Canonical Zod schemas + slice scaffolding (5 schemas + 5 Vitest specs + server package skeleton). | DONE | `1a9d729` |
-| T5.5 + T5.6 | Domain entities (5) + domain ports (6) + D-TX-5 JSDoc invariant on `CategoryRepository`. | DONE | `51b618b` |
+| chore-repo-merge-markers | Mechanical removal of unresolved `<<<<<<<` markers from 9 `package.json` files (both sides matched `1.0.0`). | DONE | `98c651e` |
+| T5.1 | Prisma schema extension (6 tables + 2 enums + User/FxRate back-relations; Decimal per D-TX-6). | DONE | `478fd7c` |
+| T5.4 | Canonical Zod schemas + slice scaffolding (5 schemas + 5 Vitest specs + server package skeleton). | DONE | `a4f531e` |
+| T5.5 + T5.6 | Domain entities (5) + domain ports (6) + D-TX-5 JSDoc invariant on `CategoryRepository`. | DONE | `1802dd5` |
 
 ### Atomic commits (4)
 
-1. `61ae593 chore(repo): remove spurious merge markers from package.json files` — 9 files changed, 36 deletions, 0 insertions. Mechanical. Unblocks `pnpm install` from completing cleanly.
-2. `2fa76f2 feat(database): add transactions tables (slice 5 foundations)` — 1 file, 156 net insertions. Prisma schema extension. Migration apply deferred to PR #2 (T5.2).
-3. `1a9d729 feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 files, 523 net insertions. Scaffolding (package.json, tsconfig, vitest.config, public barrel) + 5 schemas + 5 Vitest specs + barrel.
-4. `51b618b feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 files, 593 net insertions. 5 entity interfaces + 6 port interfaces + 2 barrels + barrel update on `src/index.ts`.
+1. `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 files changed, 36 deletions, 0 insertions. Mechanical. Unblocks `pnpm install` from completing cleanly.
+2. `478fd7c feat(database): add transactions tables (slice 5 foundations)` — 1 file, 156 net insertions. Prisma schema extension. Migration apply deferred to PR #2 (T5.2).
+3. `a4f531e feat(transactions): scaffold slice 5 + add canonical Zod schemas` — 16 files, 523 net insertions. Scaffolding (package.json, tsconfig, vitest.config, public barrel) + 5 schemas + 5 Vitest specs + barrel.
+4. `1802dd5 feat(transactions): add domain entities and ports (T5.5 + T5.6)` — 14 files, 593 net insertions. 5 entity interfaces + 6 port interfaces + 2 barrels + barrel update on `src/index.ts`.
 
 ### Files created / modified
 
@@ -2841,14 +2841,14 @@ slice_4:
 slice_5:
   status: in-progress (4/13 — PR #1 done; PR #2 + PR #3 pending)
   pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
-  pr1_commits: [2fa76f2, 1a9d729, 51b618b]
-  pr1_chore: 61ae593
+  pr1_commits: [478fd7c, a4f531e, 1802dd5]
+  pr1_chore: 98c651e
   pr1_workflow_commit: TBD
   pr2_tasks_pending: [T5.2, T5.7, T5.8, T5.10]
   pr3_tasks_pending: [T5.3, T5.9, T5.11, T5.12, T5.13]
 feature_branch: feat/vertical-slicing-s5-transactions-server
 base_commit: 4d5c282 (post-v1.0.0 release merge)
-head_commit: TBD (workflow commit); prior commit = 51b618b
+head_commit: TBD (workflow commit); prior commit = 1802dd5
 pushed_to_remote: false
 merged_to_develop: false
 branch_protection_on_main: enforced
@@ -2867,7 +2867,7 @@ next_recommended: slice 5 PR #2 — T5.2 (migration apply) + T5.7 (5 Prisma adap
 - **Design:** `openspec/changes/.../design.md` §5.1 (entities + ports), §5.5 (Zod schemas).
 - **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (this section appended).
 - **Spanish mirror:** `Documents-es/openspec/changes/.../apply-progress.md` (Spanish mirror of this section).
-- **Atomic commits:** `61ae593` (chore), `2fa76f2` (T5.1), `1a9d729` (T5.4 + scaffold), `51b618b` (T5.5 + T5.6).
+- **Atomic commits:** `98c651e` (chore), `478fd7c` (T5.1), `a4f531e` (T5.4 + scaffold), `1802dd5` (T5.5 + T5.6).
 - **Workflow commit:** `TBD` (this commit).
 - **Branch:** `feat/vertical-slicing-s5-transactions-server`.
 - **Base commit:** `4d5c282` (post-v1.0.0 release merge).

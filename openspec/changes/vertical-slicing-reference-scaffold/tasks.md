@@ -1312,19 +1312,19 @@ This is the same behavior as slice 4 batch 2 — no new decode logic is needed.
 
 ### Sub-task T5.1 [x]
 
-Prisma schema extension. `libs/core/database/prisma/schema.prisma` gains: enums `CategoryKind` / `TransactionKind`, models `Currency` / `FxRate` / `Category` / `Transaction` / `IdempotencyKey` / `AuditLog`, plus back-relations on `User` + `FxRate`. **D-TX-6**: monetary columns are `Decimal`, NEVER `BigInt`. Schema parses (`prisma format` exits 0). Migration apply is gated for PR #2 (T5.2). Commit: `2fa76f2`.
+Prisma schema extension. `libs/core/database/prisma/schema.prisma` gains: enums `CategoryKind` / `TransactionKind`, models `Currency` / `FxRate` / `Category` / `Transaction` / `IdempotencyKey` / `AuditLog`, plus back-relations on `User` + `FxRate`. **D-TX-6**: monetary columns are `Decimal`, NEVER `BigInt`. Schema parses (`prisma format` exits 0). Migration apply is gated for PR #2 (T5.2). Commit: `478fd7c`.
 
 ### Sub-task T5.4 [x]
 
-Canonical Zod schemas. `libs/features/transactions/shared/schemas/{create,update,list,category-create,category-update,index}.ts` + 5 colocated Vitest specs under `shared/schemas/__tests__/`. 27 assertions across 5 files, all GREEN. Slice scaffold (`server/package.json`, `tsconfig.json`, `vitest.config.ts`, `src/index.ts`) co-committed. Commit: `1a9d729`.
+Canonical Zod schemas. `libs/features/transactions/shared/schemas/{create,update,list,category-create,category-update,index}.ts` + 5 colocated Vitest specs under `shared/schemas/__tests__/`. 27 assertions across 5 files, all GREEN. Slice scaffold (`server/package.json`, `tsconfig.json`, `vitest.config.ts`, `src/index.ts`) co-committed. Commit: `a4f531e`.
 
 ### Sub-task T5.5 [x]
 
-Domain entities. `libs/features/transactions/server/src/domain/entities/{transaction,category,currency,fx-rate,idempotency-key}.entity.ts` + index barrel. 5 TS interfaces + 2 discriminator unions + 2 insert projections. `Decimal` is `@shared-utils/decimal`'s re-export from `decimal.js` (D-TX-6); adapter boundary converts Prisma's runtime `Decimal` to this shape in PR #2. Commit: `51b618b`.
+Domain entities. `libs/features/transactions/server/src/domain/entities/{transaction,category,currency,fx-rate,idempotency-key}.entity.ts` + index barrel. 5 TS interfaces + 2 discriminator unions + 2 insert projections. `Decimal` is `@shared-utils/decimal`'s re-export from `decimal.js` (D-TX-6); adapter boundary converts Prisma's runtime `Decimal` to this shape in PR #2. Commit: `1802dd5`.
 
 ### Sub-task T5.6 [x]
 
-Domain ports. `libs/features/transactions/server/src/domain/interfaces/{transaction,category,currency,fx-rate,idempotency}.repository.ts` + `fx-rate.provider.ts` + index barrel. 6 port interfaces + 9 input/filter shapes. **`CategoryRepository` JSDoc carries the D-TX-5 invariant verbatim**: every read path MUST filter `deletedAt IS NULL`, no `includeDeleted` flag, no `bypassFilter` parameter. The compile-time guard lands in PR #2 (T5.7) where the Prisma adapter tests assert no read query reaches the adapter without that where-clause. Commit: `51b618b`.
+Domain ports. `libs/features/transactions/server/src/domain/interfaces/{transaction,category,currency,fx-rate,idempotency}.repository.ts` + `fx-rate.provider.ts` + index barrel. 6 port interfaces + 9 input/filter shapes. **`CategoryRepository` JSDoc carries the D-TX-5 invariant verbatim**: every read path MUST filter `deletedAt IS NULL`, no `includeDeleted` flag, no `bypassFilter` parameter. The compile-time guard lands in PR #2 (T5.7) where the Prisma adapter tests assert no read query reaches the adapter without that where-clause. Commit: `1802dd5`.
 
 ### Quality gates (per slice 5 PR #1)
 
@@ -1354,11 +1354,11 @@ Domain ports. `libs/features/transactions/server/src/domain/interfaces/{transact
 
 ### Chore landmark (pre-PR #1)
 
-- `61ae593 chore(repo): remove spurious merge markers from package.json files` — 9 `package.json` files (apps + libs) had unresolved `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` markers on the version line (both sides said `1.0.0`). Mechanical cleanup: kept one version line, dropped markers. JSON now valid. Blocked `pnpm install` from completing cleanly before this PR.
+- `98c651e chore(repo): remove spurious merge markers from package.json files` — 9 `package.json` files (apps + libs) had unresolved `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/main` markers on the version line (both sides said `1.0.0`). Mechanical cleanup: kept one version line, dropped markers. JSON now valid. Blocked `pnpm install` from completing cleanly before this PR.
 
 ### Cross-references
 
-- **Atomic commit hashes (PR #1):** `2fa76f2` (T5.1), `1a9d729` (T5.4 + scaffold), `51b618b` (T5.5 + T5.6), plus chore `61ae593`. Workflow commit (this): `TBD`.
+- **Atomic commit hashes (PR #1):** `478fd7c` (T5.1), `a4f531e` (T5.4 + scaffold), `1802dd5` (T5.5 + T5.6), plus chore `98c651e`. Workflow commit (this): `TBD`.
 - **Spec:** `openspec/changes/.../specs/transactions/spec.md` (Data Model section, D-TX-1..D-TX-7 decisions).
 - **Design:** `openspec/changes/.../design.md` §5.1 (entities + ports), §5.5 (Zod schemas).
 - **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (slice 5 PR #1 section appended).
