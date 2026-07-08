@@ -344,6 +344,23 @@ describe("PrismaTransactionRepository", () => {
     		expect(prisma.transaction.update).not.toHaveBeenCalled();
     		});
 
+    		it("translates Prisma's P2034 (serialization failure) to TransactionNotFoundError (4R re-pass)", async () => {
+    		// When the SERIALIZABLE $transaction is aborted by a concurrent
+    		// softDelete, Prisma surfaces the failure as P2034. The adapter
+    		// translates the raw Prisma error into the domain-friendly
+    		// TransactionNotFoundError so the service layer never sees a
+    		// raw Prisma error on the D-TX-5 update path.
+    		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(fakeRow() as never);
+    		vi.mocked(prisma.transaction.update).mockRejectedValue({
+    		code: "P2034",
+    		} as never);
+
+    		const repo = new PrismaTransactionRepository();
+    		await expect(
+    		repo.update("txn-1", { updatedBy: "user-1" }),
+    		).rejects.toBeInstanceOf(TransactionNotFoundError);
+    		});
+
     		it("refuses to update soft-deleted rows (D-TX-5 — pre-check filters on deletedAt: null)", async () => {
     		vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null as never);
 

@@ -198,6 +198,32 @@ describe("PrismaCategoryRepository", () => {
     		expect(prisma.category.update).not.toHaveBeenCalled();
     		});
 
+    		it("translates Prisma's P2034 (serialization failure) to CategoryNotFoundError (4R re-pass)", async () => {
+    		// When the SERIALIZABLE $transaction is aborted by a concurrent
+    		// softDelete, Prisma surfaces the failure as P2034. The adapter
+    		// translates the raw Prisma error into the domain-friendly
+    		// CategoryNotFoundError so the service layer never sees a raw
+    		// Prisma error on the D-TX-5 update path.
+    		vi.mocked(prisma.category.findFirst).mockResolvedValue({
+    		id: "cat-1",
+    		name: "Groceries",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "user-1",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    		} as never);
+    		vi.mocked(prisma.category.update).mockRejectedValue({
+    		code: "P2034",
+    		} as never);
+
+    		const repo = new PrismaCategoryRepository();
+    		await expect(
+    		repo.update("cat-1", { name: "New Name" }),
+    		).rejects.toBeInstanceOf(CategoryNotFoundError);
+    		});
+
     		it("refuses to update soft-deleted rows (D-TX-5 invariant — pre-check returns null)", async () => {
     		// The pre-check filters on `deletedAt: null`. A soft-deleted row
     		// returns null from `findFirst`; the adapter throws NotFoundError
