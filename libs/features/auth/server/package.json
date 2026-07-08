@@ -1,6 +1,10 @@
 {
   "name": "@features/auth",
-  "version": "0.0.0",
+<<<<<<< HEAD
+  "version": "1.0.0",
+=======
+  "version": "1.0.0",
+>>>>>>> origin/main
   "private": true,
   "description": "Auth feature slice (server) for gastos-personales-reference. Slice 3 ships AuthService.login; sessions/RBAC/password-reset land in subsequent batches.",
   "type": "module",
