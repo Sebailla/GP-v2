@@ -29,3 +29,32 @@ export {
   type CreateCategoryInput,
   type UpdateCategoryInput,
 } from "../../shared/schemas/index.js";
+
+// Domain entities + ports (the type layer; behavior lands in PR #3).
+export type {
+  Currency,
+  Category,
+  CategoryKind,
+  Transaction,
+  TransactionKind,
+  TransactionListItem,
+  FxRate,
+  FxRateInsert,
+  IdempotencyKey,
+  IdempotencyKeyInsert,
+} from "./domain/entities/index.js";
+
+export type {
+  CategoryRepository,
+  CategoryFilter,
+  CategoryCreate,
+  CategoryUpdate,
+  TransactionRepository,
+  TransactionListFilter,
+  TransactionCreate,
+  TransactionUpdate,
+  CurrencyRepository,
+  FxRateRepository,
+  IdempotencyRepository,
+  FxRateProvider,
+} from "./domain/interfaces/index.js";
