@@ -1172,3 +1172,130 @@ The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically
 | brief-cookie-on-success | `vitest run` on LoginForm/SignUpForm/state-coverage → 3 failures (`callArg` is `undefined`, `lastSetCookie` is `null`). | 4/4 form tests PASS + 22/22 state-coverage tests PASS + 4/4 page tests PASS. | None — the `isSessionPayload` guard absorbs the shape-check complexity that would otherwise leak into the forms. |
 | brief-redirect-if-authed | 4 page redirect tests + 2 landing tests fail (`promise resolved 'undefined' instead of rejecting` / `expected document not to contain element`). | 4/4 page redirect tests + 3/3 landing tests PASS after the `getSession()` + `redirect(...)` wiring lands. | None. |
 | brief-i18n-keys | NO TDD. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates. | N/A (data-only). | N/A. |
+
+---
+
+## Slice 4 cookie migration (final — post-NextAuth integration)
+
+**Goal recap.** PR #21 (slice 4 NextAuth integration) landed the API-side NextAuth v5 mint: the API's `AuthService` now mints a real NextAuth JWE session token via `next-auth/jwt#encode`. The web client cookie, however, was still using the bespoke `auth-session` name from slice 4 batch 2. Keeping the cookie name desynced from the API's NextAuth integration would defeat the point of the canonical integration — a future drop-in `auth()` helper reads the canonical `authjs.session-token` name. This batch migrates the cookie name + canonicalizes the attribute string so the cookie is forward-compatible with a real `auth()` integration.
+
+**Branch.** `feat/vertical-slicing-s4-cookie-migration` (cut from `develop @ c2bbe2c`, post-PR #21 slice 4 NextAuth integration merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test`. Per the brief, this is a REFACTOR + tests sub-task: the constant rename is mechanical and the new attribute test is the only test addition.
+
+**Strategy.**
+
+- **Cookie name.** `auth-session` → `authjs.session-token` (canonical NextAuth v5). The constant `AUTH_SESSION_COOKIE` in `apps/web/lib/auth.ts` is the single source of truth; all reads (`getSession()`) and writes (`setSessionCookie()` / `clearSessionCookie()`) flow through the constant.
+- **Cookie attributes (canonical NextAuth v5).** `path=/`, `max-age=24*60*60` (24h, derived from the new `SESSION_TTL_SECONDS` constant matching the API's `SESSION_TTL_MS`), `SameSite=lax` (lowercase per HTTP standard), `HttpOnly` (canonical hint; browsers ignore it set via `document.cookie` but the directive is forward-compatible with a real Set-Cookie header).
+- **`Secure` is INTENTIONALLY OMITTED.** The reference repo's `pnpm dev` runs on `http://localhost:3000` and the browser rejects `Secure` cookies on non-HTTPS origins. `Secure` belongs in a server-side `Set-Cookie` header gated by `process.env.NODE_ENV === 'production'` (lands in slice 6+ deploy hardening when the cookie is set server-side via NextAuth's `signIn(...)` callback).
+- **Server-side read.** `getSession()` is unchanged in shape — it reads `cookies().get(AUTH_SESSION_COOKIE)?.value` and the rename flows through the constant. The cookie attributes (httpOnly, secure, sameSite, path) are not parsed by Next.js's `cookies()` — they're properties on the `RequestCookie` object for inspection but the canonical contract is the name + value pair.
+
+**Out of scope (deferred).**
+
+- Switching `getSession()` to NextAuth's `auth()` helper — the auto-formatter's `useImportType` heuristic kept breaking the canonical NextAuth import during the worker run that landed PR #21. The manual `cookies().get(...)` read pattern is the pragmatic choice for this batch; the migration to `auth()` is a separate concern that requires the form's `setSessionCookie()` to be replaced with a real `signIn(...)` call (slice 6+ deploy hardening).
+- Server-side `Set-Cookie` header with `Secure` flag — slice 6+ deploy hardening.
+- e2e (Playwright) tests for the cookie persistence in a real browser context — slice 4 follow-up. Unit tests cover the surface; e2e would add the browser-context cookie persistence check.
+- Real Google OAuth handshake — slice 4+ if/when added.
+
+### Sub-task brief-cookie-name-migration [x]
+
+**Migrate the cookie name + canonicalize the attribute string.** Surface changes:
+
+- `apps/web/lib/auth.ts`:
+  - `AUTH_SESSION_COOKIE = "auth-session"` → `AUTH_SESSION_COOKIE = "authjs.session-token"` (canonical NextAuth v5).
+  - New `SESSION_TTL_SECONDS = 24 * 60 * 60` constant (matches the API's SESSION_TTL_MS = 24h). Exported for tests.
+  - `setSessionCookie()` attribute string: `path=/`, `max-age=${SESSION_TTL_SECONDS}` (explicit), `SameSite=lax` (lowercase, was `SameSite=Lax`), `HttpOnly` (new).
+  - `clearSessionCookie()` mirrors the lowercase `SameSite=lax`.
+  - JSDoc updated to document the canonical NextAuth v5 contract and the rationale for omitting `Secure`.
+- `apps/web/components/auth/LoginForm.tsx` + `SignUpForm.tsx`: no code change — they call `setSessionCookie()` which now writes the canonical cookie name + attributes.
+- `apps/web/app/[locale]/page.tsx` + `apps/web/app/[locale]/(auth)/sign-in/page.tsx`: JSDoc comments updated to reference the canonical cookie name (no code change; `getSession()` reads the constant).
+
+Tests:
+
+- `apps/web/__tests__/lib-auth.test.ts`: 11 → 13 tests. +2 new assertions:
+  - `AUTH_SESSION_COOKIE === 'authjs.session-token'` (locks the canonical name as part of the contract).
+  - `SESSION_TTL_SECONDS === 24*60*60` (locks the max-age derivation).
+- `apps/web/__tests__/components/auth/LoginForm.test.tsx` + `SignUpForm.test.tsx` + `state-coverage.test.tsx`: cookie mock + cleanup lines updated to `authjs.session-token`. The success-path cookie-set assertion now also pins `HttpOnly` in the attribute string (one regex match added per file).
+- `apps/web/__tests__/app/{landing,sign-in,sign-up,forgot-password,reset-password}.test.tsx`: cookie store mocks updated to the new canonical name. Test descriptions updated.
+
+### Sub-task brief-server-cookie-read [x]
+
+**Server-side `getSession()` reads the canonical NextAuth cookie name.** The function body is unchanged — it reads `cookies().get(AUTH_SESSION_COOKIE)?.value` and the rename flows through the constant automatically. **No code change** beyond the constant update in sub-task 1.
+
+The `getSession()` function returns `null` on:
+
+- Cookie absent.
+- Cookie value is malformed JSON (`JSON.parse` throws).
+- Cookie value is valid JSON but missing the `user` or `token` field.
+- Cookie value is valid JSON but `user` is missing `id` / `email` / `role`.
+
+This is the same behavior as slice 4 batch 2 — no new decode logic is needed.
+
+### Sub-task brief-markers-apply-progress [x]
+
+**Final commit — `chore(slice-4-cookie-migration): tasks.md sub-task [x] markers + apply-progress section (slice 4 closed for real)`.**
+
+- `tasks.md`: adds this section + the 3 sub-task rows above with `[x]` markers.
+- `apply-progress.md`: appends the slice 4 cookie migration section.
+- `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + `apply-progress.md`: Spanish mirror produced in the same atomic commit per AGENTS.md §13 (doc-mirror-spanish convention id 2132). Technical surfaces preserved verbatim; prose translated to neutral/professional Spanish.
+
+### TDD evidence (per sub-task)
+
+| Sub-task | RED | GREEN | Refactor |
+|----------|-----|-------|----------|
+| brief-cookie-name-migration | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieName.startsWith(\`${cookieName}=\`)` assertion if `AUTH_SESSION_COOKIE` were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded `"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | None — the surface is small + self-contained. |
+| brief-server-cookie-read | N/A — function body unchanged; only the constant flows the rename. | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly). | None. |
+| brief-markers-apply-progress | N/A — documentation only. | N/A. | N/A. |
+
+### Quality gates — all green
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Workspace install | `pnpm install` | exit 0 |
+| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
+| Tests (events) | `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
+| Tests (config) | `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
+| Tests (api) | `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
+| Tests (web) | `cd apps/web && pnpm exec vitest run` | 106/106 PASS (was 104; +2 new attribute assertions) |
+| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
+| Lint (full) | `pnpm turbo run lint` | 10/10 tasks PASS |
+| Lint (fixtures) | `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures |
+| Typecheck (full) | `pnpm turbo run typecheck` | 9/9 tasks PASS |
+
+### Critical deviations from the brief
+
+1. **`HttpOnly` set via `document.cookie` is a browser-side no-op.** Real browsers silently ignore the `HttpOnly` directive when set via `document.cookie` from JavaScript — the attribute only takes effect when emitted by a `Set-Cookie` header from the server. The brief asks to add `HttpOnly` to the cookie string; the directive is included so the cookie STRING matches the canonical NextAuth v5 contract (the test assertion also pins it). The actual protection (HttpOnly preventing JS access) requires the real server-side `Set-Cookie` integration in slice 6+ deploy hardening.
+2. **`Secure` is OMITTED.** The brief's "secure: process.env.NODE_ENV === 'production'" toggle conceptually applies to a server-side `Set-Cookie` header. The client-side `document.cookie` write cannot use `Secure` in dev (localhost is HTTP, browser rejects Secure cookies on non-HTTPS origins). The migration leaves Secure to the slice 6+ server-side Set-Cookie integration.
+3. **`SESSION_TTL_SECONDS` is a local constant in `apps/web/lib/auth.ts`, not a shared `libs/shared-utils` export.** The API exposes its SESSION_TTL_MS but the web client doesn't currently import from `@shared-utils/*` for auth config. Promoting the constant to a shared export is a slice 6+ refactor (would require a new `libs/shared-utils/session-ttl` package or an addition to the existing `date-formatting` / `currency` / `decimal` set).
+
+### Workload / PR boundary
+
+- Forecast (brief): ~50 lines of source + ~80 lines of tests = ~130 lines.
+- Actual: 12 files changed, +171 / -106 = 277 net insertions across source + tests + JSDoc. 1 atomic commit (`9834f51 refactor(web): migrate to canonical NextAuth v5 cookie name + attributes`).
+- 400-line budget risk: **Low** — well within the per-PR budget.
+- PR target: `feat/vertical-slicing-s4-cookie-migration` → `develop` once `sdd-verify` clears. NOT pushed to remote, NOT merged yet.
+- This is the **final sub-batch of slice 4** (slice 4 = 15/15 + 5/5 follow-ups + 4/4 batch 2 + 3/3 cookie migration = 27/27). Slice 4 is now CLOSED.
+
+### Forbidden operations honored
+
+- ❌ find / ls -R / tree — NOT USED.
+- ❌ Modifying the API (slice 3 closed) — NOT TOUCHED.
+- ❌ Modifying the form's `useAuthApiPost` hook or the API's session endpoint — NOT TOUCHED.
+- ❌ Switching `getSession()` to NextAuth's `auth()` helper (auto-formatter breaks the canonical import; the manual `cookies().get(...)` read is the pragmatic choice) — NOT TOUCHED.
+- ❌ Modifying the existing Playwright e2e tests — NOT TOUCHED (no e2e tests for the cookie persistence; unit tests cover the surface).
+- ❌ "Co-Authored-By" or AI attribution — NOT INCLUDED in any commit.
+
+### Cross-references
+
+- Tasks (markers): this section + 3 sub-task rows with `[x]` markers.
+- Apply progress: `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (slice 4 cookie migration section appended).
+- Spanish mirror: `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + `apply-progress.md` (neutral/professional Spanish, technical surfaces preserved verbatim per AGENTS.md §13 / convention id 2132).
+- Spec: `openspec/changes/.../specs/auth/spec.md` §Sign-in (AC-1..AC-4 — the sessionToken response shape).
+- Design: `openspec/changes/.../design.md` §4.1 (auth domain — `AuthService.login` returns `{ id, email, role, sessionToken }`).
+- Engram: `sdd/vertical-slicing-reference-scaffold/apply-progress-notes-slice4-cookie-migration` (saved via `mem_save` before return).
+- Atomic commit hash: `9834f51` (refactor + tests + new attribute tests in one atomic commit per the brief's "tests+code in the SAME commit for a behavior task" rule).
+- Markers commit hash: TBD (this commit).
+- Base commit: `c2bbe2c` (post-PR #21 slice 4 NextAuth integration merge).
+- Working tree: clean after this commit.
+- Push status: not pushed.
+- Merge status: not merged.
