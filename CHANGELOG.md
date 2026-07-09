@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-09
+
+### Summary
+
+The transactions server slice (slice 5) lands in full — multi-currency + soft-delete + idempotency-key + audit log + 5 transactions events — closing the v1.0.0 release's deferred surface. The v1.0.0 scope was the auth surface; v1.1.0 picks up the second vertical slice (transactions server) and the controller wiring the web client will speak to in slice 6. Version bump from `1.0.0` → `1.1.0` is a **minor** (additive new surface, backward-compatible with auth surface from v1.0.0).
+
+The slice 5 close-out PR (#30) brought 9 atomic commits and surfaced two latent bugs through the 4R review sweep that would have shipped otherwise: **R1-001 BLOCKER** (D-TX-7 cross-user mutation authorization gap — any authenticated user could PATCH/DELETE another user's transaction with a guessed cuid) and **R3-011 CRITICAL** (a regression in the D-TX-7 fix that broke HTTP DELETE idempotency). Both are now fixed and tested. The triangulation suite catches a third class of latent issues (mock fidelity, `DuplicateIdempotencyKeyError` race coverage, ownership semantics) and will land incrementally across slice 6+.
+
+### Added — Transactions server (slice 5, PRs #27 #28 #29 #30)
+
+The transactions server vertical slice — extends Prisma with Currency, FxRate, Category, Transaction, IdempotencyKey, AuditLog tables; entities + ports + services including TransactionService (with idempotency-key atomic replay, FX lookup with staleness dispatch), CategoryService (with soft-delete filter D-TX-5), TotalsService (sign-aware), ThresholdService (post-create dispatch); Prisma repositories; InMemoryFxRateProvider; NestJS controllers; 5 events emitted on `@core/events`.
+
+- **T5.1 + T5.2** — Prisma schema extension + `pnpm prisma migrate dev` (gate check).
+- **T5.3** — RED Vitest test for `TransactionService.create` with FX conversion.
+- **T5.4** — `libs/features/transactions/shared/schemas` Zod schemas (create / update / list / category-create / category-update). The canonical schemas reused by both the web forms (slice 6) AND the NestJS ZodValidationPipe.
+- **T5.5 + T5.6** — domain entities (TypeScript interfaces) + ports (`TransactionRepository`, `CategoryRepository`, `CurrencyRepository`, `FxRateRepository`, `IdempotencyRepository`, `FxRateProvider`). **Critical**: `CategoryRepository` JSDoc states the non-opt-out soft-delete invariant (D-TX-5).
+- **T5.7** — five Prisma adapters implementing the ports. **`CategoryRepository` ALWAYS adds `where: { deletedAt: null }` to every read query** — no escape hatch.
+- **T5.8** — `InMemoryFxRateProvider` (default `FxRateProvider` impl) seeded at startup with USD↔ARS↔EUR pairs. `advanceClock()` test helper so the 24h staleness boundary is exercise-able.
+- **T5.9** — four domain services (`TransactionService`, `CategoryService`, `TotalsService`, `ThresholdService`) + `AuditLog` port. New methods `list` / `update` / `softDelete` ship with this PR to unblock the close-out; D-TX-7 ownership enforcement on `update` + `softDelete` (R1-001 fix).
+- **T5.10** — Nest DI token `FX_RATE_PROVIDER_TOKEN` wired in `apps/api/src/modules/transactions`. The token binding now actually takes effect after the R3-004 fix (the factory previously constructed `new InMemoryFxRateProvider(...)` directly, bypassing the token).
+- **T5.11** — NestJS controller (`apps/api/src/modules/transactions/transactions.controller.ts`) with 8 endpoints: `POST/GET/PATCH/DELETE /transactions` + `GET/POST/PATCH/DELETE /categories`. JWT-guarded via `@UseGuards(JwtAuthGuard)`. ZodValidationPipe on body + query. `POST /transactions` requires the `Idempotency-Key` header (D-TX-1); SHA-256 fingerprint mismatch → 409 (`IdempotencyKeyReusedError`). `ThresholdService.evaluate` runs post-create inside try/catch (R3-001 fix) so a downstream-subscriber failure does NOT 500 a successfully-persisted transaction.
+- **T5.12** — triangulation suite (8 cross-cutting + 2 cross-user rejection scenarios). 11 cases in `@features/transactions/server/src/__tests__/transactions.integration.test.ts`. Cross-user scenarios (`[S7a]`, `[S8a]`) assert D-TX-7 ownership enforcement after the R1-001 fix.
+- **T5.13** — refactor (drop unused `_userId` parameter, dead `export type { CategoryKind }` cleanup) + final turbo gate (`pnpm turbo run lint typecheck test --filter api --filter @features/transactions` exits 0; **184/184 tests pass**).
+
+### Added — Slice 5 controller (PR #30)
+
+- **`apps/api/src/modules/transactions/transactions.controller.ts`** (~565 LOC). Thin DI-wiring + route-binding layer. Maps domain errors to HTTP (400/404/409/422). Idempotency-Key replay returns the cached payload (controller maps to 200/201 depending on the cached status) instead of re-running the write path.
+- **`apps/api/src/shared/decorators/query.decorator.ts`** — `@QuerySchema(<schema>)` parameter decorator. Parallels the `BodySchema` decorator from slice 3 batch 6.
+- **`@shared-utils/decimal`** path alias added to `apps/api/tsconfig.json` (was missing; service-layer files compiled because their own tsconfigs had the alias, but api couldn't resolve it).
+
+### Changed — Architectural decisions
+
+- **R1-001 D-TX-7 enforcement**: `TransactionRepository.update` / `softDelete` / `findByIdForUser` now require an explicit `userId` parameter. The Prisma adapter filters `where: { id, createdBy: userId, deletedAt: null }` (no info-leak on "exists vs. mine"). This was a real authorization gap discovered by the 4R review; cross-user mutation surfaces as `TransactionNotFoundError` → controller 404. The auth surface (slice 4) and the transactions server (slice 5) now match in contract: caller identity flows through `request.user.id` (from the JWT) into every write path.
+- **R3-001 threshold boundary**: `thresholdService.evaluate` runs inside try/catch in the controller. Threshold is informational (per design §5.9), not blocking; failures log to stderr but the 201 is preserved.
+- **R3-011 idempotent re-delete**: re-deleting an owned-but-tombstoned row returns 204 (silent skip of write/audit/dispatch), per RFC 7231 §4.3.5. Foreign-owned OR missing rows still return 404.
+- **R3-004 DI re-binding**: `TransactionService` factory now resolves `FX_RATE_PROVIDER_TOKEN` via `inject:[]`. The previous direct `new InMemoryFxRateProvider(...)` bypassed the token binding; a production override would have been silently ignored. Production swaps (`HTTP-backed` `FxRateProvider` via env) now slot in correctly.
+
+### Documentation
+
+- `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`: slice 5 close-out section (English + Spanish mirror). Captures the 9 commits, the 4R findings (5 risk + 10 reliability + 9 readability + 7 resilience), the 3 BLOCKER/CRITICAL remediated, and the 6 known-issues deferred to slice 7+.
+- `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`: Spanish mirror of the new section.
+- `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`: T5.3 + T5.9 markers now `[x]` (bookkeeping fix that landed with the slice 5 close-out).
+
+### Known issues for slice 7+ (NOT in this release)
+
+The close-out 4R sweep surfaced several findings that require either a real Postgres integration (R3-002) or new production infrastructure (R3-005) or larger refactors. They're documented in the PR #30 body and tracked in Engram id 2174.
+
+- **R3-002 BLOCKER — atomicity in `service.create`**: the orchestration `txRepo.create → auditLogRepo.append → events.dispatch → idempotencyRepo.create` is NOT wrapped in a `prisma.$transaction`. Any throw after the row persists leaves the DB with a row but no audit trail; a retry with the same `Idempotency-Key` then misses the cache and re-runs the create path → duplicate transaction. Fix requires `prisma.$transaction` on the trio + post-commit event dispatch. In-memory test doubles can't validate atomic-rollback semantics — needs real Postgres.
+- **R3-005 WARNING — production FX fail-fast**: `InMemoryFxRateProvider` is bound to `FX_RATE_PROVIDER_TOKEN` with `DEFAULT_SEED_AT = 2026-01-01`. In production, every cross-currency transaction would dispatch `transactions.fx.stale` (informational noise) and compute `reportingAmount` with the hardcoded rates. The slice ships per design but doesn't gate on `NODE_ENV === 'production'`. Production swap requires a real HTTP-backed `FxRateProvider` implementation.
+- **R1-003 WARNING — Decimal drift via `z.coerce.number()`**: by the time the Zod schema coerces the wire string to a JS Number, IEEE-754 precision is already lost. The `toDecimal(String(...))` round-trip in the controller is a no-op for precision recovery. Fix: change the schemas to `z.string().regex(/^\d+(\.\d+)?$/)` (or `z.union([z.string(), z.number()]).transform(toDecimal)`).
+- **R1-004 WARNING — `Idempotency-Key` has no upper bound**: an attacker can send a multi-megabyte header. Fix: bound at the boundary (e.g., `.max(128)` matching the `cursor` cap in `listSchema`).
+- **R4-005 WARNING — audit/dispatch atomicity**: a partial failure between `txRepo.update/create` and `auditLogRepo.append` leaves the DB with a row but no audit. Same fix family as R3-002 (single Prisma `$transaction`).
+- **R4-010 SUGGESTION — `DuplicateIdempotencyKeyError` race coverage**: the suite has no test for two simultaneous first-call POSTs with the same key (losing-write scenario).
+- **Mirror sync debt**: `Documents-es/openspec/changes/.../apply-progress.md` is ~2,260 lines behind the English (slices 3 + 4 + 5a/b/c). This release syncs only the slice 5 close-out section. A separate batch should reconcile the older slices.
+- **Format-drift**: a `biome.json` formal config would lock formatting; third slice in a row with the auto-formatter drift pattern (id 2155).
+- **CI workflow `.github/workflows/ci.yml`**: highest-ROI next step per id 2171; gate lint + test + typecheck + bdd + e2e against develop.
+
 ## [1.0.0] - 2026-07-08
 
 ### Summary
@@ -128,5 +185,6 @@ The auth client vertical slice — i18n + shadcn primitives + 5 form pages + WCA
 - **v1.2.0 (slice 6)**: transactions client + i18n + shadcn primitives for the transactions surface + responsive layout.
 - **v2.0.0 (slice 7)**: BDD `.feature` files + Playwright e2e + slice-wide gates + production hardening (HSTS, CSP, secrets manager).
 
-[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Sebailla/GP-v2/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Sebailla/GP-v2/releases/tag/v1.0.0
