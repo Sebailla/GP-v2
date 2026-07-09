@@ -154,6 +154,7 @@ function makeService(
 
 	const txRepo: TransactionRepository = {
 		findByIdForUser: txFindById,
+		findByIdForUserIncludingDeleted: txFindById,
 		list: txList,
 		create: txCreate,
 		update: txUpdate,

@@ -61,6 +61,23 @@ export class PrismaTransactionRepository implements TransactionRepository {
     return row === null ? null : projectTransaction(row);
   }
 
+  async findByIdForUserIncludingDeleted(
+    id: string,
+    userId: string,
+  ): Promise<Transaction | null> {
+    // D-TX-7 ownership check; deliberately ignores `deletedAt` so
+    // `service.softDelete` can distinguish "owned but already
+    // tombstoned" (silent 204 — idempotent re-delete) from
+    // "missing or foreign-owned" (404). Foreign-owned tombstoned
+    // rows still appear as `null` because the `createdBy = userId`
+    // filter rejects them — no information leak on "exists vs.
+    // mine".
+    const row = await this.prisma.transaction.findFirst({
+      where: { id, createdBy: userId },
+    });
+    return row === null ? null : projectTransaction(row);
+  }
+
   async list(filter: TransactionListFilter): Promise<{
     rows: Transaction[];
     total: number;

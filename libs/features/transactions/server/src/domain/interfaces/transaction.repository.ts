@@ -85,6 +85,20 @@ export interface TransactionRepository {
   findByIdForUser(id: string, userId: string): Promise<Transaction | null>;
 
   /**
+   * Look up ANY transaction (active OR soft-deleted) by id, scoped
+   * to a user. Used by `service.softDelete` to distinguish
+   * "already tombstoned" (silent 204) from "missing or
+   * foreign-owned" (404). The `userId` filter still enforces
+   * D-TX-7 ownership; a foreign-owned tombstoned row returns
+   * `null` so the caller cannot distinguish "exists-vs-mine" for
+   * deleted rows either.
+   */
+  findByIdForUserIncludingDeleted(
+id: string,
+userId: string,
+  ): Promise<Transaction | null>;
+
+  /**
    * Cursor-paginated list scoped to a single user. `filter.userId` is
    * required so the controller cannot accidentally list another user's
    * transactions. `nextCursor` is `null` when there are no more rows.

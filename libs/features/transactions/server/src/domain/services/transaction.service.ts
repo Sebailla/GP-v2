@@ -544,21 +544,27 @@ export class TransactionService {
 	 * The slice close-out adds this — T5.9 shipped only `create`.
 	 */
 	async softDelete(id: string, actorId: string): Promise<void> {
-		// Load the row first to distinguish "not found" from "already
-		// tombstoned". Foreign-owned rows appear as null (the `findById`
-		// filter is `createdBy = actorId` to enforce D-TX-7 at read time
-		// — same logic, no info-leak).
-		const existing = await this.txRepo.findByIdForUser(id, actorId);
+		// Load the row INCLUDING tombstoned state so we can distinguish
+		// "already tombstoned but still owned" (silent 204) from "missing
+		// or foreign-owned" (404). The `findByIdForUserIncludingDeleted`
+		// adapter still enforces D-TX-7 ownership (the `createdBy = userId`
+		// filter rejects foreign-owned tombstoned rows); the only state
+		// difference from `findByIdForUser` is the lack of the
+		// `deletedAt: null` filter.
+		const existing = await this.txRepo.findByIdForUserIncludingDeleted(
+			id,
+			actorId,
+		);
 		if (existing === null) {
-			// Foreign-owned OR already tombstoned — either way the caller
+			// Foreign-owned OR does not exist — either way the caller
 			// never gets to mutate a row that isn't theirs. The controller
 			// maps the error to 404 (no info-leak on "exists vs. mine").
 			throw new TransactionNotFoundError(id);
 		}
 		if (existing.deletedAt !== null) {
-			// Already tombstoned — idempotent 204 on the wire, no audit
-			// row, no event dispatch (matches the design's "soft-delete is
-			// idempotent" rule).
+			// Already tombstoned by this same user — idempotent 204 on
+			// the wire, no second audit row, no second event dispatch
+			// (matches the design's "soft-delete is idempotent" rule).
 			return;
 		}
 		await this.txRepo.softDelete(id, actorId);

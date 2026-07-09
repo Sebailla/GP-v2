@@ -105,6 +105,7 @@ function makeService(opts: {
 
   const txRepo: TransactionRepository = {
     findByIdForUser: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
+      findByIdForUserIncludingDeleted: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
     list: vi.fn().mockResolvedValue({ rows: [], total: 0, cursor: null }),
     create: txCreate,
     update: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
