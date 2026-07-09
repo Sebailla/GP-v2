@@ -23,6 +23,7 @@ import {
 } from "../domain/services/index.js";
 import type { TransactionsEventDispatcher } from "../events.js";
 import { TransactionNotFoundError } from "../infrastructure/repositories/prisma-transaction.repository.js";
+import { CategoryNotFoundError } from "../domain/interfaces/category.repository.js";
 
 /**
  * T5.12 — Triangulation suite (slice 5 PR #3).
@@ -294,8 +295,8 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 
 		it("[S4] fresh write — missing/soft-deleted category throws CategoryNotFoundError (controller maps to 404)", async () => {
 			const { service } = makeService({ category: null });
-			await expect(service.create(baseInput(), baseCtx)).rejects.toThrow(
-				/Category/,
+			await expect(service.create(baseInput(), baseCtx)).rejects.toBeInstanceOf(
+				CategoryNotFoundError,
 			);
 		});
 	});
