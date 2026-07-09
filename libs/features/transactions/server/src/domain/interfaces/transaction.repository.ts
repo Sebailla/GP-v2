@@ -77,9 +77,12 @@ export interface TransactionUpdate {
 export interface TransactionRepository {
   /**
    * Look up a non-deleted transaction by id. Returns `null` for both
-   * "id does not exist" and "id is soft-deleted".
+   * "id does not exist" and "id is soft-deleted". The `userId`
+   * argument is REQUIRED on every read path: foreign-owned rows are
+   * indistinguishable from missing rows (D-TX-7 — no information
+   * leak on "exists vs. mine").
    */
-  findById(id: string): Promise<Transaction | null>;
+  findByIdForUser(id: string, userId: string): Promise<Transaction | null>;
 
   /**
    * Cursor-paginated list scoped to a single user. `filter.userId` is
@@ -119,17 +122,24 @@ export interface TransactionRepository {
   create(input: TransactionCreate): Promise<Transaction>;
 
   /**
-   * Patch an existing transaction by id. Soft-deleted rows cannot be
-   * updated; the adapter treats them as not-found and surfaces the
-   * same error as a true miss.
+   * Patch an existing transaction by id. The `userId` argument
+   * enforces D-TX-7 ownership — only the row's `createdBy` may patch
+   * it; the adapter translates a missing row OR a foreign-owned row
+   * to a single `TransactionNotFoundError` (no information leak on
+   * "exists vs. mine"). Soft-deleted rows cannot be updated; the
+   * adapter treats them as not-found.
    */
-  update(id: string, input: TransactionUpdate): Promise<Transaction>;
+  update(id: string, userId: string, input: TransactionUpdate): Promise<Transaction>;
 
   /**
-   * Soft-delete a transaction (`deletedAt = now`). Idempotent. The
-   * `actorId` is recorded in the `updatedBy` column; the audit-log
-   * entry is the service's responsibility (one row in `AuditLog` with
-   * `action = "softDelete"`).
+   * Soft-delete a transaction (`deletedAt = now`). The `userId`
+   * argument enforces D-TX-7 ownership — only the row's `createdBy`
+   * may soft-delete it; the adapter translates a missing row OR a
+   * foreign-owned row to a single `TransactionNotFoundError` (no
+   * information leak on "exists vs. mine"). The `userId` is also
+   * recorded in the `updatedBy` column as the deletion actor; the
+   * audit-log entry is the service's responsibility (one row in
+   * `AuditLog` with `action = "softDelete"`).
    */
-  softDelete(id: string, actorId: string): Promise<void>;
+  softDelete(id: string, userId: string): Promise<void>;
 }

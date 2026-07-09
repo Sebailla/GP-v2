@@ -1,19 +1,19 @@
 import { Module } from "@nestjs/common";
 
 import {
-  FX_RATE_PROVIDER_TOKEN,
-  InMemoryFxRateProvider,
-  PrismaAuditLogRepository,
-  PrismaCategoryRepository,
-  PrismaCurrencyRepository,
-  PrismaFxRateRepository,
-  PrismaIdempotencyRepository,
-  PrismaTransactionRepository,
-  CategoryService,
-  DEFAULT_THRESHOLD_AMOUNT,
-  ThresholdService,
-  TotalsService,
-  TransactionService,
+	FX_RATE_PROVIDER_TOKEN,
+	InMemoryFxRateProvider,
+	PrismaAuditLogRepository,
+	PrismaCategoryRepository,
+	PrismaCurrencyRepository,
+	PrismaFxRateRepository,
+	PrismaIdempotencyRepository,
+	PrismaTransactionRepository,
+	CategoryService,
+	DEFAULT_THRESHOLD_AMOUNT,
+	ThresholdService,
+	TotalsService,
+	TransactionService,
 } from "@features/transactions";
 import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
@@ -57,90 +57,90 @@ const DEFAULT_SEED_AT = new Date("2026-01-01T00:00:00.000Z");
 const dispatcher = createInMemoryDispatcher();
 
 @Module({
-  providers: [
-    {
-      provide: FX_RATE_PROVIDER_TOKEN,
-      useFactory: () => new InMemoryFxRateProvider(DEFAULT_SEED_AT),
-    },
-    {
-      provide: PrismaCurrencyRepository,
-      useFactory: () => new PrismaCurrencyRepository(defaultPrisma),
-    },
-    {
-      provide: PrismaFxRateRepository,
-      useFactory: () => new PrismaFxRateRepository(defaultPrisma),
-    },
-    {
-      provide: PrismaCategoryRepository,
-      useFactory: () => new PrismaCategoryRepository(defaultPrisma),
-    },
-    {
-      provide: PrismaTransactionRepository,
-      useFactory: () => new PrismaTransactionRepository(defaultPrisma),
-    },
-    {
-      provide: PrismaIdempotencyRepository,
-      useFactory: () => new PrismaIdempotencyRepository(defaultPrisma),
-    },
-    {
-      provide: PrismaAuditLogRepository,
-      useFactory: () => new PrismaAuditLogRepository(defaultPrisma),
-    },
-    {
-      provide: TransactionService,
-      useFactory: () =>
-        new TransactionService(
-          new PrismaTransactionRepository(defaultPrisma),
-          new PrismaCategoryRepository(defaultPrisma),
-          new InMemoryFxRateProvider(DEFAULT_SEED_AT),
-          new PrismaIdempotencyRepository(defaultPrisma),
-          new PrismaAuditLogRepository(defaultPrisma),
-          dispatcher.dispatch,
-        ),
-    },
-    {
-      provide: CategoryService,
-      useFactory: () =>
-        new CategoryService(
-          new PrismaCategoryRepository(defaultPrisma),
-          new PrismaAuditLogRepository(defaultPrisma),
-        ),
-    },
-    {
-      provide: TotalsService,
-      useFactory: () =>
-        new TotalsService(new PrismaTransactionRepository(defaultPrisma)),
-    },
-    {
-      provide: ThresholdService,
-      useFactory: () =>
-        new ThresholdService(
-          { amount: toDecimal(DEFAULT_THRESHOLD_AMOUNT) },
-          dispatcher.dispatch,
-        ),
-    },
-  ],
-  controllers: [TransactionsController],
-  exports: [
-    FX_RATE_PROVIDER_TOKEN,
-    PrismaCurrencyRepository,
-    PrismaFxRateRepository,
-    PrismaCategoryRepository,
-    PrismaTransactionRepository,
-    PrismaIdempotencyRepository,
-    PrismaAuditLogRepository,
-    TransactionService,
-    CategoryService,
-    TotalsService,
-    ThresholdService,
-  ],
+	providers: [
+		{
+			provide: FX_RATE_PROVIDER_TOKEN,
+			useFactory: () => new InMemoryFxRateProvider(DEFAULT_SEED_AT),
+		},
+		{
+			provide: PrismaCurrencyRepository,
+			useFactory: () => new PrismaCurrencyRepository(defaultPrisma),
+		},
+		{
+			provide: PrismaFxRateRepository,
+			useFactory: () => new PrismaFxRateRepository(defaultPrisma),
+		},
+		{
+			provide: PrismaCategoryRepository,
+			useFactory: () => new PrismaCategoryRepository(defaultPrisma),
+		},
+		{
+			provide: PrismaTransactionRepository,
+			useFactory: () => new PrismaTransactionRepository(defaultPrisma),
+		},
+		{
+			provide: PrismaIdempotencyRepository,
+			useFactory: () => new PrismaIdempotencyRepository(defaultPrisma),
+		},
+		{
+			provide: PrismaAuditLogRepository,
+			useFactory: () => new PrismaAuditLogRepository(defaultPrisma),
+		},
+		{
+			provide: TransactionService,
+			useFactory: () =>
+				new TransactionService(
+					new PrismaTransactionRepository(defaultPrisma),
+					new PrismaCategoryRepository(defaultPrisma),
+					new InMemoryFxRateProvider(DEFAULT_SEED_AT),
+					new PrismaIdempotencyRepository(defaultPrisma),
+					new PrismaAuditLogRepository(defaultPrisma),
+					dispatcher.dispatch,
+				),
+		},
+		{
+			provide: CategoryService,
+			useFactory: () =>
+				new CategoryService(
+					new PrismaCategoryRepository(defaultPrisma),
+					new PrismaAuditLogRepository(defaultPrisma),
+				),
+		},
+		{
+			provide: TotalsService,
+			useFactory: () =>
+				new TotalsService(new PrismaTransactionRepository(defaultPrisma)),
+		},
+		{
+			provide: ThresholdService,
+			useFactory: () =>
+				new ThresholdService(
+					{ amount: toDecimal(DEFAULT_THRESHOLD_AMOUNT) },
+					dispatcher.dispatch,
+				),
+		},
+	],
+	controllers: [TransactionsController],
+	exports: [
+		FX_RATE_PROVIDER_TOKEN,
+		PrismaCurrencyRepository,
+		PrismaFxRateRepository,
+		PrismaCategoryRepository,
+		PrismaTransactionRepository,
+		PrismaIdempotencyRepository,
+		PrismaAuditLogRepository,
+		TransactionService,
+		CategoryService,
+		TotalsService,
+		ThresholdService,
+	],
 })
 export class TransactionsModule {
-  /**
-   * Re-export of the DI token for callers that already import
-   * `TransactionsModule`. Equivalent to importing `FX_RATE_PROVIDER_TOKEN`
-   * from `@features/transactions`; kept here so consumers can take a
-   * single dependency on the module without reaching into the slice.
-   */
-  static readonly FX_RATE_PROVIDER_TOKEN = FX_RATE_PROVIDER_TOKEN;
+	/**
+	 * Re-export of the DI token for callers that already import
+	 * `TransactionsModule`. Equivalent to importing `FX_RATE_PROVIDER_TOKEN`
+	 * from `@features/transactions`; kept here so consumers can take a
+	 * single dependency on the module without reaching into the slice.
+	 */
+	static readonly FX_RATE_PROVIDER_TOKEN = FX_RATE_PROVIDER_TOKEN;
 }

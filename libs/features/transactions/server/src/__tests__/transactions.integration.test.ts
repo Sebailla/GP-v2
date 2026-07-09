@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { TRANSACTIONS_SOFT_DELETED, TRANSACTIONS_THRESHOLD_EXCEEDED, TRANSACTIONS_UPDATED } from "@core/events";
+import {
+	TRANSACTIONS_SOFT_DELETED,
+	TRANSACTIONS_THRESHOLD_EXCEEDED,
+	TRANSACTIONS_UPDATED,
+} from "@core/events";
 import { toDecimal, type Decimal } from "@shared-utils/decimal";
 
 import type { Category } from "../domain/entities/category.entity.js";
@@ -18,6 +22,7 @@ import {
 	type CreateTransactionInput,
 } from "../domain/services/index.js";
 import type { TransactionsEventDispatcher } from "../events.js";
+import { TransactionNotFoundError } from "../infrastructure/repositories/prisma-transaction.repository.js";
 
 /**
  * T5.12 — Triangulation suite (slice 5 PR #3).
@@ -69,7 +74,9 @@ function fakeTransaction(overrides: Partial<Transaction> = {}): Transaction {
 	};
 }
 
-function fakeIdempotencyKeyEntry(overrides: Partial<IdempotencyKey> = {}): IdempotencyKey {
+function fakeIdempotencyKeyEntry(
+	overrides: Partial<IdempotencyKey> = {},
+): IdempotencyKey {
 	return {
 		id: "idem-1",
 		userId: "user-1",
@@ -100,31 +107,44 @@ function fakeIdempotencyKeyEntry(overrides: Partial<IdempotencyKey> = {}): Idemp
 	};
 }
 
-function makeService(opts: {
-	now?: Date;
-	category?: Category | null;
-	transaction?: Transaction;
-	fxRate?: { rate: Decimal; recordedAt: Date } | null;
-	idempotencyFind?: IdempotencyKey | null;
-} = {}) {
-	const findById = vi.fn().mockResolvedValue(
-		opts.category === null ? null : opts.category ?? fakeCategory(),
-	);
-	const txCreate = vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction());
-	const txFindById = vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction());
-	const txUpdate = vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction());
+function makeService(
+	opts: {
+		now?: Date;
+		category?: Category | null;
+		transaction?: Transaction;
+		fxRate?: { rate: Decimal; recordedAt: Date } | null;
+		idempotencyFind?: IdempotencyKey | null;
+	} = {},
+) {
+	const findById = vi
+		.fn()
+		.mockResolvedValue(
+			opts.category === null ? null : (opts.category ?? fakeCategory()),
+		);
+	const txCreate = vi
+		.fn()
+		.mockResolvedValue(opts.transaction ?? fakeTransaction());
+	const txFindById = vi
+		.fn()
+		.mockResolvedValue(opts.transaction ?? fakeTransaction());
+	const txUpdate = vi
+		.fn()
+		.mockResolvedValue(opts.transaction ?? fakeTransaction());
 	const txSoftDelete = vi.fn().mockResolvedValue(undefined);
-	const txList = vi.fn().mockResolvedValue({ rows: [], total: 0, cursor: null });
+	const txList = vi
+		.fn()
+		.mockResolvedValue({ rows: [], total: 0, cursor: null });
 	const txFindMany = vi.fn().mockResolvedValue([]);
 
-	const getRate = opts.fxRate === null
-		? vi.fn().mockResolvedValue(null)
-		: vi.fn().mockResolvedValue(
-				opts.fxRate ?? {
-					rate: toDecimal("1000.001"),
-					recordedAt: new Date("2026-06-01T00:00:00.000Z"),
-				},
-			);
+	const getRate =
+		opts.fxRate === null
+			? vi.fn().mockResolvedValue(null)
+			: vi.fn().mockResolvedValue(
+					opts.fxRate ?? {
+						rate: toDecimal("1000.001"),
+						recordedAt: new Date("2026-06-01T00:00:00.000Z"),
+					},
+				);
 	const find = vi.fn().mockResolvedValue(opts.idempotencyFind ?? null);
 	const idemCreate = vi.fn().mockResolvedValue(undefined);
 	const append = vi.fn().mockResolvedValue(undefined);
@@ -133,7 +153,7 @@ function makeService(opts: {
 	const clock = () => now;
 
 	const txRepo: TransactionRepository = {
-		findById: txFindById,
+		findByIdForUser: txFindById,
 		list: txList,
 		create: txCreate,
 		update: txUpdate,
@@ -171,12 +191,25 @@ function makeService(opts: {
 
 	return {
 		service,
-		mocks: { findById, txCreate, txFindById, txUpdate, txSoftDelete, txList, idemCreate, append, events, getRate },
+		mocks: {
+			findById,
+			txCreate,
+			txFindById,
+			txUpdate,
+			txSoftDelete,
+			txList,
+			idemCreate,
+			append,
+			events,
+			getRate,
+		},
 		now,
 	};
 }
 
-function baseInput(overrides: Partial<CreateTransactionInput> = {}): CreateTransactionInput {
+function baseInput(
+	overrides: Partial<CreateTransactionInput> = {},
+): CreateTransactionInput {
 	return {
 		amount: toDecimal("12.34"),
 		currencyCode: "USD",
@@ -208,10 +241,11 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 				idempotencyFind: cached,
 			});
 
-			const result = await service.create(
-				baseInput(),
-				{ ...baseCtx, idempotencyKey: "key-1", requestFingerprint: "fingerprint-A" },
-			);
+			const result = await service.create(baseInput(), {
+				...baseCtx,
+				idempotencyKey: "key-1",
+				requestFingerprint: "fingerprint-A",
+			});
 
 			expect(result.id).toBe("txn-1");
 			// No fresh write, no FX lookup, no audit append — it's a replay.
@@ -228,10 +262,11 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 			const { service } = makeService({ idempotencyFind: cached });
 
 			await expect(
-				service.create(
-					baseInput(),
-					{ ...baseCtx, idempotencyKey: "key-1", requestFingerprint: "fingerprint-B-different" },
-				),
+				service.create(baseInput(), {
+					...baseCtx,
+					idempotencyKey: "key-1",
+					requestFingerprint: "fingerprint-B-different",
+				}),
 			).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
 		});
 	});
@@ -258,7 +293,9 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 
 		it("[S4] fresh write — missing/soft-deleted category throws CategoryNotFoundError (controller maps to 404)", async () => {
 			const { service } = makeService({ category: null });
-			await expect(service.create(baseInput(), baseCtx)).rejects.toThrow(/Category/);
+			await expect(service.create(baseInput(), baseCtx)).rejects.toThrow(
+				/Category/,
+			);
 		});
 	});
 
@@ -330,9 +367,11 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 			// events() is called twice: once for the stale-rate dispatch,
 			// once for transactions.created.
 			expect(mocks.events).toHaveBeenCalledTimes(2);
-			const eventNames = vi.mocked(mocks.events).mock.calls.flatMap((call) =>
-				(call as unknown as { name: string }[]).map((evt) => evt.name),
-			);
+			const eventNames = vi
+				.mocked(mocks.events)
+				.mock.calls.flatMap((call) =>
+					(call as unknown as { name: string }[]).map((evt) => evt.name),
+				);
 			expect(eventNames).toContain("transactions.fx.stale");
 			expect(eventNames).toContain("transactions.created");
 		});
@@ -365,12 +404,38 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 			expect(evt.payload.transactionId).toBe("txn-1");
 		});
 
-		it("softDelete is idempotent for already-tombstoned rows — no audit row, no event", async () => {
+		// D-TX-7: cross-user mutation rejection — the missing-row test that
+		// would have caught R1-001. Adding both the softDelete and update
+		// paths so a future regression that removes the ownership check
+		// is caught at test time, not review time.
+		it("[S7a] softDelete refuses cross-user mutation: user-2 cannot soft-delete user-1's transaction (D-TX-7)", async () => {
 			const { service, mocks } = makeService();
-			// txFindById returns null (already tombstoned / missing)
+			// findByIdForUser(id, "user-2") returns null because the row
+			// is owned by user-1 — the ownership filter rejects the read.
 			vi.mocked(mocks.txFindById).mockResolvedValueOnce(null);
 
-			await service.softDelete("missing-txn", "user-1");
+			await expect(
+				service.softDelete("txn-1", "user-2"),
+			).rejects.toBeInstanceOf(TransactionNotFoundError);
+
+			// No write, no audit, no event — the foreign-owned row is
+			// indistinguishable from a missing row (no info-leak).
+			expect(mocks.txSoftDelete).not.toHaveBeenCalled();
+			expect(mocks.append).not.toHaveBeenCalled();
+			expect(mocks.events).not.toHaveBeenCalled();
+		});
+
+		it("softDelete is idempotent for already-tombstoned (but owned) rows: returns silently, no audit row, no event", async () => {
+			const { service, mocks } = makeService();
+			// findByIdForUser returns the OWNED row, but `deletedAt` is
+			// already set — the row was soft-deleted in a previous call.
+			// The idempotent path skips write + audit + dispatch.
+			vi.mocked(mocks.txFindById).mockResolvedValueOnce({
+				...fakeTransaction(),
+				deletedAt: new Date("2026-06-01T00:00:00.000Z"),
+			});
+
+			await service.softDelete("txn-1", "user-1");
 
 			expect(mocks.txSoftDelete).not.toHaveBeenCalled();
 			expect(mocks.append).not.toHaveBeenCalled();
@@ -380,14 +445,38 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 
 	// ---- scenario 8: update path ----
 	describe("update path", () => {
-		it("[S8] update on missing/soft-deleted transaction skips the write and skips the event dispatch", async () => {
+		it("[S8] update on missing/soft-deleted transaction rejects with TransactionNotFoundError (controller maps to 404)", async () => {
 			const { service, mocks } = makeService();
-			vi.mocked(mocks.txUpdate).mockResolvedValueOnce(null as unknown as Transaction);
+			// Real PrismaTransactionRepository.update throws
+			// `TransactionNotFoundError` on missing/foreign-owned rows.
+			// The mock mirrors that contract — `mockRejectedValueOnce`
+			// (NOT `mockResolvedValueOnce(null)`).
+			vi.mocked(mocks.txUpdate).mockRejectedValueOnce(
+				new TransactionNotFoundError("missing-txn"),
+			);
 
 			await expect(
 				service.update("missing-txn", { notes: "new note" }, "user-1"),
-			).rejects.toThrow();
+			).rejects.toBeInstanceOf(TransactionNotFoundError);
 
+			expect(mocks.events).not.toHaveBeenCalled();
+		});
+
+		// D-TX-7: cross-user mutation rejection — the missing-row test that
+		// would have caught R1-001 on the update path. Same pattern as [S7a].
+		it("[S8a] update refuses cross-user mutation: user-2 cannot patch user-1's transaction (D-TX-7)", async () => {
+			const { service, mocks } = makeService();
+			// Real adapter throws TransactionNotFoundError on the
+			// `createdBy !== userId` where-mismatch.
+			vi.mocked(mocks.txUpdate).mockRejectedValueOnce(
+				new TransactionNotFoundError("txn-1"),
+			);
+
+			await expect(
+				service.update("txn-1", { notes: "stolen update" }, "user-2"),
+			).rejects.toBeInstanceOf(TransactionNotFoundError);
+
+			expect(mocks.append).not.toHaveBeenCalled();
 			expect(mocks.events).not.toHaveBeenCalled();
 		});
 

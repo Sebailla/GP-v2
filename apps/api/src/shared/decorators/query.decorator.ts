@@ -28,4 +28,4 @@ import { ZodValidationPipe } from "../pipes/zod-validation.pipe.js";
  * missing rows; the controller maps that to 404).
  */
 export const QuerySchema = <T extends z.ZodTypeAny>(schema: T) =>
-  Query(new ZodValidationPipe(schema));
+	Query(new ZodValidationPipe(schema));
