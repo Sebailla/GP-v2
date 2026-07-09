@@ -42,6 +42,20 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Generate Prisma client BEFORE lint + typecheck. The `@core/database`
+      # workspace exports `./generated/client.js` (sliced types) which
+      # `tsc --noEmit` (the lint/typecheck gate) requires. Without this
+      # step, the CI environment fails typecheck because the postinstall
+      # Prisma client generation is gated on `allowBuilds` in pnpm-workspace
+      # config and may not always run in the cache restore path.
+      # DATABASE_URL is required by `prisma.config.ts` (which reads it via
+      # Zod env validation), but `prisma generate` itself doesn't connect —
+      # a placeholder string is sufficient.
+      - name: Generate Prisma client
+        env:
+          DATABASE_URL: postgresql://placeholder.localhost/db
+        run: pnpm --filter @core/database exec prisma generate
+
       - name: Lint
         run: pnpm lint
 
@@ -102,6 +116,9 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @core/database exec prisma generate
 
       - name: Apply Prisma migrations
         run: pnpm db:migrate:deploy
