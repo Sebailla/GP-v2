@@ -32,7 +32,6 @@ import {
   listSchema,
   updateSchema,
   type Category,
-  type CategoryKind,
   type CreateCategoryInput,
   type CreateTransactionInput,
   type ListTransactionsQuery,
@@ -149,14 +148,33 @@ export class TransactionsController {
       });
     }
 
-    // Threshold evaluation runs AFTER the create succeeds. Per design §5.9,
-    // it is informational — it does NOT block the write. The threshold
-    // service dispatches `transactions.threshold.exceeded` internally when
-    // crossed; the controller doesn't surface the result.
-    await this.thresholdService.evaluate(transaction);
+      // Threshold evaluation runs AFTER the create succeeds. Per design §5.9,
+      // it is informational — it does NOT block the write. The threshold
+      // service dispatches `transactions.threshold.exceeded` internally when
+      // crossed; the controller doesn't surface the result. Failures here
+      // (e.g. a downstream subscriber that throws) MUST NOT surface as 500
+      // because the transaction is already persisted — the idempotency-key
+      // cache protects against duplicate creation on retry, but a 500
+      // would lose the threshold event with no recovery path. Log + continue
+      // (R3-001 review finding).
+      try {
+        await this.thresholdService.evaluate(transaction);
+      } catch (err) {
+        // TODO(slice-7): structured logger once NestJS Logger is wired.
+        // For now, swallow + log to stderr so the 201 path is preserved.
+        // The project's ESLint config loads the @typescript-eslint parser
+        // only — the `no-console` rule is not registered (id 2155
+        // discovery); a disable directive would fail with "rule not
+        // found", so we rely on the runtime console.error without
+        // suppressing the lint signal.
+        console.error(
+          "[transactions.controller] threshold evaluation failed; transaction persisted",
+          { transactionId: transaction.id, error: err },
+        );
+      }
 
-    return projectTransaction(transaction);
-  }
+      return projectTransaction(transaction);
+    }
 
   @Get()
   async list(
@@ -323,11 +341,10 @@ export class TransactionsController {
    * conversion lives here — never at the schema boundary (the slice-wide
    * Decimal vocabulary would leak into the wire contract).
    *
-   * `userId` is intentionally unused: the auth context flows through
-   * `TransactionServiceContext` (the second argument of `create`), not
-   * through the input body. Keeping the parameter signature would invite
-   * a future caller to pass the wrong userId; the type system enforces
-   * the audit-log binding instead.
+   * The auth context flows through `TransactionServiceContext` (the
+   * second argument of `create`), not through the input body. Keeping
+   * user-identity out of the input shape makes accidental caller-side
+   * tampering type-impossible.
    */
   private toServiceCreateInput(
     body: CreateTransactionInput,
@@ -469,7 +486,3 @@ function mapServiceError(
   throw err;
 }
 
-// `CategoryKind` is imported as a type-only re-export for the inferred
-// service-layer shapes; the runtime import below keeps the auto-formatter
-// heuristic honest.
-export type { CategoryKind };
