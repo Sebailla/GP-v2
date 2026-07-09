@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Cancel duplicate runs on the same branch/PR; show only the latest
+# results in the checks list.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # ---- 1. Static analysis gate ---------------------------------------------
+  # Lint + typecheck + the boundary-plugin fixture suite. Fast, no DB.
+  # Fails the PR on rule violations — the cheapest signal for the human
+  # reviewer.
+  static:
+    name: Static analysis (lint + typecheck + boundary fixtures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.10.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Boundary plugin fixtures
+        run: pnpm lint:fixtures
+
+  # ---- 2. Unit + integration tests ---------------------------------------
+  # Runs the full Vitest suite. Requires Postgres only for the
+  # repository-adapter tests; the unit tests run without DB. The Postgres
+  # service is provisioned for integration coverage; the slice-5+ tests
+  # will exercise it once slice 7 lands the integration suite.
+  test:
+    name: Unit + integration tests
+    runs-on: ubuntu-latest
+    needs: static
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: gastos_reference_test
+        ports:
+          - 5432:5432
+        # The healthcheck ensures the service is ready before our steps
+        # attempt to connect. Postgres 16's `pg_isready` returns 0 when
+        # accepting connections.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gastos_reference_test
+      NEXTAUTH_SECRET: ci-only-do-not-use-in-prod
+      NEXTAUTH_URL: http://localhost:3000
+      WEB_ORIGIN: http://localhost:3000
+      API_URL: http://localhost:3001
+      PORT: 3001
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.10.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations
+        run: pnpm db:migrate:deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gastos_reference_test
+
+      - name: Run tests
+        run: pnpm test
+
+  # ---- 3. Build verification ---------------------------------------------
+  # Compile every workspace to surface type errors + unused imports that
+  # `tsc --noEmit` (which the lint job uses) can miss. Stops the PR on
+  # build failures so the human reviewer doesn't have to.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: static
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.10.0 }
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: |
+            apps/api/dist
+            apps/web/.next
+          retention-days: 7
+
+  # ---- 4. Cucumber BDD + Playwright e2e (placeholder) -------------------
+  # Both BDD (.feature files, 12 total per design §3 Locked Decision #3)
+  # and Playwright e2e (chromium + axe-core, per design §3 Locked
+  # Decision #4) are deferred to slice 7. The slice 4 close-out kept
+  # both scaffolded but not wired into CI (per-dev `npx playwright
+  # install chromium` is required; the CI image bakes the browser).
+  #
+  # When slice 7 lands the suite, add the BDD and e2e jobs back. The
+  # shape is documented in this comment to make the transition
+  # intentional rather than retroactive.
