@@ -1,6 +1,6 @@
 {
   "name": "@core/events",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "In-memory domain event dispatcher for gastos-personales-reference. Pub/sub via dispatch + subscribe, with a per-user ring buffer (100 entries) used by the dev mailbox in slice 4. Consumed via the @core/events path alias from feature server slices.",
   "type": "module",

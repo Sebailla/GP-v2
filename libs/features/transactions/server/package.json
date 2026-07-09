@@ -1,6 +1,6 @@
 {
   "name": "@features/transactions",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Transactions feature slice (server) for gastos-personales-reference. Slice 5 ships the type layer (T5.1 schema, T5.4 schemas, T5.5 entities, T5.6 ports). Behavior lands in slice 5 PR #3.",
   "type": "module",

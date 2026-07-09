@@ -1,6 +1,6 @@
 {
   "name": "@core/config",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Zod-validated environment variables for the gastos-personales-reference monorepo. Fails-fast at import time when required vars are missing or malformed. Consumed via the @core/config path alias from apps/api and apps/web.",
   "type": "module",
