@@ -218,6 +218,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -237,6 +240,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       prisma:
         specifier: 7.8.0
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
@@ -256,6 +262,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -290,6 +299,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -318,6 +330,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -336,6 +351,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -348,6 +366,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -364,6 +385,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
