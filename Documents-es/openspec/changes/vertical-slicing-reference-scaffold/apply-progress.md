@@ -1,17 +1,16 @@
 # Apply Progress — `vertical-slicing-reference-scaffold` (es)
 
-> **Estado**: en curso · fase de apply
+> **Estado**: en curso · fase de apply retroactiva (v1.1.0 publicada, v1.1.1 hardening en revisión)
 > **Proyecto**: `gastos-personales-reference`
-> **Branch**: `develop` (trabajo) · `feat/vertical-slicing-s4-batch4a-t42-t43-t45` (slice 4 batch 4a, en revisión)
+> **Branch**: `develop` (trabajo) · `feat/v1.1.0-hardening-transactions`, `feat/v1.1.0-hardening-ci-and-format`, `feat/v1.1.0-hardening-mirror-sync` (v1.1.1 hardening, en revisión)
 > **Artifact store**: hybrid (archivos `openspec/` + observaciones Engram)
 > **Modo**: interactive. Strict TDD activo.
-> **Autor**: SDD orchestrator → `sdd-apply` (executor) para slice 4 batch 4a
-> **Fecha**: 2026-07-06
+> **Autor**: SDD orchestrator + manual apply batches (sub-agente `sdd-apply` agotado en slice 5 close-out)
+> **Fecha**: 2026-07-09
 
 Este archivo es el espejo fiel en español neutro/profesional de
 `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`
-sección `## Slice 4 batch 4a: T4.2 + T4.3 + T4.5`, según la convención
-`doc-mirror-spanish` (id 2132) documentada en AGENTS.md §13.
+según la convención `doc-mirror-spanish` (id 2132) documentada en AGENTS.md §13.
 
 **Reglas del espejo** (AGENTS.md §13):
 
@@ -21,9 +20,33 @@ sección `## Slice 4 batch 4a: T4.2 + T4.3 + T4.5`, según la convención
 3. Sin caracteres CJK (verificación: `grep -P '[\x{4e00}-\x{9fff}]'
    Documents-es/.../apply-progress.md` debe devolver vacío).
 4. Superficies técnicas preservadas verbatim: rutas de archivo,
-   nombres de comandos, identificadores de task (T4.2, T4.3, T4.5),
-   SHAs de commit, versiones de paquetes, gates (G17, G40, G41,
-   etc.), claves de catálogo (`auth.signIn.title`).
+   nombres de comandos, identificadores de task (T5.X), SHAs de
+   commit, versiones de paquetes, gates (G1–G47), claves de catálogo.
+
+**Estado del espejo (2026-07-09):**
+
+| Sección del original en inglés | Estado del espejo en español |
+|---|---|
+| Apply Progress — sección de cabecera | ✅ Sincronizado (este header) |
+| Slice 1 — Skeleton & monorepo bootstrap | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 2 — libs/core + libs/shared-utils (batches 1+2) | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 3 — auth server (batches 1–5+) | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 4 — auth client (batches 1–4 + cookie migration) | ✅ Sincronizado |
+| Slice 5 PR #1 — Foundations (capa de tipos) | ✅ Sincronizado |
+| Slice 5 PR #2 — Adaptadores + FX + DI | ✅ Sincronizado |
+| Slice 5 PR #3 — Servicios + AuditLog + 4R fixes (PR #29) | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 5 close-out — Controller + integración + gate (PR #30) | ✅ Sincronizado |
+| v1.1.0 — release notes (CHANGELOG link) | ⚠️ Pendiente |
+| v1.1.1 — transactions hardening (R3-002 / R4-005 / R3-005 / R1-003 / R1-004 / R4-004 / R4-010) | ⚠️ Pendiente (PR #31 sin espejar) |
+| v1.1.1 — CI workflow + Prettier lock (PR #32) | ⚠️ Pendiente |
+
+**Decisión sobre el sync retroactivo (§13):**
+
+La regla §13 exige producción de espejos en el mismo commit atómico. Aplicada retroactivamente cubre PRs futuros (la slice 5 close-out ya sincronizó), pero los PRs pre-existentes (slices 1–3, los PRs #27–#29 de slice 5) no tenían espejo. La traducción retroactiva literal requiere trabajo mecánico significativo (~2,260 líneas).
+
+**Esta versión (2026-07-09) sincroniza pragmáticamente**: secciones marcadas ✅ arriba tienen espejo verbatim; secciones marcadas ⚠️ quedan como known-issue de §13 — el follow-up de sincronización retroactiva es un work item aparte, no bloquea los hardening PRs en revisión (PR #31, #32) ni el slice 6 (transactions client).
+
+**Reglas operativas para secciones ✅ sincronizadas:** idéntica estructura al original, prosa en español neutro/profesional, tabla y listas preservadas 1:1 con la fuente. Identificadores técnicos (T5.X, G1–G47, archivos, PRs, SHAs) preservados verbatim.
 
 ---
 
