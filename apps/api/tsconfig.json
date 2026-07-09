@@ -24,9 +24,11 @@
           "@core/config": ["libs/core/config"],
           "@core/config/*": ["libs/core/config/*"],
           "@features/auth": ["libs/features/auth/server"],
-          "@features/auth/*": ["libs/features/auth/*"]
-        }
-      },
-      "include": ["src/**/*.ts", "test/**/*.ts", "../libs/features/auth/shared/schemas/**/*.ts"],
+"@features/auth/*": ["libs/features/auth/*"],
+              "@features/transactions": ["libs/features/transactions/server"],
+              "@features/transactions/*": ["libs/features/transactions/*"]
+            }
+          },
+      "include": ["src/**/*.ts", "test/**/*.ts", "../libs/features/auth/shared/schemas/**/*.ts", "../libs/features/transactions/shared/schemas/**/*.ts"],
       "exclude": ["node_modules", "dist"]
     }

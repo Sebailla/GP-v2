@@ -53,6 +53,9 @@ model User {
   transactionsUpdated Transaction[]    @relation("TransactionUpdatedBy")
   idempotencyKeys     IdempotencyKey[]
   auditLogs           AuditLog[]       @relation("AuditLogActor")
+  // Slice 5 PR #2: closes the PR #1 W1 readability finding (the
+  // CategoryRepository.softDelete contract references this column).
+  categoriesUpdated   Category[]       @relation("CategoryUpdatedBy")
 
   @@map("users")
 }
@@ -182,11 +185,18 @@ model Category {
   name      String
   slug      String       @unique
   kind      CategoryKind
+  // Audit-trail parity with Transaction (createdBy / updatedBy).
+  // updatedBy is set by the adapter on create (= the creator's id) and
+  // overwritten on every update + softDelete with the actor's id.
+  // Per PR #1 W1 readability finding: the port claimed this column
+  // exists; PR #2 lands the column + closes the contract gap.
+  updatedBy String
   deletedAt DateTime?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   transactions Transaction[]
+  updatedByUser User    @relation("CategoryUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
 
   @@index([kind, deletedAt])
   @@map("categories")

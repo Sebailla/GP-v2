@@ -1370,3 +1370,73 @@ Domain ports. `libs/features/transactions/server/src/domain/interfaces/{transact
 - **Working tree:** clean after this commit.
 - **PR boundary:** this is PR #1 of 3 (`T5.1+T5.4+T5.5+T5.6`, ~type layer + 523 LOC + 593 LOC across schemas + entities/ports = ~1.1K net insertions including tests/config). PR #2 lands `T5.2+T5.7+T5.8+T5.10` (adapters + FX + DI wiring). PR #3 lands `T5.3+T5.9+T5.11+T5.12+T5.13` (services + controller + triangulate + refactor).
 - **Next recommended:** slice 5 PR #2 — Prisma migration apply + 5 prisma adapters + `InMemoryFxRateProvider` + `FX_RATE_PROVIDER` DI token (T5.2, T5.7, T5.8, T5.10).
+
+---
+
+## Slice 5 PR #2 — Adapters + FX + DI (persistence boundary)
+
+**Recap.** This is the second PR of slice 5's chained-3-PR strategy. Scope: the persistence boundary — 5 Prisma adapters (T5.7), the `InMemoryFxRateProvider` (T5.8), and the `FX_RATE_PROVIDER_TOKEN` DI wiring in the NestJS module (T5.10). Plus T5.2 (the Prisma migration apply) which was authored earlier on the same branch. No services, no controllers, no triangulate (those land in PR #3).
+
+**Branch.** `feat/slice-5-pr2-adapters-fx` (cut from `develop @ 4d5c282`, post-v1.0.0 release merge; includes PR #1 + the chore + T5.2 migration as historical commits).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm --filter @features/transactions exec vitest run`. The 6 new test files assert the D-TX-5 soft-delete invariant on every read query, the Decimal string boundary (D-TX-6) on both sides, the P2002/P2025 → domain-error translation, the cursor pagination sentinel pattern, the idempotency boundary-owned expiry filter (W4 readability fix), and the FX provider's seed + `advanceClock` semantics. Per `openspec/config.yaml` strict-TDD contract, production code is accompanied by tests in the same atomic commit. The `verification-before-completion` skill guards every claim: every gate below was observed against the actual command output before this commit was authored.
+
+### Sub-task T5.2 [x]
+
+Prisma migration apply. `pnpm prisma migrate dev --name transactions_init` produced `libs/core/database/prisma/migrations/<timestamp>_transactions_init/migration.sql` with the six tables (`Currency`, `FxRate`, `Category`, `Transaction`, `IdempotencyKey`, `AuditLog`) and the two enums (`CategoryKind`, `TransactionKind`). The D-TX-6 monetary columns are `DECIMAL`, never `BIGINT`. The migration rolled back + re-applied cleanly in a follow-up commit (`2cc90fe` adds the `Category.updatedBy` column to close the PR #1 W1 contract gap). Commit: `c719a0e` (T5.2) + `2cc90fe` (Category.updatedBy follow-up).
+
+### Sub-task T5.7 [x]
+
+Five Prisma adapters implementing the domain ports. Located at `libs/features/transactions/server/src/infrastructure/repositories/{category,currency,fx-rate,idempotency,transaction}.repository.ts`. The **D-TX-5 soft-delete invariant** is enforced on every read query by inspecting the `where` clause in the test suite (a regression in the invariant fails the suite). P2002 unique-constraint violations translate to `CategoryAlreadyExistsError`; P2025 not-found violations translate to `CategoryNotFoundError` / `TransactionNotFoundError`; the softDelete path swallows P2025 silently for idempotency. The `prisma-transaction.repository.ts` list query enforces user-scoping (`where: { createdBy: userId }`) AND D-TX-5 (`deletedAt: null`) on every call, and the cursor pagination uses the take+1 sentinel pattern (one extra row fetched to detect "more exist"; the next-cursor is the last visible row's id, or `null` on the last page). Commit: `ebf585b`.
+
+### Sub-task T5.8 [x]
+
+`InMemoryFxRateProvider` at `libs/features/transactions/server/src/infrastructure/fx/in-memory-fx-rate.provider.ts`. Seeded at construction time with the four spec-mandated pairs (USD→ARS = 1000.001, EUR→ARS = 1050.5, ARS→USD = 0.000999999, ARS→EUR = 0.000951884 — full string precision, no IEEE-754 drift). `getRate(from, to)` returns the rate + `recordedAt`; `getRate(from, from)` returns `null` (same-currency is a service-layer concern per D-TX-3, the provider is a pure lookup). `advanceClock(deltaMs)` is a TEST-ONLY helper that bumps every pair's `recordedAt` by `deltaMs` uniformly — used to drive the 24h staleness boundary (D-TX-4) without sleeping the runner. Commit: `ebf585b`.
+
+### Sub-task T5.10 [x]
+
+`FX_RATE_PROVIDER_TOKEN` lives in the slice at `libs/features/transactions/server/src/constants.ts` and re-exports through the public barrel. `apps/api/src/modules/transactions/transactions.module.ts` imports the const from `@features/transactions` and binds it to `InMemoryFxRateProvider` via `useFactory`. The five Prisma repositories are wired with `useFactory` against concrete class refs (no string tokens), matching the auth slice's DI pattern. The `apps/api/tsconfig.json` path mapping for `@features/transactions` is added in the same commit (PR #1's mapping only covered the auth slice). Commit: `ebf585b`.
+
+### Quality gates (slice 5 PR #2)
+
+| Gate | Result |
+|------|--------|
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
+| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files: 5 schema + 6 adapter/FX) |
+| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 (modified export surface still typechecks) |
+| `pnpm --filter api exec tsc --noEmit` | exit 0 (NestJS module compiles against the public barrel) |
+| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 (no cross-slice regression) |
+| `pnpm --filter web exec tsc --noEmit` | exit 0 (no app regression) |
+| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errors |
+| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
+| `pnpm --filter @core/database exec vitest run` | 3/3 PASS (no regression in the singleton surface) |
+
+### Out of scope for PR #2 (deferred to PR #3)
+
+- **T5.3** RED test for `TransactionService.create` (depends on services).
+- **T5.9** Four services (TransactionService / CategoryService / TotalsService / ThresholdService).
+- **T5.11** NestJS controller + JWT guard + Idempotency-Key validation pipe.
+- **T5.12** Triangulation suite (8 cross-cutting scenarios).
+- **T5.13** Refactor + lint + typecheck + test green (final pass).
+- **`AuditLogRepository` port** — the AuditLog table ships in schema (T5.1) but the domain port for it is not introduced. Will surface as a brief in PR #3.
+
+### Critical deviations from the brief
+
+1. **`FX_RATE_PROVIDER_TOKEN` relocated to `libs/features/transactions/server/src/constants.ts`.** The previous-session draft declared the token inline inside `apps/api/src/modules/transactions/transactions.module.ts` (`static readonly FX_RATE_PROVIDER_TOKEN = "FX_RATE_PROVIDER" as const;`). Promoting the const to the slice's `constants.ts` keeps the string literal out of the consumer + adds a `FxRateProviderToken` type alias for the compile-time narrowing. The module re-exports the const via `static readonly FX_RATE_PROVIDER_TOKEN = FX_RATE_PROVIDER_TOKEN;` so existing callers that reach for the module-level symbol keep working.
+2. **`apps/api/tsconfig.json` path mapping added.** PR #1's `tsconfig.json` only mapped `@features/auth`; this PR adds `@features/transactions` → `libs/features/transactions/server` + the `*` catchall + the slice's `shared/schemas/**` to the `include` glob. Required for the new module to resolve its imports. The same mapping already exists in `tsconfig.base.json`; this is the per-app mirror.
+3. **The original `@features/transactions/server` import path in `transactions.module.ts` was wrong.** The package name is `@features/transactions` (not `@features/transactions/server`); the prior session's import would have failed to resolve even after the path mapping was added. Fixed in this PR.
+
+### Cross-references (slice 5 PR #2)
+
+- **Atomic commit hashes (PR #2):** `c719a0e` (T5.2 migration), `2cc90fe` (Category.updatedBy follow-up), `ebf585b` (T5.7 + T5.8 + T5.10 + barrel + module + tests, 17 files, +1042/-25 net). Workflow commit: `TBD`.
+- **Spec:** `openspec/changes/.../specs/transactions/spec.md` §Data Model + Decisions (D-TX-1..D-TX-7).
+- **Design:** `openspec/changes/.../design.md` §5.1 (entities + ports), §5.2 (FX provider + staleness), §5.5 (Zod schemas).
+- **Apply progress:** `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md` (this PR #2 section appended).
+- **Spanish mirror:** `Documents-es/openspec/changes/.../tasks.md` + `apply-progress.md` (neutral/professional Spanish per AGENTS.md §13).
+- **Branch:** `feat/slice-5-pr2-adapters-fx`.
+- **Base commit:** `4d5c282` (post-v1.0.0 release merge back into develop).
+- **Pushed:** no.
+- **Merged:** no.
+- **Working tree:** clean after the workflow commit lands.
+- **PR boundary:** this is PR #2 of 3. ~1.04K net insertions across production + tests + DI + tsconfig + barrel updates. PR #3 lands `T5.3+T5.9+T5.11+T5.12+T5.13` (services + controller + triangulate + refactor).
+- **Next recommended:** slice 5 PR #3 — services (TransactionService / CategoryService / TotalsService / ThresholdService), NestJS controller, JWT guard, Idempotency-Key validation pipe, triangulate, and final refactor.

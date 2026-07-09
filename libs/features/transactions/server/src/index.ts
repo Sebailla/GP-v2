@@ -1,14 +1,25 @@
 /**
  * Public API of @features/transactions.
  *
- * Slice 5 PR #1 (this commit) ships the type layer only:
+ * Slice 5 PR #1 shipped the type layer:
  *  - Re-exports the canonical Zod schemas from `../shared/schemas/`
  *    so callers can `import { createSchema } from "@features/transactions"`.
  *  - Re-exports the six domain ports and the five entities from
  *    `domain/entities/` and `domain/interfaces/`.
  *
- * Slice 5 PR #2 adds the Prisma adapters (T5.7 + T5.8) and the
- * FX_RATE_PROVIDER DI wiring (T5.10).
+ * Slice 5 PR #2 (T5.7 + T5.8 + T5.10) adds the persistence boundary:
+ *  - Five `Prisma*Repository` classes implementing the domain ports.
+ *  - `InMemoryFxRateProvider`, the default `FxRateProvider` for dev/test.
+ *    **Dev/test only** — production adapters (HTTP-backed, cache-aware)
+ *    must replace this binding in `TransactionsModule.useFactory`.
+ *    Importing the concrete class directly in production code is a
+ *    silent smell: the seeded rates are hard-coded and stale. Prefer
+ *    importing the `FxRateProvider` port + `FX_RATE_PROVIDER_TOKEN` and
+ *    letting the NestJS container resolve the binding.
+ *  - `FX_RATE_PROVIDER_TOKEN`, the DI token bound in
+ *    `apps/api/src/modules/transactions/transactions.module.ts`.
+ *  - The four domain error classes that translate Prisma's
+ *    `P2002` / `P2025` runtime codes into domain-friendly errors.
  *
  * Slice 5 PR #3 adds the four services (TransactionService, CategoryService,
  * TotalsService, ThresholdService — T5.9), the NestJS controller
@@ -18,43 +29,74 @@
 // Shared Zod schemas (the canonical source of truth — both NestJS pipe and
 // Next.js form reach in here).
 export {
-  createSchema,
-  updateSchema,
-  listSchema,
-  categoryCreateSchema,
-  categoryUpdateSchema,
-  type CreateTransactionInput,
-  type UpdateTransactionInput,
-  type ListTransactionsQuery,
-  type CreateCategoryInput,
-  type UpdateCategoryInput,
+	createSchema,
+	updateSchema,
+	listSchema,
+	categoryCreateSchema,
+	categoryUpdateSchema,
+	type CreateTransactionInput,
+	type UpdateTransactionInput,
+	type ListTransactionsQuery,
+	type CreateCategoryInput,
+	type UpdateCategoryInput,
 } from "../../shared/schemas/index.js";
 
-// Domain entities + ports (the type layer; behavior lands in PR #3).
+// DI tokens.
+export {
+	FX_RATE_PROVIDER_TOKEN,
+	type FxRateProviderToken,
+} from "./constants.js";
+
+// Domain entities + ports (the type layer; PR #3 brings the services).
 export type {
-  Currency,
-  Category,
-  CategoryKind,
-  Transaction,
-  TransactionKind,
-  TransactionListItem,
-  FxRate,
-  FxRateInsert,
-  IdempotencyKey,
-  IdempotencyKeyInsert,
+	Currency,
+	Category,
+	CategoryKind,
+	Transaction,
+	TransactionKind,
+	TransactionListItem,
+	FxRate,
+	FxRateInsert,
+	IdempotencyKey,
+	IdempotencyKeyInsert,
 } from "./domain/entities/index.js";
 
 export type {
-  CategoryRepository,
-  CategoryFilter,
-  CategoryCreate,
-  CategoryUpdate,
-  TransactionRepository,
-  TransactionListFilter,
-  TransactionCreate,
-  TransactionUpdate,
-  CurrencyRepository,
-  FxRateRepository,
-  IdempotencyRepository,
-  FxRateProvider,
+	CategoryRepository,
+	CategoryFilter,
+	CategoryCreate,
+	CategoryUpdate,
+	TransactionRepository,
+	TransactionListFilter,
+	TransactionCreate,
+	TransactionUpdate,
+	CurrencyRepository,
+	FxRateRepository,
+	IdempotencyRepository,
+	FxRateProvider,
 } from "./domain/interfaces/index.js";
+
+// Persistence boundary — Prisma adapters (T5.7).
+// Each class implements its port and enforces the D-TX-5 soft-delete
+// invariant on every read path. Error classes translate Prisma's
+// runtime P2002 / P2025 codes into domain-friendly errors.
+export {
+	PrismaCategoryRepository,
+	CategoryAlreadyExistsError,
+	CategoryNotFoundError,
+} from "./infrastructure/repositories/prisma-category.repository.js";
+
+export { PrismaCurrencyRepository } from "./infrastructure/repositories/prisma-currency.repository.js";
+
+export { PrismaFxRateRepository } from "./infrastructure/repositories/prisma-fx-rate.repository.js";
+
+export { PrismaIdempotencyRepository } from "./infrastructure/repositories/prisma-idempotency.repository.js";
+
+export {
+	PrismaTransactionRepository,
+	TransactionNotFoundError,
+} from "./infrastructure/repositories/prisma-transaction.repository.js";
+
+// Live FX rate provider (T5.8) — bound through `FX_RATE_PROVIDER_TOKEN`.
+// Dev/test impl; production swaps this binding in the NestJS module.
+export { InMemoryFxRateProvider } from "./infrastructure/fx/in-memory-fx-rate.provider.js";
