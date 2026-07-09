@@ -16,17 +16,22 @@
         "ignoreDeprecations": "6.0",
         "incremental": true,
         "noEmit": false,
-        "paths": {
+"paths": {
           "@core/database": ["libs/core/database/src"],
           "@core/database/*": ["libs/core/database/src/*"],
           "@core/events": ["libs/core/events/src"],
           "@core/events/*": ["libs/core/events/src/*"],
           "@core/config": ["libs/core/config"],
           "@core/config/*": ["libs/core/config/*"],
+          "@shared-utils/decimal": ["libs/shared-utils/decimal/src"],
+          "@shared-utils/decimal/*": ["libs/shared-utils/decimal/src/*"],
           "@features/auth": ["libs/features/auth/server"],
-          "@features/auth/*": ["libs/features/auth/*"]
-        }
-      },
-      "include": ["src/**/*.ts", "test/**/*.ts", "../libs/features/auth/shared/schemas/**/*.ts"],
+"@features/auth/*": ["libs/features/auth/*"],
+              "@features/transactions": ["libs/features/transactions/server"],
+              "@features/transactions/*": ["libs/features/transactions/*"],
+              "@shared-utils/*": ["../libs/shared-utils/*"]
+            }
+          },
+      "include": ["src/**/*.ts", "test/**/*.ts", "../libs/features/auth/shared/schemas/**/*.ts", "../libs/features/transactions/shared/schemas/**/*.ts"],
       "exclude": ["node_modules", "dist"]
     }

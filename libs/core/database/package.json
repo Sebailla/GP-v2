@@ -1,8 +1,8 @@
 {
   "name": "@core/database",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "private": true,
-  "description": "Prisma client singleton + schema for gastos-personales-reference. The single source of truth for `new PrismaClient()` — enforced by the `no-prisma-outside-core` ESLint rule from T1.3. Consumed via the @core/database path alias from feature server slices.",
+  "description": "Prisma client singleton + schema for gastos-personales-reference. The single source of truth for `new PrismaClient()` \u2014 enforced by the `no-prisma-outside-core` ESLint rule from T1.3. Consumed via the @core/database path alias from feature server slices.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -23,6 +23,7 @@
     "@types/node": "22.18.0",
     "prisma": "7.8.0",
     "typescript": "6.0.3",
-    "vitest": "4.1.9"
+    "vitest": "4.1.9",
+    "eslint": "^10.6.0"
   }
 }
