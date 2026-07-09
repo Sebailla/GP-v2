@@ -113,6 +113,7 @@ export {
 // Live FX rate provider (T5.8) — bound through `FX_RATE_PROVIDER_TOKEN`.
 // Dev/test impl; production swaps this binding in the NestJS module.
 export { InMemoryFxRateProvider } from "./infrastructure/fx/in-memory-fx-rate.provider.js";
+export { PrismaUnitOfWork } from "./infrastructure/unit-of-work/prisma-unit-of-work.js";
 
 // Domain services (T5.9, PR #3a) — the orchestrator + the three
 // supporting services. The controller (PR #3b) wires these into the

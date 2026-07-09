@@ -11,25 +11,25 @@
  * layer.
  */
 export type {
-  CategoryRepository,
-  CategoryFilter,
-  CategoryCreate,
-  CategoryUpdate,
+	CategoryRepository,
+	CategoryFilter,
+	CategoryCreate,
+	CategoryUpdate,
 } from "./category.repository.js";
 export type {
-  TransactionRepository,
-  TransactionListFilter,
-  TransactionCreate,
-  TransactionUpdate,
+	TransactionRepository,
+	TransactionListFilter,
+	TransactionCreate,
+	TransactionUpdate,
 } from "./transaction.repository.js";
 export type { CurrencyRepository } from "./currency.repository.js";
-export type {
-  FxRateRepository,
-} from "./fx-rate.repository.js";
-    export type { IdempotencyRepository } from "./idempotency.repository.js";
-    export {
-      DuplicateIdempotencyKeyError,
-    } from "./idempotency.repository.js";
-    export { CategoryAlreadyExistsError, CategoryNotFoundError } from "./category.repository.js";
-    export type { FxRateProvider } from "./fx-rate.provider.js";
-    export type { AuditLogRepository } from "./audit-log.repository.js";
+export type { FxRateRepository } from "./fx-rate.repository.js";
+export type { IdempotencyRepository } from "./idempotency.repository.js";
+export { DuplicateIdempotencyKeyError } from "./idempotency.repository.js";
+export {
+	CategoryAlreadyExistsError,
+	CategoryNotFoundError,
+} from "./category.repository.js";
+export type { FxRateProvider } from "./fx-rate.provider.js";
+export type { AuditLogRepository } from "./audit-log.repository.js";
+export type { UnitOfWork, UnitOfWorkContext } from "./unit-of-work.js";

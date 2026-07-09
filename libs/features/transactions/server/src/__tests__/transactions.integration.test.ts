@@ -25,6 +25,7 @@ import type { TransactionsEventDispatcher } from "../events.js";
 import { TransactionNotFoundError } from "../infrastructure/repositories/prisma-transaction.repository.js";
 import { CategoryNotFoundError } from "../domain/interfaces/category.repository.js";
 import { DuplicateIdempotencyKeyError } from "../domain/interfaces/idempotency.repository.js";
+import type { UnitOfWork } from "../domain/interfaces/unit-of-work.js";
 
 /**
  * T5.12 — Triangulation suite (slice 5 PR #3).
@@ -182,15 +183,21 @@ function makeService(
 		listByActor: vi.fn(),
 	};
 
-	const service = new TransactionService(
-		txRepo,
-		categoryRepo,
-		fxProvider,
-		idempotencyRepo,
-		auditLogRepo,
-		events as TransactionsEventDispatcher,
-		clock,
-	);
+    const unitOfWork: UnitOfWork = {
+    	run: <T>(fn: (ctx: { tx: unknown }) => Promise<T>) =>
+    		fn({ tx: undefined }),
+    };
+
+    const service = new TransactionService(
+    	txRepo,
+    	categoryRepo,
+    	fxProvider,
+    	idempotencyRepo,
+    	auditLogRepo,
+    	events as TransactionsEventDispatcher,
+    	unitOfWork,
+    	clock,
+    );
 
 	return {
 		service,

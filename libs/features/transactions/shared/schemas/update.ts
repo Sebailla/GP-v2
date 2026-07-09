@@ -21,10 +21,7 @@ export const updateSchema = z
 				/^\d{1,15}(\.\d{1,2})?$/,
 				"amount must be a positive decimal string with at most 2 fractional digits",
 			)
-			.refine(
-				(s) => !/^0+(\.0+)?$/.test(s),
-				"amount must be greater than 0",
-			)
+			.refine((s) => !/^0+(\.0+)?$/.test(s), "amount must be greater than 0")
 			.optional(),
 		currencyCode: z
 			.string()

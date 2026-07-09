@@ -36,13 +36,8 @@ export const createSchema = z
 				/^\d{1,15}(\.\d{1,2})?$/,
 				"amount must be a positive decimal string with at most 2 fractional digits",
 			)
-			.refine(
-				(s) => !/^0+(\.0+)?$/.test(s),
-				"amount must be greater than 0",
-			),
-		currencyCode: z
-			.string()
-			.regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code"),
+			.refine((s) => !/^0+(\.0+)?$/.test(s), "amount must be greater than 0"),
+		currencyCode: z.string().regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code"),
 		kind: z.enum(["income", "expense"]),
 		categoryId: z.string().cuid(),
 		notes: z

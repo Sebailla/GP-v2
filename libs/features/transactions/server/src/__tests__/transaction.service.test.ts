@@ -18,6 +18,7 @@ import {
   UnsupportedCurrencyPairError,
   type CreateTransactionInput,
 } from "../domain/services/transaction.service.js";
+import type { UnitOfWork } from "../domain/interfaces/unit-of-work.js";
 import { TRANSACTIONS_CREATED, TRANSACTIONS_FX_STALE } from "@core/events";
 
 /**
@@ -123,15 +124,25 @@ function makeService(opts: {
   const idempotencyRepo: IdempotencyRepository = { find, create, purgeExpired: vi.fn() };
   const auditLogRepo: AuditLogRepository = { append, findByEntity: vi.fn(), listByActor: vi.fn() };
 
-  const service = new TransactionService(
-    txRepo,
-    categoryRepo,
-    fxProvider,
-    idempotencyRepo,
-    auditLogRepo,
-    events,
-    clock,
-  );
+      // Test-only UnitOfWork: invokes the callback synchronously with
+      // a benign `{ tx: undefined }` context. Repositories that branch on
+      // `tx?.tx` and fall back to their default `this.prisma` see the
+      // same null context as a non-unit-of-work call.
+      const unitOfWork: UnitOfWork = {
+        run: <T>(fn: (ctx: { tx: unknown }) => Promise<T>) =>
+          fn({ tx: undefined }),
+      };
+
+      const service = new TransactionService(
+        txRepo,
+        categoryRepo,
+        fxProvider,
+        idempotencyRepo,
+        auditLogRepo,
+        events,
+        unitOfWork,
+        clock,
+      );
 
   return {
     service,
