@@ -1,6 +1,8 @@
 import {
   TRANSACTIONS_CREATED,
   TRANSACTIONS_FX_STALE,
+  TRANSACTIONS_SOFT_DELETED,
+  TRANSACTIONS_UPDATED,
   type DomainEvent,
 } from "@core/events";
 import { toDecimal, type Decimal } from "@shared-utils/decimal";
@@ -378,32 +380,180 @@ export class TransactionService {
     };
   }
 
-  private transactionFromIdempotencyPayload(
-    cached: IdempotencyKey,
-  ): Transaction {
-    const p = cached.responsePayload as Record<string, unknown>;
-    return {
-      id: p["id"] as string,
-      amount: toDecimal(p["amount"] as string),
-      currencyCode: p["currencyCode"] as string,
-      kind: p["kind"] as TransactionKind,
-      reportingAmount:
-        p["reportingAmount"] === null
-          ? null
-          : toDecimal(p["reportingAmount"] as string),
-      reportingCurrencyCode: (p["reportingCurrencyCode"] as string | null) ?? null,
-      fxRateId: (p["fxRateId"] as string | null) ?? null,
-      categoryId: p["categoryId"] as string,
-      notes: (p["notes"] as string | null) ?? null,
-      occurredAt: new Date(p["occurredAt"] as string),
-      createdBy: p["createdBy"] as string,
-      updatedBy: p["updatedBy"] as string,
-      createdAt: new Date(p["createdAt"] as string),
-      updatedAt: new Date(p["updatedAt"] as string),
-      deletedAt: p["deletedAt"] === null ? null : new Date(p["deletedAt"] as string),
-    };
-  }
-}
+private transactionFromIdempotencyPayload(
+        cached: IdempotencyKey,
+      ): Transaction {
+        const p = cached.responsePayload as Record<string, unknown>;
+        return {
+          id: p["id"] as string,
+          amount: toDecimal(p["amount"] as string),
+          currencyCode: p["currencyCode"] as string,
+          kind: p["kind"] as TransactionKind,
+          reportingAmount:
+            p["reportingAmount"] === null
+              ? null
+              : toDecimal(p["reportingAmount"] as string),
+          reportingCurrencyCode: (p["reportingCurrencyCode"] as string | null) ?? null,
+          fxRateId: (p["fxRateId"] as string | null) ?? null,
+          categoryId: p["categoryId"] as string,
+          notes: (p["notes"] as string | null) ?? null,
+          occurredAt: new Date(p["occurredAt"] as string),
+          createdBy: p["createdBy"] as string,
+          updatedBy: p["updatedBy"] as string,
+          createdAt: new Date(p["createdAt"] as string),
+          updatedAt: new Date(p["updatedAt"] as string),
+          deletedAt: p["deletedAt"] === null ? null : new Date(p["deletedAt"] as string),
+        };
+      }
+
+      /**
+       * Cursor-paginated list scoped to a single user. Thin delegation
+       * to the repository — the controller can call this directly because
+       * the repository already enforces user-scoping + soft-delete
+       * (D-TX-5). Returns `{ rows, cursor }`; the cursor is the opaque
+       * string the client feeds back as `cursor` on the next page
+       * (Prisma's stable cursor pattern).
+       *
+       * The slice close-out adds this method — T5.9 shipped only
+       * `create` and the close-out needs it for the controller's
+       * `GET /transactions` endpoint (design §5.3).
+       */
+      async list(
+        userId: string,
+        filter: {
+          readonly cursor?: string;
+          readonly pageSize?: number;
+          readonly categoryId?: string;
+          readonly fromDate?: Date;
+          readonly toDate?: Date;
+          readonly currencyCode?: string;
+        },
+      ): Promise<{
+        readonly rows: ReadonlyArray<import("../entities/transaction.entity.js").TransactionListItem>;
+        readonly cursor: string | null;
+      }> {
+        // Build the filter with conditional spread so the call satisfies
+        // `exactOptionalPropertyTypes` (the port forbids `undefined`
+        // on optional fields; omitting them via spread is the canonical
+        // escape hatch).
+        const repoFilter: Parameters<TransactionRepository["list"]>[0] = {
+          userId,
+          ...(filter.cursor !== undefined ? { cursor: filter.cursor } : {}),
+          ...(filter.pageSize !== undefined ? { pageSize: filter.pageSize } : {}),
+          ...(filter.categoryId !== undefined ? { categoryId: filter.categoryId } : {}),
+          ...(filter.fromDate !== undefined ? { fromDate: filter.fromDate } : {}),
+          ...(filter.toDate !== undefined ? { toDate: filter.toDate } : {}),
+          ...(filter.currencyCode !== undefined
+            ? { currencyCode: filter.currencyCode }
+            : {}),
+        };
+        const page = await this.txRepo.list(repoFilter);
+        // The repository returns `TransactionListItem[]` (a stripped-down
+        // projection: no notes / createdBy / updatedBy — see entity.ts).
+        // The service passes the projection through unchanged; the
+        // controller serializes the items directly. Single-transaction
+        // endpoints (GET/PATCH) fetch the full row via `findById` when
+        // they need notes / createdBy / updatedBy.
+        return { rows: page.rows, cursor: page.cursor };
+      }
+
+      /**
+       * Patch an existing transaction by id. The orchestration:
+       *
+       *   1. If `categoryId` is in the patch, verify the new category is
+       *      active (D-TX-5 boundary). Missing or soft-deleted → throw
+       *      `CategoryNotFoundError`.
+       *   2. Persist via the repository. Soft-deleted rows are NOT
+       *      updatable; the adapter throws `TransactionNotFoundError`.
+       *   3. Write the audit log (action = "update", payload includes the
+       *      changed fields).
+       *   4. Dispatch `transactions.updated` with the changed fields.
+       *
+       * The slice close-out adds this — T5.9 shipped only `create`.
+       */
+      async update(
+        id: string,
+        input: {
+          readonly amount?: import("@shared-utils/decimal").Decimal;
+          readonly currencyCode?: string;
+          readonly kind?: TransactionKind;
+          readonly categoryId?: string;
+          readonly notes?: string | null;
+          readonly occurredAt?: Date;
+        },
+        actorId: string,
+      ): Promise<Transaction> {
+        const changedFields = Object.keys(input).filter(
+          (k) => (input as Record<string, unknown>)[k] !== undefined,
+        );
+        if (input.categoryId !== undefined) {
+          const category = await this.categoryRepo.findById(input.categoryId);
+          if (category === null) {
+            throw new CategoryNotFoundError(input.categoryId);
+          }
+        }
+        const updated = await this.txRepo.update(id, {
+          ...input,
+          updatedBy: actorId,
+        });
+        await this.auditLogRepo.append({
+          entityType: "Transaction",
+          entityId: updated.id,
+          action: "update",
+          actorId,
+          payload: { changedFields, ...input },
+        });
+        await this.events({
+          name: TRANSACTIONS_UPDATED,
+          userId: updated.createdBy,
+          payload: {
+            transactionId: updated.id,
+            userId: updated.createdBy,
+            changedFields,
+            at: this.clock(),
+          },
+          occurredAt: this.clock(),
+        });
+        return updated;
+      }
+
+      /**
+       * Soft-delete a transaction. Idempotent at the repository layer
+       * (P2025 swallow); the service writes the audit log + dispatches
+       * `transactions.soft-deleted` only when the row was actually
+       * transitioned from active to tombstoned.
+       *
+       * The slice close-out adds this — T5.9 shipped only `create`.
+       */
+      async softDelete(id: string, actorId: string): Promise<void> {
+        const existing = await this.txRepo.findById(id);
+        if (existing === null) {
+          // Idempotent — the soft-delete is a no-op on already-tombstoned
+          // rows. The repository would also return silently; this explicit
+          // check preserves the audit-log semantics (we don't log "user X
+          // tried to delete a row that was already gone").
+          return;
+        }
+        await this.txRepo.softDelete(id, actorId);
+        await this.auditLogRepo.append({
+          entityType: "Transaction",
+          entityId: id,
+          action: "softDelete",
+          actorId,
+          payload: { at: this.clock() },
+        });
+        await this.events({
+          name: TRANSACTIONS_SOFT_DELETED,
+          userId: existing.createdBy,
+          payload: {
+            transactionId: id,
+            userId: existing.createdBy,
+            at: this.clock(),
+          },
+          occurredAt: this.clock(),
+        });
+      }
+    }
 
 // Domain error classes are imported from the port files
 // (CategoryNotFoundError from the category port,
