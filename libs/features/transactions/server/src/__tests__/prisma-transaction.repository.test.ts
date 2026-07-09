@@ -93,7 +93,7 @@ describe("PrismaTransactionRepository", () => {
 			);
 
 			const repo = new PrismaTransactionRepository();
-			const txn = await repo.findById("txn-1");
+			const txn = await repo.findByIdForUser("txn-1", "user-1");
 
 			expect(prisma.transaction.findFirst).toHaveBeenCalledTimes(1);
 			const callArg = (
@@ -101,7 +101,7 @@ describe("PrismaTransactionRepository", () => {
 					{ where: { id: string; deletedAt: null } },
 				]
 			)[0];
-			expect(callArg.where).toEqual({ id: "txn-1", deletedAt: null });
+			expect(callArg.where).toEqual({ id: "txn-1", createdBy: "user-1", deletedAt: null });
 			expect(txn).not.toBeNull();
 			expect(txn!.amount.toString()).toBe("12.34");
 		});
@@ -110,7 +110,7 @@ describe("PrismaTransactionRepository", () => {
 			vi.mocked(prisma.transaction.findFirst).mockResolvedValue(null as never);
 
 			const repo = new PrismaTransactionRepository();
-			const txn = await repo.findById("txn-missing");
+			const txn = await repo.findByIdForUser("txn-missing", "user-1");
 
 			expect(txn).toBeNull();
 		});
@@ -338,7 +338,7 @@ describe("PrismaTransactionRepository", () => {
 
     		const repo = new PrismaTransactionRepository();
     		await expect(
-    		repo.update("txn-missing", { updatedBy: "user-1" }),
+    		repo.update("txn-missing", "user-1", { updatedBy: "user-1" }),
     		).rejects.toBeInstanceOf(TransactionNotFoundError);
     		// The update is NEVER attempted when the pre-check fails.
     		expect(prisma.transaction.update).not.toHaveBeenCalled();
@@ -357,7 +357,7 @@ describe("PrismaTransactionRepository", () => {
 
     		const repo = new PrismaTransactionRepository();
     		await expect(
-    		repo.update("txn-1", { updatedBy: "user-1" }),
+    		repo.update("txn-1", "user-1", { updatedBy: "user-1" }),
     		).rejects.toBeInstanceOf(TransactionNotFoundError);
     		});
 
@@ -366,7 +366,7 @@ describe("PrismaTransactionRepository", () => {
 
     		const repo = new PrismaTransactionRepository();
     		await expect(
-    		repo.update("txn-soft-deleted", { updatedBy: "user-1" }),
+    		repo.update("txn-soft-deleted", "user-1", { updatedBy: "user-1" }),
     		).rejects.toBeInstanceOf(TransactionNotFoundError);
     		expect(prisma.transaction.update).not.toHaveBeenCalled();
     		});
@@ -376,16 +376,22 @@ describe("PrismaTransactionRepository", () => {
     		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
 
     		const repo = new PrismaTransactionRepository();
-    		await repo.update("txn-1", { updatedBy: "user-1" });
+    		await repo.update("txn-1", "user-1", { updatedBy: "user-1" });
 
     		expect(prisma.transaction.findFirst).toHaveBeenCalledTimes(1);
     		const findCallArg = (
     		vi.mocked(prisma.transaction.findFirst).mock.calls[0] as unknown as [
-    		{ where: { id: string; deletedAt: null } },
+    		{ where: { id: string; createdBy: string; deletedAt: null } },
     		]
     		)[0];
-    		// D-TX-5 invariant: the pre-check MUST filter `deletedAt: null`.
+    		// D-TX-5 + D-TX-7 invariants: the pre-check MUST filter
+    		// `createdBy = userId` (ownership) AND `deletedAt: null`
+    		// (not-soft-deleted). The two filters collapse "missing",
+    		// "foreign-owned", and "tombstoned" into a single NotFound,
+    		// so the service surfaces a single error class regardless
+    		// of which invariant fired.
     		expect(findCallArg.where.id).toBe("txn-1");
+    		expect(findCallArg.where.createdBy).toBe("user-1");
     		expect(findCallArg.where.deletedAt).toBeNull();
     		});
 
@@ -394,7 +400,7 @@ describe("PrismaTransactionRepository", () => {
     		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
 
     		const repo = new PrismaTransactionRepository();
-    		await repo.update("txn-1", { updatedBy: "user-1" });
+    		await repo.update("txn-1", "user-1", { updatedBy: "user-1" });
 
     		// $transaction must be called exactly once for the update path,
     		// and the isolation level MUST be Serializable — without it, a
@@ -420,7 +426,7 @@ describe("PrismaTransactionRepository", () => {
     		vi.mocked(prisma.transaction.update).mockResolvedValue(fakeRow() as never);
 
     		const repo = new PrismaTransactionRepository();
-    		await repo.update("txn-1", {
+    		await repo.update("txn-1", "user-1", {
     		amount: toDecimal("99.99"),
     		updatedBy: "user-1",
     		});
@@ -541,7 +547,7 @@ describe("PrismaTransactionRepository", () => {
 			);
 
 			const repo = new PrismaTransactionRepository();
-			const txn = await repo.findById("txn-1");
+			const txn = await repo.findByIdForUser("txn-1", "user-1");
 
 			expect(txn).not.toBeNull();
 			expect(Decimal.isDecimal(txn!.amount)).toBe(true);
@@ -559,7 +565,7 @@ describe("PrismaTransactionRepository", () => {
 			);
 
 			const repo = new PrismaTransactionRepository();
-			const txn = await repo.findById("txn-1");
+			const txn = await repo.findByIdForUser("txn-1", "user-1");
 
 			expect(txn!.reportingAmount).toBeNull();
 			expect(txn!.reportingCurrencyCode).toBeNull();

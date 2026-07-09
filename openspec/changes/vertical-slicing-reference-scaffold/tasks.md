@@ -1440,3 +1440,33 @@ Five Prisma adapters implementing the domain ports. Located at `libs/features/tr
 - **Working tree:** clean after the workflow commit lands.
 - **PR boundary:** this is PR #2 of 3. ~1.04K net insertions across production + tests + DI + tsconfig + barrel updates. PR #3 lands `T5.3+T5.9+T5.11+T5.12+T5.13` (services + controller + triangulate + refactor).
 - **Next recommended:** slice 5 PR #3 — services (TransactionService / CategoryService / TotalsService / ThresholdService), NestJS controller, JWT guard, Idempotency-Key validation pipe, triangulate, and final refactor.
+
+---
+
+## Slice 5 PR #3 — Close-out (bookkeeping + controller + triangulate + refactor)
+
+**Recap.** This is the third and final PR of slice 5's chained-3-PR strategy. Scope: bookkeeping fix (T5.3 + T5.9 markers — both sub-tasks are materially complete from PR #3a but were never marked), the NestJS controller for `/transactions` and `/categories` (T5.11), the triangulation suite covering idempotency / threshold / soft-delete / FX staleness / audit-log scenarios (T5.12), and the final REFACTOR + lint + typecheck + test gate (T5.13).
+
+**Branch.** `feat/s5-closeout` (cut from `develop @ 74a63ac`, post PR #3a merge).
+
+**Strict TDD.** ACTIVE. Test runner = `pnpm turbo run test --filter api --filter @features/transactions`. T5.11 is a NestJS controller with a thin DI-wiring layer (no business logic — Pattern A from the auth slice). T5.12 is a triangulation suite wired end-to-end against the real services + real adapters (prisma mocked at the singleton boundary; the slice-3 e2e pattern). T5.13 is REFACTOR-only: small deduplications and type tightenings, no behavior changes.
+
+### Sub-task T5.3 [x]
+
+RED test for `TransactionService.create` with FX conversion. `libs/features/transactions/server/src/__tests__/transaction.service.test.ts` covers the happy path (load category → FX lookup → persist → audit → dispatch), the FX-stale branch (`transactions.fx.stale` emitted when `now - recordedAt > 24h`), the same-currency short-circuit (D-TX-3), the missing-category path (CategoryNotFoundError, D-TX-5), the missing-FX-pair path (UnsupportedCurrencyPairError), and the four idempotency branches (matching fingerprint → cached payload; mismatched fingerprint → IdempotencyKeyReusedError; first-call cache write; concurrent race swallows DuplicateIdempotencyKeyError). 11 assertions across 4 `describe` blocks, all GREEN. Landed in commit `74a63ac` (PR #3a, #29) — marker `[x]` applied retroactively in this PR #3.
+
+### Sub-task T5.9 [x]
+
+Four domain services — `TransactionService` (create + update + softDelete orchestrator), `CategoryService` (write paths + delegation), `TotalsService` (sign-aware aggregation), `ThresholdService` (`transactions.threshold.exceeded` evaluation). Located at `libs/features/transactions/server/src/domain/services/{transaction,category,totals,threshold}.service.ts` + `index.ts` barrel. Each service takes its port dependencies via constructor injection (Pattern A, matching the auth slice convention). Tests live at `libs/features/transactions/server/src/__tests__/{transaction,category,totals,threshold}.service.test.ts`; together with T5.3 they cover the full service-layer contract (40+ assertions across 4 files, all GREEN). `TransactionService.create` carries the FX-staleness dispatch + idempotency replay + audit-log persistence + event dispatch in the canonical order (design §5.9). `ThresholdService.evaluate` is a pure side-effect — the controller runs it AFTER `create` returns so the threshold does NOT block the write. Landed in commit `74a63ac` (PR #3a, #29) — marker `[x]` applied retroactively in this PR #3.
+
+### Cross-references (slice 5 PR #3 — initial bookkeeping commit)
+
+- **Tasks:** `openspec/changes/.../tasks.md` (new "Slice 5 PR #3 — Close-out" section + 2 sub-task `[x]` rows for T5.3 + T5.9). T5.11 / T5.12 / T5.13 markers are updated in subsequent commits of this PR.
+- **Spanish mirror:** `Documents-es/openspec/changes/.../tasks.md` (neutral/professional Spanish per AGENTS.md §13).
+- **Branch:** `feat/s5-closeout`.
+- **Base commit:** `74a63ac` (post PR #3a merge back into develop).
+- **Pushed:** no.
+- **Merged:** no.
+- **Working tree:** clean after each atomic commit.
+- **PR boundary:** this is PR #3 of 3 in the slice 5 chain. ~150 net insertions across production (controller + barrel + module wiring + 8 integration tests) + apply-progress section + tasks.md markers.
+- **Next recommended:** slice 5 PR #3 — controller + triangulate + refactor + final gate (commits 2..5 of this PR).

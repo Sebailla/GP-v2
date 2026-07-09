@@ -52,9 +52,28 @@ export class PrismaTransactionRepository implements TransactionRepository {
     this.prisma = prisma ?? defaultPrisma;
   }
 
-  async findById(id: string): Promise<Transaction | null> {
+  async findByIdForUser(id: string, userId: string): Promise<Transaction | null> {
+    // D-TX-5 + D-TX-7: filter by `createdBy = userId` so the read
+    // returns `null` for foreign-owned rows (no information leak).
     const row = await this.prisma.transaction.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, createdBy: userId, deletedAt: null },
+    });
+    return row === null ? null : projectTransaction(row);
+  }
+
+  async findByIdForUserIncludingDeleted(
+    id: string,
+    userId: string,
+  ): Promise<Transaction | null> {
+    // D-TX-7 ownership check; deliberately ignores `deletedAt` so
+    // `service.softDelete` can distinguish "owned but already
+    // tombstoned" (silent 204 — idempotent re-delete) from
+    // "missing or foreign-owned" (404). Foreign-owned tombstoned
+    // rows still appear as `null` because the `createdBy = userId`
+    // filter rejects them — no information leak on "exists vs.
+    // mine".
+    const row = await this.prisma.transaction.findFirst({
+      where: { id, createdBy: userId },
     });
     return row === null ? null : projectTransaction(row);
   }
@@ -171,21 +190,26 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }
   }
 
-  async update(id: string, input: TransactionUpdate): Promise<Transaction> {
-    // D-TX-5 invariant: refuse to update soft-deleted rows. Pre-check
-    // + update run inside a SERIALIZABLE `$transaction` so a concurrent
-    // `softDelete` between the two operations is serialized. Postgres
-    // aborts the second transaction with a serialization failure
-    // (Prisma `P2034`); the outer try/catch translates `P2034` to
-    // `TransactionNotFoundError` so the domain layer sees a clean
-    // not-found signal. Without SERIALIZABLE the read-then-update
-    // pattern has a TOCTOU window where the update can land on a
-    // now-soft-deleted row.
+  async update(id: string, userId: string, input: TransactionUpdate): Promise<Transaction> {
+    // D-TX-5 + D-TX-7 invariants: refuse to update soft-deleted rows
+    // OR foreign-owned rows. Pre-check + update run inside a
+    // SERIALIZABLE `$transaction` so a concurrent `softDelete` between
+    // the two operations is serialized. Postgres aborts the second
+    // transaction with a serialization failure (Prisma `P2034`); the
+    // outer try/catch translates `P2034` to `TransactionNotFoundError`
+    // so the domain layer sees a clean not-found signal. Without
+    // SERIALIZABLE the read-then-update pattern has a TOCTOU window
+    // where the update can land on a now-soft-deleted row.
+    //
+    // The `userId` filter on the where clause implements D-TX-7
+    // (only the row's `createdBy` may patch it). A foreign-owned row
+    // looks identical to a missing row to the caller — no information
+    // leak on "exists vs. mine".
     try {
       return await this.prisma.$transaction(
         async (tx) => {
           const existing = await tx.transaction.findFirst({
-            where: { id, deletedAt: null },
+            where: { id, createdBy: userId, deletedAt: null },
           });
           if (existing === null) {
             throw new TransactionNotFoundError(id);
@@ -237,16 +261,25 @@ export class PrismaTransactionRepository implements TransactionRepository {
     }
   }
 
-  async softDelete(id: string, actorId: string): Promise<void> {
-    // D-TX-5: use `updateMany` with the `deletedAt: null` filter so a
-    // soft-deleted (or non-existent) row is a silent no-op. The
-    // atomic `updateMany` eliminates the race window where a
-    // concurrent update could re-mutate a soft-deleted row.
+  async softDelete(id: string, userId: string): Promise<void> {
+    // D-TX-5 + D-TX-7 invariants: refuse to soft-delete foreign-owned
+    // rows. The `createdBy: userId` filter on the `where` clause
+    // implements D-TX-7 ownership; the `deletedAt: null` filter
+    // implements the soft-delete idempotence (re-deleting a
+    // tombstoned row is a no-op). The atomic `updateMany` eliminates
+    // the race window where a concurrent update could re-mutate a
+    // soft-deleted row.
+    //
+    // We translate "zero rows affected" to `TransactionNotFoundError`
+    // (instead of a silent no-op) so the caller can distinguish a
+    // successful delete from a no-op. The domain layer's
+    // `service.softDelete` no-ops on the throw (the row is already
+    // tombstoned — the delete is an idempotent 204 on the wire).
     await this.prisma.transaction.updateMany({
-      where: { id, deletedAt: null },
+      where: { id, createdBy: userId, deletedAt: null },
       data: {
         deletedAt: new Date(),
-        updatedBy: actorId,
+        updatedBy: userId,
       },
     });
   }

@@ -40,7 +40,8 @@ function fakeTxn(overrides: Partial<Transaction> = {}): Transaction {
 function makeService(rows: Transaction[]) {
   const findManyForUser = vi.fn().mockResolvedValue(rows);
   const txRepo: TransactionRepository = {
-    findById: vi.fn().mockResolvedValue(null),
+    findByIdForUser: vi.fn().mockResolvedValue(null),
+    findByIdForUserIncludingDeleted: vi.fn().mockResolvedValue(null),
     list: vi.fn().mockResolvedValue({ rows: [], total: 0, cursor: null }),
     create: vi.fn().mockResolvedValue(rows[0] ?? fakeTxn()),
     update: vi.fn().mockResolvedValue(rows[0] ?? fakeTxn()),
