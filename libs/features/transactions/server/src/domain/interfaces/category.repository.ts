@@ -15,21 +15,33 @@ export interface CategoryFilter {
  * Input for `CategoryRepository.create`. The natural-key `slug` is
  * unique-table-wide; the repository translates duplicate-slug errors
  * into the canonical `CategoryAlreadyExists` domain error.
+ *
+ * `actorId` is the caller-of-record for the audit trail (PR #3a closes
+ * the prior `__category_seed_actor__` sentinel — every Category write
+ * now records the real actor).
  */
 export interface CategoryCreate {
   readonly name: string;
   readonly slug: string;
   readonly kind: CategoryKind;
+  readonly actorId: string;
 }
 
 /**
  * Input for `CategoryRepository.update`. `slug` is NOT updatable here
  * (stable URL identifier; renaming is a destructive operation out of
  * scope for the first slice).
+ *
+ * `actorId` is required — every update records the actor in the
+ * `updatedBy` column for the audit trail. The service resolves
+ * `actorId` from the call-site context (HTTP request auth, CLI
+ * session, etc.) and threads it through; the adapter never invents a
+ * placeholder.
  */
 export interface CategoryUpdate {
   readonly name?: string;
   readonly kind?: CategoryKind;
+  readonly actorId: string;
 }
 
 /**
@@ -73,6 +85,7 @@ export interface CategoryRepository {
   /**
    * Insert a new category. The adapter validates `slug` uniqueness
    * at the DB layer and surfaces `CategoryAlreadyExists` on conflict.
+   * The `actorId` is recorded in the `updatedBy` column.
    */
   create(input: CategoryCreate): Promise<Category>;
 
@@ -91,4 +104,33 @@ export interface CategoryRepository {
    * for audit-trail parity with transactions.
    */
   softDelete(id: string, actorId: string): Promise<void>;
+}
+
+/**
+ * Domain error raised when a `create()` call collides with the
+ * `@@unique(slug)` constraint. Translated from Prisma's `P2002`
+ * unique-constraint-violation error code at the adapter layer.
+ *
+ * Defined alongside the port so consumers (services, controllers,
+ * tests) can `instanceof`-narrow without reaching into the adapter
+ * file. The adapter file re-exports for convenience.
+ */
+export class CategoryAlreadyExistsError extends Error {
+  constructor(public readonly slug: string) {
+    super(`Category with slug "${slug}" already exists`);
+    this.name = "CategoryAlreadyExistsError";
+  }
+}
+
+/**
+ * Domain error raised when an `update()` call lands on a missing OR
+ * soft-deleted row. Translated from Prisma's `P2025` not-found error
+ * code at the adapter layer. D-TX-5 boundary owner — the service
+ * layer never differentiates "missing" from "soft-deleted".
+ */
+export class CategoryNotFoundError extends Error {
+  constructor(public readonly id: string) {
+    super(`Category "${id}" not found or already soft-deleted`);
+    this.name = "CategoryNotFoundError";
+  }
 }

@@ -103,6 +103,31 @@ export class PrismaTransactionRepository implements TransactionRepository {
     };
   }
 
+  async findManyForUser(
+    userId: string,
+    range: { readonly fromDate?: Date; readonly toDate?: Date },
+  ): Promise<Transaction[]> {
+    const where: Prisma.TransactionWhereInput = {
+      createdBy: userId,
+      deletedAt: null,
+    };
+    if (range.fromDate !== undefined || range.toDate !== undefined) {
+      where.occurredAt = {};
+      if (range.fromDate !== undefined) {
+        (where.occurredAt as Prisma.DateTimeFilter).gte = range.fromDate;
+      }
+      if (range.toDate !== undefined) {
+        (where.occurredAt as Prisma.DateTimeFilter).lt = range.toDate;
+      }
+    }
+
+    const rows = await this.prisma.transaction.findMany({
+      where,
+      orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    });
+    return rows.map(projectTransaction);
+  }
+
   async create(input: TransactionCreate): Promise<Transaction> {
     try {
       const row = await this.prisma.transaction.create({

@@ -144,7 +144,7 @@ describe("PrismaCategoryRepository", () => {
 
 			const repo = new PrismaCategoryRepository();
 			await expect(
-				repo.create({ name: "Groceries", slug: "groceries", kind: "expense" }),
+				repo.create({ name: "Groceries", slug: "groceries", kind: "expense", actorId: "user-1" }),
 			).rejects.toBeInstanceOf(CategoryAlreadyExistsError);
 		});
 
@@ -154,32 +154,34 @@ describe("PrismaCategoryRepository", () => {
 
 			const repo = new PrismaCategoryRepository();
 			await expect(
-				repo.create({ name: "Groceries", slug: "groceries", kind: "expense" }),
+				repo.create({ name: "Groceries", slug: "groceries", kind: "expense", actorId: "user-1" }),
 			).rejects.toBe(unexpected);
 		});
 
-		it("returns the projected Category on success", async () => {
-			vi.mocked(prisma.category.create).mockResolvedValue({
-				id: "cat-1",
-				name: "Groceries",
-				slug: "groceries",
-				kind: "expense",
-				updatedBy: "__category_seed_actor__",
-				deletedAt: null,
-				createdAt: new Date("2026-01-01T00:00:00.000Z"),
-				updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-			} as never);
+    		it("returns the projected Category on success", async () => {
+    		vi.mocked(prisma.category.create).mockResolvedValue({
+    		id: "cat-1",
+    		name: "Groceries",
+    		slug: "groceries",
+    		kind: "expense",
+    		updatedBy: "user-1",
+    		deletedAt: null,
+    		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    		} as never);
 
-			const repo = new PrismaCategoryRepository();
-			const category = await repo.create({
-				name: "Groceries",
-				slug: "groceries",
-				kind: "expense",
-			});
+    		const repo = new PrismaCategoryRepository();
+    		const category = await repo.create({
+    		name: "Groceries",
+    		slug: "groceries",
+    		kind: "expense",
+    		actorId: "user-1",
+    		});
 
-			expect(category.kind).toBe("expense");
-			expect(category.slug).toBe("groceries");
-		});
+    		expect(category.kind).toBe("expense");
+    		expect(category.slug).toBe("groceries");
+    		expect(category.updatedBy).toBe("user-1");
+    		});
 	});
 
     	describe("update", () => {
@@ -192,7 +194,7 @@ describe("PrismaCategoryRepository", () => {
 
     		const repo = new PrismaCategoryRepository();
     		await expect(
-    		repo.update("cat-missing", { name: "New Name" }),
+    		repo.update("cat-missing", { name: "New Name", actorId: "user-1" }),
     		).rejects.toBeInstanceOf(CategoryNotFoundError);
     		// The update is NEVER attempted when the pre-check fails.
     		expect(prisma.category.update).not.toHaveBeenCalled();
@@ -220,7 +222,7 @@ describe("PrismaCategoryRepository", () => {
 
     		const repo = new PrismaCategoryRepository();
     		await expect(
-    		repo.update("cat-1", { name: "New Name" }),
+    		repo.update("cat-1", { name: "New Name", actorId: "user-1" }),
     		).rejects.toBeInstanceOf(CategoryNotFoundError);
     		});
 
@@ -234,7 +236,7 @@ describe("PrismaCategoryRepository", () => {
 
     		const repo = new PrismaCategoryRepository();
     		await expect(
-    		repo.update("cat-soft-deleted", { name: "New Name" }),
+    		repo.update("cat-soft-deleted", { name: "New Name", actorId: "user-1" }),
     		).rejects.toBeInstanceOf(CategoryNotFoundError);
     		expect(prisma.category.update).not.toHaveBeenCalled();
     		});
@@ -262,7 +264,7 @@ describe("PrismaCategoryRepository", () => {
     		} as never);
 
     		const repo = new PrismaCategoryRepository();
-    		await repo.update("cat-1", { name: "New Name" });
+    		await repo.update("cat-1", { name: "New Name", actorId: "user-1" });
 
     		expect(prisma.category.findFirst).toHaveBeenCalledTimes(1);
     		const callArg = (
@@ -298,7 +300,7 @@ describe("PrismaCategoryRepository", () => {
     		} as never);
 
     		const repo = new PrismaCategoryRepository();
-    		await repo.update("cat-1", { name: "New Name" });
+    		await repo.update("cat-1", { name: "New Name", actorId: "user-1" });
 
     		// D-TX-5 contract: the pre-check + update run inside a
     		// SERIALIZABLE transaction so a concurrent softDelete cannot

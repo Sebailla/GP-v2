@@ -1,23 +1,14 @@
 /**
- * DI tokens for the transactions feature slice.
+ * DI tokens + policy constants for the transactions feature slice.
  *
- * Lives in the slice (not in `apps/api`) so consumers import a const, not
- * a string literal. This keeps the convention honest and prevents string
- * drift across bound surfaces — NestJS modules and services both reach
- * for the same identifier.
+ * The DI tokens live in the slice (not in `apps/api`) so consumers
+ * import a const, not a string literal. This keeps the convention
+ * honest and prevents string drift across bound surfaces — NestJS
+ * modules and services both reach for the same identifier.
  *
- * Mirror: the `apps/api/src/modules/transactions/transactions.module.ts`
- * `provide:` and `exports:` arrays bind to this token through:
- *
- *   import { FX_RATE_PROVIDER_TOKEN } from "@features/transactions";
- *   { provide: FX_RATE_PROVIDER_TOKEN, useFactory: ... }
- *
- * Slice 5 PR #3 services consume the provider via:
- *
- *   constructor(
- *     @Inject(FX_RATE_PROVIDER_TOKEN)
- *     private readonly fx: FxRateProvider,
- *   ) {}
+ * Policy constants (D-TX-4 staleness window + D-TX-1 idempotency
+ * TTL) live here too so the service + adapter + tests can all
+ * reference the same canonical values.
  */
 
 /**
@@ -34,3 +25,29 @@ export const FX_RATE_PROVIDER_TOKEN = "FX_RATE_PROVIDER" as const;
  * decorators where the literal narrowing is needed.
  */
 export type FxRateProviderToken = typeof FX_RATE_PROVIDER_TOKEN;
+
+/**
+ * D-TX-4: a quoted FX rate is "stale" when its `recordedAt` is older
+ * than this window. The `TransactionService.create` path emits
+ * `transactions.fx.stale` (informational, NOT a write blocker) when
+ * the rate's age exceeds this window. 24 hours matches the
+ * conventional daily-refresh cycle for major currency pairs.
+ */
+export const STALENESS_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * D-TX-1: the time-to-live for a cached idempotency record. After
+ * this window, a `(userId, key)` tuple is treated as fresh (the
+ * `find()` boundary check returns `null` for expired rows). Matches
+ * the spec's 1-hour convention.
+ */
+export const IDEMPOTENCY_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Configuration threshold for `ThresholdService.evaluate` — the
+ * absolute amount (in the transaction's currency) above which the
+ * service dispatches `transactions.threshold.exceeded`. Slice
+ * default is 1000.00; production deployments override per
+ * `Category.threshold` once that field lands (slice 6+).
+ */
+export const DEFAULT_THRESHOLD_AMOUNT = "1000";

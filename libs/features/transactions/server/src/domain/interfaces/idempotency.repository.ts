@@ -25,12 +25,36 @@ export interface IdempotencyRepository {
   find(userId: string, key: string): Promise<IdempotencyKey | null>;
 
   /**
-   * Insert or update the idempotency record. On unique-key conflict
-   * (`@@unique([userId, key])`), the adapter uses
-   * `INSERT ... ON CONFLICT DO UPDATE` semantics so two simultaneous
-   * first-call requests with the same key do not double-write.
+   * Atomically insert a new idempotency record.
+   *
+   * First-wins semantics: if a row with the same `(userId, key)`
+   * already exists, the adapter throws a `DuplicateIdempotencyKeyError`
+   * (translated from Prisma's `P2002` unique-constraint violation).
+   * The service pattern is:
+   *
+   *   const cached = await repo.find(userId, key);
+   *   if (cached) return cached;
+   *   try {
+   *     const inserted = await repo.create(input);
+   *     return inserted;
+   *   } catch (err) {
+   *     if (err instanceof DuplicateIdempotencyKeyError) {
+   *       // Concurrent first-call won the race; return its cached
+   *       // payload via a second find.
+   *       const winner = await repo.find(userId, key);
+   *       if (winner) return winner;
+   *     }
+   *     throw err;
+   *   }
+   *
+   * The atomic `create` (instead of an `upsert`) closes the
+   * last-writer-wins race that the prior `upsert` exposed. Two
+   * parallel first-call requests with the same key race on
+   * `@@unique([userId, key])`; exactly one wins, the other gets
+   * `DuplicateIdempotencyKeyError` and falls through to the
+   * second-`find` to read the winner's payload.
    */
-  upsert(input: IdempotencyKeyInsert): Promise<void>;
+  create(input: IdempotencyKeyInsert): Promise<IdempotencyKey>;
 
   /**
    * Purge expired rows. Returns the count of rows deleted. Called by
@@ -39,4 +63,17 @@ export interface IdempotencyRepository {
    * scheduler; the cron is in-process.
    */
   purgeExpired(now: Date): Promise<number>;
+}
+
+/**
+ * Raised by `IdempotencyRepository.create` when a row with the same
+ * `(userId, key)` already exists. Translated from Prisma's `P2002`
+ * unique-constraint violation. The service catches this and falls
+ * through to a second-`find` to read the winner's payload.
+ */
+export class DuplicateIdempotencyKeyError extends Error {
+  constructor(public readonly userId: string, public readonly key: string) {
+    super(`Idempotency key "${key}" already exists for user "${userId}"`);
+    this.name = "DuplicateIdempotencyKeyError";
+  }
 }
