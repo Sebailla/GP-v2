@@ -128,7 +128,7 @@ jobs:
         run: pnpm --filter @core/database exec prisma generate
 
       - name: Apply Prisma migrations
-        run: pnpm db:migrate:deploy
+        run: pnpm --filter @core/database exec prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/gastos_reference_test
 
