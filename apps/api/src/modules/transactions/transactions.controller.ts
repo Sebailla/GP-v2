@@ -120,7 +120,7 @@ export class TransactionsController {
     let transaction: Transaction;
     try {
       transaction = await this.transactionService.create(
-        this.toServiceCreateInput(body, request.user.id),
+        this.toServiceCreateInput(body),
         {
           userId: request.user.id,
           actorId: request.user.id,
@@ -331,7 +331,6 @@ export class TransactionsController {
    */
   private toServiceCreateInput(
     body: CreateTransactionInput,
-    _userId: string,
   ): Parameters<TransactionService["create"]>[0] {
     return {
       amount: toDecimal(String(body.amount)),
