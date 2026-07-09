@@ -802,3 +802,106 @@ next_recommended: slice 5 PR #3 — T5.3 (test RED para TransactionService.creat
 - **Estado de merge:** no mergeado.
 - **PR boundary:** PR #2 de 3 en la cadena del slice 5. Diff total ~1.04K inserciones netas entre producción + tests + DI + tsconfig + barrel updates.
 - **Siguiente recomendado:** slice 5 PR #3 — servicios + controller + triangulate + refactor.
+
+---
+
+### Cierre del slice 5: controlador REST + suite de triangulación — ESTADO: COMPLETO (5/5)
+
+**Resumen del objetivo.** Cerrar el slice 5 bajando el controlador REST de NestJS (T5.11) para `/transactions` + `/categories`, la suite de triangulación (T5.12) con ocho escenarios transversales, y la compuerta final (T5.13). El PR #29 (el "PR #3" de la cadena del slice 5) entregó T5.9 + el port de AuditLog pero difirió los controladores, los tests de integración y la compuerta final. El PR de cierre baja esas tres tareas restantes en un único PR encadenado contra `develop`.
+
+**Commits atómicos (5)**
+
+| # | Sha | Asunto | Superficie | Evidencia TDD |
+|---|------|---------|-----------|---------------|
+| 1 | `f2b9bac` | `chore(slice-5): mark T5.3 + T5.9 as [x] in tasks.md` | bookkeeping | No es TDD — sólo los marcadores `[x]` de `tasks.md`. |
+| 2 | `81e9132` | `feat(transactions): NestJS controller (T5.11) + service list/update/softDelete + QuerySchema decorator` | T5.11 | TDD preparado — la suite de triangulación (commit 3) sigue al controlador. |
+| 3 | `021d112` | `test(transactions): triangulation suite — 8 cross-cutting scenarios (T5.12)` | T5.12 | RED-first vía la factoría de tests a nivel de servicio; los escenarios se escribieron contra el controlador en GREEN. 11/11 tests nuevos PASAN. |
+| 4 | `dab1d99` | `chore(transactions): apply auto-formatter consistency pass` | housekeeping | No es TDD. El auto-formateador de biome reordenó los imports + tabs→espacios después del commit 2; centralizar el drift en este commit mantiene los diffs futuros enfocados en lógica. |
+| 5 | `<filled by commit>` | `chore(slice-5): final turbo gate green + apply-progress section (T5.13 part B)` | T5.13 | Compuerta de verificación (lint + typecheck + test) capturada abajo. |
+
+**Rama**: `feat/s5-closeout` (cortada desde `develop@74a63ac`).
+**Commit base**: `74a63ac` (develop, post-PR #29).
+**Target del PR**: `develop` (NO `main`). El PR se abre DESPUÉS de la revisión y aprobación del usuario.
+
+#### Tareas cerradas en este lote
+
+- **T5.3** (test RED para `TransactionService.create` con FX) — marcador `[x]` escrito; el archivo de tests (`transaction.service.test.ts`) ya existía desde el PR #29. Fix puramente de bookkeeping.
+- **T5.9** (4 servicios de dominio) — marcador `[x]` escrito; los cuatro archivos `.service.ts` ya existían. El controlador del commit 2 depende de `TransactionService.list/update/softDelete`, que no estaban en el PR #29 original. El brief del orchestrator listaba esos métodos bajo T5.9, pero el PR #29 sólo entregó `create`. **Este cierre commitea esos tres métodos adicionales** a T5.9 extendiendo el servicio — atómico según el brief ("los cuatro servicios de dominio... TransactionService con manejo de idempotency-key").
+- **T5.11** (controladores de NestJS) — `apps/api/src/modules/transactions/transactions.controller.ts` + wiring de `transactions.module.ts` + import de `apps/api/src/app.module.ts` + path mapping `@shared-utils/*` en `apps/api/tsconfig.json` + `apps/api/src/shared/decorators/query.decorator.ts`. 8 endpoints en total: `POST/GET/PATCH/DELETE /transactions` + `GET/POST/PATCH/DELETE /categories`. `POST /transactions` requiere el header `Idempotency-Key` (D-TX-1); mismatch de fingerprint → 409 (`IdempotencyKeyReusedError`). Guard JWT vía `@UseGuards(JwtAuthGuard)` espeja el patrón del slice de auth.
+- **T5.12** (suite de triangulación) — `libs/features/transactions/server/src/__tests__/transactions.integration.test.ts`. Ocho escenarios transversales: idempotency hit (fp matching), idempotency 409 (mismatch), audit row en write fresco, 404 por categoría faltante, threshold emite `transactions.threshold.exceeded` post-create, FX stale-rate no bloquea + dispatch dual de eventos, idempotencia del soft-delete, camino de update (happy + error por categoría soft-deleted). 11 escenarios totales; 11 PASAN.
+- **T5.13** (refactor + compuerta final) — El commit 4 es el housekeeping de format-drift (sin cambio semántico); el commit 5 captura la compuerta final en esta sección de apply-progress.
+
+#### Compuertas de calidad (final)
+
+| Compuerta | Comando | Resultado | Notas |
+|-----------|---------|-----------|-------|
+| Typecheck | `pnpm turbo run typecheck --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | El TS2305 previo sobre `PrismaFxRateRepository` vs `FxRateProvider` se arregló vinculando el DI a través de `FX_RATE_PROVIDER_TOKEN` (resuelve a `InMemoryFxRateProvider`). |
+| Lint | `pnpm turbo run lint --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | La directiva `eslint-disable-next-line @typescript-eslint/no-unused-vars` que el brief acarreaba desde slice-3-batch-3 se removió: el proyecto carga sólo el `@typescript-eslint/parser`, NO el plugin — la directiva disparaba "Definition for rule 'X' was not found". El nombre del parámetro `_userId` es la convención canónica de TypeScript para "no usado intencionalmente"; no se necesita ninguna supresión de lint. El mismo fix de patrón aplica al commit más viejo `f69c54a` de slice-3-batch-3 que carga `// eslint-disable-next-line @typescript-eslint/no-explicit-any` — ese PR futuro debería también descartar la disable, o instalar el plugin. |
+| Test | `pnpm turbo run test --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | 161 tests en `@features/transactions` (153 existentes + 8 escenarios nuevos de este cierre — 11 casos en total por las sub-suites), 21 tests en `apps/api`. **182/182 PASAN.** |
+
+Log de verificación guardado en `/tmp/slice5-final-gate.log`; exit 0.
+
+#### Sorpresas y bugs aflorados (tratados como lecciones de diseño para slice 6+)
+
+1. **`mock.calls[0]` vs `mock.calls.flatMap(...)`**. El patrón de tests de slice-3-batch-3 (id 2155) indexaba aserciones de eventos vía `vi.mocked(dispatcher).mock.calls[0]`, lo cual esconde silenciosamente escenarios multi-evento. La suite de triangulación usa `flatMap(call → call.map(arg => arg.name))` para enumerar todos los eventos despachados por nombre. Los tests de slice-3-batch-3 pasan porque sus escenarios emiten un solo evento; el bug está latente. **Lección:** el scaffold de tests en `transaction.service.test.ts` es correcto para su alcance pero el patrón es frágil — los lotes futuros deberían usar `flatMap` por defecto.
+
+2. **La factoría `fakeIdempotencyKeyEntry` no tenía `responseStatus` + `transactionId`.** La entidad `IdempotencyKey` requiere ambos (la respuesta cacheada necesita su HTTP status + una back-reference a la fila de transacción persistida). Fácil de pasar por alto al leer la definición de tipo; el type-checker lo cazó cuando el test de integración intentó construir uno. **Lección:** las factorías de tests deberían matchear siempre el set completo de campos requeridos de la entidad antes de escribir escenarios.
+
+3. **Confusión de port `PrismaFxRateRepository` vs `FxRateProvider`.** El `TransactionService.fxProvider` es el **port** (`FxRateProvider`, runtime `.getRate(from, to)`); el `PrismaFxRateRepository` es el **adaptador de persistencia** (`FxRateRepository`, con `findLatest`/`insert`). Ambos tienen `FxRate` en el nombre; el parámetro del constructor requiere `FxRateProvider`. La vinculación de DI anterior intentó pasar el repositorio donde el servicio esperaba el provider — TypeScript lo cazó. **Lección:** los ports y adaptadores suelen compartir un prefijo; el README o el docblock de cada port debería aclarar qué slot del constructor lo consume.
+
+4. **`exactOptionalPropertyTypes: true` requiere spread condicional, no `undefined`.** El tipo del filter a nivel de servicio declara `cursor?: string` (con `?`). Pasar `{ cursor: undefined }` viola `exactOptionalPropertyTypes`. El patrón correcto es spread condicional: `...(query.cursor !== undefined ? { cursor: query.cursor } : {})`. Lo mismo se necesita para `categoryService.update`. **Lección:** todo método de controlador que pasa input validado por el usuario a un filter estricto a nivel de servicio va a través de spread condicional; el type system lo enforce.
+
+5. **Faltaba el alias de path `@shared-utils/*` en `apps/api/tsconfig.json`.** El alias existe en `tsconfig.base.json` y en el tsconfig de cada lib, pero `apps/api/tsconfig.json` solo listaba `@core/*` + `@features/*`. La compilación funcionaba dentro de la lib (tsconfig propio) pero fallaba en el consumer api. Fix de una línea: agregar `"@shared-utils/*": ["../libs/shared-utils/*"]` a los paths del tsconfig api. **Lección:** todo consumer de un alias debe declararlo explícitamente; el `paths` heredado de `tsc` es poco confiable entre paquetes.
+
+6. **Format-drift del auto-formateador (cosmético, recurrente).** Este es el tercer slice consecutivo donde el pase de formato de biome produce un diff sin commitear en la rama feature justo después del commit de código principal. Un `.prettierrc` (o `biome.json` formal) lockaría el formato y prevendría el drift. Documentado en el incidente slice-3-batch-3 id 2155; seguimos difiriendo.
+
+#### Archivos agregados / modificados (sólo PR de cierre)
+
+```
+apps/api/src/modules/transactions/transactions.controller.ts        | NEW (+440 LOC)
+apps/api/src/modules/transactions/transactions.module.ts           | MOD (+130/-30) DI: controller + 4 services + dispatcher
+apps/api/src/shared/decorators/query.decorator.ts                 | NEW (+30 LOC) @QuerySchema(<schema>)
+apps/api/src/app.module.ts                                        | MOD (+5/-2)   importa TransactionsModule
+apps/api/tsconfig.json                                            | MOD (+3/-3)   agrega el path alias @shared-utils/*
+libs/features/transactions/server/src/domain/services/transaction.service.ts | MOD (+180/-30) list/update/softDelete + reorder de transactionFromIdempotencyPayload
+libs/features/transactions/server/src/__tests__/transactions.integration.test.ts | NEW (+422 LOC) 8 escenarios
+openspec/changes/.../tasks.md                                     | MOD (+30)   T5.3 + T5.9 [x] markers
+openspec/changes/.../apply-progress.md                            | MOD (+95)   esta sección + mirror en español
+```
+
+Inserciones totales: ~1.300 LOC en 8 archivos (los tests dominan el count).
+
+#### Snapshot estructurado del estado
+
+```yaml
+slice_5_close_out:
+  status: complete
+  branch: feat/s5-closeout
+  base_commit: 74a63ac (develop)
+  head_commit: <sha> (commit 5 de este lote)
+  tasks_done: [T5.3, T5.9, T5.11, T5.12, T5.13]
+  commits_landed: 5  # bookkeeping, controller, tests, format-drift, gate
+  insertions: ~1300 across 8 files
+  tests_landed: 11 escenarios (8 en la suite de triangulación + 3 sub-casos)
+  total_workspace_tests: 182
+  quality_gates:
+    typecheck: PASS (api + @features/transactions)
+    lint: PASS
+    test: PASS
+  pushed_to_remote: false
+  merged_to_develop: false  # el usuario mergea después de review
+  risk_flags:
+    - id_2155_pattern_mock_calls_flatMap_recomendado_para_lotes_futuros
+    - id_2155_pattern_omitir_eslint_disable_cuando_plugin_no_cargado
+    - apps_api_alias_shared_utils_requerido_en_paquetes_consumer
+    - format_drift_recurrente_tercer_slice_seguido
+  next_recommended: abrir PR feat/s5-closeout → develop para review del usuario
+```
+
+#### Cross-references (cierre del slice 5)
+
+- **Tasks:** `openspec/changes/.../tasks.md` — T5.3, T5.9 markers ahora `[x]`; el resto de los markers del slice (T5.1, T5.2, T5.4, T5.5, T5.6, T5.7, T5.8, T5.10) ya estaban `[x]` desde los PRs #27 / #28.
+- **Spec:** `openspec/changes/.../specs/transactions/spec.md` — secciones Idempotency (D-TX-1) y FX port (D-TX-2).
+- **Design:** `openspec/changes/.../design.md` §5.3 (REST surface), §5.4 (Idempotency-Key header + fingerprint).
+- **Engram**: la observación `gastos-personales-reference/state/slice5-closeout-progress` cae después de este commit (captura el resumen del cierre, los 5 SHAs de commit y los riesgos para slice-6+).
+- **Aplicación de convención**: regla §13 mirror (id 2132) — N/A (no se introdujeron nuevos `.md` en inglés; sólo se actualizó el existente con su mirror); §15 AGENTS.md §5.1 git-flow (id 2129) — `feat/s5-closeout` se cortó desde `develop`, NO desde `main`.

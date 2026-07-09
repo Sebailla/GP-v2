@@ -331,7 +331,6 @@ export class TransactionsController {
    */
   private toServiceCreateInput(
     body: CreateTransactionInput,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _userId: string,
   ): Parameters<TransactionService["create"]>[0] {
     return {
