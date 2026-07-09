@@ -8,12 +8,20 @@ import type { PrismaClient, Prisma } from "@core/database";
 import type {
   Category,
 } from "../../domain/entities/category.entity.js";
-import type {
-  CategoryRepository,
-  CategoryFilter,
-  CategoryCreate,
-  CategoryUpdate,
+import {
+  CategoryAlreadyExistsError,
+  CategoryNotFoundError,
+  type CategoryRepository,
+  type CategoryFilter,
+  type CategoryCreate,
+  type CategoryUpdate,
 } from "../../domain/interfaces/category.repository.js";
+
+// Re-export the error classes so the slice's public barrel can
+// surface them at `import { CategoryAlreadyExistsError } from
+// "@features/transactions"`. The classes are defined in the port
+// (contract owner); the adapter raises them.
+export { CategoryAlreadyExistsError, CategoryNotFoundError };
 
 /**
  * Prisma adapter for `CategoryRepository`.
@@ -66,18 +74,17 @@ export class PrismaCategoryRepository implements CategoryRepository {
           name: input.name,
           slug: input.slug,
           kind: input.kind,
-          // Set `updatedBy` = would-be-actor on insert. The port signature
-          // doesn't take an actor on `create` (only on `update` /
-          // `softDelete`), so this adapter currently always sets
-          // `updatedBy` to a sentinel for system-seeded inserts. PR #3
-          // will tighten when `CategoryService` is added.
+          // Set `updatedBy` = actor on insert. PR #3a closed the prior
+          // `__category_seed_actor__` sentinel — every Category write
+          // now records the real actor (the service resolves actorId
+          // from the call-site context and threads it through the port).
           //
           // NOTE: there's no `createdBy` column on Category. Only
           // `updatedBy` exists, mirroring the actor-of-last-touch
           // pattern. The adapter sets both create-time and update-time
           // to the same actor for now; if a separate `createdBy` is
           // required, add it via a follow-up migration.
-          updatedBy: "__category_seed_actor__",
+          updatedBy: input.actorId,
         },
       });
       return projectCategory(row);
@@ -113,8 +120,12 @@ export class PrismaCategoryRepository implements CategoryRepository {
           // hands a userId, not a User relation shape). The "checked"
           // `CategoryUpdateInput` would force
           // `updatedByUser: { connect: { id } }`, redundant here.
+          // PR #3a: `input.actorId` flows from the call-site context
+          // (HTTP request auth / CLI session) through the service
+          // and into the port. The `__category_seed_actor__` sentinel
+          // is gone.
           const data: Prisma.CategoryUncheckedUpdateInput = {
-            updatedBy: "__category_seed_actor__", // overwritten by services in PR #3
+            updatedBy: input.actorId,
           };
           if (input.name !== undefined) data.name = input.name;
           if (input.kind !== undefined) data.kind = input.kind;
@@ -167,26 +178,6 @@ export class PrismaCategoryRepository implements CategoryRepository {
         updatedBy: actorId,
       },
     });
-  }
-}
-
-/**
- * Domain error raised when a `create()` call collides with the
- * `@@unique(slug)` constraint. Translated from Prisma's `P2002`
- * unique-constraint-violation error code.
- */
-export class CategoryAlreadyExistsError extends Error {
-  constructor(public readonly slug: string) {
-    super(`Category with slug "${slug}" already exists`);
-    this.name = "CategoryAlreadyExistsError";
-  }
-}
-
-/** Translated from Prisma's `P2025` ("Record to update not found"). */
-export class CategoryNotFoundError extends Error {
-  constructor(public readonly id: string) {
-    super(`Category "${id}" not found or already soft-deleted`);
-    this.name = "CategoryNotFoundError";
   }
 }
 

@@ -86,11 +86,29 @@ export interface TransactionRepository {
    * required so the controller cannot accidentally list another user's
    * transactions. `nextCursor` is `null` when there are no more rows.
    */
-  list(filter: TransactionListFilter): Promise<{
-    rows: TransactionListItem[];
-    total: number;
-    cursor: string | null;
-  }>;
+      list(filter: TransactionListFilter): Promise<{
+        rows: TransactionListItem[];
+        total: number;
+        cursor: string | null;
+      }>;
+
+      /**
+       * Unpaginated query for service-level aggregation. Returns
+       * every active (not soft-deleted) transaction matching the
+       * filter. Used by `TotalsService.forUser` + `perCategory` —
+       * both aggregate the full result set in memory. A production
+       * deployment that needs aggregate over millions of rows
+       * should push the aggregation to the DB (raw SQL or a
+       * denormalized view); the slice ships the in-memory version
+       * for clarity.
+       */
+      findManyForUser(
+        userId: string,
+        range: {
+          readonly fromDate?: Date;
+          readonly toDate?: Date;
+        },
+      ): Promise<Transaction[]>;
 
   /**
    * Persist a new transaction. The service has already done FX lookup,

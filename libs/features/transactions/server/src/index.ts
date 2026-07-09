@@ -21,13 +21,18 @@
  *  - The four domain error classes that translate Prisma's
  *    `P2002` / `P2025` runtime codes into domain-friendly errors.
  *
- * Slice 5 PR #3 adds the four services (TransactionService, CategoryService,
- * TotalsService, ThresholdService — T5.9), the NestJS controller
- * (T5.11), and the triangulation suite (T5.12).
+ * Slice 5 PR #3a (T5.9 partial) adds the four services
+ * (TransactionService, CategoryService, TotalsService,
+ * ThresholdService) + the AuditLogRepository port. The NestJS
+ * controller (T5.11) and the triangulation suite (T5.12) land
+ * in PR #3b.
  */
 
 // Shared Zod schemas (the canonical source of truth — both NestJS pipe and
-// Next.js form reach in here).
+// Next.js form reach in here). The Zod-inferred types are the
+// public API for HTTP request bodies; the controller maps the
+// validated request to the service's `CreateTransactionInput`
+// (Decimal-typed, not re-exported to avoid a name collision).
 export {
 	createSchema,
 	updateSchema,
@@ -47,7 +52,7 @@ export {
 	type FxRateProviderToken,
 } from "./constants.js";
 
-// Domain entities + ports (the type layer; PR #3 brings the services).
+// Domain entities + ports (the type layer; PR #3a brings the services).
 export type {
 	Currency,
 	Category,
@@ -59,6 +64,10 @@ export type {
 	FxRateInsert,
 	IdempotencyKey,
 	IdempotencyKeyInsert,
+	AuditLog,
+	AuditLogAppend,
+	AuditEntityType,
+	AuditAction,
 } from "./domain/entities/index.js";
 
 export type {
@@ -73,7 +82,9 @@ export type {
 	CurrencyRepository,
 	FxRateRepository,
 	IdempotencyRepository,
+	AuditLogRepository,
 	FxRateProvider,
+	DuplicateIdempotencyKeyError,
 } from "./domain/interfaces/index.js";
 
 // Persistence boundary — Prisma adapters (T5.7).
@@ -92,6 +103,8 @@ export { PrismaFxRateRepository } from "./infrastructure/repositories/prisma-fx-
 
 export { PrismaIdempotencyRepository } from "./infrastructure/repositories/prisma-idempotency.repository.js";
 
+export { PrismaAuditLogRepository } from "./infrastructure/repositories/prisma-audit-log.repository.js";
+
 export {
 	PrismaTransactionRepository,
 	TransactionNotFoundError,
@@ -100,3 +113,27 @@ export {
 // Live FX rate provider (T5.8) — bound through `FX_RATE_PROVIDER_TOKEN`.
 // Dev/test impl; production swaps this binding in the NestJS module.
 export { InMemoryFxRateProvider } from "./infrastructure/fx/in-memory-fx-rate.provider.js";
+
+// Domain services (T5.9, PR #3a) — the orchestrator + the three
+// supporting services. The controller (PR #3b) wires these into the
+// NestJS container; tests construct them with hand-rolled mocks.
+// Note: `CategoryNotFoundError` lives in the category port (above);
+// not re-exported here to avoid a name collision.
+export {
+	TransactionService,
+	CategoryService,
+	TotalsService,
+	ThresholdService,
+	DEFAULT_THRESHOLD_AMOUNT,
+	IdempotencyKeyReusedError,
+	UnsupportedCurrencyPairError,
+} from "./domain/services/index.js";
+export type {
+	TransactionServiceContext,
+	CategoryServiceContext,
+	CreateTransactionInput as CreateTransactionCommand,
+	TotalsRange,
+	UserTotals,
+	CategoryTotal,
+	ThresholdConfig,
+} from "./domain/services/index.js";
