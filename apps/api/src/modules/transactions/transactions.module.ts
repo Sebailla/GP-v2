@@ -20,6 +20,7 @@ import type { DomainEvent } from "@core/events";
 import type { TransactionsEventDispatcher } from "@features/transactions/server/src/events.js";
 
 import { TransactionsController } from "./transactions.controller.js";
+import { PrismaUnitOfWork } from "@features/transactions";
 
 /**
  * NestJS module for the transactions feature slice (slice 5 of the
@@ -58,7 +59,23 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 	providers: [
 		{
 			provide: FX_RATE_PROVIDER_TOKEN,
-			useFactory: () => new InMemoryFxRateProvider(DEFAULT_SEED_AT),
+			useFactory: () => {
+				// R3-005: the InMemoryFxRateProvider seeds its rates at
+				// `DEFAULT_SEED_AT` (2026-01-01) and never refreshes. Binding
+				// it in production means every cross-currency transaction
+				// will (a) dispatch `transactions.fx.stale` on every write
+				// (informational noise) and (b) compute `reportingAmount`
+				// from the hardcoded rates. Fail-fast at module load so the
+				// misconfiguration surfaces immediately, not on the first
+				// cross-currency POST in production. The fix is a real
+				// HTTP-backed `FxRateProvider` bound to the same token.
+				if (process.env.NODE_ENV === "production") {
+					throw new Error(
+						"[transactions.module] FX_RATE_PROVIDER_TOKEN resolved to InMemoryFxRateProvider in production. Replace the binding with a real HTTP-backed FxRateProvider before deploying.",
+					);
+				}
+				return new InMemoryFxRateProvider(DEFAULT_SEED_AT);
+			},
 		},
 		{
 			provide: PrismaCurrencyRepository,
@@ -89,6 +106,10 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 			useFactory: () => createTransactionsEventDispatcher(),
 		},
 		{
+			provide: PrismaUnitOfWork,
+			useFactory: () => new PrismaUnitOfWork(),
+		},
+		{
 			provide: TransactionService,
 			useFactory: (
 				txRepo: PrismaTransactionRepository,
@@ -107,6 +128,14 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 				idemRepo: PrismaIdempotencyRepository,
 				auditLogRepo: PrismaAuditLogRepository,
 				events: TransactionsEventDispatcher,
+				// Slot 7 is the `UnitOfWork` boundary (R3-002 / R4-005).
+				// The `PrismaUnitOfWork` runs the three writes
+				// (`txRepo.create/update/softDelete`, `auditLogRepo.append`,
+				// `idempotencyRepo.create`) inside a SERIALIZABLE
+				// `prisma.$transaction` so a partial failure between
+				// row-persist and audit-log or cache-write rolls back the
+				// whole boundary.
+				unitOfWork: PrismaUnitOfWork,
 			) =>
 				new TransactionService(
 					txRepo,
@@ -115,6 +144,7 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 					idemRepo,
 					auditLogRepo,
 					events,
+					unitOfWork,
 				),
 			inject: [
 				PrismaTransactionRepository,
@@ -123,6 +153,7 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 				PrismaIdempotencyRepository,
 				PrismaAuditLogRepository,
 				"TRANSACTIONS_EVENT_DISPATCHER",
+				PrismaUnitOfWork,
 			],
 		},
 		{

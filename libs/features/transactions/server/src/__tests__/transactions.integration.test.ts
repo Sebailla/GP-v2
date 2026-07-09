@@ -23,6 +23,9 @@ import {
 } from "../domain/services/index.js";
 import type { TransactionsEventDispatcher } from "../events.js";
 import { TransactionNotFoundError } from "../infrastructure/repositories/prisma-transaction.repository.js";
+import { CategoryNotFoundError } from "../domain/interfaces/category.repository.js";
+import { DuplicateIdempotencyKeyError } from "../domain/interfaces/idempotency.repository.js";
+import type { UnitOfWork } from "../domain/interfaces/unit-of-work.js";
 
 /**
  * T5.12 — Triangulation suite (slice 5 PR #3).
@@ -180,15 +183,21 @@ function makeService(
 		listByActor: vi.fn(),
 	};
 
-	const service = new TransactionService(
-		txRepo,
-		categoryRepo,
-		fxProvider,
-		idempotencyRepo,
-		auditLogRepo,
-		events as TransactionsEventDispatcher,
-		clock,
-	);
+    const unitOfWork: UnitOfWork = {
+    	run: <T>(fn: (ctx: { tx: unknown }) => Promise<T>) =>
+    		fn({ tx: undefined }),
+    };
+
+    const service = new TransactionService(
+    	txRepo,
+    	categoryRepo,
+    	fxProvider,
+    	idempotencyRepo,
+    	auditLogRepo,
+    	events as TransactionsEventDispatcher,
+    	unitOfWork,
+    	clock,
+    );
 
 	return {
 		service,
@@ -294,9 +303,44 @@ describe("T5.12 — transactions triangulation suite (service-level integration)
 
 		it("[S4] fresh write — missing/soft-deleted category throws CategoryNotFoundError (controller maps to 404)", async () => {
 			const { service } = makeService({ category: null });
-			await expect(service.create(baseInput(), baseCtx)).rejects.toThrow(
-				/Category/,
+			await expect(service.create(baseInput(), baseCtx)).rejects.toBeInstanceOf(
+				CategoryNotFoundError,
 			);
+		});
+
+		// R4-010 — Idempotency-Key race coverage. Two concurrent first-call
+		// POSTs with the same key: one wins the `idempotency.create`
+		// unique-constraint, the other sees `DuplicateIdempotencyKeyError`.
+		// The service treats the cache as informational (not a gate): the
+		// losing write's transaction is a real, persisted row; the cache
+		// records the winner's payload. Subsequent replays with the same
+		// key hit the winner via `find()`. The transaction MUST persist
+		// exactly once.
+		it("[S4a] losing-write race: DuplicateIdempotencyKeyError on cache.create does NOT roll back the transaction (R4-010)", async () => {
+			const { service, mocks } = makeService();
+			// First call to `idempotencyRepo.create` throws — a concurrent
+			// first-call POST won the unique-constraint race.
+			vi.mocked(mocks.idemCreate).mockRejectedValueOnce(
+				new DuplicateIdempotencyKeyError("user-1", "key-1"),
+			);
+
+			const txn = await service.create(baseInput(), {
+				...baseCtx,
+				idempotencyKey: "key-1",
+				requestFingerprint: "fingerprint-A",
+			});
+
+			// The transaction row was persisted before the cache attempt;
+			// the cache loss does NOT undo the write.
+			expect(txn.id).toBe("txn-1");
+			expect(mocks.txCreate).toHaveBeenCalledTimes(1);
+			expect(mocks.append).toHaveBeenCalledTimes(1);
+
+			// transactions.created dispatched exactly once.
+			expect(mocks.events).toHaveBeenCalledTimes(1);
+
+			// The cache.create attempt happened but threw — no exception
+			// escapes the service.
 		});
 	});
 

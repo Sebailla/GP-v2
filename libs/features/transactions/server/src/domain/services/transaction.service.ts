@@ -25,6 +25,7 @@ import { DuplicateIdempotencyKeyError } from "../interfaces/idempotency.reposito
 import { STALENESS_WINDOW_MS, IDEMPOTENCY_TTL_MS } from "../../constants.js";
 import type { TransactionsEventDispatcher } from "../../events.js";
 import { TransactionNotFoundError } from "../../infrastructure/repositories/prisma-transaction.repository.js";
+import type { UnitOfWork, UnitOfWorkContext } from "../interfaces/unit-of-work.js";
 
 /**
  * Canonical create-transaction input. Mirrors the Zod `createSchema`
@@ -87,6 +88,7 @@ export class TransactionService {
 		private readonly idempotencyRepo: IdempotencyRepository,
 		private readonly auditLogRepo: AuditLogRepository,
 		private readonly events: TransactionsEventDispatcher,
+		private readonly unitOfWork: UnitOfWork,
 		private readonly clock: () => Date = () => new Date(),
 	) {}
 
@@ -159,36 +161,78 @@ export class TransactionService {
 			input.reportingCurrencyCode,
 		);
 
-		// 4. Persist.
-		const transaction = await this.txRepo.create({
-			amount: input.amount,
-			currencyCode: input.currencyCode,
-			kind: input.kind,
-			categoryId: input.categoryId,
-			notes: input.notes,
-			occurredAt: input.occurredAt,
-			reportingAmount: fx.reportingAmount,
-			reportingCurrencyCode: input.reportingCurrencyCode,
-			fxRateId: fx.fxRateId,
-			createdBy: ctx.userId,
-			updatedBy: ctx.userId,
+		// 4. Persist + audit + idempotency-cache — atomic boundary.
+		// R3-002 / R4-005: the three writes run inside the unit-of-work
+		// `prisma.$transaction` (Serializable). A failure between row-persist
+		// and cache-write rolls back the row, AND a retry with the same
+		// Idempotency-Key (now re-discoverable in the cache) cannot
+		// duplicate the write.
+		const transaction = await this.unitOfWork.run(async (uowCtx) => {
+			const tx = uowCtx as UnitOfWorkContext;
+			const created = await this.txRepo.create(
+				{
+					amount: input.amount,
+					currencyCode: input.currencyCode,
+					kind: input.kind,
+					categoryId: input.categoryId,
+					notes: input.notes,
+					occurredAt: input.occurredAt,
+					reportingAmount: fx.reportingAmount,
+					reportingCurrencyCode: input.reportingCurrencyCode,
+					fxRateId: fx.fxRateId,
+					createdBy: ctx.userId,
+					updatedBy: ctx.userId,
+				},
+				tx,
+			);
+
+			await this.auditLogRepo.append(
+				{
+					entityType: "Transaction",
+					entityId: created.id,
+					action: "create",
+					actorId: ctx.actorId,
+					payload: {
+						amount: created.amount.toString(),
+						currencyCode: created.currencyCode,
+						kind: created.kind,
+						categoryId: created.categoryId,
+					},
+				},
+				tx,
+			);
+
+			// 5. Idempotency atomic create (only if the request carried a key).
+			// Lives INSIDE the unit-of-work boundary so the cache row commits
+			// atomically with the transaction + audit rows. The
+			// `DuplicateIdempotencyKeyError` race path remains: a concurrent
+			// first-call with the same key races on `@@unique([userId, key])`;
+			// the losing insert throws `DuplicateIdempotencyKeyError`, the
+			// service's existing catch returns the winner's payload via a
+			// follow-up `find()` (still in-tx, but the row + audit are not
+			// persisted on the losing side because the `create` raced).
+			if (
+				ctx.idempotencyKey !== undefined &&
+				ctx.requestFingerprint !== undefined
+			) {
+				await this.cacheIdempotencyResponse(
+					ctx.userId,
+					ctx.idempotencyKey,
+					ctx.requestFingerprint,
+					created,
+					tx,
+				);
+			}
+
+			return created;
 		});
 
-		// 5. Audit log.
-		await this.auditLogRepo.append({
-			entityType: "Transaction",
-			entityId: transaction.id,
-			action: "create",
-			actorId: ctx.actorId,
-			payload: {
-				amount: transaction.amount.toString(),
-				currencyCode: transaction.currencyCode,
-				kind: transaction.kind,
-				categoryId: transaction.categoryId,
-			},
-		});
-
-		// 6. Dispatch `transactions.created`.
+		// 6. Dispatch `transactions.created` — POST-COMMIT. The event
+		// dispatch is NOT inside the unit-of-work because a failing
+		// dispatcher would roll back the database write (which we don't
+		// want — the write succeeded; the event surfaces on the next
+		// subscriber retry or stays lost as an acceptable trade-off for
+		// avoiding a 500 on the API surface).
 		await this.events({
 			name: TRANSACTIONS_CREATED,
 			userId: ctx.userId,
@@ -200,19 +244,6 @@ export class TransactionService {
 			},
 			occurredAt: this.clock(),
 		});
-
-		// 7. Idempotency atomic create (only if the request carried a key).
-		if (
-			ctx.idempotencyKey !== undefined &&
-			ctx.requestFingerprint !== undefined
-		) {
-			await this.cacheIdempotencyResponse(
-				ctx.userId,
-				ctx.idempotencyKey,
-				ctx.requestFingerprint,
-				transaction,
-			);
-		}
 
 		return transaction;
 	}
@@ -265,6 +296,7 @@ export class TransactionService {
 		key: string,
 		fingerprint: string,
 		transaction: Transaction,
+		tx?: UnitOfWorkContext,
 	): Promise<void> {
 		const insert: IdempotencyKeyInsert = {
 			key,
@@ -276,7 +308,7 @@ export class TransactionService {
 			expiresAt: new Date(this.clock().getTime() + IDEMPOTENCY_TTL_MS),
 		};
 		try {
-			await this.idempotencyRepo.create(insert);
+			await this.idempotencyRepo.create(insert, tx);
 		} catch (err) {
 			if (err instanceof DuplicateIdempotencyKeyError) {
 				// Concurrent first-call won the race. The losing write's
@@ -285,6 +317,15 @@ export class TransactionService {
 				// the same key will hit the winner's payload via `find()`.
 				// No re-throw — the original `create` succeeded from the
 				// service's perspective; idempotency is a cache, not a gate.
+				//
+				// R3-002 nuance: the `DuplicateIdempotencyKeyError` from a
+				// race surfaces here as a *unique-constraint violation
+				// WITHIN* the unit-of-work transaction. If the catch did
+				// re-throw, the unit-of-work would roll back the
+				// transaction row that this call already persisted. The
+				// swallow-then-return keeps the row + audit committed.
+				// The cache records the winner's payload only; the
+				// losing-write's row remains real but unreplayed.
 				return;
 			}
 			throw err;
@@ -502,17 +543,34 @@ export class TransactionService {
 		// D-TX-7 ownership filter on the repository's `where` clause.
 		// The adapter rejects foreign-owned rows with the same
 		// `TransactionNotFoundError` as missing rows — no info-leak.
-		const updated = await this.txRepo.update(id, actorId, {
-			...input,
-			updatedBy: actorId,
+		// R4-005 — update + audit-log are atomic via the unit-of-work
+		// boundary; a partial failure rolls back the row, AND no audit
+		// row leaks (D-TX audit-log invariant).
+		const updated = await this.unitOfWork.run(async (uowCtx) => {
+			const tx = uowCtx as UnitOfWorkContext;
+			const result = await this.txRepo.update(
+				id,
+				actorId,
+				{
+					...input,
+					updatedBy: actorId,
+				},
+				tx,
+			);
+			await this.auditLogRepo.append(
+				{
+					entityType: "Transaction",
+					entityId: result.id,
+					action: "update",
+					actorId,
+					payload: { changedFields, ...input },
+				},
+				tx,
+			);
+			return result;
 		});
-		await this.auditLogRepo.append({
-			entityType: "Transaction",
-			entityId: updated.id,
-			action: "update",
-			actorId,
-			payload: { changedFields, ...input },
-		});
+		// Dispatch `transactions.updated` post-commit so a failing dispatcher
+		// can't roll back the database update.
 		await this.events({
 			name: TRANSACTIONS_UPDATED,
 			userId: updated.createdBy,
@@ -568,13 +626,22 @@ export class TransactionService {
 			return;
 		}
 		await this.txRepo.softDelete(id, actorId);
-		await this.auditLogRepo.append({
-			entityType: "Transaction",
-			entityId: id,
-			action: "softDelete",
-			actorId,
-			payload: { at: this.clock() },
+		// R4-005 — softDelete + audit-log are atomic via unit-of-work.
+		await this.unitOfWork.run(async (uowCtx) => {
+			const tx = uowCtx as UnitOfWorkContext;
+			await this.txRepo.softDelete(id, actorId, tx);
+			await this.auditLogRepo.append(
+				{
+					entityType: "Transaction",
+					entityId: id,
+					action: "softDelete",
+					actorId,
+					payload: { at: this.clock() },
+				},
+				tx,
+			);
 		});
+		// Dispatch `transactions.soft-deleted` post-commit.
 		await this.events({
 			name: TRANSACTIONS_SOFT_DELETED,
 			userId: existing.createdBy,

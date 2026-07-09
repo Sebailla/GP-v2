@@ -114,6 +114,17 @@ export class TransactionsController {
           "POST /transactions requires the Idempotency-Key header (D-TX-1).",
       });
     }
+    // R1-004 — cap the Idempotency-Key at the boundary. A multi-megabyte
+    // header would bloat the request pipeline (ZodValidationPipe +
+    // cache write + DB column) without ever matching a previous key.
+    // 128 chars matches the cursor cap on `listSchema`.
+    const IDEMPOTENCY_KEY_MAX_LENGTH = 128;
+    if (idempotencyKey.length > IDEMPOTENCY_KEY_MAX_LENGTH) {
+      throw new BadRequestException({
+        error: "IDEMPOTENCY_KEY_TOO_LONG",
+        message: `POST /transactions requires the Idempotency-Key header to be at most ${IDEMPOTENCY_KEY_MAX_LENGTH} characters.`,
+      });
+    }
     const fingerprint = computeRequestFingerprint(body);
 
     let transaction: Transaction;
