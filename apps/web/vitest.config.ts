@@ -55,6 +55,20 @@ alias: [
         ),
       },
       {
+        find: /^@features\/transactions\/shared\/schemas$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../libs/features/transactions/shared/schemas/index.ts",
+        ),
+      },
+      {
+        find: /^@features\/transactions$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../libs/features/transactions/client/index.ts",
+        ),
+      },
+      {
         find: "@",
         replacement: path.resolve(__dirname, "."),
       },
