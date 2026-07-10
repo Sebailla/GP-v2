@@ -1,14 +1,14 @@
 {
   "auth": {
-"common": {
-          "loading": "Cargando…",
-          "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
-          "cancel": "Cancelar",
-          "backToLoginLink": "Volver a iniciar sesión",
-          "error": {
-            "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
-          }
-        },
+    "common": {
+      "loading": "Cargando…",
+      "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
+      "cancel": "Cancelar",
+      "backToLoginLink": "Volver a iniciar sesión",
+      "error": {
+        "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
+      }
+    },
     "signIn": {
       "title": "Iniciar sesión",
       "description": "Inicia sesión para acceder a tu cuenta.",
@@ -66,5 +66,126 @@
       "en": "Inglés",
       "es": "Español"
     }
+  },
+  "transactions": {
+    "list": {
+      "title": "Transacciones",
+      "subtitle": "Explorá, buscá y administrá tus transacciones.",
+      "empty": "Aún no hay transacciones. Agregá la primera.",
+      "error": {
+        "load": "No se pudieron cargar las transacciones. Probá de nuevo.",
+        "network": "Error de red. Revisá tu conexión."
+      },
+      "columns": {
+        "date": "Fecha",
+        "amount": "Monto",
+        "category": "Categoría",
+        "currency": "Moneda",
+        "kind": "Tipo",
+        "actions": "Acciones"
+      },
+      "filter": {
+        "fromDate": "Desde",
+        "toDate": "Hasta",
+        "category": "Categoría",
+        "currency": "Moneda",
+        "apply": "Aplicar",
+        "reset": "Reiniciar"
+      }
+    },
+    "new": {
+      "title": "Nueva transacción",
+      "submit": "Crear",
+      "success": "Transacción creada.",
+      "error": {
+        "invalidData": "Revisá los valores del formulario.",
+        "duplicate": "Ya existe una transacción con la misma huella digital.",
+        "server": "Error del servidor. Probá de nuevo."
+      },
+      "amount": "Monto",
+      "currency": "Moneda",
+      "kind": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "category": "Categoría",
+      "notes": "Notas (opcional)",
+      "occurredAt": "Fecha"
+    },
+    "edit": {
+      "title": "Editar transacción",
+      "submit": "Guardar",
+      "success": "Transacción actualizada.",
+      "error": {
+        "load": "No se pudo cargar esta transacción.",
+        "update": "No se pudieron guardar los cambios."
+      }
+    },
+    "detail": {
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar lógicamente esta transacción? Un admin puede recuperarla."
+    },
+    "delete": {
+      "success": "Transacción eliminada lógicamente.",
+      "error": "No se pudo eliminar la transacción."
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "view": "Ver"
+    },
+    "totals": {
+      "income": "Ingreso",
+      "expense": "Gasto",
+      "net": "Neto"
+    },
+    "threshold": {
+      "title": "Alerta de umbral",
+      "dismissed": "Descartada"
+    }
+  },
+  "categories": {
+    "list": {
+      "title": "Categorías",
+      "subtitle": "Organizá tus transacciones en categorías.",
+      "empty": "Aún no hay categorías.",
+      "new": "Nueva categoría"
+    },
+    "form": {
+      "name": "Nombre",
+      "kind": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "submit": "Guardar",
+      "success": "Categoría guardada.",
+      "error": "No se pudo guardar la categoría.",
+      "slug": "Slug",
+      "slugHint": "Solo letras minúsculas, números y guiones."
+    },
+    "delete": {
+      "confirm": "¿Eliminar lógicamente esta categoría? Las transacciones existentes conservan sus datos pero la categoría desaparecerá de los selectores.",
+      "success": "Categoría eliminada lógicamente.",
+      "error": "No se pudo eliminar la categoría."
+    },
+    "kinds": {
+      "income": "Ingreso",
+      "expense": "Gasto"
+    }
+  },
+  "common": {
+    "loading": "Cargando…",
+    "genericError": "Algo salió mal. Probá de nuevo.",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "back": "Atrás",
+    "submit": "Enviar",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Cerrar",
+    "retry": "Reintentar"
   }
 }
