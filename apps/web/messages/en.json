@@ -1,14 +1,14 @@
 {
   "auth": {
-"common": {
-          "loading": "Loading…",
-          "genericError": "Something went wrong. Please try again.",
-          "cancel": "Cancel",
-          "backToLoginLink": "Back to sign-in",
-          "error": {
-            "timeout": "Request timed out. Please check your connection and try again."
-          }
-        },
+    "common": {
+      "loading": "Loading…",
+      "genericError": "Something went wrong. Please try again.",
+      "cancel": "Cancel",
+      "backToLoginLink": "Back to sign-in",
+      "error": {
+        "timeout": "Request timed out. Please check your connection and try again."
+      }
+    },
     "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",
@@ -66,5 +66,126 @@
       "en": "English",
       "es": "Spanish"
     }
+  },
+  "transactions": {
+    "list": {
+      "title": "Transactions",
+      "subtitle": "Browse, search, and manage your transactions.",
+      "empty": "No transactions yet. Add your first one.",
+      "error": {
+        "load": "Could not load transactions. Please try again.",
+        "network": "Network error. Please check your connection."
+      },
+      "columns": {
+        "date": "Date",
+        "amount": "Amount",
+        "category": "Category",
+        "currency": "Currency",
+        "kind": "Kind",
+        "actions": "Actions"
+      },
+      "filter": {
+        "fromDate": "From",
+        "toDate": "To",
+        "category": "Category",
+        "currency": "Currency",
+        "apply": "Apply",
+        "reset": "Reset"
+      }
+    },
+    "new": {
+      "title": "New transaction",
+      "submit": "Create",
+      "success": "Transaction created.",
+      "error": {
+        "invalidData": "Please check the form values.",
+        "duplicate": "A transaction with the same fingerprint already exists.",
+        "server": "Server error. Please try again."
+      },
+      "amount": "Amount",
+      "currency": "Currency",
+      "kind": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "category": "Category",
+      "notes": "Notes (optional)",
+      "occurredAt": "Date"
+    },
+    "edit": {
+      "title": "Edit transaction",
+      "submit": "Save",
+      "success": "Transaction updated.",
+      "error": {
+        "load": "Could not load this transaction.",
+        "update": "Could not save the changes."
+      }
+    },
+    "detail": {
+      "delete": "Delete",
+      "deleteConfirm": "Soft-delete this transaction? It can be recovered by an admin."
+    },
+    "delete": {
+      "success": "Transaction soft-deleted.",
+      "error": "Could not delete the transaction."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View"
+    },
+    "totals": {
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net"
+    },
+    "threshold": {
+      "title": "Threshold alert",
+      "dismissed": "Dismissed"
+    }
+  },
+  "categories": {
+    "list": {
+      "title": "Categories",
+      "subtitle": "Organize your transactions into categories.",
+      "empty": "No categories yet.",
+      "new": "New category"
+    },
+    "form": {
+      "name": "Name",
+      "kind": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "submit": "Save",
+      "success": "Category saved.",
+      "error": "Could not save the category.",
+      "slug": "Slug",
+      "slugHint": "Lowercase letters, numbers, and dashes only."
+    },
+    "delete": {
+      "confirm": "Soft-delete this category? Existing transactions keep their data but the category will disappear from selectors.",
+      "success": "Category soft-deleted.",
+      "error": "Could not delete the category."
+    },
+    "kinds": {
+      "income": "Income",
+      "expense": "Expense"
+    }
+  },
+  "common": {
+    "loading": "Loading…",
+    "genericError": "Something went wrong. Please try again.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "retry": "Retry"
   }
 }
