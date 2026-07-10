@@ -19,25 +19,25 @@ import { ThresholdAlert } from "@/components/transactions/ThresholdAlert";
  * the totals track the visible filter state.
  */
 interface PageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function TransactionsPage({ params }: PageProps) {
-	const { locale } = await params;
-	const t = await getTranslations("transactions.list");
-	return (
-		<main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-			<header style={{ marginBottom: "1.5rem" }}>
-				<h1>{t("title")}</h1>
-				<p style={{ color: "#666" }}>{t("subtitle")}</p>
-			</header>
-			<ThresholdAlert />
-			<TransactionsList />
-			<p style={{ color: "#999", fontSize: "0.75rem" }}>
-				Locale: <code>{locale}</code>
-			</p>
-		</main>
-	);
+  const { locale } = await params;
+  const t = await getTranslations("transactions.list");
+  return (
+    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <header style={{ marginBottom: "1.5rem" }}>
+        <h1>{t("title")}</h1>
+        <p style={{ color: "#666" }}>{t("subtitle")}</p>
+      </header>
+      <ThresholdAlert />
+      <TransactionsList />
+      <p style={{ color: "#999", fontSize: "0.75rem" }}>
+        Locale: <code>{locale}</code>
+      </p>
+    </main>
+  );
 }

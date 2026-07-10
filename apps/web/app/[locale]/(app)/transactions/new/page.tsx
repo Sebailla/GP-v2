@@ -11,23 +11,23 @@ import { CreateTransactionForm } from "@/components/transactions/CreateTransacti
  * category-state loading.
  */
 interface PageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function NewTransactionPage({ params }: PageProps) {
-	const { locale } = await params;
-	const t = await getTranslations("transactions.new");
-	return (
-		<main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-			<header style={{ marginBottom: "1.5rem" }}>
-				<h1>{t("title")}</h1>
-			</header>
-			<CreateTransactionForm />
-			<p style={{ color: "#999", fontSize: "0.75rem" }}>
-				Locale: <code>{locale}</code>
-			</p>
-		</main>
-	);
+  const { locale } = await params;
+  const t = await getTranslations("transactions.new");
+  return (
+    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <header style={{ marginBottom: "1.5rem" }}>
+        <h1>{t("title")}</h1>
+      </header>
+      <CreateTransactionForm />
+      <p style={{ color: "#999", fontSize: "0.75rem" }}>
+        Locale: <code>{locale}</code>
+      </p>
+    </main>
+  );
 }
