@@ -1,5 +1,5 @@
 {
-"extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "preserve",
@@ -14,18 +14,14 @@
         "name": "next"
       }
     ],
-"baseUrl": "../..",
+    "baseUrl": "../..",
     "paths": {
       "@/*": ["apps/web/*"],
       "@features/auth": ["libs/features/auth/server/src/index.ts"],
-      "@features/auth/*": ["libs/features/auth/*"]
+      "@features/auth/*": ["libs/features/auth/*"],
+      "@features/transactions/shared/*": ["libs/features/transactions/shared/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts"
-  ],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules", ".next"]
 }
