@@ -11,6 +11,6 @@
     "ignoreDeprecations": "6.0",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../docs/step-defs/**/*.ts"],
   "exclude": ["node_modules", "dist", "src/__tests__/**", "../../../core/database/src/generated/**"]
 }

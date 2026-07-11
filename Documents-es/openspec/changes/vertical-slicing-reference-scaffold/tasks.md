@@ -696,7 +696,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 **Verificación.** `pnpm turbo run bdd e2e` sale 0.
 **Rollback.** Por commit atómico.
 
-### Task T7.1 — `libs/features/auth/docs/step-defs/` (definiciones de step compartidas) (~30 líneas)
+### Task T7.1 — `libs/features/auth/docs/step-defs/` (definiciones de step compartidas) (~30 líneas) — `[x]`
 
 - **Description.** Configurar el directorio de step-defs compartidos con el phrasing canónico para los steps más comunes (`Given a registered user exists with role '<role>'`, `When the user submits the sign-in form at /{locale}/sign-in with email '<email>' and password '<password>'`, `Then a session is created`). Single source of truth para los seis archivos `.feature` en T7.2.
 - **Discovery / file targets.** `libs/features/auth/docs/step-defs/{common.steps.ts,realm.steps.ts}`.
@@ -705,7 +705,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.1-sha>`.
 - **Files touched (rough).** ~30 líneas.
 
-### Task T7.2 — `libs/features/auth/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas)
+### Task T7.2 — `libs/features/auth/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas) — `[x]`
 
 - **Description.** Según inventario de features Gherkin del spec auth: `login-email-password.feature`, `oauth-google-stub.feature`, `password-reset.feature`, `sessions-list.feature`, `rbac-admin.feature`, `login-locale-routing.feature`. Cada uno contiene los escenarios del spec en forma verbatim.
 - **Discovery / file targets.** Seis archivos bajo `libs/features/auth/docs/`.
@@ -714,7 +714,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.2-sha>`.
 - **Files touched (rough).** ~60 líneas.
 
-### Task T7.3 — `libs/features/transactions/docs/step-defs/` (definiciones de step compartidas) (~40 líneas)
+### Task T7.3 — `libs/features/transactions/docs/step-defs/` (definiciones de step compartidas) (~40 líneas) — `[x]`
 
 - **Description.** Según spec: step defs compartidos para los 6 archivos `.feature` de transactions. `Given a category <name> with kind <kind> exists`, `Given an FxRate from <from> to <to> at rate <rate> recorded <time> ago`, `When the user submits the create-transaction form at /{locale}/transactions/new with idempotency key <key> and amount <amount>`, etc.
 - **Discovery / file targets.** `libs/features/transactions/docs/step-defs/{common,data,actions}.steps.ts`.
@@ -723,7 +723,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.3-sha>`.
 - **Files touched (rough).** ~40 líneas.
 
-### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas)
+### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas) — `[x]`
 
 - **Description.** Según inventario de features Gherkin del spec transactions: `create-transaction.feature`, `list-transactions.feature`, `multi-currency-conversion.feature`, `idempotency-key.feature`, `soft-delete-categories.feature`, `sign-aware-totals.feature`. Cada uno contiene los escenarios del spec en forma verbatim.
 - **Discovery / file targets.** Seis archivos bajo `libs/features/transactions/docs/`.

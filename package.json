@@ -31,8 +31,10 @@
     "clean": "turbo run clean && rm -rf .turbo node_modules"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.0.0",
     "@typescript-eslint/parser": "8.62.0",
     "prettier": "3.9.0",
+    "tsx": "^4.23.0",
     "turbo": "2.10.3",
     "typescript": "6.0.3"
   }
