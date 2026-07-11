@@ -20,9 +20,7 @@ describe("categoryUpdateSchema (PATCH /categories/:id)", () => {
   });
 
   it("rejects an unknown kind", () => {
-    expect(() =>
-      categoryUpdateSchema.parse({ kind: "transfer" }),
-    ).toThrow();
+    expect(() => categoryUpdateSchema.parse({ kind: "transfer" })).toThrow();
   });
 
   // ---- 4R review fixes ----
@@ -32,8 +30,6 @@ describe("categoryUpdateSchema (PATCH /categories/:id)", () => {
   });
 
   it("rejects unknown keys in category-update (.strict())", () => {
-    expect(() =>
-      categoryUpdateSchema.parse({ rogueField: "x" }),
-    ).toThrow();
+    expect(() => categoryUpdateSchema.parse({ rogueField: "x" })).toThrow();
   });
 });

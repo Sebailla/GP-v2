@@ -21,17 +21,9 @@ import * as React from "react";
  * Tokens come from `apps/web/app/globals.css` (T4.7). No hex values
  * are hard-coded in this file.
  */
-export const Form = React.forwardRef<
-  HTMLFormElement,
-  React.FormHTMLAttributes<HTMLFormElement>
->(({ className, ...props }, ref) => {
-  return (
-    <form
-      ref={ref}
-      data-slot="form"
-      className={className}
-      {...props}
-    />
-  );
-});
+export const Form = React.forwardRef<HTMLFormElement, React.FormHTMLAttributes<HTMLFormElement>>(
+  ({ className, ...props }, ref) => {
+    return <form ref={ref} data-slot="form" className={className} {...props} />;
+  },
+);
 Form.displayName = "Form";

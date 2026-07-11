@@ -18,27 +18,27 @@ según la convención `doc-mirror-spanish` (id 2132) documentada en AGENTS.md §
    `openspec/`.
 2. Producido en el **mismo commit atómico** que el archivo fuente.
 3. Sin caracteres CJK (verificación: `grep -P '[\x{4e00}-\x{9fff}]'
-   Documents-es/.../apply-progress.md` debe devolver vacío).
+Documents-es/.../apply-progress.md` debe devolver vacío).
 4. Superficies técnicas preservadas verbatim: rutas de archivo,
    nombres de comandos, identificadores de task (T5.X), SHAs de
    commit, versiones de paquetes, gates (G1–G47), claves de catálogo.
 
 **Estado del espejo (2026-07-09):**
 
-| Sección del original en inglés | Estado del espejo en español |
-|---|---|
-| Apply Progress — sección de cabecera | ✅ Sincronizado (este header) |
-| Slice 1 — Skeleton & monorepo bootstrap | ⚠️ Pendiente (no traducido retroactivamente) |
-| Slice 2 — libs/core + libs/shared-utils (batches 1+2) | ⚠️ Pendiente (no traducido retroactivamente) |
-| Slice 3 — auth server (batches 1–5+) | ⚠️ Pendiente (no traducido retroactivamente) |
-| Slice 4 — auth client (batches 1–4 + cookie migration) | ✅ Sincronizado |
-| Slice 5 PR #1 — Foundations (capa de tipos) | ✅ Sincronizado |
-| Slice 5 PR #2 — Adaptadores + FX + DI | ✅ Sincronizado |
-| Slice 5 PR #3 — Servicios + AuditLog + 4R fixes (PR #29) | ⚠️ Pendiente (no traducido retroactivamente) |
-| Slice 5 close-out — Controller + integración + gate (PR #30) | ✅ Sincronizado |
-| v1.1.0 — release notes (CHANGELOG link) | ⚠️ Pendiente |
-| v1.1.1 — transactions hardening (R3-002 / R4-005 / R3-005 / R1-003 / R1-004 / R4-004 / R4-010) | ⚠️ Pendiente (PR #31 sin espejar) |
-| v1.1.1 — CI workflow + Prettier lock (PR #32) | ⚠️ Pendiente |
+| Sección del original en inglés                                                                 | Estado del espejo en español                 |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Apply Progress — sección de cabecera                                                           | ✅ Sincronizado (este header)                |
+| Slice 1 — Skeleton & monorepo bootstrap                                                        | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 2 — libs/core + libs/shared-utils (batches 1+2)                                          | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 3 — auth server (batches 1–5+)                                                           | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 4 — auth client (batches 1–4 + cookie migration)                                         | ✅ Sincronizado                              |
+| Slice 5 PR #1 — Foundations (capa de tipos)                                                    | ✅ Sincronizado                              |
+| Slice 5 PR #2 — Adaptadores + FX + DI                                                          | ✅ Sincronizado                              |
+| Slice 5 PR #3 — Servicios + AuditLog + 4R fixes (PR #29)                                       | ⚠️ Pendiente (no traducido retroactivamente) |
+| Slice 5 close-out — Controller + integración + gate (PR #30)                                   | ✅ Sincronizado                              |
+| v1.1.0 — release notes (CHANGELOG link)                                                        | ⚠️ Pendiente                                 |
+| v1.1.1 — transactions hardening (R3-002 / R4-005 / R3-005 / R1-003 / R1-004 / R4-004 / R4-010) | ⚠️ Pendiente (PR #31 sin espejar)            |
+| v1.1.1 — CI workflow + Prettier lock (PR #32)                                                  | ⚠️ Pendiente                                 |
 
 **Decisión sobre el sync retroactivo (§13):**
 
@@ -60,13 +60,13 @@ La regla §13 exige producción de espejos en el mismo commit atómico. Aplicada
 
 ### Sub-tareas completadas (5)
 
-| Sub-tarea | Asunto | Estado |
-|-----------|--------|--------|
-| brief-deps | Instalar next-intl@3.26.5 + clsx@2.1.1 + tailwind-merge@2.5.5 + vitest@4.1.9 (devDep) | HECHO |
-| brief-T4.5-cn-helper | cn helper + apps/web vitest config + tests de lib-utils (RED + GREEN, 4 tests) | HECHO |
-| brief-T4.3-next-intl-middleware | middleware.ts + i18n.ts + tests de middleware (RED + GREEN, 6 tests) | HECHO |
-| brief-T4.2-i18n-catalogs | en.json + es.json + test de paridad de key-set (sin TDD estricto según brief, 4 tests) | HECHO |
-| brief-markers-apply-progress | tasks.md T4.2 + T4.3 + T4.5 markers [x] + sección de apply-progress + espejo español | HECHO |
+| Sub-tarea                       | Asunto                                                                                 | Estado |
+| ------------------------------- | -------------------------------------------------------------------------------------- | ------ |
+| brief-deps                      | Instalar next-intl@3.26.5 + clsx@2.1.1 + tailwind-merge@2.5.5 + vitest@4.1.9 (devDep)  | HECHO  |
+| brief-T4.5-cn-helper            | cn helper + apps/web vitest config + tests de lib-utils (RED + GREEN, 4 tests)         | HECHO  |
+| brief-T4.3-next-intl-middleware | middleware.ts + i18n.ts + tests de middleware (RED + GREEN, 6 tests)                   | HECHO  |
+| brief-T4.2-i18n-catalogs        | en.json + es.json + test de paridad de key-set (sin TDD estricto según brief, 4 tests) | HECHO  |
+| brief-markers-apply-progress    | tasks.md T4.2 + T4.3 + T4.5 markers [x] + sección de apply-progress + espejo español   | HECHO  |
 
 ### Archivos creados / modificados (10 archivos, +792 / -2 distribuidos en 5 commits atómicos)
 
@@ -104,29 +104,29 @@ La regla §13 exige producción de espejos en el mismo commit atómico. Aplicada
 
 ### Evidencia TDD
 
-| Sub-tarea | RED | GREEN | Conteo final |
-|-----------|-----|-------|--------------|
-| brief-deps | N/A (sin código de producción) | N/A | 0 |
-| brief-T4.5-cn-helper | RED: `lib/utils.ts` faltante → 1 de 4 tests falla (Cannot find module). Creado cn = `twMerge(clsx(inputs))`. GREEN: 4/4 tests de cn PASS. | 4 nuevos |
+| Sub-tarea                       | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | GREEN    | Conteo final |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ |
+| brief-deps                      | N/A (sin código de producción)                                                                                                                                                                                                                                                                                                                                                                                                                                         | N/A      | 0            |
+| brief-T4.5-cn-helper            | RED: `lib/utils.ts` faltante → 1 de 4 tests falla (Cannot find module). Creado cn = `twMerge(clsx(inputs))`. GREEN: 4/4 tests de cn PASS.                                                                                                                                                                                                                                                                                                                              | 4 nuevos |
 | brief-T4.3-next-intl-middleware | RED: middleware.ts faltante → 6/6 tests fallan (Cannot find module). Creado middleware.ts + i18n.ts + descubiertos comportamientos empíricos. next-intl 3.26.5 emite URL ABSOLUTA en Location para redirects (el test parsea vía `new URL(loc, HOST).pathname`); emite header `x-middleware-request-x-next-intl-locale` en respuestas PASSTHROUGH (p. ej. /es/sign-in). Test revisado mid-cycle para leer esas señales canónicas. GREEN: 6/6 tests de middleware PASS. | 6 nuevos |
-| brief-T4.2-i18n-catalogs | Según brief: SIN TDD estricto (el contenido del catálogo es documentación/data, no comportamiento). El test de paridad de key-set fue escrito DESPUÉS de los catálogos como regression net — estuvo RED en ausencia de los catálogos (Cannot find module), GREEN una vez que ambos archivos existen con claves idénticas. 4/4 tests de catálogo PASS. | 4 nuevos |
-| brief-markers-apply-progress | N/A (solo markers) | N/A |
+| brief-T4.2-i18n-catalogs        | Según brief: SIN TDD estricto (el contenido del catálogo es documentación/data, no comportamiento). El test de paridad de key-set fue escrito DESPUÉS de los catálogos como regression net — estuvo RED en ausencia de los catálogos (Cannot find module), GREEN una vez que ambos archivos existen con claves idénticas. 4/4 tests de catálogo PASS.                                                                                                                  | 4 nuevos |
+| brief-markers-apply-progress    | N/A (solo markers)                                                                                                                                                                                                                                                                                                                                                                                                                                                     | N/A      |
 
 ### Quality gates
 
-| Gate | Resultado |
-|------|-----------|
-| `pnpm install` | exit 0 (4 paquetes agregados: next-intl@3.26.5, clsx@2.1.1, tailwind-merge@2.5.5, vitest@4.1.9; lockfile regenerado) |
-| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (sin regresión) |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (sin regresión) |
-| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (sin regresión) |
-| `cd apps/api && pnpm exec vitest run` | 21/21 PASS (sin regresión) |
-| `pnpm --filter web exec vitest run` | 14/14 PASS (NUEVO: 4 cn + 6 middleware + 4 catalogs) |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 (turbo completo, slices 1-4 conectados) |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos (correcto) |
-| `pnpm turbo run lint` (completo) | exit 0 (sin violaciones nuevas) |
-| `pnpm turbo run typecheck --filter=web` | exit 0 (los tipos de next-intl resuelven bajo tsconfig strict + resolución Bundler) |
-| `pnpm turbo run typecheck` (completo) | exit 0 (workspace completo) |
+| Gate                                                                                                              | Resultado                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                                                                                                    | exit 0 (4 paquetes agregados: next-intl@3.26.5, clsx@2.1.1, tailwind-merge@2.5.5, vitest@4.1.9; lockfile regenerado) |
+| `pnpm --filter @features/auth exec vitest run`                                                                    | 110/110 PASS (sin regresión)                                                                                         |
+| `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS (sin regresión)                                                                                           |
+| `pnpm --filter @core/config exec vitest run`                                                                      | 19/19 PASS (sin regresión)                                                                                           |
+| `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS (sin regresión)                                                                                           |
+| `pnpm --filter web exec vitest run`                                                                               | 14/14 PASS (NUEVO: 4 cn + 6 middleware + 4 catalogs)                                                                 |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 (turbo completo, slices 1-4 conectados)                                                                       |
+| `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos (correcto)                                                 |
+| `pnpm turbo run lint` (completo)                                                                                  | exit 0 (sin violaciones nuevas)                                                                                      |
+| `pnpm turbo run typecheck --filter=web`                                                                           | exit 0 (los tipos de next-intl resuelven bajo tsconfig strict + resolución Bundler)                                  |
+| `pnpm turbo run typecheck` (completo)                                                                             | exit 0 (workspace completo)                                                                                          |
 
 Falla pre-existente NO causada por este batch: `pnpm turbo run build --filter=web` fallaría porque `apps/web/app/[locale]/layout.tsx` y `page.tsx` fueron scaffolded en slice 1 con `force-static` + `import { env } from "@core/config"`; el import de env corre al cargar módulo y necesita `DATABASE_URL`/`NEXTAUTH_URL`/`NEXTAUTH_SECRET` seteadas. Slice 4 batch 4c (forms) es el lugar natural para conectar un `.env.local` real para apps/web (el path de build se ejerce cuando batch 4c ship la página real de /sign-in). Este batch SOLO agrega middleware + i18n + cn + catálogos — ninguna página real se renderea aún en /sign-in, por lo que el path de build no forma parte de los gates requeridos del brief (typecheck + test sí; ambos PASS).
 
@@ -200,16 +200,16 @@ Falla pre-existente NO causada por este batch: `pnpm turbo run build --filter=we
 
 ### Sub-tareas completadas (8)
 
-| Sub-tarea | Asunto | Estado |
-|-----------|--------|--------|
-| brief-deps | Instalar deps Tailwind v4 + Radix + CVA + lucide + testing-library | HECHO |
-| brief-T4.7-design-tokens | Extraer tokens de `gastos-personales/` a apps/web/app/globals.css + postcss config | HECHO |
-| brief-T4.4-RED | Suite de tests fallidos para los 4 primitivos estilo shadcn (23 aserciones) | HECHO |
-| brief-T4.4-GREEN | Implementar primitivos Button / Input / Form / Card | HECHO |
-| brief-T4.4-test-env | Actualizar vitest config: happy-dom + jest-dom + react plugin + alias @/ | HECHO |
-| brief-T4.6-manifest | Crear `apps/web/components.json` shadcn-style manifest | HECHO |
-| brief-T4.6-readme | Crear `apps/web/components.json.md` documentando convención CLI-no-usado | HECHO |
-| brief-markers-apply-progress | Marcadores [x] en tasks.md para T4.4 + T4.6 + T4.7 + sección apply-progress | HECHO |
+| Sub-tarea                    | Asunto                                                                             | Estado |
+| ---------------------------- | ---------------------------------------------------------------------------------- | ------ |
+| brief-deps                   | Instalar deps Tailwind v4 + Radix + CVA + lucide + testing-library                 | HECHO  |
+| brief-T4.7-design-tokens     | Extraer tokens de `gastos-personales/` a apps/web/app/globals.css + postcss config | HECHO  |
+| brief-T4.4-RED               | Suite de tests fallidos para los 4 primitivos estilo shadcn (23 aserciones)        | HECHO  |
+| brief-T4.4-GREEN             | Implementar primitivos Button / Input / Form / Card                                | HECHO  |
+| brief-T4.4-test-env          | Actualizar vitest config: happy-dom + jest-dom + react plugin + alias @/           | HECHO  |
+| brief-T4.6-manifest          | Crear `apps/web/components.json` shadcn-style manifest                             | HECHO  |
+| brief-T4.6-readme            | Crear `apps/web/components.json.md` documentando convención CLI-no-usado           | HECHO  |
+| brief-markers-apply-progress | Marcadores [x] en tasks.md para T4.4 + T4.6 + T4.7 + sección apply-progress        | HECHO  |
 
 ### Commits atómicos landed (5)
 
@@ -258,9 +258,9 @@ MODIFICADOS (5):
 
 ### Evidencia TDD
 
-| Sub-tarea | RED | GREEN | Conteo final |
-|-----------|-----|-------|--------------|
-| brief-T4.4-RED (primitives.test.tsx) | Los tests importaban `@/components/ui/{button,input,form,card}`; los 4 módulos no existían, así que vitest falló al parsear ("Failed to parse source for import analysis"). 0/23 aserciones corrieron. | 4 módulos de primitivos implementados; vitest parsea el archivo de tests. 23/23 aserciones pasan. | 23 nuevos |
+| Sub-tarea                            | RED                                                                                                                                                                                                    | GREEN                                                                                             | Conteo final |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------ |
+| brief-T4.4-RED (primitives.test.tsx) | Los tests importaban `@/components/ui/{button,input,form,card}`; los 4 módulos no existían, así que vitest falló al parsear ("Failed to parse source for import analysis"). 0/23 aserciones corrieron. | 4 módulos de primitivos implementados; vitest parsea el archivo de tests. 23/23 aserciones pasan. | 23 nuevos    |
 
 ### Desviaciones críticas del brief
 
@@ -280,22 +280,22 @@ MODIFICADOS (5):
 
 ### Quality gates — todos verdes
 
-| Gate | Resultado |
-|------|-----------|
-| Workspace install | ✅ exit 0 |
-| `@features/auth` test | ✅ 110/110 PASS (sin regresión) |
-| `@core/events` test | ✅ 37/37 PASS (sin regresión) |
-| `@core/config` test | ✅ 19/19 PASS (sin regresión) |
-| `@core/database` test | ✅ 3/3 PASS (sin regresión) |
-| `apps/api` test | ✅ 21/21 PASS (sin regresión) |
-| `apps/web` test | ✅ 38/38 PASS |
-| `pnpm turbo run test` (filtered, full workspace) | ✅ 9/9 tareas PASS |
-| `pnpm --filter web exec tsc --noEmit` | ✅ exit 0 |
-| `pnpm --filter web exec eslint . --max-warnings 0` | ✅ exit 0 |
-| `pnpm --filter web build` (con env vars seteadas) | ✅ exit 0; sin warnings de Tailwind; globals.css compila |
-| `node -e "JSON.parse(...)"` (components.json) | ✅ exit 0 |
-| `pnpm run lint:fixtures` | ✅ 11/11 fixtures PASS |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
+| Gate                                               | Resultado                                                |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| Workspace install                                  | ✅ exit 0                                                |
+| `@features/auth` test                              | ✅ 110/110 PASS (sin regresión)                          |
+| `@core/events` test                                | ✅ 37/37 PASS (sin regresión)                            |
+| `@core/config` test                                | ✅ 19/19 PASS (sin regresión)                            |
+| `@core/database` test                              | ✅ 3/3 PASS (sin regresión)                              |
+| `apps/api` test                                    | ✅ 21/21 PASS (sin regresión)                            |
+| `apps/web` test                                    | ✅ 38/38 PASS                                            |
+| `pnpm turbo run test` (filtered, full workspace)   | ✅ 9/9 tareas PASS                                       |
+| `pnpm --filter web exec tsc --noEmit`              | ✅ exit 0                                                |
+| `pnpm --filter web exec eslint . --max-warnings 0` | ✅ exit 0                                                |
+| `pnpm --filter web build` (con env vars seteadas)  | ✅ exit 0; sin warnings de Tailwind; globals.css compila |
+| `node -e "JSON.parse(...)"` (components.json)      | ✅ exit 0                                                |
+| `pnpm run lint:fixtures`                           | ✅ 11/11 fixtures PASS                                   |
+| `pnpm turbo run lint` (full)                       | ✅ exit 0                                                |
 
 ### Cross-references (slice 4 batch 4b)
 
@@ -320,11 +320,11 @@ MODIFICADOS (5):
 
 ### Sub-tareas completadas (3/3)
 
-| Sub-task | Asunto | Status | Commit |
-|----------|--------|--------|--------|
-| brief-cookie-name-migration | Renombrado de constante + string de atributos en `apps/web/lib/auth.ts` + actualizaciones en 12 archivos de tests | DONE | `9834f51` |
-| brief-server-cookie-read | `getSession()` lee el nombre canónico de cookie de NextAuth (cuerpo de función sin cambios; el renombrado fluye a través de la constante) | DONE | `9834f51` |
-| brief-markers-apply-progress | Sección de migración de cookie del slice 4 en tasks.md + sección en apply-progress + mirror en español | DONE | este commit |
+| Sub-task                     | Asunto                                                                                                                                    | Status | Commit      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------- |
+| brief-cookie-name-migration  | Renombrado de constante + string de atributos en `apps/web/lib/auth.ts` + actualizaciones en 12 archivos de tests                         | DONE   | `9834f51`   |
+| brief-server-cookie-read     | `getSession()` lee el nombre canónico de cookie de NextAuth (cuerpo de función sin cambios; el renombrado fluye a través de la constante) | DONE   | `9834f51`   |
+| brief-markers-apply-progress | Sección de migración de cookie del slice 4 en tasks.md + sección en apply-progress + mirror en español                                    | DONE   | este commit |
 
 ### Commits atómicos (2)
 
@@ -356,22 +356,22 @@ MODIFIED (14):
 
 ### Cambio en el conteo de tests
 
-| Workspace | Antes | Después | Delta |
-|-----------|-------|---------|-------|
-| `apps/web` | 104/104 | 106/106 | +2 (lib-auth: aserciones AUTH_SESSION_COOKIE + SESSION_TTL_SECONDS) |
-| `@features/auth` | 112/112 | 112/112 | 0 (sin regresión) |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **297** | **299** | **+2** |
+| Workspace        | Antes   | Después | Delta                                                               |
+| ---------------- | ------- | ------- | ------------------------------------------------------------------- |
+| `apps/web`       | 104/104 | 106/106 | +2 (lib-auth: aserciones AUTH_SESSION_COOKIE + SESSION_TTL_SECONDS) |
+| `@features/auth` | 112/112 | 112/112 | 0 (sin regresión)                                                   |
+| `@core/events`   | 37/37   | 37/37   | 0                                                                   |
+| `@core/config`   | 20/20   | 20/20   | 0                                                                   |
+| `@core/database` | 3/3     | 3/3     | 0                                                                   |
+| `apps/api`       | 21/21   | 21/21   | 0                                                                   |
+| **Total**        | **297** | **299** | **+2**                                                              |
 
 ### Evidencia TDD
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-cookie-name-migration | N/A — renombrado mecánico + 2 nuevas aserciones de atributo. Los 11 tests existentes en `lib-auth.test.ts` fallarían en la aserción `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)` si `AUTH_SESSION_COOKIE` se cambiase sin actualizar el mock — pero el mock usa la constante, así que el renombrado fluye. Los 8 tests de páginas / forms que tenían hardcoded `"auth-session"` en el cookie store SÍ fallaron tras el renombrado + fueron actualizados en el mismo commit (test+code atómico). | 13/13 lib-auth tests PASS (eran 11; +2 nuevas aserciones de atributo); 106/106 apps/web tests PASS (eran 104; +2 lib-auth + ningún test nuevo de página/form); 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | +2 tests nuevos netos |
-| brief-server-cookie-read | N/A — cuerpo de la función sin cambios. | Todos los tests pasan sin modificación (los tests existentes asseren sobre el shape decodificado, no sobre el nombre de la cookie directamente). | 0 |
+| Sub-task                    | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | GREEN                                                                                                                                                                                                                               | Final count           |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| brief-cookie-name-migration | N/A — renombrado mecánico + 2 nuevas aserciones de atributo. Los 11 tests existentes en `lib-auth.test.ts` fallarían en la aserción `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)`si`AUTH_SESSION_COOKIE`se cambiase sin actualizar el mock — pero el mock usa la constante, así que el renombrado fluye. Los 8 tests de páginas / forms que tenían hardcoded`"auth-session"` en el cookie store SÍ fallaron tras el renombrado + fueron actualizados en el mismo commit (test+code atómico). | 13/13 lib-auth tests PASS (eran 11; +2 nuevas aserciones de atributo); 106/106 apps/web tests PASS (eran 104; +2 lib-auth + ningún test nuevo de página/form); 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | +2 tests nuevos netos |
+| brief-server-cookie-read    | N/A — cuerpo de la función sin cambios.                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Todos los tests pasan sin modificación (los tests existentes asseren sobre el shape decodificado, no sobre el nombre de la cookie directamente).                                                                                    | 0                     |
 
 ### Desviaciones críticas del brief (3)
 
@@ -381,18 +381,18 @@ MODIFIED (14):
 
 ### Quality gates — todos verdes
 
-| Gate | Resultado |
-|------|-----------|
-| `pnpm install` | exit 0 |
-| `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
-| `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
-| `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
-| `cd apps/web && pnpm exec vitest run` | 106/106 PASS (eran 104; +2 nuevas aserciones de atributo) |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
-| `pnpm turbo run lint` | 10/10 tasks PASS |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones a través de los fixtures inválidos |
-| `pnpm turbo run typecheck` | 9/9 tasks PASS |
+| Gate                                                                                                              | Resultado                                                              |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm install`                                                                                                    | exit 0                                                                 |
+| `pnpm --filter @features/auth exec vitest run`                                                                    | 112/112 PASS                                                           |
+| `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS                                                             |
+| `pnpm --filter @core/config exec vitest run`                                                                      | 20/20 PASS                                                             |
+| `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS                                                             |
+| `cd apps/web && pnpm exec vitest run`                                                                             | 106/106 PASS (eran 104; +2 nuevas aserciones de atributo)              |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS                                                         |
+| `pnpm turbo run lint`                                                                                             | 10/10 tasks PASS                                                       |
+| `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violaciones a través de los fixtures inválidos |
+| `pnpm turbo run typecheck`                                                                                        | 9/9 tasks PASS                                                         |
 
 ### Risk flags (nuevos en este batch)
 
@@ -487,12 +487,12 @@ next_recommended: slice 5 (transactions server) — el siguiente slice canónico
 
 ### Sub-tareas completadas (4/4)
 
-| Sub-tarea | Asunto | Status | Commit |
-|-----------|--------|--------|--------|
-| chore-repo-merge-markers | Remoción mecánica de marcadores `<<<<<<<` sin resolver de 9 archivos `package.json` (ambos lados coincidían en `1.0.0`). | HECHO | `98c651e` |
-| T5.1 | Extensión del esquema Prisma (6 tablas + 2 enums + back-relations en User/FxRate; Decimal por D-TX-6). | HECHO | `478fd7c` |
-| T5.4 | Schemas Zod canónicos + scaffold del slice (5 schemas + 5 specs Vitest + esqueleto del paquete del server). | HECHO | `a4f531e` |
-| T5.5 + T5.6 | Entidades de dominio (5) + puertos de dominio (6) + invariante JSDoc D-TX-5 en `CategoryRepository`. | HECHO | `1802dd5` |
+| Sub-tarea                | Asunto                                                                                                                   | Status | Commit    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------ | --------- |
+| chore-repo-merge-markers | Remoción mecánica de marcadores `<<<<<<<` sin resolver de 9 archivos `package.json` (ambos lados coincidían en `1.0.0`). | HECHO  | `98c651e` |
+| T5.1                     | Extensión del esquema Prisma (6 tablas + 2 enums + back-relations en User/FxRate; Decimal por D-TX-6).                   | HECHO  | `478fd7c` |
+| T5.4                     | Schemas Zod canónicos + scaffold del slice (5 schemas + 5 specs Vitest + esqueleto del paquete del server).              | HECHO  | `a4f531e` |
+| T5.5 + T5.6              | Entidades de dominio (5) + puertos de dominio (6) + invariante JSDoc D-TX-5 en `CategoryRepository`.                     | HECHO  | `1802dd5` |
 
 ### Commits atómicos (5 producción + 2 workflow + 1 chore-off-tracker)
 
@@ -550,25 +550,25 @@ WORKFLOW (4): `openspec/changes/.../tasks.md`, `Documents-es/.../tasks.md`, `ope
 
 ### Cambio en conteo de tests
 
-| Workspace | Antes | Después | Delta |
-|-----------|-------|---------|-------|
-| `@features/transactions` (nuevo) | 0/0 | 27/27 | +27 (5 archivos de test nuevos) |
-| `apps/web` | 106/106 | 106/106 | 0 |
-| `@features/auth` | 112/112 | 112/112 | 0 |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **299** | **326** | **+27** |
+| Workspace                        | Antes   | Después | Delta                           |
+| -------------------------------- | ------- | ------- | ------------------------------- |
+| `@features/transactions` (nuevo) | 0/0     | 27/27   | +27 (5 archivos de test nuevos) |
+| `apps/web`                       | 106/106 | 106/106 | 0                               |
+| `@features/auth`                 | 112/112 | 112/112 | 0                               |
+| `@core/events`                   | 37/37   | 37/37   | 0                               |
+| `@core/config`                   | 20/20   | 20/20   | 0                               |
+| `@core/database`                 | 3/3     | 3/3     | 0                               |
+| `apps/api`                       | 21/21   | 21/21   | 0                               |
+| **Total**                        | **299** | **326** | **+27**                         |
 
 ### Evidencia TDD
 
-| Sub-tarea | RED | GREEN | Conteo final |
-|-----------|-----|-------|--------------|
-| Esquema T5.1 | N/A — el gate de la migración es T5.2 (PR #2). | `prisma format` exits 0; back-relations validan; Decimal mapea correctamente por D-TX-6. | 0 |
-| Schemas Zod T5.4 | Specs Vitest escritas primero bajo `shared/schemas/__tests__/` — los archivos spec aseguran amount positivo, currency code de 3 letras, kind enum, notes ≤ 500 chars, defaults de list, slug kebab-case, etc. | Schemas aterrizados; las 27 aserciones pasan. Sin regresión en otros slices. | +27 |
-| Entidades T5.5 | N/A — los tipos son estáticos. | `tsc --noEmit` exits 0; tipos de entidades referenciados desde el barrel `src/index.ts`; los puertos importan desde entidades sin conflicto. | 0 |
-| Puertos T5.6 | N/A — la invariante JSDoc del puerto está documentada; el guard compile-time (D-TX-5) lo aseguran los tests del adaptador en PR #2 (T5.7). | `tsc --noEmit` exits 0; los puertos compilan, las interfaces se exportan desde el barrel, los callers pueden `import type { TransactionRepository } from "@features/transactions"`. | 0 |
+| Sub-tarea        | RED                                                                                                                                                                                                           | GREEN                                                                                                                                                                               | Conteo final |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| Esquema T5.1     | N/A — el gate de la migración es T5.2 (PR #2).                                                                                                                                                                | `prisma format` exits 0; back-relations validan; Decimal mapea correctamente por D-TX-6.                                                                                            | 0            |
+| Schemas Zod T5.4 | Specs Vitest escritas primero bajo `shared/schemas/__tests__/` — los archivos spec aseguran amount positivo, currency code de 3 letras, kind enum, notes ≤ 500 chars, defaults de list, slug kebab-case, etc. | Schemas aterrizados; las 27 aserciones pasan. Sin regresión en otros slices.                                                                                                        | +27          |
+| Entidades T5.5   | N/A — los tipos son estáticos.                                                                                                                                                                                | `tsc --noEmit` exits 0; tipos de entidades referenciados desde el barrel `src/index.ts`; los puertos importan desde entidades sin conflicto.                                        | 0            |
+| Puertos T5.6     | N/A — la invariante JSDoc del puerto está documentada; el guard compile-time (D-TX-5) lo aseguran los tests del adaptador en PR #2 (T5.7).                                                                    | `tsc --noEmit` exits 0; los puertos compilan, las interfaces se exportan desde el barrel, los callers pueden `import type { TransactionRepository } from "@features/transactions"`. | 0            |
 
 ### Desviaciones críticas del brief (2)
 
@@ -583,13 +583,13 @@ WORKFLOW (4): `openspec/changes/.../tasks.md`, `Documents-es/.../tasks.md`, `ope
 
 ### Quality gates — todos en verde
 
-| Gate | Resultado |
-|------|-----------|
-| `pnpm install` | exit 0 |
-| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 archivos) |
-| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
+| Gate                                                                            | Resultado                                                             |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `pnpm install`                                                                  | exit 0                                                                |
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0                                                                |
+| `pnpm --filter @features/transactions exec tsc --noEmit`                        | exit 0                                                                |
+| `pnpm --filter @features/transactions exec vitest run`                          | 27/27 PASS (5 archivos)                                               |
+| `pnpm lint:fixtures`                                                            | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
 
 ### Workload / PR boundary
 
@@ -609,10 +609,22 @@ slice_2: complete (5/5)
 slice_3: complete (9/9)
 slice_4:
   status: complete (27/27)
-  tasks_done: [T4.1..T4.15, brief-test-slim, brief-fetch-timeout, brief-referrer-policy,
-              brief-magic-constant, brief-input-prop-cleanup, brief-auth-helper,
-              brief-cookie-on-success, brief-redirect-if-authed, brief-i18n-keys,
-              brief-cookie-name-migration, brief-server-cookie-read, brief-markers-apply-progress]
+  tasks_done:
+    [
+      T4.1..T4.15,
+      brief-test-slim,
+      brief-fetch-timeout,
+      brief-referrer-policy,
+      brief-magic-constant,
+      brief-input-prop-cleanup,
+      brief-auth-helper,
+      brief-cookie-on-success,
+      brief-redirect-if-authed,
+      brief-i18n-keys,
+      brief-cookie-name-migration,
+      brief-server-cookie-read,
+      brief-markers-apply-progress,
+    ]
 slice_5:
   status: in-progress (4/13 — PR #1 hecho; PR #2 + PR #3 pendientes)
   pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
@@ -671,12 +683,12 @@ La skill `verification-before-completion` guarda cada claim de esta sección: ca
 
 ### Sub-tasks
 
-| Sub-task | Estado | Commits | Notas |
-|----------|--------|---------|-------|
-| T5.2 (apply de migración) | [x] | `c719a0e` (+ `2cc90fe` follow-up) | `pnpm prisma migrate dev --name transactions_init` produjo las seis tablas + dos enums; las columnas monetarias D-TX-6 son `DECIMAL` no `BIGINT`. El follow-up `2cc90fe` agrega la columna `Category.updatedBy` para cerrar el gap de contrato W1 del PR #1. |
-| T5.7 (5 adaptadores Prisma) | [x] | `ebf585b` | Los 5 repos: D-TX-5 enforzado + P2002/P2025 traducido + cursor pagination + Decimal boundary. Los tests assertean la invariante inspeccionando la cláusula `where` de cada read query. |
-| T5.8 (InMemoryFxRateProvider) | [x] | `ebf585b` | Seed de 4 pares en tiempo de construcción + helper de test `advanceClock()`. Staleness boundary (D-TX-4) testeable sin dormir el runner. |
-| T5.10 (wiring DI) | [x] | `ebf585b` | `FX_RATE_PROVIDER_TOKEN` vive en `constants.ts` del slice (sin leak de string literal al consumer); el módulo NestJS lo bindea vía `useFactory`. Path mapping de `apps/api/tsconfig.json` agregado. |
+| Sub-task                      | Estado | Commits                           | Notas                                                                                                                                                                                                                                                        |
+| ----------------------------- | ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| T5.2 (apply de migración)     | [x]    | `c719a0e` (+ `2cc90fe` follow-up) | `pnpm prisma migrate dev --name transactions_init` produjo las seis tablas + dos enums; las columnas monetarias D-TX-6 son `DECIMAL` no `BIGINT`. El follow-up `2cc90fe` agrega la columna `Category.updatedBy` para cerrar el gap de contrato W1 del PR #1. |
+| T5.7 (5 adaptadores Prisma)   | [x]    | `ebf585b`                         | Los 5 repos: D-TX-5 enforzado + P2002/P2025 traducido + cursor pagination + Decimal boundary. Los tests assertean la invariante inspeccionando la cláusula `where` de cada read query.                                                                       |
+| T5.8 (InMemoryFxRateProvider) | [x]    | `ebf585b`                         | Seed de 4 pares en tiempo de construcción + helper de test `advanceClock()`. Staleness boundary (D-TX-4) testeable sin dormir el runner.                                                                                                                     |
+| T5.10 (wiring DI)             | [x]    | `ebf585b`                         | `FX_RATE_PROVIDER_TOKEN` vive en `constants.ts` del slice (sin leak de string literal al consumer); el módulo NestJS lo bindea vía `useFactory`. Path mapping de `apps/api/tsconfig.json` agregado.                                                          |
 
 ### Archivos creados / modificados
 
@@ -711,25 +723,25 @@ La skill `verification-before-completion` guarda cada claim de esta sección: ca
 
 ### Cambio en el conteo de tests
 
-| Workspace | Antes de PR #2 | Después de PR #2 | Delta |
-|-----------|----------------|------------------|-------|
+| Workspace                | Antes de PR #2  | Después de PR #2 | Delta                           |
+| ------------------------ | --------------- | ---------------- | ------------------------------- |
 | `@features/transactions` | 27/27 (5 files) | 98/98 (11 files) | +71 (6 nuevos archivos de test) |
-| `apps/web` | 106/106 | 106/106 | 0 |
-| `@features/auth` | 112/112 | 112/112 | 0 |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **326** | **397** | **+71** |
+| `apps/web`               | 106/106         | 106/106          | 0                               |
+| `@features/auth`         | 112/112         | 112/112          | 0                               |
+| `@core/events`           | 37/37           | 37/37            | 0                               |
+| `@core/config`           | 20/20           | 20/20            | 0                               |
+| `@core/database`         | 3/3             | 3/3              | 0                               |
+| `apps/api`               | 21/21           | 21/21            | 0                               |
+| **Total**                | **326**         | **397**          | **+71**                         |
 
 ### Evidencia TDD (PR #2)
 
-| Sub-task | RED | GREEN | Refactor | Conteo final |
-|----------|-----|-------|----------|--------------|
-| T5.2 migración | N/A — el schema es una pre-condición. | `prisma format` exit 0; `prisma migrate dev` produce un archivo SQL limpio; las columnas son `DECIMAL` per D-TX-6. El follow-up `2cc90fe` cierra el gap de contrato W1 del PR #1 sobre `Category.updatedBy`. | Ninguno. | 0 |
-| T5.7 adaptadores Prisma | N/A — la sesión previa autorizó el código de producción sin RED observado. Los nuevos archivos de test actúan como regression lock + executable specification. Los 49 tests de adapter fallarían ante cualquier drift en la invariante D-TX-5, la Decimal boundary, la traducción P2002/P2025, o la cursor pagination. | 49/49 tests PASS contra el código de producción existente (verificado en el commit feat). | Ninguno. | +49 |
-| T5.8 InMemory FX provider | Misma caveat que T5.7: la sesión previa autorizó el código de producción; el nuevo archivo de test es un regression lock. Los 11 tests de FX fallarían ante cualquier drift en el seed de 4 pares (precisión decimal.js), el contrato de lookup de `getRate`, o las semánticas de `advanceClock`. | 11/11 tests PASS. | Ninguno. | +11 |
-| T5.10 wiring DI | N/A — el wiring se verifica al nivel del container NestJS; el pase de `tsc` sobre `apps/api` es el gate (los imports del módulo resuelven al barrel del slice). | `pnpm --filter api exec tsc --noEmit` exit 0; el nuevo path mapping de `apps/api/tsconfig.json` hace que `@features/transactions` sea resolvable. El módulo re-exporta `FX_RATE_PROVIDER_TOKEN` para que los callers existentes sigan funcionando. | Ninguno. | 0 |
+| Sub-task                  | RED                                                                                                                                                                                                                                                                                                                    | GREEN                                                                                                                                                                                                                                              | Refactor | Conteo final |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------ |
+| T5.2 migración            | N/A — el schema es una pre-condición.                                                                                                                                                                                                                                                                                  | `prisma format` exit 0; `prisma migrate dev` produce un archivo SQL limpio; las columnas son `DECIMAL` per D-TX-6. El follow-up `2cc90fe` cierra el gap de contrato W1 del PR #1 sobre `Category.updatedBy`.                                       | Ninguno. | 0            |
+| T5.7 adaptadores Prisma   | N/A — la sesión previa autorizó el código de producción sin RED observado. Los nuevos archivos de test actúan como regression lock + executable specification. Los 49 tests de adapter fallarían ante cualquier drift en la invariante D-TX-5, la Decimal boundary, la traducción P2002/P2025, o la cursor pagination. | 49/49 tests PASS contra el código de producción existente (verificado en el commit feat).                                                                                                                                                          | Ninguno. | +49          |
+| T5.8 InMemory FX provider | Misma caveat que T5.7: la sesión previa autorizó el código de producción; el nuevo archivo de test es un regression lock. Los 11 tests de FX fallarían ante cualquier drift en el seed de 4 pares (precisión decimal.js), el contrato de lookup de `getRate`, o las semánticas de `advanceClock`.                      | 11/11 tests PASS.                                                                                                                                                                                                                                  | Ninguno. | +11          |
+| T5.10 wiring DI           | N/A — el wiring se verifica al nivel del container NestJS; el pase de `tsc` sobre `apps/api` es el gate (los imports del módulo resuelven al barrel del slice).                                                                                                                                                        | `pnpm --filter api exec tsc --noEmit` exit 0; el nuevo path mapping de `apps/api/tsconfig.json` hace que `@features/transactions` sea resolvable. El módulo re-exporta `FX_RATE_PROVIDER_TOKEN` para que los callers existentes sigan funcionando. | Ninguno. | 0            |
 
 El paso RED de strict-TDD NO se observó para el código de producción del adapter + FX provider; la sesión previa autorizó esos sin la disciplina test-first. Los nuevos archivos de test compensan como regression locks, y la desviación se documenta aquí honestamente. Slice 5 PR #3 seguirá strict RED → GREEN → TRIANGULATE → REFACTOR para los servicios desde el inicio.
 
@@ -751,17 +763,17 @@ El paso RED de strict-TDD NO se observó para el código de producción del adap
 
 ### Quality gates — todos en verde
 
-| Gate | Resultado |
-|------|-----------|
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files) |
-| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 |
-| `pnpm --filter api exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 |
-| `pnpm --filter web exec tsc --noEmit` | exit 0 |
-| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errores |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en invalid-fixtures preservadas |
-| `pnpm --filter @core/database exec vitest run` | 3/3 PASS |
+| Gate                                                     | Resultado                                                           |
+| -------------------------------------------------------- | ------------------------------------------------------------------- |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0                                                              |
+| `pnpm --filter @features/transactions exec vitest run`   | 98/98 PASS (11 files)                                               |
+| `pnpm --filter @core/database exec tsc --noEmit`         | exit 0                                                              |
+| `pnpm --filter api exec tsc --noEmit`                    | exit 0                                                              |
+| `pnpm --filter @features/auth exec tsc --noEmit`         | exit 0                                                              |
+| `pnpm --filter web exec tsc --noEmit`                    | exit 0                                                              |
+| `pnpm turbo run lint`                                    | 11/11 tasks PASS, 0 errores                                         |
+| `pnpm run lint:fixtures`                                 | 11/11 fixtures PASS, 18 violaciones en invalid-fixtures preservadas |
+| `pnpm --filter @core/database exec vitest run`           | 3/3 PASS                                                            |
 
 ### Workload / PR boundary
 
@@ -834,13 +846,13 @@ next_recommended: slice 5 PR #3 — T5.3 (test RED para TransactionService.creat
 
 **Commits atómicos (5)**
 
-| # | Sha | Asunto | Superficie | Evidencia TDD |
-|---|------|---------|-----------|---------------|
-| 1 | `f2b9bac` | `chore(slice-5): mark T5.3 + T5.9 as [x] in tasks.md` | bookkeeping | No es TDD — sólo los marcadores `[x]` de `tasks.md`. |
-| 2 | `81e9132` | `feat(transactions): NestJS controller (T5.11) + service list/update/softDelete + QuerySchema decorator` | T5.11 | TDD preparado — la suite de triangulación (commit 3) sigue al controlador. |
-| 3 | `021d112` | `test(transactions): triangulation suite — 8 cross-cutting scenarios (T5.12)` | T5.12 | RED-first vía la factoría de tests a nivel de servicio; los escenarios se escribieron contra el controlador en GREEN. 11/11 tests nuevos PASAN. |
-| 4 | `dab1d99` | `chore(transactions): apply auto-formatter consistency pass` | housekeeping | No es TDD. El auto-formateador de biome reordenó los imports + tabs→espacios después del commit 2; centralizar el drift en este commit mantiene los diffs futuros enfocados en lógica. |
-| 5 | `<filled by commit>` | `chore(slice-5): final turbo gate green + apply-progress section (T5.13 part B)` | T5.13 | Compuerta de verificación (lint + typecheck + test) capturada abajo. |
+| #   | Sha                  | Asunto                                                                                                   | Superficie   | Evidencia TDD                                                                                                                                                                          |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `f2b9bac`            | `chore(slice-5): mark T5.3 + T5.9 as [x] in tasks.md`                                                    | bookkeeping  | No es TDD — sólo los marcadores `[x]` de `tasks.md`.                                                                                                                                   |
+| 2   | `81e9132`            | `feat(transactions): NestJS controller (T5.11) + service list/update/softDelete + QuerySchema decorator` | T5.11        | TDD preparado — la suite de triangulación (commit 3) sigue al controlador.                                                                                                             |
+| 3   | `021d112`            | `test(transactions): triangulation suite — 8 cross-cutting scenarios (T5.12)`                            | T5.12        | RED-first vía la factoría de tests a nivel de servicio; los escenarios se escribieron contra el controlador en GREEN. 11/11 tests nuevos PASAN.                                        |
+| 4   | `dab1d99`            | `chore(transactions): apply auto-formatter consistency pass`                                             | housekeeping | No es TDD. El auto-formateador de biome reordenó los imports + tabs→espacios después del commit 2; centralizar el drift en este commit mantiene los diffs futuros enfocados en lógica. |
+| 5   | `<filled by commit>` | `chore(slice-5): final turbo gate green + apply-progress section (T5.13 part B)`                         | T5.13        | Compuerta de verificación (lint + typecheck + test) capturada abajo.                                                                                                                   |
 
 **Rama**: `feat/s5-closeout` (cortada desde `develop@74a63ac`).
 **Commit base**: `74a63ac` (develop, post-PR #29).
@@ -856,11 +868,11 @@ next_recommended: slice 5 PR #3 — T5.3 (test RED para TransactionService.creat
 
 #### Compuertas de calidad (final)
 
-| Compuerta | Comando | Resultado | Notas |
-|-----------|---------|-----------|-------|
-| Typecheck | `pnpm turbo run typecheck --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | El TS2305 previo sobre `PrismaFxRateRepository` vs `FxRateProvider` se arregló vinculando el DI a través de `FX_RATE_PROVIDER_TOKEN` (resuelve a `InMemoryFxRateProvider`). |
-| Lint | `pnpm turbo run lint --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | La directiva `eslint-disable-next-line @typescript-eslint/no-unused-vars` que el brief acarreaba desde slice-3-batch-3 se removió: el proyecto carga sólo el `@typescript-eslint/parser`, NO el plugin — la directiva disparaba "Definition for rule 'X' was not found". El nombre del parámetro `_userId` es la convención canónica de TypeScript para "no usado intencionalmente"; no se necesita ninguna supresión de lint. El mismo fix de patrón aplica al commit más viejo `f69c54a` de slice-3-batch-3 que carga `// eslint-disable-next-line @typescript-eslint/no-explicit-any` — ese PR futuro debería también descartar la disable, o instalar el plugin. |
-| Test | `pnpm turbo run test --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | 161 tests en `@features/transactions` (153 existentes + 8 escenarios nuevos de este cierre — 11 casos en total por las sub-suites), 21 tests en `apps/api`. **182/182 PASAN.** |
+| Compuerta | Comando                                                                 | Resultado             | Notas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------- | ----------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typecheck | `pnpm turbo run typecheck --filter api --filter @features/transactions` | exit 0 (2/2 paquetes) | El TS2305 previo sobre `PrismaFxRateRepository` vs `FxRateProvider` se arregló vinculando el DI a través de `FX_RATE_PROVIDER_TOKEN` (resuelve a `InMemoryFxRateProvider`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Lint      | `pnpm turbo run lint --filter api --filter @features/transactions`      | exit 0 (2/2 paquetes) | La directiva `eslint-disable-next-line @typescript-eslint/no-unused-vars` que el brief acarreaba desde slice-3-batch-3 se removió: el proyecto carga sólo el `@typescript-eslint/parser`, NO el plugin — la directiva disparaba "Definition for rule 'X' was not found". El nombre del parámetro `_userId` es la convención canónica de TypeScript para "no usado intencionalmente"; no se necesita ninguna supresión de lint. El mismo fix de patrón aplica al commit más viejo `f69c54a` de slice-3-batch-3 que carga `// eslint-disable-next-line @typescript-eslint/no-explicit-any` — ese PR futuro debería también descartar la disable, o instalar el plugin. |
+| Test      | `pnpm turbo run test --filter api --filter @features/transactions`      | exit 0 (2/2 paquetes) | 161 tests en `@features/transactions` (153 existentes + 8 escenarios nuevos de este cierre — 11 casos en total por las sub-suites), 21 tests en `apps/api`. **182/182 PASAN.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 Log de verificación guardado en `/tmp/slice5-final-gate.log`; exit 0.
 
@@ -903,7 +915,7 @@ slice_5_close_out:
   base_commit: 74a63ac (develop)
   head_commit: <sha> (commit 5 de este lote)
   tasks_done: [T5.3, T5.9, T5.11, T5.12, T5.13]
-  commits_landed: 5  # bookkeeping, controller, tests, format-drift, gate
+  commits_landed: 5 # bookkeeping, controller, tests, format-drift, gate
   insertions: ~1300 across 8 files
   tests_landed: 11 escenarios (8 en la suite de triangulación + 3 sub-casos)
   total_workspace_tests: 182
@@ -912,7 +924,7 @@ slice_5_close_out:
     lint: PASS
     test: PASS
   pushed_to_remote: false
-  merged_to_develop: false  # el usuario mergea después de review
+  merged_to_develop: false # el usuario mergea después de review
   risk_flags:
     - id_2155_pattern_mock_calls_flatMap_recomendado_para_lotes_futuros
     - id_2155_pattern_omitir_eslint_disable_cuando_plugin_no_cargado

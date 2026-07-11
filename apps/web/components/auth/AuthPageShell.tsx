@@ -28,9 +28,7 @@ export interface AuthPageShellProps {
   children: React.ReactNode;
 }
 
-export function AuthPageShell({
-  children,
-}: AuthPageShellProps): React.JSX.Element {
+export function AuthPageShell({ children }: AuthPageShellProps): React.JSX.Element {
   return (
     <main
       style={{

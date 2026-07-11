@@ -78,8 +78,7 @@ export const TOKEN_TTL_MS = 60 * 60 * 1000;
 /** Minimum raw token length, enforced at mint time. */
 export const MIN_TOKEN_LENGTH = 32;
 
-const sha256Hex = (raw: string): string =>
-  createHash("sha256").update(raw).digest("hex");
+const sha256Hex = (raw: string): string => createHash("sha256").update(raw).digest("hex");
 
 const mintRawToken = (): string => randomBytes(32).toString("hex");
 
@@ -132,12 +131,8 @@ export type AuditSink = (signal: AuthEventDispatchFailureSignal) => void;
  * change `defaultAuditSink` to point at the real sink.
  */
 export const defaultAuditSink: AuditSink = (signal) => {
-  const errMsg =
-    signal.error instanceof Error ? signal.error.message : String(signal.error);
-  console.error(
-    `[auth] dispatch failure for "${signal.event.name}":`,
-    errMsg,
-  );
+  const errMsg = signal.error instanceof Error ? signal.error.message : String(signal.error);
+  console.error(`[auth] dispatch failure for "${signal.event.name}":`, errMsg);
 };
 
 /**
@@ -148,10 +143,7 @@ export const defaultAuditSink: AuditSink = (signal) => {
  * (unknown token / expired token / already-consumed token).
  */
 const invalidTokenError = (): AuthError =>
-  new AuthError(
-    "INVALID_RESET_TOKEN",
-    "invalid reset token",
-  );
+  new AuthError("INVALID_RESET_TOKEN", "invalid reset token");
 
 export class PasswordResetService {
   private readonly userRepo: UserRepository;
@@ -160,31 +152,31 @@ export class PasswordResetService {
   private readonly prisma: PrismaClient;
   private readonly auditSink: AuditSink;
 
-      constructor(
-        userRepo: UserRepository,
-        tokenRepo: PasswordResetTokenRepository,
-        dispatcher: AuthEventDispatcher,
-        prisma?: PrismaClient,
-        auditSink: AuditSink = defaultAuditSink,
-      ) {
-        // F8 (WARNING) — eager failure for missing dispatcher. Without this
-        // guard, a missing arg compiles cleanly (TypeScript's
-        // AuthEventDispatcher type is opaque enough that callers can
-        // forget it) and the failure surfaces only at first dispatch —
-        // AFTER bcrypt rounds + transaction work, which makes the bug
-        // hard to diagnose. The contract is documented: the dispatcher
-        // is REQUIRED, not optional.
-        if (typeof dispatcher !== "function") {
-          throw new TypeError(
-            `PasswordResetService requires an AuthEventDispatcher (a function); received ${typeof dispatcher === "undefined" ? "undefined" : String(dispatcher)}.`,
-          );
-        }
-        this.userRepo = userRepo;
-        this.tokenRepo = tokenRepo;
-        this.dispatcher = dispatcher;
-        this.prisma = prisma ?? defaultPrisma;
-        this.auditSink = auditSink;
-      }
+  constructor(
+    userRepo: UserRepository,
+    tokenRepo: PasswordResetTokenRepository,
+    dispatcher: AuthEventDispatcher,
+    prisma?: PrismaClient,
+    auditSink: AuditSink = defaultAuditSink,
+  ) {
+    // F8 (WARNING) — eager failure for missing dispatcher. Without this
+    // guard, a missing arg compiles cleanly (TypeScript's
+    // AuthEventDispatcher type is opaque enough that callers can
+    // forget it) and the failure surfaces only at first dispatch —
+    // AFTER bcrypt rounds + transaction work, which makes the bug
+    // hard to diagnose. The contract is documented: the dispatcher
+    // is REQUIRED, not optional.
+    if (typeof dispatcher !== "function") {
+      throw new TypeError(
+        `PasswordResetService requires an AuthEventDispatcher (a function); received ${typeof dispatcher === "undefined" ? "undefined" : String(dispatcher)}.`,
+      );
+    }
+    this.userRepo = userRepo;
+    this.tokenRepo = tokenRepo;
+    this.dispatcher = dispatcher;
+    this.prisma = prisma ?? defaultPrisma;
+    this.auditSink = auditSink;
+  }
 
   /**
    * Mint a single-use reset token for the supplied email and dispatch
@@ -291,8 +283,7 @@ export class PasswordResetService {
     const tokenHash = sha256Hex(rawToken);
 
     // 2. Look up the row by hash.
-    const row: PasswordResetTokenRecord | null =
-      await this.tokenRepo.findByHash(tokenHash);
+    const row: PasswordResetTokenRecord | null = await this.tokenRepo.findByHash(tokenHash);
     if (row === null) {
       throw invalidTokenError();
     }

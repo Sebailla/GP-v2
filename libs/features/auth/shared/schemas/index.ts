@@ -13,23 +13,8 @@
  * imported elsewhere — the barrel is the public seam.
  */
 
-export {
-  forgotPasswordSchema,
-  type ForgotPasswordInput,
-} from "./forgot-password.js";
-export {
-  loginSchema,
-  type LoginInput,
-} from "./login.js";
-export {
-  registerSchema,
-  type RegisterInput,
-} from "./register.js";
-export {
-  resetPasswordSchema,
-  type ResetPasswordInput,
-} from "./reset-password.js";
-export {
-  sessionListSchema,
-  type SessionListResponse,
-} from "./session-list.js";
+export { forgotPasswordSchema, type ForgotPasswordInput } from "./forgot-password.js";
+export { loginSchema, type LoginInput } from "./login.js";
+export { registerSchema, type RegisterInput } from "./register.js";
+export { resetPasswordSchema, type ResetPasswordInput } from "./reset-password.js";
+export { sessionListSchema, type SessionListResponse } from "./session-list.js";

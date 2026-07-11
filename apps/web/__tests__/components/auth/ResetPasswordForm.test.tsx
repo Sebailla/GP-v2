@@ -1,29 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-	render,
-	screen,
-	cleanup,
-	fireEvent,
-	waitFor,
-} from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 // RTL v16 no longer auto-registers cleanup — wire it ourselves so DOM
 // nodes from one `it` don't leak into the next.
 afterEach(() => {
-	cleanup();
+  cleanup();
 });
 
 // Mock `next-intl` BEFORE importing the form. The mock returns a `t`
 // function that produces a deterministic key-shaped string so the tests
 // assert on i18n key wiring without depending on a real IntlProvider.
 vi.mock("next-intl", () => ({
-	useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
+  useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
 }));
 
 // Mock `next/navigation` — the form calls `router.replace` on success.
 const mockReplace = vi.fn();
 vi.mock("next/navigation", () => ({
-	useRouter: () => ({ replace: mockReplace }),
+  useRouter: () => ({ replace: mockReplace }),
 }));
 
 // Stub `fetch` per test via `vi.fn()`.
@@ -61,67 +55,55 @@ import { ResetPasswordForm } from "../../../components/auth/ResetPasswordForm";
  *    `newPassword`, and on a 200 response calls `router.replace('/${locale}/sign-in')`.
  */
 describe("ResetPasswordForm — slice 4 follow-ups (per-form test slim)", () => {
-	const TOKEN =
-		"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+  const TOKEN = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 
-	beforeEach(() => {
-		mockFetch.mockReset();
-		mockReplace.mockReset();
-	});
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockReplace.mockReset();
+  });
 
-	function renderForm(overrides: { locale?: string; token?: string } = {}): {
-		onSuccessRouter: ReturnType<typeof vi.fn>;
-	} {
-		const locale = overrides.locale ?? "en";
-		const token = overrides.token ?? TOKEN;
-		render(
-			<ResetPasswordForm
-				apiUrl="http://api.test"
-				token={token}
-				locale={locale}
-			/>,
-		);
-		return { onSuccessRouter: mockReplace };
-	}
+  function renderForm(overrides: { locale?: string; token?: string } = {}): {
+    onSuccessRouter: ReturnType<typeof vi.fn>;
+  } {
+    const locale = overrides.locale ?? "en";
+    const token = overrides.token ?? TOKEN;
+    render(<ResetPasswordForm apiUrl="http://api.test" token={token} locale={locale} />);
+    return { onSuccessRouter: mockReplace };
+  }
 
-	it("passes the token prop into the API body and navigates to /{locale}/sign-in on 200", async () => {
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			status: 200,
-			json: async () => ({}),
-		});
+  it("passes the token prop into the API body and navigates to /{locale}/sign-in on 200", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    });
 
-		const { onSuccessRouter } = renderForm();
+    const { onSuccessRouter } = renderForm();
 
-		fireEvent.change(
-			screen.getByLabelText(/auth\.resetPassword\.newPassword/i),
-			{
-				target: { value: "new-valid-password-123" },
-			},
-		);
+    fireEvent.change(screen.getByLabelText(/auth\.resetPassword\.newPassword/i), {
+      target: { value: "new-valid-password-123" },
+    });
 
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }),
-		);
+    fireEvent.click(screen.getByRole("button", { name: /auth\.resetPassword\.submit/i }));
 
-		await waitFor(() => {
-			expect(mockFetch).toHaveBeenCalledTimes(1);
-		});
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
 
-		// Verify the request shape — POST {apiUrl}/auth/reset-password with
-		// { token, newPassword } in the JSON body. The `token` here is the
-		// URL's [token] dynamic segment passed via the `token` prop.
-		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe("http://api.test/auth/reset-password");
-		expect(init.method).toBe("POST");
-		expect(JSON.parse(String(init.body))).toEqual({
-			token: TOKEN,
-			newPassword: "new-valid-password-123",
-		});
+    // Verify the request shape — POST {apiUrl}/auth/reset-password with
+    // { token, newPassword } in the JSON body. The `token` here is the
+    // URL's [token] dynamic segment passed via the `token` prop.
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://api.test/auth/reset-password");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      token: TOKEN,
+      newPassword: "new-valid-password-123",
+    });
 
-		// Success: the form calls router.replace('/{locale}/sign-in').
-		await waitFor(() => {
-			expect(onSuccessRouter).toHaveBeenCalledWith("/en/sign-in");
-		});
-	});
+    // Success: the form calls router.replace('/{locale}/sign-in').
+    await waitFor(() => {
+      expect(onSuccessRouter).toHaveBeenCalledWith("/en/sign-in");
+    });
+  });
 });

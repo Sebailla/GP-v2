@@ -30,9 +30,7 @@ export function toDecimal(value: CurrencyLikeInput): Decimal {
   if (value instanceof Decimal) return value;
   if (typeof value === "string") return new Decimal(value);
   if (typeof value === "number") return new Decimal(value);
-  throw new TypeError(
-    `toDecimal: expected Decimal | string | number, got ${typeof value}`
-  );
+  throw new TypeError(`toDecimal: expected Decimal | string | number, got ${typeof value}`);
 }
 
 /**
@@ -42,7 +40,7 @@ export function toDecimal(value: CurrencyLikeInput): Decimal {
 export function formatCurrency(
   value: CurrencyLikeInput,
   currency: string,
-  options: FormatCurrencyOptions = {}
+  options: FormatCurrencyOptions = {},
 ): string {
   const locale = options.locale ?? DEFAULT_LOCALE;
   const decimal = toDecimal(value);

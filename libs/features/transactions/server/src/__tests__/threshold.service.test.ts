@@ -38,10 +38,7 @@ function fakeTxn(overrides: Partial<Transaction> = {}): Transaction {
 
 function makeService(thresholdStr: string) {
   const events = vi.fn().mockResolvedValue(undefined);
-  const service = new ThresholdService(
-    { amount: toDecimal(thresholdStr) },
-    events,
-  );
+  const service = new ThresholdService({ amount: toDecimal(thresholdStr) }, events);
   return { service, events };
 }
 
@@ -60,9 +57,9 @@ describe("ThresholdService.evaluate", () => {
 
     expect(crossed).toBe(true);
     expect(events).toHaveBeenCalledTimes(1);
-    const callArg = (events.mock.calls[0] as unknown as [
-      { name: string; payload: Record<string, unknown> },
-    ])[0];
+    const callArg = (
+      events.mock.calls[0] as unknown as [{ name: string; payload: Record<string, unknown> }]
+    )[0];
     expect(callArg.name).toBe(TRANSACTIONS_THRESHOLD_EXCEEDED);
     expect(callArg.payload.threshold).toBe("1000");
     expect(callArg.payload.total).toBe("1000");
@@ -74,9 +71,9 @@ describe("ThresholdService.evaluate", () => {
 
     expect(crossed).toBe(true);
     expect(events).toHaveBeenCalledTimes(1);
-    const callArg = (events.mock.calls[0] as unknown as [
-      { payload: { userId: string; categoryId: string } },
-    ])[0];
+    const callArg = (
+      events.mock.calls[0] as unknown as [{ payload: { userId: string; categoryId: string } }]
+    )[0];
     expect(callArg.payload.userId).toBe("user-1");
     expect(callArg.payload.categoryId).toBe("cat-1");
   });
@@ -85,9 +82,7 @@ describe("ThresholdService.evaluate", () => {
     const { service, events } = makeService("100");
     await service.evaluate(fakeTxn({ amount: toDecimal("200") }));
 
-    const callArg = (events.mock.calls[0] as unknown as [
-      { name: string },
-    ])[0];
+    const callArg = (events.mock.calls[0] as unknown as [{ name: string }])[0];
     // Locks the contract: the event name is `transactions.threshold.exceeded`,
     // not a hard-coded string. If the catalog in @core/events renames the
     // event, the service + this test update together.

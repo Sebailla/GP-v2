@@ -15,7 +15,7 @@ import tsParser from "@typescript-eslint/parser";
 
 export default [
   {
-ignores: [
+    ignores: [
       "**/node_modules/**",
       "**/dist/**",
       "**/.next/**",

@@ -14,6 +14,6 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
  * for /transactions + /categories; see design §5.3).
  */
 @Module({
-	imports: [AuthModule, TransactionsModule],
+  imports: [AuthModule, TransactionsModule],
 })
 export class AppModule {}

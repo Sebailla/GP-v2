@@ -43,6 +43,4 @@ import type { DomainEvent } from "@core/events";
  * method of `InMemoryDispatcher` from `@core/events`; tests inject a
  * `vi.fn()` with the same shape.
  */
-export type TransactionsEventDispatcher = (
-  event: DomainEvent,
-) => Promise<void> | void;
+export type TransactionsEventDispatcher = (event: DomainEvent) => Promise<void> | void;

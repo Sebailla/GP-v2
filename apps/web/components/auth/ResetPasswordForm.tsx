@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
-import {
-  resetPasswordSchema,
-  type ResetPasswordInput,
-} from "@features/auth/shared/schemas";
+import { resetPasswordSchema, type ResetPasswordInput } from "@features/auth/shared/schemas";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -66,7 +63,11 @@ export function ResetPasswordForm({
     defaultValues: { token, newPassword: "" },
   });
 
-  const { submit, isSubmitting: apiIsSubmitting, formError } = useAuthApiPost({
+  const {
+    submit,
+    isSubmitting: apiIsSubmitting,
+    formError,
+  } = useAuthApiPost({
     apiBaseUrl: apiUrl,
     endpoint: "/auth/reset-password",
     errorMap: {
@@ -92,10 +93,7 @@ export function ResetPasswordForm({
       aria-describedby={formError ? "reset-password-form-error" : undefined}
       className={cn("flex flex-col gap-ui-space-4", className)}
     >
-      <AuthFormErrorBanner
-        id="reset-password-form-error"
-        message={formError}
-      />
+      <AuthFormErrorBanner id="reset-password-form-error" message={formError} />
 
       <FormFieldRow
         id="reset-password-new-password"

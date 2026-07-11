@@ -27,10 +27,7 @@ export class PrismaFxRateRepository implements FxRateRepository {
     this.prisma = prisma ?? defaultPrisma;
   }
 
-  async findMostRecent(
-    fromCode: string,
-    toCode: string,
-  ): Promise<FxRate | null> {
+  async findMostRecent(fromCode: string, toCode: string): Promise<FxRate | null> {
     const row = await this.prisma.fxRate.findFirst({
       where: { fromCode, toCode },
       orderBy: { recordedAt: "desc" },

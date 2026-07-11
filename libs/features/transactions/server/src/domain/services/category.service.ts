@@ -1,8 +1,5 @@
 import type { Category, CategoryKind } from "../entities/category.entity.js";
-import type {
-  CategoryFilter,
-  CategoryRepository,
-} from "../interfaces/category.repository.js";
+import type { CategoryFilter, CategoryRepository } from "../interfaces/category.repository.js";
 import type { AuditLogRepository } from "../interfaces/audit-log.repository.js";
 
 /**
@@ -128,10 +125,7 @@ export class CategoryService {
    * at time Z"); if the row was already gone, the audit log is
    * still useful for forensic purposes.
    */
-  async softDelete(
-    id: string,
-    ctx: CategoryServiceContext,
-  ): Promise<void> {
+  async softDelete(id: string, ctx: CategoryServiceContext): Promise<void> {
     await this.categoryRepo.softDelete(id, ctx.actorId);
     await this.auditLogRepo.append({
       entityType: "Category",

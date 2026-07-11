@@ -48,9 +48,9 @@
  *  - Attributes: `path=/`, `max-age=24*60*60` (24h, explicit),
  *    `SameSite=lax` (lowercase), `HttpOnly` (hint).
  */
-    
+
 import { cookies } from "next/headers";
-    
+
 /**
  * 24 hours in seconds. Matches the API's SESSION_TTL_MS (24h). The
  * cookie's `max-age` directive uses this constant so a future change
@@ -59,7 +59,7 @@ import { cookies } from "next/headers";
  * `libs/shared-utils` export once the API exposes its own constant.)
  */
 export const SESSION_TTL_SECONDS = 24 * 60 * 60;
-    
+
 /**
  * Canonical NextAuth v5 cookie name. Exported so tests + the
  * sign-in / sign-up forms can read / write the same key without
@@ -75,8 +75,8 @@ export const AUTH_SESSION_COOKIE = "authjs.session-token";
  * is the user projection the API embeds in the same response.
  */
 export type Session = {
-	token: string;
-	user: { id: string; email: string; role: string };
+  token: string;
+  user: { id: string; email: string; role: string };
 };
 
 /**
@@ -86,41 +86,41 @@ export type Session = {
  * wrapper around `cookies()` + this decoder.
  */
 function decodeSession(raw: string | undefined): Session | null {
-	if (raw === undefined || raw === "") return null;
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
-	} catch {
-		return null;
-	}
-	if (
-		typeof parsed !== "object" ||
-		parsed === null ||
-		!("user" in parsed) ||
-		!("token" in parsed)
-	) {
-		return null;
-	}
-	const candidate = parsed as { token: unknown; user: unknown };
-	if (
-		typeof candidate.token !== "string" ||
-		typeof candidate.user !== "object" ||
-		candidate.user === null
-	) {
-		return null;
-	}
-	const user = candidate.user as { id: unknown; email: unknown; role: unknown };
-	if (
-		typeof user.id !== "string" ||
-		typeof user.email !== "string" ||
-		typeof user.role !== "string"
-	) {
-		return null;
-	}
-	return {
-		token: candidate.token,
-		user: { id: user.id, email: user.email, role: user.role },
-	};
+  if (raw === undefined || raw === "") return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
+  } catch {
+    return null;
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("user" in parsed) ||
+    !("token" in parsed)
+  ) {
+    return null;
+  }
+  const candidate = parsed as { token: unknown; user: unknown };
+  if (
+    typeof candidate.token !== "string" ||
+    typeof candidate.user !== "object" ||
+    candidate.user === null
+  ) {
+    return null;
+  }
+  const user = candidate.user as { id: unknown; email: unknown; role: unknown };
+  if (
+    typeof user.id !== "string" ||
+    typeof user.email !== "string" ||
+    typeof user.role !== "string"
+  ) {
+    return null;
+  }
+  return {
+    token: candidate.token,
+    user: { id: user.id, email: user.email, role: user.role },
+  };
 }
 
 /**
@@ -129,10 +129,10 @@ function decodeSession(raw: string | undefined): Session | null {
  * contract without a hand-rolled intersection.
  */
 export type SessionPayload = {
-	id: string;
-	email: string;
-	role: string;
-	sessionToken: string;
+  id: string;
+  email: string;
+  role: string;
+  sessionToken: string;
 };
 
 /**
@@ -143,14 +143,14 @@ export type SessionPayload = {
  * duplicating the shape check.
  */
 export function isSessionPayload(value: unknown): value is SessionPayload {
-	if (typeof value !== "object" || value === null) return false;
-	const candidate = value as Record<string, unknown>;
-	return (
-		typeof candidate.id === "string" &&
-		typeof candidate.email === "string" &&
-		typeof candidate.role === "string" &&
-		typeof candidate.sessionToken === "string"
-	);
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.email === "string" &&
+    typeof candidate.role === "string" &&
+    typeof candidate.sessionToken === "string"
+  );
 }
 
 /**
@@ -163,11 +163,11 @@ export function isSessionPayload(value: unknown): value is SessionPayload {
  * canonical contract is the name + value pair).
  */
 export async function getSession(): Promise<Session | null> {
-	const store = await cookies();
-	const raw = store.get(AUTH_SESSION_COOKIE)?.value;
-	return decodeSession(raw);
+  const store = await cookies();
+  const raw = store.get(AUTH_SESSION_COOKIE)?.value;
+  return decodeSession(raw);
 }
-    
+
 /**
  * Encode the session as a JSON string and write it to
  * `document.cookie` with the canonical NextAuth v5 attributes.
@@ -191,17 +191,17 @@ export async function getSession(): Promise<Session | null> {
  * `process.env.NODE_ENV === "production"`.
  */
 export function setSessionCookie(session: Session): void {
-	const value = encodeURIComponent(JSON.stringify(session));
-	const attributes = [
-		`${AUTH_SESSION_COOKIE}=${value}`,
-		"path=/",
-		`max-age=${SESSION_TTL_SECONDS}`,
-		"SameSite=lax",
-		"HttpOnly",
-	].join("; ");
-	document.cookie = attributes;
+  const value = encodeURIComponent(JSON.stringify(session));
+  const attributes = [
+    `${AUTH_SESSION_COOKIE}=${value}`,
+    "path=/",
+    `max-age=${SESSION_TTL_SECONDS}`,
+    "SameSite=lax",
+    "HttpOnly",
+  ].join("; ");
+  document.cookie = attributes;
 }
-    
+
 /**
  * Expire the authjs.session-token cookie by setting `Max-Age=0`.
  * Mirrors `setSessionCookie`'s path + SameSite so the browser knows
@@ -215,5 +215,5 @@ export function setSessionCookie(session: Session): void {
  * we accept here for visual symmetry).
  */
 export function clearSessionCookie(): void {
-	document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=lax`;
+  document.cookie = `${AUTH_SESSION_COOKIE}=; path=/; Max-Age=0; SameSite=lax`;
 }

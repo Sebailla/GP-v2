@@ -205,16 +205,11 @@ describe("Input — shadcn-style primitive (T4.4)", () => {
       </>,
     );
     expect(screen.getByLabelText(/email/i)).toHaveAttribute("type", "email");
-    expect(screen.getByLabelText(/password/i)).toHaveAttribute(
-      "type",
-      "password",
-    );
+    expect(screen.getByLabelText(/password/i)).toHaveAttribute("type", "password");
   });
 
   it("className override wins over the default border class via cn", () => {
-    render(
-      <Input aria-label="Custom" className="border-red-500" />,
-    );
+    render(<Input aria-label="Custom" className="border-red-500" />);
     const input = screen.getByLabelText(/custom/i);
     // Default border class is `border-ui-border`; the override
     // `border-red-500` wins via tailwind-merge's last-write semantics.

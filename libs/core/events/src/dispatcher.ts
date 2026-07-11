@@ -38,11 +38,7 @@ export const REDACTED_TOKEN_SENTINEL = "***REDACTED***";
  * .`redactAtBuffer` for the opt-out).
  */
 export function redactSensitive(event: DomainEvent): DomainEvent {
-  if (
-    event.payload === null ||
-    event.payload === undefined ||
-    typeof event.payload !== "object"
-  ) {
+  if (event.payload === null || event.payload === undefined || typeof event.payload !== "object") {
     return event;
   }
   const payload = event.payload as Record<string, unknown>;
@@ -112,7 +108,7 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
       // observable.
       console.error(
         `[events] handler threw for "${event.name}":`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     });
   // F3: redact-at-buffer is ON by default (the secure default).

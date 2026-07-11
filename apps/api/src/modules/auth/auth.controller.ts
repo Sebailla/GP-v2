@@ -167,11 +167,7 @@ export class AuthController {
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
     return runOrThrowHttp(async () => {
       const body = validateOrThrow<typeof registerSchema>(raw, registerSchema);
-      const result = await this.authService.register(
-        body.email,
-        body.password,
-        body.name,
-      );
+      const result = await this.authService.register(body.email, body.password, body.name);
       return {
         id: result.id,
         email: result.email,
@@ -209,9 +205,7 @@ export class AuthController {
         { kind: "session", ownerId: request.user.id },
       );
       if (!allowed) {
-        throw new Error(
-          "RbacService denied session:read:own — invariant violation",
-        );
+        throw new Error("RbacService denied session:read:own — invariant violation");
       }
       return this.sessionService.listActiveSessions(request.user.id);
     });
@@ -234,9 +228,7 @@ export class AuthController {
         { kind: "session", ownerId: request.user.id, id: sessionId },
       );
       if (!allowed) {
-        throw new Error(
-          "RbacService denied session:revoke:own — invariant violation",
-        );
+        throw new Error("RbacService denied session:revoke:own — invariant violation");
       }
       await this.sessionService.revokeSession(sessionId, request.user.id);
     });

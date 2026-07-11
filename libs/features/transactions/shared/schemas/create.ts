@@ -23,37 +23,37 @@ import { z } from "zod";
  *  - occurredAt: ISO 8601 date string, coerced to Date.
  */
 export const createSchema = z
-	.object({
-		// R1-003: amount is a decimal STRING so the wire bytes survive
-		// until `toDecimal(body.amount)` converts to a precision-safe
-		// `Decimal`. The previous `z.coerce.number()` lost IEEE-754
-		// precision before any conversion could rescue it. Reject
-		// zero (the schema matches the old `.positive()` semantic —
-		// `^0+(\.0+)?$` covers `0`, `00`, `0.0`, `0.00`, etc.).
-		amount: z
-			.string()
-			.regex(
-				/^\d{1,15}(\.\d{1,2})?$/,
-				"amount must be a positive decimal string with at most 2 fractional digits",
-			)
-			.refine((s) => !/^0+(\.0+)?$/.test(s), "amount must be greater than 0"),
-		currencyCode: z.string().regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code"),
-		kind: z.enum(["income", "expense"]),
-		categoryId: z.string().cuid(),
-		notes: z
-			.string()
-			.max(500)
-			// Reject ASCII control chars (Cc) — defensive against log
-			// injection, CSV export rendering, and terminal escape
-			// sequences. Letters / emoji / diacritics (L, M, N) preserved.
-			.regex(/^[\P{Cc}]+$/u, "no control characters")
-			.optional(),
-		occurredAt: z.coerce.date(),
-	})
-	// Reject unknown keys with a 400 instead of silently stripping
-	// them (4R review-risk W2 defense-in-depth: future callers adding
-	// privilege-bearing fields like `isAdmin: true` must NOT silently
-	// pass through the boundary).
-	.strict();
+  .object({
+    // R1-003: amount is a decimal STRING so the wire bytes survive
+    // until `toDecimal(body.amount)` converts to a precision-safe
+    // `Decimal`. The previous `z.coerce.number()` lost IEEE-754
+    // precision before any conversion could rescue it. Reject
+    // zero (the schema matches the old `.positive()` semantic —
+    // `^0+(\.0+)?$` covers `0`, `00`, `0.0`, `0.00`, etc.).
+    amount: z
+      .string()
+      .regex(
+        /^\d{1,15}(\.\d{1,2})?$/,
+        "amount must be a positive decimal string with at most 2 fractional digits",
+      )
+      .refine((s) => !/^0+(\.0+)?$/.test(s), "amount must be greater than 0"),
+    currencyCode: z.string().regex(/^[A-Z]{3}$/, "ISO 4217 alphabetic code"),
+    kind: z.enum(["income", "expense"]),
+    categoryId: z.string().cuid(),
+    notes: z
+      .string()
+      .max(500)
+      // Reject ASCII control chars (Cc) — defensive against log
+      // injection, CSV export rendering, and terminal escape
+      // sequences. Letters / emoji / diacritics (L, M, N) preserved.
+      .regex(/^[\P{Cc}]+$/u, "no control characters")
+      .optional(),
+    occurredAt: z.coerce.date(),
+  })
+  // Reject unknown keys with a 400 instead of silently stripping
+  // them (4R review-risk W2 defense-in-depth: future callers adding
+  // privilege-bearing fields like `isAdmin: true` must NOT silently
+  // pass through the boundary).
+  .strict();
 
 export type CreateTransactionInput = z.infer<typeof createSchema>;
