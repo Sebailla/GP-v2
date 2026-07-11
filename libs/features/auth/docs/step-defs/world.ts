@@ -54,7 +54,9 @@ export interface ResetTokenRecord {
  */
 export interface AuthWorld {
   // --- given state ---
-  user: { id: string; email: string; role: Role; passwordHash?: string; emailVerified?: Date } | undefined;
+  user:
+    | { id: string; email: string; role: Role; passwordHash?: string; emailVerified?: Date }
+    | undefined;
   /** When populated, the supplied email resolves to NO account. */
   unknownEmail: string | undefined;
   sessions: ReadonlyArray<ActiveSession> | undefined;
@@ -68,10 +70,12 @@ export interface AuthWorld {
   attemptedForgotPassword: { email: string } | undefined;
   attemptedResetPassword: { rawToken: string; newPassword: string } | undefined;
   revokedSessionId: string | undefined;
-  attemptedAdminAction: {
-    action: string;
-    resourceKind: "session" | "transaction" | "user";
-  } | undefined;
+  attemptedAdminAction:
+    | {
+        action: string;
+        resourceKind: "session" | "transaction" | "user";
+      }
+    | undefined;
 
   // --- then state (assertions populate these) ---
   sessionCreated: boolean | undefined;

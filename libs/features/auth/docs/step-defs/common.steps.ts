@@ -103,7 +103,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Given",
-    pattern: "the user is on the sign-in screen at {string}/sign-in for locale {string} or {string}",
+    pattern:
+      "the user is on the sign-in screen at {string}/sign-in for locale {string} or {string}",
     fn: (world, _path, locale) => {
       world.activeLocale = locale === "en" || locale === "es" ? locale : undefined;
       world.formState = "empty";
@@ -159,8 +160,16 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const userId = world.user?.id ?? nextId("user");
       world.user ??= { id: userId, email: "user@example.test", role: "USER" };
       world.sessions = [
-        { id: nextId("sess"), sessionToken: nextId("tok"), expires: new Date(Date.now() + 3_600_000) },
-        { id: nextId("sess"), sessionToken: nextId("tok"), expires: new Date(Date.now() + 7_200_000) },
+        {
+          id: nextId("sess"),
+          sessionToken: nextId("tok"),
+          expires: new Date(Date.now() + 3_600_000),
+        },
+        {
+          id: nextId("sess"),
+          sessionToken: nextId("tok"),
+          expires: new Date(Date.now() + 7_200_000),
+        },
       ];
     },
   },
@@ -171,8 +180,16 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const userId = world.user?.id ?? nextId("user");
       world.user ??= { id: userId, email: "user@example.test", role: "USER" };
       world.sessions = [
-        { id: nextId("sess"), sessionToken: nextId("tok"), expires: new Date(Date.now() + 3_600_000) },
-        { id: nextId("sess"), sessionToken: nextId("tok"), expires: new Date(Date.now() + 7_200_000) },
+        {
+          id: nextId("sess"),
+          sessionToken: nextId("tok"),
+          expires: new Date(Date.now() + 3_600_000),
+        },
+        {
+          id: nextId("sess"),
+          sessionToken: nextId("tok"),
+          expires: new Date(Date.now() + 7_200_000),
+        },
       ];
     },
   },
@@ -254,7 +271,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     keyword: "When",
     pattern: "the user submits the sign-in form with that email",
     fn: (world) => {
-      world.attemptedLogin = { email: world.unknownEmail ?? "ghost@example.test", password: "any-password" };
+      world.attemptedLogin = {
+        email: world.unknownEmail ?? "ghost@example.test",
+        password: "any-password",
+      };
       world.lastErrorCode = "USER_NOT_FOUND";
       world.lastErrorMessage = "invalid credentials";
       world.sessionCreated = false;
@@ -298,7 +318,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "When",
-    pattern: "the user submits the reset-password form at {string}/reset-password with a new password that meets the policy",
+    pattern:
+      "the user submits the reset-password form at {string}/reset-password with a new password that meets the policy",
     fn: (world, _locale) => {
       const record = world.resetTokens?.[0];
       world.attemptedResetPassword = {
@@ -330,7 +351,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "When",
-    pattern: "the user picks the Google provider and the stub returns a successful callback with a verified email",
+    pattern:
+      "the user picks the Google provider and the stub returns a successful callback with a verified email",
     fn: (world) => {
       world.sessionCreated = true;
       world.lastDispatchedEvent = "auth.session.created";

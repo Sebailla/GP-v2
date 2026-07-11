@@ -97,7 +97,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     keyword: "Given",
     pattern: "the user has reporting currency {string}",
     fn: (world, code) => {
-      world.reportingCurrencyCode= parseReportingCurrency(code);
+      world.reportingCurrencyCode = parseReportingCurrency(code);
     },
   },
   {
@@ -166,7 +166,13 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const mixed: ReadonlyArray<WorldCategory> = [
         { id: nextId("cat"), name: "Food", slug: "food", kind: "expense", deletedAt: null },
         { id: nextId("cat"), name: "Salary", slug: "salary", kind: "income", deletedAt: null },
-        { id: nextId("cat"), name: "Removed", slug: "removed", kind: "expense", deletedAt: new Date() },
+        {
+          id: nextId("cat"),
+          name: "Removed",
+          slug: "removed",
+          kind: "expense",
+          deletedAt: new Date(),
+        },
       ];
       const existing = world.categories ?? [];
       world.categories = [...existing, ...mixed];
@@ -276,7 +282,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const tx: WorldTransaction = {
         id: nextId("tx"),
         amount: "10.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,
@@ -293,13 +299,18 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Given",
-    pattern: "two transactions in the reporting currency: one income of {string} and one expense of {string}",
+    pattern:
+      "two transactions in the reporting currency: one income of {string} and one expense of {string}",
     fn: (world, incomeRaw, expenseRaw) => {
       const userId = world.user?.id ?? nextId("user");
       world.user ??= { id: userId, email: "user@example.test", reportingCurrencyCode: "USD" };
       const categories = world.categories ?? [];
-      let incomeCat = categories.find((c: WorldCategory) => c.kind === "income" && c.deletedAt === null);
-      let expenseCat = categories.find((c: WorldCategory) => c.kind === "expense" && c.deletedAt === null);
+      let incomeCat = categories.find(
+        (c: WorldCategory) => c.kind === "income" && c.deletedAt === null,
+      );
+      let expenseCat = categories.find(
+        (c: WorldCategory) => c.kind === "expense" && c.deletedAt === null,
+      );
       if (incomeCat === undefined) {
         incomeCat = {
           id: nextId("cat"),
@@ -322,7 +333,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       }
       const income = parseAmount(incomeRaw);
       const expense = parseAmount(expenseRaw);
-      const reporting = world.reportingCurrencyCode?? "USD";
+      const reporting = world.reportingCurrencyCode ?? "USD";
       world.transactions.push(
         {
           id: nextId("tx"),
@@ -379,7 +390,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       };
       const existing = world.categories ?? [];
       world.categories = [...existing, foodCat, salaryCat];
-      const reporting = world.reportingCurrencyCode?? "USD";
+      const reporting = world.reportingCurrencyCode ?? "USD";
       world.transactions.push(
         {
           id: nextId("tx"),
@@ -432,7 +443,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       world.transactions.push({
         id: nextId("tx"),
         amount: "5.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,
@@ -464,7 +475,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
         };
         world.categories = [...existing, category];
       }
-      const reporting = world.reportingCurrencyCode?? "USD";
+      const reporting = world.reportingCurrencyCode ?? "USD";
       for (let i = 0; i < 25; i += 1) {
         world.transactions.push({
           id: nextId("tx"),
@@ -520,10 +531,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       world.user ??= { id: userId, email: "user@example.test", reportingCurrencyCode: "USD" };
       const categories = world.categories ?? [];
       const category = categories.find((c: WorldCategory) => c.deletedAt === null);
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: "12.34",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: category?.id ?? nextId("cat"),
         notes: undefined,
@@ -542,7 +553,9 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       // returns a row with the matching triple.
       const kind: TransactionKind = "expense";
       void kind;
-      const cache = world.idempotencyKeys ?? new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
+      const cache =
+        world.idempotencyKeys ??
+        new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
       cache.set(key, {
         key,
         userId,
@@ -561,7 +574,9 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     fn: (world, userId, key) => {
       const kind: TransactionKind = "expense";
       void kind;
-      const cache = world.idempotencyKeys ?? new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
+      const cache =
+        world.idempotencyKeys ??
+        new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
       cache.set(key, {
         key,
         userId,
@@ -580,7 +595,9 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     fn: (world) => {
       const userId = world.user?.id ?? nextId("user");
       world.user ??= { id: userId, email: "user@example.test", reportingCurrencyCode: "USD" };
-      const cache = world.idempotencyKeys ?? new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
+      const cache =
+        world.idempotencyKeys ??
+        new Map<string, typeof world.idempotencyKeys extends Map<string, infer V> ? V : never>();
       cache.set("expired-key", {
         key: "expired-key",
         userId,
@@ -640,7 +657,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       world.transactions.push({
         id: nextId("tx"),
         amount: "10.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,

@@ -79,7 +79,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "no policy-internal details {string} the action name, the permission matrix} are exposed",
+    pattern:
+      "no policy-internal details {string} the action name, the permission matrix} are exposed",
     fn: (world, _details) => {
       // RBAC denial surface MUST NOT leak policy internals (spec
       // §Rbac). The step asserts that the last error message is a
@@ -101,7 +102,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "a session is created for that email {string} the account if it does not exist} via {string}",
+    pattern:
+      "a session is created for that email {string} the account if it does not exist} via {string}",
     fn: (world, _createIfMissing, _adapter) => {
       world.sessionCreated = true;
     },
@@ -137,7 +139,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders an error state with the same generic {string} invalid credentials} message used for the unknown-email case",
+    pattern:
+      "the form renders an error state with the same generic {string} invalid credentials} message used for the unknown-email case",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "invalid credentials";
@@ -167,7 +170,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders the validation-error state with an inline message on the email field",
+    pattern:
+      "the form renders the validation-error state with an inline message on the email field",
     fn: (world) => {
       world.formState = "validation-error";
       world.lastErrorMessage = "invalid email";
@@ -196,7 +200,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders the success state {string}if this email is registered, you will receive instructions}",
+    pattern:
+      "the form renders the success state {string}if this email is registered, you will receive instructions}",
     fn: (world, _copy) => {
       world.formState = "success";
     },
@@ -218,7 +223,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the user is redirected to the sign-in screen with the success state of the reset flow rendered",
+    pattern:
+      "the user is redirected to the sign-in screen with the success state of the reset flow rendered",
     fn: (world) => {
       world.redirectedTo = `/${world.activeLocale ?? "en"}/sign-in`;
       world.formState = "success";
@@ -233,7 +239,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders the error state with a generic {string} invalid or expired token} message",
+    pattern:
+      "the form renders the error state with a generic {string} invalid or expired token} message",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "invalid or expired token";
@@ -279,7 +286,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "Then",
-    pattern: "all sessions are listed with a user-discernible device label and last-active timestamp",
+    pattern:
+      "all sessions are listed with a user-discernible device label and last-active timestamp",
     fn: (world) => {
       world.formState = "success";
     },

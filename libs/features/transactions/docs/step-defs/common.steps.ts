@@ -84,7 +84,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "When",
-    pattern: "the user submits the create-transaction form at {string}/transactions/new with idempotency key {string} and amount {string}",
+    pattern:
+      "the user submits the create-transaction form at {string}/transactions/new with idempotency key {string} and amount {string}",
     fn: (world, _locale, idempotencyKey, amountRaw) => {
       const userId = world.user?.id ?? "user_default";
       world.user ??= { id: userId, email: "user@example.test", reportingCurrencyCode: "USD" };
@@ -119,10 +120,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
         world.formState = "error";
         return;
       }
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: "10.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: category.id,
         notes: undefined,
@@ -144,10 +145,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
         world.formState = "error";
         return;
       }
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: amountRaw,
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: category.id,
         notes: undefined,
@@ -175,10 +176,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
         world.formState = "error";
         return;
       }
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: "5.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: deleted.id,
         notes: undefined,
@@ -315,7 +316,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     fn: (world) => {
       const category = (world.categories ?? []).find((c) => c.deletedAt === null);
       if (category === undefined) return;
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: "1000",
         currencyCode: "ARS",
@@ -344,10 +345,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const category = (world.categories ?? []).find((c) => c.deletedAt === null);
       if (category === undefined) return;
       const threshold = world.threshold ?? 100;
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: `${threshold * 2}.00`,
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: category.id,
         notes: undefined,
@@ -366,10 +367,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const category = (world.categories ?? []).find((c) => c.deletedAt === null);
       if (category === undefined) return;
       const threshold = world.threshold ?? 100;
-      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode
+      const reportingCurrencyCode: string | undefined = world.reportingCurrencyCode;
       world.attemptedCreate = {
         amount: `${threshold / 2}.00`,
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         categoryId: category.id,
         notes: undefined,

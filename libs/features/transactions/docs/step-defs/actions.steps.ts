@@ -45,7 +45,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       const persisted: WorldTransaction = {
         id: "tx_asserted",
         amount: world.attemptedCreate?.amount ?? "0",
-        currencyCode: world.attemptedCreate?.currencyCode ?? world.reportingCurrencyCode?? "USD",
+        currencyCode: world.attemptedCreate?.currencyCode ?? world.reportingCurrencyCode ?? "USD",
         kind: world.attemptedCreate?.kind ?? "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,
@@ -128,7 +128,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       world.persistedTransaction = {
         id: "tx_distinct",
         amount: world.attemptedCreate?.amount ?? "0",
-        currencyCode: world.attemptedCreate?.currencyCode ?? world.reportingCurrencyCode?? "USD",
+        currencyCode: world.attemptedCreate?.currencyCode ?? world.reportingCurrencyCode ?? "USD",
         kind: world.attemptedCreate?.kind ?? "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,
@@ -156,14 +156,15 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "Then",
-    pattern: "the persisted nativeAmount equals {string} exactly {string} no truncation to {string}}",
+    pattern:
+      "the persisted nativeAmount equals {string} exactly {string} no truncation to {string}}",
     fn: (world, raw, _qualifier, _truncated) => {
       const existing = world.persistedTransaction;
       const amount = raw;
       world.persistedTransaction = {
         ...(existing ?? {
           id: "tx_asserted",
-          currencyCode: world.reportingCurrencyCode?? "USD",
+          currencyCode: world.reportingCurrencyCode ?? "USD",
           kind: "expense" as const,
           categoryId: "cat_default",
           notes: undefined,
@@ -205,7 +206,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the transaction is persisted with nativeAmount {string}, nativeCurrency {string}, and reportingAmount computed from the FX rate",
+    pattern:
+      "the transaction is persisted with nativeAmount {string}, nativeCurrency {string}, and reportingAmount computed from the FX rate",
     fn: (world, amount, nativeCurrency) => {
       world.persistedTransaction = {
         id: "tx_asserted",
@@ -213,7 +215,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
         currencyCode: nativeCurrency,
         kind: "expense",
         reportingAmount: "1.00", // FX-derived; future runner asserts exact value.
-        reportingCurrencyCode: world.reportingCurrencyCode?? "USD",
+        reportingCurrencyCode: world.reportingCurrencyCode ?? "USD",
         fxRateId: world.fxRates?.[0]?.id ?? null,
         categoryId: world.categories?.[0]?.id ?? "cat_default",
         notes: undefined,
@@ -258,7 +260,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "a transactions.fx.stale domain event is published with the pair and the staleness duration",
+    pattern:
+      "a transactions.fx.stale domain event is published with the pair and the staleness duration",
     fn: (world) => {
       world.staleEventEmitted = true;
       world.lastDispatchedEvent = "transactions.fx.stale";
@@ -298,7 +301,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       world.persistedTransaction = {
         id: "tx_asserted",
         amount: "10.00",
-        currencyCode: world.reportingCurrencyCode?? "USD",
+        currencyCode: world.reportingCurrencyCode ?? "USD",
         kind: "expense",
         reportingAmount: null,
         reportingCurrencyCode: null,
@@ -361,7 +364,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "an attempt to submit a transaction referencing that category is rejected by the validation pipeline",
+    pattern:
+      "an attempt to submit a transaction referencing that category is rejected by the validation pipeline",
     fn: (world) => {
       world.lastErrorCode = "CATEGORY_NOT_AVAILABLE";
       world.formState = "error";
@@ -373,22 +377,31 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     fn: (world) => {
       const categories = world.categories ?? [];
       const softDeletedIds = new Set(
-        categories.filter((c: WorldCategory) => c.deletedAt !== null).map((c: WorldCategory) => c.id),
+        categories
+          .filter((c: WorldCategory) => c.deletedAt !== null)
+          .map((c: WorldCategory) => c.id),
       );
       const totals = world.perCategoryTotals ?? [];
-      world.perCategoryTotals = totals.filter((t: WorldCategoryTotal) => !softDeletedIds.has(t.categoryId));
+      world.perCategoryTotals = totals.filter(
+        (t: WorldCategoryTotal) => !softDeletedIds.has(t.categoryId),
+      );
     },
   },
   {
     keyword: "Then",
-    pattern: "those transactions are excluded from category rollups {string} still counted in overall income/expense totals}",
+    pattern:
+      "those transactions are excluded from category rollups {string} still counted in overall income/expense totals}",
     fn: (world, _qualifier) => {
       const categories = world.categories ?? [];
       const softDeletedIds = new Set(
-        categories.filter((c: WorldCategory) => c.deletedAt !== null).map((c: WorldCategory) => c.id),
+        categories
+          .filter((c: WorldCategory) => c.deletedAt !== null)
+          .map((c: WorldCategory) => c.id),
       );
       const totals = world.perCategoryTotals ?? [];
-      world.perCategoryTotals = totals.filter((t: WorldCategoryTotal) => !softDeletedIds.has(t.categoryId));
+      world.perCategoryTotals = totals.filter(
+        (t: WorldCategoryTotal) => !softDeletedIds.has(t.categoryId),
+      );
     },
   },
 
@@ -398,7 +411,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "Then",
-    pattern: "income total {string}, expense total {string} {string} reported as a positive magnitude}, net {string}",
+    pattern:
+      "income total {string}, expense total {string} {string} reported as a positive magnitude}, net {string}",
     fn: (world, incomeRaw, expenseRaw, _qualifier, netRaw) => {
       world.incomeTotal = incomeRaw;
       world.expenseTotal = expenseRaw;
@@ -424,7 +438,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "a transactions.threshold.exceeded domain event is published with the category ID and amount",
+    pattern:
+      "a transactions.threshold.exceeded domain event is published with the category ID and amount",
     fn: (world) => {
       world.thresholdEventEmitted = true;
       world.lastDispatchedEvent = "transactions.threshold.exceeded";
@@ -546,7 +561,8 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "Then",
-    pattern: "an IdempotencyKey row is inserted with the key, the user ID, the request fingerprint, and the cached response payload",
+    pattern:
+      "an IdempotencyKey row is inserted with the key, the user ID, the request fingerprint, and the cached response payload",
     fn: () => {
       // Marker — the future runner asserts the row was persisted.
     },

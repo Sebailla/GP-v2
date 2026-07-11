@@ -744,7 +744,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run bdd e2e` exits 0.
 **Rollback.** Per atomic commit.
 
-### Task T7.1 — `libs/features/auth/docs/step-defs/` (shared step definitions) (~30 lines)
+### Task T7.1 — `libs/features/auth/docs/step-defs/` (shared step definitions) (~30 lines) — `[x]`
 
 - **Description.** Set up the shared step-defs directory with the canonical phrasing for the most common steps (`Given a registered user exists with role '<role>'`, `When the user submits the sign-in form at /{locale}/sign-in with email '<email>' and password '<password>'`, `Then a session is created`). Single source of truth for the six feature files in T7.2.
 - **Discovery / file targets.** `libs/features/auth/docs/step-defs/{common.steps.ts,realm.steps.ts}`.
@@ -753,7 +753,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.1-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T7.2 — `libs/features/auth/docs/*.feature` (6 files per Locked Decision #3) (~60 lines)
+### Task T7.2 — `libs/features/auth/docs/*.feature` (6 files per Locked Decision #3) (~60 lines) — `[x]`
 
 - **Description.** Per auth spec §Gherkin feature inventory: `login-email-password.feature`, `oauth-google-stub.feature`, `password-reset.feature`, `sessions-list.feature`, `rbac-admin.feature`, `login-locale-routing.feature`. Each holds the spec's scenarios verbatim.
 - **Discovery / file targets.** Six files under `libs/features/auth/docs/`.
@@ -762,7 +762,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.2-sha>`.
 - **Files touched (rough).** ~60 lines.
 
-### Task T7.3 — `libs/features/transactions/docs/step-defs/` (shared step definitions) (~40 lines)
+### Task T7.3 — `libs/features/transactions/docs/step-defs/` (shared step definitions) (~40 lines) — `[x]`
 
 - **Description.** Per spec: shared step defs for the 6 transactions `.feature` files. `Given a category <name> with kind <kind> exists`, `Given an FxRate from <from> to <to> at rate <rate> recorded <time> ago`, `When the user submits the create-transaction form at /{locale}/transactions/new with idempotency key <key> and amount <amount>`, etc.
 - **Discovery / file targets.** `libs/features/transactions/docs/step-defs/{common,data,actions}.steps.ts`.
@@ -771,7 +771,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.3-sha>`.
 - **Files touched (rough).** ~40 lines.
 
-### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 files per Locked Decision #3) (~60 lines)
+### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 files per Locked Decision #3) (~60 lines) — `[x]`
 
 - **Description.** Per transactions spec §Gherkin feature inventory: `create-transaction.feature`, `list-transactions.feature`, `multi-currency-conversion.feature`, `idempotency-key.feature`, `soft-delete-categories.feature`, `sign-aware-totals.feature`. Each holds the spec's scenarios verbatim.
 - **Discovery / file targets.** Six files under `libs/features/transactions/docs/`.

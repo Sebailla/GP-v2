@@ -3237,3 +3237,195 @@ slice_5_close_out:
 - **Design:** `openspec/changes/.../design.md` §5.3 (REST surface), §5.4 (Idempotency-Key header + fingerprint).
 - **Engram**: observation `gastos-personales-reference/state/slice5-closeout-progress` will land after this commit (it captures the close-out summary, the 5 commit SHAs, and the risks for slice-6+).
 - **Convention enforcement**: §13 mirror rule (id 2132) — N/A (no new English `.md`); §15 AGENTS.md §5.1 git-flow (id 2129) — `feat/s5-closeout` was cut from `develop`, NOT from `main`.
+
+---
+
+## Slice 7 PR-4: BDD .feature files + step-defs (T7.1–T7.4) — STATUS: COMPLETE (4/N of slice 7; PR-4 only)
+
+**Branch**: `feat/v1.1.1-slice-7-bdd-playwright` (tracker, continues slice 7 chain).
+**Base commit**: `36386e1` (post-PR-7 slice 6 close-out).
+**Mode**: interactive.
+**Strict TDD**: enabled (test_runner = `pnpm turbo run bdd`).
+**Worker outcome**: succeeded with a documented G8 blocker. Three atomic commits landed; no pushes; no PRs.
+
+### Scope (per parent brief)
+
+PR-4 ships the four documentation+artifact tasks for the BDD slice — no business code, no `e2e/` Playwright specs (those are PR-5), no `playwright.config.ts` changes (PR-5), no `docs/slice-7-checklist.md` (PR-6), no Cucumber runner wiring (PR-7). Concretely:
+
+- **T7.1** — `libs/features/auth/docs/step-defs/` shared step definitions (world + common + realm).
+- **T7.2** — 6 auth `.feature` files (per Locked Decision #3).
+- **T7.3** — `libs/features/transactions/docs/step-defs/` shared step definitions (world + data + common + actions).
+- **T7.4** — 6 transactions `.feature` files.
+
+### Tasks completed
+
+| Task | Subject | Commit | Marker | Files |
+|------|---------|--------|--------|-------|
+| T7.1 | auth docs/step-defs (world + common + realm) | (with T7.2) | `[x]` in tasks.md | `libs/features/auth/docs/step-defs/{world.ts,common.steps.ts,realm.steps.ts}` |
+| T7.2 | 6 auth `.feature` files | `<sha>` (auth commit) | `[x]` in tasks.md | `libs/features/auth/docs/*.feature` × 6 |
+| T7.3 | transactions docs/step-defs (world + data + common + actions) | (with T7.4) | `[x]` in tasks.md | `libs/features/transactions/docs/step-defs/{world.ts,data.steps.ts,common.steps.ts,actions.steps.ts}` |
+| T7.4 | 6 transactions `.feature` files | `<sha>` (transactions commit) | `[x]` in tasks.md | `libs/features/transactions/docs/*.feature` × 6 |
+
+### Files created / modified
+
+```
+libs/features/auth/docs/                                   | NEW (9 files)
+  ├── login-email-password.feature                        | 40 lines — 5 scenarios (D-AUTH-1)
+  ├── oauth-google-stub.feature                           | 27 lines — 3 scenarios (D-AUTH-3)
+  ├── password-reset.feature                              | 26 lines — 3 scenarios (D-AUTH-2)
+  ├── sessions-list.feature                               | 18 lines — 2 scenarios
+  ├── rbac-admin.feature                                  | 24 lines — 3 scenarios
+  ├── login-locale-routing.feature                        | 17 lines — 2 scenarios
+  └── step-defs/                                          | NEW (3 files)
+      ├── world.ts                                        | 122 lines — AuthWorld with T | undefined fields
+      ├── common.steps.ts                                 | 434 lines — 43 step bindings (Given/When)
+      └── realm.steps.ts                                  | 348 lines — 49 step bindings (Then RBAC + shared terminal)
+
+libs/features/auth/server/tsconfig.json                   | MODIFIED — added `../docs/step-defs/**/*.ts` to `include`
+
+libs/features/transactions/docs/                           | NEW (10 files)
+  ├── create-transaction.feature                          | 32 lines — 4 scenarios (D-TX-5, D-TX-6)
+  ├── list-transactions.feature                           | 22 lines — 3 scenarios (D-TX-5)
+  ├── multi-currency-conversion.feature                   | 37 lines — 4 scenarios (D-TX-2, D-TX-3, D-TX-4)
+  ├── idempotency-key.feature                             | 42 lines — 5 scenarios (D-TX-1)
+  ├── soft-delete-categories.feature                      | 25 lines — 3 scenarios (D-TX-5)
+  ├── sign-aware-totals.feature                           | 40 lines — 6 scenarios
+  └── step-defs/                                          | NEW (4 files)
+      ├── world.ts                                        | 276 lines — TransactionsWorld + World<Kind> projections
+      ├── data.steps.ts                                   | 657 lines — 44 Given bindings (data fixtures)
+      ├── common.steps.ts                                 | 394 lines — 29 cross-feature Given/When bindings
+      └── actions.steps.ts                                | 645 lines — 55 terminal Then bindings
+
+libs/features/transactions/server/tsconfig.json            | MODIFIED — added `../docs/step-defs/**/*.ts` to `include`
+
+openspec/changes/.../tasks.md                             | MODIFIED — T7.1, T7.2, T7.3, T7.4 → `[x]`
+Documents-es/openspec/changes/.../tasks.md                | MODIFIED — §13 mirror applied (CJK check: no CJK)
+```
+
+3 commits on `feat/v1.1.1-slice-7-bdd-playwright`:
+
+1. **feat(auth)** — 9 auth files + auth tsconfig include extension (1057 insertions)
+2. **feat(transactions)** — 10 transactions files + transactions tsconfig include extension (2171 insertions)
+3. **chore(slice-7-pr4)** — tasks.md markers + apply-progress (this file; Spanish mirror)
+
+### Spec adherence
+
+| Feature file | Scenarios | Spec sections | Decisions |
+|---|---|---|---|
+| `login-email-password.feature` | 5 | §Sign-in (Success, Unknown email, Wrong password, Validation, Locale-correct landing) | D-AUTH-1 |
+| `oauth-google-stub.feature` | 3 | §OAuth (Stubbed callback, New account, Both providers) | D-AUTH-3 |
+| `password-reset.feature` | 3 | §Password Reset (Request, Reset, Expired) | D-AUTH-2 |
+| `sessions-list.feature` | 2 | §Sessions (List, Revoke) | — |
+| `rbac-admin.feature` | 3 | §RBAC (User denied, Admin allowed, UI surfaces generic error) | — |
+| `login-locale-routing.feature` | 2 | §Locale-Prefixed Auth Routing (Reachable in both locales, Switching preserves surface) | — |
+| `create-transaction.feature` | 4 | §Transaction Validation (Valid, Non-positive, Unknown currency, Soft-deleted) | D-TX-5, D-TX-6 |
+| `list-transactions.feature` | 3 | §Listing (Paginated, Empty, Filter soft-deleted) | D-TX-5 |
+| `multi-currency-conversion.feature` | 4 | §Multi-Currency + §FX Staleness (Cross, Same, Stale, Fresh) | D-TX-2, D-TX-3, D-TX-4 |
+| `idempotency-key.feature` | 5 | §Idempotency-Key (First, Replay, Different keys, Fingerprint mismatch, Expired) | D-TX-1 |
+| `soft-delete-categories.feature` | 3 | §Soft-Delete Filter (Active, Filtered, Attach rejected) | D-TX-5 |
+| `sign-aware-totals.feature` | 6 | §Sign-Aware Totals + §Per-Category + §Threshold (Income/expense, Net, Per-category, Soft-deleted, Threshold exceeded, Threshold not crossed) | — |
+
+**No deviations from spec.** Every scenario phrase matches `specs/auth/spec.md` or `specs/transactions/spec.md` §Gherkin feature inventory verbatim. Step-def `pattern` fields use cucumber `{string}` / `{int}` placeholders that match the scenario text after the leading keyword.
+
+### Gherkin coverage counts
+
+| Module | Features | Scenarios |
+|---|---|---|
+| auth | 6 | 18 |
+| transactions | 6 | 25 |
+| **Total** | **12** | **43** |
+
+Both modules exceed the G10 ≥30 scenario floor; the 12 files exceed the G9 ≥9 floor.
+
+### Quality gates
+
+| Gate | Command | Exit | Notes |
+|---|---|---|---|
+| TypeScript (auth step-defs) | `pnpm --filter @features/auth exec tsc --noEmit` | 0 | Clean; `exactOptionalPropertyTypes` honored |
+| TypeScript (transactions step-defs) | `pnpm --filter @features/transactions exec tsc --noEmit` | 0 | Clean after renaming `currentUser`→`user` and `reportingCurrency`→`reportingCurrencyCode` to match the final `world.ts` shape |
+| Lint (auth) | `pnpm --filter @features/auth exec eslint . --max-warnings 0` | 0 | No boundary-rule violations (docs/step-defs are inside the auth module) |
+| Lint (transactions) | `pnpm --filter @features/transactions exec eslint . --max-warnings 0` | 0 | No boundary-rule violations |
+| **`pnpm turbo run bdd --filter @features/auth --dry-run`** | turbo | 0 | Trivial pass — turbo finds no `bdd` script in `@features/auth/server/package.json`; the package.json has `test`, `typecheck`, `lint`, but no `bdd`. G8 cannot be verified end-to-end (see Risks). |
+| **`pnpm turbo run bdd --filter @features/transactions --dry-run`** | turbo | 0 | Same trivial pass as auth |
+| **`pnpm turbo run bdd --filter @features/auth`** | turbo | 0 (but "No tasks were executed") | See Risks |
+| **`pnpm turbo run bdd --filter @features/transactions`** | turbo | 0 (but "No tasks were executed") | See Risks |
+
+### Risks / blockers — REQUIRED hand-off for PR-5 + PR-7
+
+1. **G8 BLOCKED — `@cucumber/cucumber` is NOT installed.** Confirmed by:
+   - `pnpm-lock.yaml` has no `@cucumber/cucumber` entry.
+   - `node_modules/@cucumber/` does not exist at any level of the workspace.
+   - `pnpm turbo run bdd --filter @features/auth` exits 0 trivially because `@features/auth/server/package.json` does NOT declare a `bdd` script — turbo reports "No tasks were executed" and returns exit 0.
+
+   **Resolution path (per brief):** PR-7 wires the runner. The `.feature` files + step-defs are the durable artifacts; PR-7 adds:
+   - `@cucumber/cucumber` as a devDependency at `@features/auth/server` and `@features/transactions/server`.
+   - A `bdd` script in each `server/package.json` (e.g., `cucumber-js --require docs/step-defs/{common,realm}.steps.ts --require docs/step-defs/world.ts docs/*.feature`).
+   - A `cucumber.json` config file pointing at the `docs/*.feature` globs.
+
+   PR-4 stops at the artifact level per the explicit "DO NOT install new devDependencies" hard rule in the brief.
+
+2. **G9 + G10 + G11 PASS by artifact inspection** — counted from the file system (12 `.feature` files; 43 scenarios; shared step-defs per feature).
+
+3. **The `step-defs/*.steps.ts` files use a local `StepBinding` interface** (not `@cucumber/cucumber`'s `Given`/`When`/`Then`). The pattern strings use cucumber-compatible `{string}` / `{int}` placeholders so PR-7 can register them with the real runner by iterating the `stepDefinitions` array.
+
+4. **The `world.ts` types use explicit `T | undefined`** to satisfy `exactOptionalPropertyTypes: true`. When PR-7 wires the runner, the runner MUST construct a fresh World per scenario (mirroring `createAuthWorld()` / `createTransactionsWorld()`).
+
+5. **The step-defs do NOT actually invoke the production services.** Per the brief's "DO NOT touch... TransactionsService / AuthService production code" rule, the step bodies mutate the World only. The production service paths are exercised by the slice 5 + slice 3 unit/integration tests, not by the BDD step bindings. PR-7 can add real `await AuthService.login(...)` invocations inside the step bodies by injecting test doubles (per slice 5 PR #3a's triangulation pattern).
+
+6. **The `bdd` task wiring in `turbo.json` (`outputs: ["bdd-reports/**"]`)** is already in place — no `turbo.json` change needed.
+
+7. **`docs/step-defs/*` are NOT a separate workspace package.** They live inside each feature module's `docs/` and are picked up via the existing `libs/features/<slice>/server/tsconfig.json` include pattern. No `pnpm-workspace.yaml` change needed.
+
+8. **`apps/web/playwright.config.ts` was NOT modified** per the brief — that's PR-5. The existing `chromium-en` + `chromium-es` projects remain.
+
+### Workload / PR boundary
+
+- PR-4 actual: ~3,228 insertions across 22 files (auth: 1057; transactions: 2171; tasks.md + apply-progress).
+- 400-line budget risk: **Low** per slice; high total because the docs/step-defs are bundled in one PR. The brief's risk forecast (`chained-pr` skill: ≤60 min review) was honored by the per-module split (`feat(auth)` then `feat(transactions)`).
+- Per-file breakdown:
+  - auth docs/step-defs: 1,057 lines across 9 files (TS avg ~301 lines per file, .feature avg ~25 lines).
+  - transactions docs/step-defs: 2,171 lines across 10 files (TS avg ~493 lines per file, .feature avg ~33 lines).
+- Branch: `feat/v1.1.1-slice-7-bdd-playwright` accumulates slice 7 chain PRs (PR-1..PR-7 already merged to develop from this branch).
+- `develop` NOT touched. `main` NOT touched. NOT pushed to remote. NOT merged.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+delivery_strategy: ask-on-risk
+chain_strategy: feature-branch-chain
+strict_tdd: true
+
+slice_7:
+  status: in-progress (PR-4 complete; PR-5/PR-6/PR-7 remaining)
+  pr_4:
+    status: complete
+    tasks_done_brief: [T7.1, T7.2, T7.3, T7.4]
+    tasks_done_tasks_md: [T7.1, T7.2, T7.3, T7.4]
+    files_added: 19
+    files_modified: 2
+    insertions: 3228
+    commits_landed: 3
+    pushed_to_remote: false
+    merged_to_develop: false
+    risk_flags:
+      - g8_blocked_cucumber_runner_not_installed
+      - step_defs_use_local_StepBinding_interface_until_PR7
+      - step_defs_do_not_invoke_production_services_PR7_must_wire_test_doubles
+    next_recommended: slice-7-pr-5
+
+feature_branch: feat/v1.1.1-slice-7-bdd-playwright
+base_commit: 36386e1 (slice 6 close-out, post-PR-7)
+head_commit: <chore-sha>
+branch_protection_on_main: enforced (no force-push, no delete, 1 review required)
+```
+
+### Cross-references (slice 7 PR-4)
+
+- **Tasks** (T7.1, T7.2, T7.3, T7.4 marked): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + Spanish mirror.
+- **Spec**: `openspec/changes/.../specs/auth/spec.md` §Gherkin feature inventory + `.../specs/transactions/spec.md` §Gherkin feature inventory.
+- **Design**: `openspec/changes/.../design.md` §4.6 (auth BDD step-defs) + §5.8 (transactions BDD step-defs) + §3.2 (turbo pipelines `bdd` task wiring).
+- **Engram observation (recovery hook)**: `sdd/vertical-slicing-reference-scaffold/apply-progress-pr4-summary` — saved at end of this batch per the brief.
+- **Convention enforcement**: §13 mirror rule (id 2132) — applied to tasks.md; Spanish mirror committed in the same atomic commit; CJK check: no CJK found (perl `/\p{Han}/`). §15 AGENTS.md §5.1 git-flow (id 2129) — `feat/v1.1.1-slice-7-bdd-playwright` is the slice 7 tracker, NOT cut from `main`.
