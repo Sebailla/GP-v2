@@ -2,13 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { env } from "@core/config";
 
-import {
-	Card,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-	CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 import { SignInClient } from "@/components/auth/SignInClient";
 import { getSession } from "@/lib/auth";
@@ -45,44 +39,42 @@ import { getSession } from "@/lib/auth";
  *    `onSuccess` to `router.replace('/{locale}/')`).
  */
 interface SignInPageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
-export default async function SignInPage({
-	params,
-}: SignInPageProps): Promise<React.JSX.Element> {
-	const { locale } = await params;
+export default async function SignInPage({ params }: SignInPageProps): Promise<React.JSX.Element> {
+  const { locale } = await params;
 
-	// Redirect-if-already-authenticated: an already-authed visitor
-	// who lands on the sign-in page is bounced to the landing. The
-	// cookie is read via the slice 4 batch 2 helper; absent /
-	// malformed cookies return null, which means "not authenticated".
-	const session = await getSession();
-	if (session !== null) {
-		redirect(`/${locale}`);
-	}
+  // Redirect-if-already-authenticated: an already-authed visitor
+  // who lands on the sign-in page is bounced to the landing. The
+  // cookie is read via the slice 4 batch 2 helper; absent /
+  // malformed cookies return null, which means "not authenticated".
+  const session = await getSession();
+  if (session !== null) {
+    redirect(`/${locale}`);
+  }
 
-	const t = await getTranslations("auth.signIn");
+  const t = await getTranslations("auth.signIn");
 
-	return (
-		<main
-			style={{
-				minHeight: "100dvh",
-				display: "grid",
-				placeItems: "center",
-				padding: "2rem",
-				background: "var(--ui-bg)",
-			}}
-		>
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle>{t("title")}</CardTitle>
-					<CardDescription>{t("description")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<SignInClient apiUrl={env.API_URL} locale={locale} />
-				</CardContent>
-			</Card>
-		</main>
-	);
+  return (
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        background: "var(--ui-bg)",
+      }}
+    >
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SignInClient apiUrl={env.API_URL} locale={locale} />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

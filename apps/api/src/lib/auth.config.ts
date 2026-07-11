@@ -9,10 +9,7 @@ import { env } from "@core/config";
 
 import { AuthService } from "@features/auth";
 
-import {
-	NEXTAUTH_SESSION_MAX_AGE_SECONDS,
-	NEXTAUTH_SESSION_TOKEN_NAME,
-} from "./auth.constants.js";
+import { NEXTAUTH_SESSION_MAX_AGE_SECONDS, NEXTAUTH_SESSION_TOKEN_NAME } from "./auth.constants.js";
 
 /**
  * NextAuth v5 configuration — T3.3 (slice 3 batch 7).
@@ -67,10 +64,10 @@ import {
  */
 let _authService: AuthService | undefined;
 function authService(): AuthService {
-	if (_authService === undefined) {
-		_authService = new AuthService();
-	}
-	return _authService;
+  if (_authService === undefined) {
+    _authService = new AuthService();
+  }
+  return _authService;
 }
 
 /**
@@ -81,12 +78,12 @@ function authService(): AuthService {
  * work in dev / test environments without OAuth credentials.
  */
 function isGoogleConfigured(): boolean {
-	return (
-		env.GOOGLE_CLIENT_ID !== undefined &&
-		env.GOOGLE_CLIENT_ID.length > 0 &&
-		env.GOOGLE_CLIENT_SECRET !== undefined &&
-		env.GOOGLE_CLIENT_SECRET.length > 0
-	);
+  return (
+    env.GOOGLE_CLIENT_ID !== undefined &&
+    env.GOOGLE_CLIENT_ID.length > 0 &&
+    env.GOOGLE_CLIENT_SECRET !== undefined &&
+    env.GOOGLE_CLIENT_SECRET.length > 0
+  );
 }
 
 /**
@@ -97,131 +94,131 @@ function isGoogleConfigured(): boolean {
  * mutating module state).
  */
 export function buildAuthConfig(): NextAuthConfig {
-	const baseProviders = [
-		Credentials({
-			name: "credentials",
-			credentials: {
-				email: { label: "Email", type: "email" },
-				password: { label: "Password", type: "password" },
-			},
-			/**
-			 * `authorize` is invoked by NextAuth when a client posts to
-			 * `/api/auth/callback/credentials`. Returns a User shape on
-			 * success (NextAuth then mints a JWT and sets the session
-			 * cookie); returns `null` on failure (NextAuth redirects to
-			 * `pages.signIn` with `error=CredentialsSignin`).
-			 *
-			 * The implementation delegates to `AuthService.login` — the
-			 * canonical password check. We project the LoginResult onto
-			 * the User shape NextAuth expects (`id`, `email`, `name`,
-			 * `image`). `role` is NOT a standard User field; we pass it
-			 * through via the `jwt` callback below.
-			 */
-			async authorize(rawCredentials) {
-				const email = rawCredentials?.["email"];
-				const password = rawCredentials?.["password"];
-				if (typeof email !== "string" || typeof password !== "string") {
-					return null;
-				}
-				try {
-					const result = await authService().login(email, password);
-					return {
-						id: result.id,
-						email: result.email,
-						name: null,
-						image: null,
-						// Attach role onto the returned object so the `jwt`
-						// callback can promote it onto the token. NextAuth
-						// doesn't carry role through its standard User type;
-						// the structural cast keeps the production code
-						// honest without `any`.
-						...(result.role !== undefined ? { role: result.role } : {}),
-					};
-				} catch {
-					// Per the auth spec D-AUTH-1, the user-facing message
-					// for invalid creds is GENERIC — we never leak which
-					// side of the credential check failed. NextAuth will
-					// redirect with `error=CredentialsSignin`.
-					return null;
-				}
-			},
-		}),
-	];
+  const baseProviders = [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      /**
+       * `authorize` is invoked by NextAuth when a client posts to
+       * `/api/auth/callback/credentials`. Returns a User shape on
+       * success (NextAuth then mints a JWT and sets the session
+       * cookie); returns `null` on failure (NextAuth redirects to
+       * `pages.signIn` with `error=CredentialsSignin`).
+       *
+       * The implementation delegates to `AuthService.login` — the
+       * canonical password check. We project the LoginResult onto
+       * the User shape NextAuth expects (`id`, `email`, `name`,
+       * `image`). `role` is NOT a standard User field; we pass it
+       * through via the `jwt` callback below.
+       */
+      async authorize(rawCredentials) {
+        const email = rawCredentials?.["email"];
+        const password = rawCredentials?.["password"];
+        if (typeof email !== "string" || typeof password !== "string") {
+          return null;
+        }
+        try {
+          const result = await authService().login(email, password);
+          return {
+            id: result.id,
+            email: result.email,
+            name: null,
+            image: null,
+            // Attach role onto the returned object so the `jwt`
+            // callback can promote it onto the token. NextAuth
+            // doesn't carry role through its standard User type;
+            // the structural cast keeps the production code
+            // honest without `any`.
+            ...(result.role !== undefined ? { role: result.role } : {}),
+          };
+        } catch {
+          // Per the auth spec D-AUTH-1, the user-facing message
+          // for invalid creds is GENERIC — we never leak which
+          // side of the credential check failed. NextAuth will
+          // redirect with `error=CredentialsSignin`.
+          return null;
+        }
+      },
+    }),
+  ];
 
-	const providers = isGoogleConfigured()
-		? [
-				...baseProviders,
-				Google({
-					// `isGoogleConfigured` narrows these to string; the cast
-					// (instead of `!`) keeps the surface honest for the
-					// reader without `any` or a non-null assertion.
-					clientId: env.GOOGLE_CLIENT_ID as string,
-					clientSecret: env.GOOGLE_CLIENT_SECRET as string,
-					// The Google provider's authorize path is NOT exercised
-					// in this batch; T3.7 ships the multi-provider test.
-				}),
-			]
-		: baseProviders;
+  const providers = isGoogleConfigured()
+    ? [
+        ...baseProviders,
+        Google({
+          // `isGoogleConfigured` narrows these to string; the cast
+          // (instead of `!`) keeps the surface honest for the
+          // reader without `any` or a non-null assertion.
+          clientId: env.GOOGLE_CLIENT_ID as string,
+          clientSecret: env.GOOGLE_CLIENT_SECRET as string,
+          // The Google provider's authorize path is NOT exercised
+          // in this batch; T3.7 ships the multi-provider test.
+        }),
+      ]
+    : baseProviders;
 
-	return {
-		adapter: PrismaAdapter(prisma),
-		session: {
-			strategy: "jwt",
-			maxAge: NEXTAUTH_SESSION_MAX_AGE_SECONDS,
-		},
-		providers,
-		// Custom pages — locale-aware factory deferred to slice 4.
-		// Default NextAuth v5 sign-in page (`/api/auth/signin`) is used
-		// until the apps/web route group ships.
-		pages: {
-			signIn: "/api/auth/signin",
-		},
-		trustHost: true,
-		secret: env.NEXTAUTH_SECRET,
-		callbacks: {
-			/**
-			 * `jwt` callback — invoked on every request that touches the
-			 * session cookie. On the FIRST request after sign-in, `user`
-			 * is populated (the return value of `authorize`); on later
-			 * requests `user` is undefined and `token` already carries
-			 * the embedded claims.
-			 *
-			 * We promote `role` + `userId` onto the token on first sign-in
-			 * so the `session` callback (below) can project them onto
-			 * `session.user` for downstream consumers.
-			 */
-			jwt({ token, user }) {
-				if (user !== undefined) {
-					const u = user as { id?: string; role?: string; userId?: string };
-					token.userId = u.userId ?? u.id ?? token.sub;
-					if (u.role !== undefined) {
-						token.role = u.role;
-					}
-				}
-				return token;
-			},
-			/**
-			 * `session` callback — invoked after `jwt`. Projects the
-			 * token claims onto `session.user` so the guard and slice-4
-			 * server components see the canonical shape
-			 * `{ id, email, role }`.
-			 */
-			session({ session, token }) {
-				if (session.user !== undefined) {
-					if (typeof token.userId === "string") {
-						(session.user as { id?: string }).id = token.userId;
-					}
-					if (typeof token.role === "string") {
-						(session.user as { role?: string }).role = token.role;
-					}
-					if (typeof token.email === "string") {
-						session.user.email = token.email;
-					}
-				}
-				return session;
-			},
-		},
-	};
+  return {
+    adapter: PrismaAdapter(prisma),
+    session: {
+      strategy: "jwt",
+      maxAge: NEXTAUTH_SESSION_MAX_AGE_SECONDS,
+    },
+    providers,
+    // Custom pages — locale-aware factory deferred to slice 4.
+    // Default NextAuth v5 sign-in page (`/api/auth/signin`) is used
+    // until the apps/web route group ships.
+    pages: {
+      signIn: "/api/auth/signin",
+    },
+    trustHost: true,
+    secret: env.NEXTAUTH_SECRET,
+    callbacks: {
+      /**
+       * `jwt` callback — invoked on every request that touches the
+       * session cookie. On the FIRST request after sign-in, `user`
+       * is populated (the return value of `authorize`); on later
+       * requests `user` is undefined and `token` already carries
+       * the embedded claims.
+       *
+       * We promote `role` + `userId` onto the token on first sign-in
+       * so the `session` callback (below) can project them onto
+       * `session.user` for downstream consumers.
+       */
+      jwt({ token, user }) {
+        if (user !== undefined) {
+          const u = user as { id?: string; role?: string; userId?: string };
+          token.userId = u.userId ?? u.id ?? token.sub;
+          if (u.role !== undefined) {
+            token.role = u.role;
+          }
+        }
+        return token;
+      },
+      /**
+       * `session` callback — invoked after `jwt`. Projects the
+       * token claims onto `session.user` so the guard and slice-4
+       * server components see the canonical shape
+       * `{ id, email, role }`.
+       */
+      session({ session, token }) {
+        if (session.user !== undefined) {
+          if (typeof token.userId === "string") {
+            (session.user as { id?: string }).id = token.userId;
+          }
+          if (typeof token.role === "string") {
+            (session.user as { role?: string }).role = token.role;
+          }
+          if (typeof token.email === "string") {
+            session.user.email = token.email;
+          }
+        }
+        return session;
+      },
+    },
+  };
 }
 
 /**

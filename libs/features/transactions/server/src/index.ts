@@ -34,57 +34,54 @@
 // validated request to the service's `CreateTransactionInput`
 // (Decimal-typed, not re-exported to avoid a name collision).
 export {
-	createSchema,
-	updateSchema,
-	listSchema,
-	categoryCreateSchema,
-	categoryUpdateSchema,
-	type CreateTransactionInput,
-	type UpdateTransactionInput,
-	type ListTransactionsQuery,
-	type CreateCategoryInput,
-	type UpdateCategoryInput,
+  createSchema,
+  updateSchema,
+  listSchema,
+  categoryCreateSchema,
+  categoryUpdateSchema,
+  type CreateTransactionInput,
+  type UpdateTransactionInput,
+  type ListTransactionsQuery,
+  type CreateCategoryInput,
+  type UpdateCategoryInput,
 } from "../../shared/schemas/index.js";
 
 // DI tokens.
-export {
-	FX_RATE_PROVIDER_TOKEN,
-	type FxRateProviderToken,
-} from "./constants.js";
+export { FX_RATE_PROVIDER_TOKEN, type FxRateProviderToken } from "./constants.js";
 
 // Domain entities + ports (the type layer; PR #3a brings the services).
 export type {
-	Currency,
-	Category,
-	CategoryKind,
-	Transaction,
-	TransactionKind,
-	TransactionListItem,
-	FxRate,
-	FxRateInsert,
-	IdempotencyKey,
-	IdempotencyKeyInsert,
-	AuditLog,
-	AuditLogAppend,
-	AuditEntityType,
-	AuditAction,
+  Currency,
+  Category,
+  CategoryKind,
+  Transaction,
+  TransactionKind,
+  TransactionListItem,
+  FxRate,
+  FxRateInsert,
+  IdempotencyKey,
+  IdempotencyKeyInsert,
+  AuditLog,
+  AuditLogAppend,
+  AuditEntityType,
+  AuditAction,
 } from "./domain/entities/index.js";
 
 export type {
-	CategoryRepository,
-	CategoryFilter,
-	CategoryCreate,
-	CategoryUpdate,
-	TransactionRepository,
-	TransactionListFilter,
-	TransactionCreate,
-	TransactionUpdate,
-	CurrencyRepository,
-	FxRateRepository,
-	IdempotencyRepository,
-	AuditLogRepository,
-	FxRateProvider,
-	DuplicateIdempotencyKeyError,
+  CategoryRepository,
+  CategoryFilter,
+  CategoryCreate,
+  CategoryUpdate,
+  TransactionRepository,
+  TransactionListFilter,
+  TransactionCreate,
+  TransactionUpdate,
+  CurrencyRepository,
+  FxRateRepository,
+  IdempotencyRepository,
+  AuditLogRepository,
+  FxRateProvider,
+  DuplicateIdempotencyKeyError,
 } from "./domain/interfaces/index.js";
 
 // Persistence boundary — Prisma adapters (T5.7).
@@ -92,9 +89,9 @@ export type {
 // invariant on every read path. Error classes translate Prisma's
 // runtime P2002 / P2025 codes into domain-friendly errors.
 export {
-	PrismaCategoryRepository,
-	CategoryAlreadyExistsError,
-	CategoryNotFoundError,
+  PrismaCategoryRepository,
+  CategoryAlreadyExistsError,
+  CategoryNotFoundError,
 } from "./infrastructure/repositories/prisma-category.repository.js";
 
 export { PrismaCurrencyRepository } from "./infrastructure/repositories/prisma-currency.repository.js";
@@ -106,8 +103,8 @@ export { PrismaIdempotencyRepository } from "./infrastructure/repositories/prism
 export { PrismaAuditLogRepository } from "./infrastructure/repositories/prisma-audit-log.repository.js";
 
 export {
-	PrismaTransactionRepository,
-	TransactionNotFoundError,
+  PrismaTransactionRepository,
+  TransactionNotFoundError,
 } from "./infrastructure/repositories/prisma-transaction.repository.js";
 
 // Live FX rate provider (T5.8) — bound through `FX_RATE_PROVIDER_TOKEN`.
@@ -121,20 +118,20 @@ export { PrismaUnitOfWork } from "./infrastructure/unit-of-work/prisma-unit-of-w
 // Note: `CategoryNotFoundError` lives in the category port (above);
 // not re-exported here to avoid a name collision.
 export {
-	TransactionService,
-	CategoryService,
-	TotalsService,
-	ThresholdService,
-	DEFAULT_THRESHOLD_AMOUNT,
-	IdempotencyKeyReusedError,
-	UnsupportedCurrencyPairError,
+  TransactionService,
+  CategoryService,
+  TotalsService,
+  ThresholdService,
+  DEFAULT_THRESHOLD_AMOUNT,
+  IdempotencyKeyReusedError,
+  UnsupportedCurrencyPairError,
 } from "./domain/services/index.js";
 export type {
-	TransactionServiceContext,
-	CategoryServiceContext,
-	CreateTransactionInput as CreateTransactionCommand,
-	TotalsRange,
-	UserTotals,
-	CategoryTotal,
-	ThresholdConfig,
+  TransactionServiceContext,
+  CategoryServiceContext,
+  CreateTransactionInput as CreateTransactionCommand,
+  TotalsRange,
+  UserTotals,
+  CategoryTotal,
+  ThresholdConfig,
 } from "./domain/services/index.js";

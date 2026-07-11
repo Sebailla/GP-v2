@@ -25,9 +25,7 @@ describe("@core/database client singleton", () => {
     for (const model of expectedModels) {
       expect(prisma).toHaveProperty(model);
       // Each delegate exposes CRUD methods; spot-check findUnique.
-      expect(typeof (prisma as unknown as Record<string, unknown>)[model]).toBe(
-        "object",
-      );
+      expect(typeof (prisma as unknown as Record<string, unknown>)[model]).toBe("object");
     }
   });
 

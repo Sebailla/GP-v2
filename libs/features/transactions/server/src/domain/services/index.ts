@@ -21,14 +21,8 @@
 export { CategoryService } from "./category.service.js";
 export type { CategoryServiceContext } from "./category.service.js";
 export { TransactionService } from "./transaction.service.js";
-export type {
-  CreateTransactionInput,
-  TransactionServiceContext,
-} from "./transaction.service.js";
-export {
-  IdempotencyKeyReusedError,
-  UnsupportedCurrencyPairError,
-} from "./transaction.service.js";
+export type { CreateTransactionInput, TransactionServiceContext } from "./transaction.service.js";
+export { IdempotencyKeyReusedError, UnsupportedCurrencyPairError } from "./transaction.service.js";
 export { TotalsService } from "./totals.service.js";
 export type { TotalsRange, UserTotals, CategoryTotal } from "./totals.service.js";
 export { ThresholdService, DEFAULT_THRESHOLD_AMOUNT } from "./threshold.service.js";

@@ -24,8 +24,5 @@ export interface FxRateProvider {
    * `null` if the pair is unknown. `recordedAt` is the timestamp the
    * rate was recorded at; staleness is a downstream concern.
    */
-  getRate(
-    fromCode: string,
-    toCode: string,
-  ): Promise<{ rate: Decimal; recordedAt: Date } | null>;
+  getRate(fromCode: string, toCode: string): Promise<{ rate: Decimal; recordedAt: Date } | null>;
 }

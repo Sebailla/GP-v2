@@ -19,9 +19,7 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("T4.15 responsive — auth screens", () => {
-  test("sign-in page does not overflow at 360px or 1440px", async ({
-    page,
-  }) => {
+  test("sign-in page does not overflow at 360px or 1440px", async ({ page }) => {
     for (const viewport of [
       { width: 360, height: 800 },
       { width: 1440, height: 900 },
@@ -37,9 +35,7 @@ test.describe("T4.15 responsive — auth screens", () => {
     }
   });
 
-  test("sign-up page does not overflow at 360px or 1440px", async ({
-    page,
-  }) => {
+  test("sign-up page does not overflow at 360px or 1440px", async ({ page }) => {
     for (const viewport of [
       { width: 360, height: 800 },
       { width: 1440, height: 900 },
@@ -53,9 +49,7 @@ test.describe("T4.15 responsive — auth screens", () => {
     }
   });
 
-  test("forgot-password page does not overflow at 360px or 1440px", async ({
-    page,
-  }) => {
+  test("forgot-password page does not overflow at 360px or 1440px", async ({ page }) => {
     for (const viewport of [
       { width: 360, height: 800 },
       { width: 1440, height: 900 },
@@ -69,9 +63,7 @@ test.describe("T4.15 responsive — auth screens", () => {
     }
   });
 
-  test("reset-password/[token] page does not overflow at 360px or 1440px", async ({
-    page,
-  }) => {
+  test("reset-password/[token] page does not overflow at 360px or 1440px", async ({ page }) => {
     for (const viewport of [
       { width: 360, height: 800 },
       { width: 1440, height: 900 },

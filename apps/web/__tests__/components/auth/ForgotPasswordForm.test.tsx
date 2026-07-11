@@ -1,16 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-	render,
-	screen,
-	cleanup,
-	fireEvent,
-	waitFor,
-} from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
 // RTL v16 no longer auto-registers cleanup — wire it ourselves so DOM
 // nodes from one `it` don't leak into the next.
 afterEach(() => {
-	cleanup();
+  cleanup();
 });
 
 // Mock `next-intl` BEFORE importing the form. The mock returns a `t`
@@ -18,7 +12,7 @@ afterEach(() => {
 // assert on i18n key wiring without depending on a real IntlProvider
 // (which next-intl requires at the top of the tree).
 vi.mock("next-intl", () => ({
-	useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
+  useTranslations: (scope: string) => (key: string) => `${scope}.${key}`,
 }));
 
 // Stub `fetch` per test via `vi.fn()`.
@@ -62,54 +56,51 @@ import { ForgotPasswordForm } from "../../../components/auth/ForgotPasswordForm"
  *    back-to-signin link with the `locale`-preserved `href="/en/sign-in"`.
  */
 describe("ForgotPasswordForm — slice 4 follow-ups (per-form test slim)", () => {
-	beforeEach(() => {
-		mockFetch.mockReset();
-	});
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
 
-	function renderForm(locale: string = "en"): void {
-		render(<ForgotPasswordForm apiUrl="http://api.test" locale={locale} />);
-	}
+  function renderForm(locale: string = "en"): void {
+    render(<ForgotPasswordForm apiUrl="http://api.test" locale={locale} />);
+  }
 
-	it("calls the API with the email payload and shows the success state on a 202 response (idempotent — locale-preserved back-to-signin link)", async () => {
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			status: 202,
-			json: async () => ({}),
-		});
+  it("calls the API with the email payload and shows the success state on a 202 response (idempotent — locale-preserved back-to-signin link)", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 202,
+      json: async () => ({}),
+    });
 
-		renderForm("en");
+    renderForm("en");
 
-		fireEvent.change(screen.getByLabelText(/auth\.forgotPassword\.email/i), {
-			target: { value: "alice@example.com" },
-		});
+    fireEvent.change(screen.getByLabelText(/auth\.forgotPassword\.email/i), {
+      target: { value: "alice@example.com" },
+    });
 
-		fireEvent.click(
-			screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }),
-		);
+    fireEvent.click(screen.getByRole("button", { name: /auth\.forgotPassword\.submit/i }));
 
-		await waitFor(() => {
-			expect(mockFetch).toHaveBeenCalledTimes(1);
-		});
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
 
-		// Verify the request shape — POST {apiUrl}/auth/forgot-password with JSON body.
-		const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe("http://api.test/auth/forgot-password");
-		expect(init.method).toBe("POST");
-		expect(JSON.parse(String(init.body))).toEqual({
-			email: "alice@example.com",
-		});
+    // Verify the request shape — POST {apiUrl}/auth/forgot-password with JSON body.
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://api.test/auth/forgot-password");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      email: "alice@example.com",
+    });
 
-		// Success state: the form is replaced by the success message + back-to-signin link.
-		await waitFor(() => {
-			expect(
-				screen.getByText(/auth\.forgotPassword\.success/i),
-			).toBeInTheDocument();
-		});
-		// The back-to-signin link must be locale-preserved (the design's
-		// invariant: 202 collapses BOTH known + unknown emails to the same
-		// success copy, with NO enumeration distinction at the form level).
-		expect(
-			screen.getByRole("link", { name: /auth\.common\.backToLoginLink/i }),
-		).toHaveAttribute("href", "/en/sign-in");
-	});
+    // Success state: the form is replaced by the success message + back-to-signin link.
+    await waitFor(() => {
+      expect(screen.getByText(/auth\.forgotPassword\.success/i)).toBeInTheDocument();
+    });
+    // The back-to-signin link must be locale-preserved (the design's
+    // invariant: 202 collapses BOTH known + unknown emails to the same
+    // success copy, with NO enumeration distinction at the form level).
+    expect(screen.getByRole("link", { name: /auth\.common\.backToLoginLink/i })).toHaveAttribute(
+      "href",
+      "/en/sign-in",
+    );
+  });
 });

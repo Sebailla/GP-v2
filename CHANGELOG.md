@@ -50,13 +50,13 @@ Spanish mirror of `apply-progress.md` got an explicit **estado del espejo** tabl
 
 ### Quality gates
 
-| Gate | Result |
-|---|---|
-| Typecheck | PASS (`pnpm turbo run typecheck` 31/31 tasks) |
-| Lint | PASS (CI gate) |
-| Test | PASS (491/491 tests across `@features/auth`, `@features/transactions`, `apps/api`, `apps/web`, etc.) |
-| Build | PASS (`pnpm turbo run build`; apps/api dist + apps/web .next) |
-| Boundary fixtures | PASS (`pnpm lint:fixtures`) |
+| Gate              | Result                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| Typecheck         | PASS (`pnpm turbo run typecheck` 31/31 tasks)                                                        |
+| Lint              | PASS (CI gate)                                                                                       |
+| Test              | PASS (491/491 tests across `@features/auth`, `@features/transactions`, `apps/api`, `apps/web`, etc.) |
+| Build             | PASS (`pnpm turbo run build`; apps/api dist + apps/web .next)                                        |
+| Boundary fixtures | PASS (`pnpm lint:fixtures`)                                                                          |
 
 **Total workspace tests at v1.1.1**: 491 (was 274 at v1.0.0; was 184 at v1.1.0; the +307 delta is mostly slice-3 auth-service unit tests + slice-4 web/state-coverage + slice-5 transactions services).
 
@@ -229,19 +229,19 @@ The auth client vertical slice — i18n + shadcn primitives + 5 form pages + WCA
 
 ## 1.0.0 — Quality gates (final, all green at v1.0.0 tag)
 
-| Gate | Result |
-|---|---|
-| `pnpm install` | ✅ exit 0 |
-| `pnpm turbo run typecheck` (full) | ✅ exit 0 |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
-| `pnpm turbo run test` (full) | ✅ 24/24 turbo tasks green |
-| Slice 1 (skeleton) | ✅ 8/8 tasks done |
-| Slice 2 (libs/core + libs/shared-utils) | ✅ 5/5 tasks done |
-| Slice 3 (auth server) | ✅ 9/9 tasks done; 110/110 + 21/21 + 37/37 + 20/20 + 4/4 tests |
-| Slice 4 (auth client) | ✅ 15/15 + 5/5 follow-ups + 1/1 T3.3 + 1/1 NextAuth + 1/1 cookie migration = CLOSED |
-| `pnpm run lint:fixtures` | ✅ boundary plugin fixtures pass |
-| Boundary rules: `no-prisma-outside-core`, `no-schemas-outside-shared`, `no-client-server-import`, `no-cross-module-import` | ✅ all 4 active |
-| i18n catalogs (symmetric-difference) | ✅ green |
+| Gate                                                                                                                       | Result                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `pnpm install`                                                                                                             | ✅ exit 0                                                                           |
+| `pnpm turbo run typecheck` (full)                                                                                          | ✅ exit 0                                                                           |
+| `pnpm turbo run lint` (full)                                                                                               | ✅ exit 0                                                                           |
+| `pnpm turbo run test` (full)                                                                                               | ✅ 24/24 turbo tasks green                                                          |
+| Slice 1 (skeleton)                                                                                                         | ✅ 8/8 tasks done                                                                   |
+| Slice 2 (libs/core + libs/shared-utils)                                                                                    | ✅ 5/5 tasks done                                                                   |
+| Slice 3 (auth server)                                                                                                      | ✅ 9/9 tasks done; 110/110 + 21/21 + 37/37 + 20/20 + 4/4 tests                      |
+| Slice 4 (auth client)                                                                                                      | ✅ 15/15 + 5/5 follow-ups + 1/1 T3.3 + 1/1 NextAuth + 1/1 cookie migration = CLOSED |
+| `pnpm run lint:fixtures`                                                                                                   | ✅ boundary plugin fixtures pass                                                    |
+| Boundary rules: `no-prisma-outside-core`, `no-schemas-outside-shared`, `no-client-server-import`, `no-cross-module-import` | ✅ all 4 active                                                                     |
+| i18n catalogs (symmetric-difference)                                                                                       | ✅ green                                                                            |
 
 **Total workspace tests at v1.0.0**: 274 (110 @features/auth + 21 apps/api e2e + 37 @core/events + 20 @core/config + 4/4 jwt-auth-guard e2e + 106 apps/web including state-coverage + 7/7 lib helpers). 24/24 turbo tasks green.
 

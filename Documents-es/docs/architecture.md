@@ -46,11 +46,12 @@ de rutas que consumen los paquetes aguas abajo.
 Vive bajo `libs/features/auth/{client,server,shared,docs}`. El
 slice de servidor entrega AuthService, SessionService, RbacService,
 PasswordResetService, la configuracion de NextAuth v5 (Credentials
-+ Google via `@auth/prisma-adapter`) y los cuatro eventos emitidos.
-El slice compartido entrega cinco esquemas Zod reutilizados por los
-formularios del cliente y el ZodValidationPipe de NestJS. Diseno
-completo en `openspec/changes/vertical-slicing-reference-scaffold/design.md`
-seccion 4.
+
+- Google via `@auth/prisma-adapter`) y los cuatro eventos emitidos.
+  El slice compartido entrega cinco esquemas Zod reutilizados por los
+  formularios del cliente y el ZodValidationPipe de NestJS. Diseno
+  completo en `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+  seccion 4.
 
 ## 5. Diseno del dominio: transactions
 

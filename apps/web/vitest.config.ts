@@ -38,21 +38,15 @@ export default defineConfig({
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
   },
-resolve: {
-alias: [
+  resolve: {
+    alias: [
       {
         find: /^@features\/auth\/shared\/schemas$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/auth/shared/schemas/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/auth/shared/schemas/index.ts"),
       },
       {
         find: /^@features\/auth$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/auth/server/src/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/auth/server/src/index.ts"),
       },
       {
         find: /^@features\/transactions\/shared\/schemas$/,
@@ -63,10 +57,7 @@ alias: [
       },
       {
         find: /^@features\/transactions$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/transactions/client/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/transactions/client/index.ts"),
       },
       {
         find: "@",
@@ -74,18 +65,12 @@ alias: [
       },
       {
         find: /^next-intl\/navigation$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/navigation.client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/navigation.client.js"),
       },
       {
         find: /^next-intl\/server$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/server.react-client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/server.react-client.js"),
       },
-],
+    ],
   },
 });

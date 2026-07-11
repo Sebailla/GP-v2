@@ -41,7 +41,7 @@ import { DevMailbox, type DevMailboxEvent } from "@/components/auth/DevMailbox";
  * developer already chose).
  */
 interface DevMailboxPageProps {
-	params: Promise<{ locale: string; userId: string }>;
+  params: Promise<{ locale: string; userId: string }>;
 }
 
 // Force-dynamic: the dev mailbox is a development-only affordance
@@ -66,61 +66,61 @@ export const dynamic = "force-dynamic";
  * .toString("hex")`); requestedAt is an ISO timestamp.
  */
 const DEV_STUB_EVENTS: Record<string, ReadonlyArray<DevMailboxEvent>> = {
-	"user-1": [
-		{
-			token: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-			requestedAt: "2026-07-06T20:15:00.000Z",
-		},
-		{
-			token: "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-			requestedAt: "2026-07-06T20:18:00.000Z",
-		},
-		{
-			token: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-			requestedAt: "2026-07-06T20:25:00.000Z",
-		},
-	],
-	"user-2": [
-		{
-			token: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
-			requestedAt: "2026-07-06T19:45:00.000Z",
-		},
-	],
-	// "user-with-no-events" intentionally absent — the empty-state test
-	// asserts that an unknown userId renders the noTokensHint.
+  "user-1": [
+    {
+      token: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      requestedAt: "2026-07-06T20:15:00.000Z",
+    },
+    {
+      token: "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+      requestedAt: "2026-07-06T20:18:00.000Z",
+    },
+    {
+      token: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      requestedAt: "2026-07-06T20:25:00.000Z",
+    },
+  ],
+  "user-2": [
+    {
+      token: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+      requestedAt: "2026-07-06T19:45:00.000Z",
+    },
+  ],
+  // "user-with-no-events" intentionally absent — the empty-state test
+  // asserts that an unknown userId renders the noTokensHint.
 };
 
 export default async function DevMailboxPage({
-	params,
+  params,
 }: DevMailboxPageProps): Promise<React.JSX.Element> {
-	// DEV-ONLY gate — production builds return 404.
-	if (env.NODE_ENV === "production") {
-		notFound();
-	}
+  // DEV-ONLY gate — production builds return 404.
+  if (env.NODE_ENV === "production") {
+    notFound();
+  }
 
-	const { locale: _locale, userId } = await params;
-	const t = await getTranslations("auth.devMailbox");
+  const { locale: _locale, userId } = await params;
+  const t = await getTranslations("auth.devMailbox");
 
-	const events = DEV_STUB_EVENTS[userId] ?? [];
+  const events = DEV_STUB_EVENTS[userId] ?? [];
 
-	return (
-		<main
-			style={{
-				minHeight: "100dvh",
-				display: "grid",
-				placeItems: "center",
-				padding: "2rem",
-				background: "var(--ui-bg)",
-			}}
-		>
-			<Card className="w-full max-w-md">
-				<CardHeader>
-					<CardTitle>{t("title")}</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<DevMailbox events={events} />
-				</CardContent>
-			</Card>
-		</main>
-	);
+  return (
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        background: "var(--ui-bg)",
+      }}
+    >
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DevMailbox events={events} />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

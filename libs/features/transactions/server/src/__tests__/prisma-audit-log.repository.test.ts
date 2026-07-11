@@ -19,9 +19,7 @@ import { PrismaAuditLogRepository } from "../infrastructure/repositories/prisma-
  * continue to work without per-test duplication.
  */
 vi.mock("@core/database", async () => {
-  const actual = await vi.importActual<typeof import("@core/database")>(
-    "@core/database",
-  );
+  const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
   const auditLog = {
     create: vi.fn(),
     findMany: vi.fn(),
@@ -30,9 +28,8 @@ vi.mock("@core/database", async () => {
     ...actual,
     prisma: {
       auditLog,
-      $transaction: vi.fn(
-        async (fn: (tx: { auditLog: typeof auditLog }) => unknown) =>
-          fn({ auditLog }),
+      $transaction: vi.fn(async (fn: (tx: { auditLog: typeof auditLog }) => unknown) =>
+        fn({ auditLog }),
       ),
     },
   };

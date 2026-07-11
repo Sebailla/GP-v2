@@ -7,11 +7,11 @@ monorepo. Each helper is a standalone package with its own
 
 ## Packages
 
-| Package | Purpose | Depends on |
-|---------|---------|------------|
-| `@shared-utils/date-formatting` | Timezone-safe date formatting via `Intl.DateTimeFormat`; ISO 8601 parsing. | none |
-| `@shared-utils/currency` | Format `decimal.js` values to localized currency strings via `Intl.NumberFormat`. | `decimal.js` |
-| `@shared-utils/decimal` | Thin wrappers around `decimal.js` for monetary math. **Never `BigInt`** (per D-TX-6). | `decimal.js` |
+| Package                         | Purpose                                                                               | Depends on   |
+| ------------------------------- | ------------------------------------------------------------------------------------- | ------------ |
+| `@shared-utils/date-formatting` | Timezone-safe date formatting via `Intl.DateTimeFormat`; ISO 8601 parsing.            | none         |
+| `@shared-utils/currency`        | Format `decimal.js` values to localized currency strings via `Intl.NumberFormat`.     | `decimal.js` |
+| `@shared-utils/decimal`         | Thin wrappers around `decimal.js` for monetary math. **Never `BigInt`** (per D-TX-6). | `decimal.js` |
 
 ## Conventions
 

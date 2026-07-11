@@ -25,9 +25,7 @@ import { DuplicateIdempotencyKeyError } from "../domain/interfaces/idempotency.r
  * actually runs against the real shape-recognition code.
  */
 vi.mock("@core/database", async () => {
-  const actual = await vi.importActual<typeof import("@core/database")>(
-    "@core/database",
-  );
+  const actual = await vi.importActual<typeof import("@core/database")>("@core/database");
   const idempotencyKey = {
     findUnique: vi.fn(),
     create: vi.fn(),
@@ -37,10 +35,8 @@ vi.mock("@core/database", async () => {
     ...actual,
     prisma: {
       idempotencyKey,
-      $transaction: vi.fn(
-        async (
-          fn: (tx: { idempotencyKey: typeof idempotencyKey }) => unknown,
-        ) => fn({ idempotencyKey }),
+      $transaction: vi.fn(async (fn: (tx: { idempotencyKey: typeof idempotencyKey }) => unknown) =>
+        fn({ idempotencyKey }),
       ),
     },
   };
@@ -76,9 +72,7 @@ describe("PrismaIdempotencyRepository", () => {
 
   describe("find", () => {
     it("returns null when the row is missing", async () => {
-      vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue(
-        null as never,
-      );
+      vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue(null as never);
 
       const repo = new PrismaIdempotencyRepository();
       const result = await repo.find("user-1", "key-1");
@@ -95,9 +89,7 @@ describe("PrismaIdempotencyRepository", () => {
     });
 
     it("returns the projected IdempotencyKey when the row expires in the future", async () => {
-      vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue(
-        fakeIdempRow() as never,
-      );
+      vi.mocked(prisma.idempotencyKey.findUnique).mockResolvedValue(fakeIdempRow() as never);
 
       const repo = new PrismaIdempotencyRepository();
       const result = await repo.find("user-1", "key-1");
@@ -214,9 +206,7 @@ describe("PrismaIdempotencyRepository", () => {
 
     it("passes through Prisma errors other than P2002 (no translation)", async () => {
       const unexpected = new Error("connection reset");
-      vi.mocked(prisma.idempotencyKey.create).mockRejectedValue(
-        unexpected as never,
-      );
+      vi.mocked(prisma.idempotencyKey.create).mockRejectedValue(unexpected as never);
 
       const repo = new PrismaIdempotencyRepository();
       await expect(

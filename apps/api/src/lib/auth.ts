@@ -50,10 +50,10 @@ import { authConfig } from "./auth.config.js";
 // shape rather than `ReturnType<typeof NextAuth>` because NextAuth's
 // factory is a value, not a generic class.
 type NextAuthExport = {
-	handlers: { GET: unknown; POST: unknown };
-	auth: unknown;
-	signIn: unknown;
-	signOut: unknown;
+  handlers: { GET: unknown; POST: unknown };
+  auth: unknown;
+  signIn: unknown;
+  signOut: unknown;
 };
 
 const _nextAuth: NextAuthExport = NextAuth(authConfig);

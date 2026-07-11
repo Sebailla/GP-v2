@@ -273,15 +273,15 @@ gastos-personales-reference/                          # repo root (vacío en sdd
 
 `turbo.json` declara las siguientes tasks. Cada entrada lista su `dependsOn` y `outputs` para que Turbo cache los build artifacts correctamente y `bdd`/`e2e` sólo corran después de un build limpio.
 
-| Task          | `dependsOn`                  | `outputs`                                 | Notas                                                                                |
-|---------------|------------------------------|-------------------------------------------|--------------------------------------------------------------------------------------|
-| `build`       | `^build`                     | `dist/**`, `.next/**`                     | Compila TypeScript (`tsc -b`) y corre `next build` para `apps/web`.                  |
-| `dev`         | `^build` (cache: false)      | —                                         | Long-running; sin cache.                                                             |
-| `lint`        | `^build`                     | —                                         | Corre `eslint .` por workspace usando la flat config compartida.                     |
-| `test`        | `^build`                     | `coverage/**`                             | Vitest en modo `run`; emite un reporte de cobertura mergeado del workspace (gate NO enforced). |
-| `typecheck`   | `^build`                     | —                                         | `tsc --noEmit` por workspace.                                                        |
-| `bdd`         | `build`                      | `bdd-reports/**`                          | `@cucumber/cucumber` contra `libs/features/*/docs/*.feature`.                        |
-| `e2e`         | `build`                      | `playwright-report/**`, `test-results/**`  | Playwright con `@axe-core/playwright` integrado.                                    |
+| Task        | `dependsOn`             | `outputs`                                 | Notas                                                                                          |
+| ----------- | ----------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `build`     | `^build`                | `dist/**`, `.next/**`                     | Compila TypeScript (`tsc -b`) y corre `next build` para `apps/web`.                            |
+| `dev`       | `^build` (cache: false) | —                                         | Long-running; sin cache.                                                                       |
+| `lint`      | `^build`                | —                                         | Corre `eslint .` por workspace usando la flat config compartida.                               |
+| `test`      | `^build`                | `coverage/**`                             | Vitest en modo `run`; emite un reporte de cobertura mergeado del workspace (gate NO enforced). |
+| `typecheck` | `^build`                | —                                         | `tsc --noEmit` por workspace.                                                                  |
+| `bdd`       | `build`                 | `bdd-reports/**`                          | `@cucumber/cucumber` contra `libs/features/*/docs/*.feature`.                                  |
+| `e2e`       | `build`                 | `playwright-report/**`, `test-results/**` | Playwright con `@axe-core/playwright` integrado.                                               |
 
 ### 3.3 TypeScript
 
@@ -290,18 +290,18 @@ gastos-personales-reference/                          # repo root (vacío en sdd
   {
     "compilerOptions": {
       "paths": {
-        "@core/database":      ["libs/core/database/src"],
-        "@core/database/*":    ["libs/core/database/src/*"],
-        "@core/events":        ["libs/core/events/src"],
-        "@core/events/*":      ["libs/core/events/src/*"],
-        "@core/config":        ["libs/core/config"],
-        "@features/auth":      ["libs/features/auth/server"],
-        "@features/auth/*":    ["libs/features/auth/*"],
-        "@features/transactions":     ["libs/features/transactions/server"],
-        "@features/transactions/*":   ["libs/features/transactions/*"],
-        "@shared-utils/*":     ["libs/shared-utils/*"]
-      }
-    }
+        "@core/database": ["libs/core/database/src"],
+        "@core/database/*": ["libs/core/database/src/*"],
+        "@core/events": ["libs/core/events/src"],
+        "@core/events/*": ["libs/core/events/src/*"],
+        "@core/config": ["libs/core/config"],
+        "@features/auth": ["libs/features/auth/server"],
+        "@features/auth/*": ["libs/features/auth/*"],
+        "@features/transactions": ["libs/features/transactions/server"],
+        "@features/transactions/*": ["libs/features/transactions/*"],
+        "@shared-utils/*": ["libs/shared-utils/*"],
+      },
+    },
   }
   ```
   Cada workspace extiende la base mediante su propio `tsconfig.json`.
@@ -310,18 +310,18 @@ gastos-personales-reference/                          # repo root (vacío en sdd
 
 La flat config (`eslint.config.mjs`) importa las reglas custom desde `tools/eslint-plugin-boundary/` (o, si la carpeta del plugin está vacía en el primer slice, las reglas viven inline en `eslint.config.mjs` y se extraen después). Las cuatro reglas non-negotiable y sus selectores:
 
-| Regla                      | Selector (aplica a)                                                                                               | Patrón de violación                                                                                                    |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
-| `no-client-server-import`  | `libs/features/*/client/**/*.{ts,tsx}`                                                                            | Path de import que contiene `/server/`.                                                                                |
-| `no-cross-module-import`   | `libs/features/**/*.ts`                                                                                           | Importar de un `libs/features/<other>/...` hermano excepto vía `@core/events` o un port compartido.                    |
-| `no-prisma-outside-core`   | `**/*.{ts,tsx}`                                                                                                   | `new PrismaClient(` fuera de `libs/core/database/src/`.                                                                |
-| `no-schemas-outside-shared`| `**/*.{ts,tsx}`                                                                                                   | `import { z } from 'zod'` Y un literal de objeto Zod (`z.object(`, `z.string(`, etc.) fuera de `*/shared/schemas/*` o `libs/core/config/env.schema.ts`. |
+| Regla                       | Selector (aplica a)                    | Patrón de violación                                                                                                                                     |
+| --------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-client-server-import`   | `libs/features/*/client/**/*.{ts,tsx}` | Path de import que contiene `/server/`.                                                                                                                 |
+| `no-cross-module-import`    | `libs/features/**/*.ts`                | Importar de un `libs/features/<other>/...` hermano excepto vía `@core/events` o un port compartido.                                                     |
+| `no-prisma-outside-core`    | `**/*.{ts,tsx}`                        | `new PrismaClient(` fuera de `libs/core/database/src/`.                                                                                                 |
+| `no-schemas-outside-shared` | `**/*.{ts,tsx}`                        | `import { z } from 'zod'` Y un literal de objeto Zod (`z.object(`, `z.string(`, etc.) fuera de `*/shared/schemas/*` o `libs/core/config/env.schema.ts`. |
 
 Quinta regla opcional para la convención doc-mirror:
 
-| Regla                      | Selector (aplica a)                  | Patrón de violación                                                          |
-|----------------------------|----------------------------------------|------------------------------------------------------------------------------|
-| `no-mojibake-in-docs`      | `Documents-es/**/*.md`                 | Cualquier codepoint CJK (`\u4e00`–`\u9fff`) — típicamente drift de auto-translation. |
+| Regla                 | Selector (aplica a)    | Patrón de violación                                                                  |
+| --------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| `no-mojibake-in-docs` | `Documents-es/**/*.md` | Cualquier codepoint CJK (`\u4e00`–`\u9fff`) — típicamente drift de auto-translation. |
 
 Cada regla está aparejada con un fixture de sanity (un archivo que viola deliberadamente commiteado bajo `tools/eslint-plugin-boundary/__fixtures__/`) y el fixture está conectado a un script one-shot para que `pnpm turbo run lint` pruebe que la regla efectivamente dispara.
 
@@ -367,14 +367,14 @@ Configuración de NextAuth v5. Ambos providers conectados contra `@auth/prisma-a
 
 Superficie REST montada por `apps/api/modules/auth/auth.controller.ts`. Endpoints:
 
-| Method | Path                              | Notas                                                                                  |
-|--------|-----------------------------------|----------------------------------------------------------------------------------------|
-| POST   | `/auth/login`                     | Envuelve el authorize de credentials de NextAuth; devuelve el JWT de sesión de NextAuth.|
-| POST   | `/auth/register`                  | Crea el `User`, hashea el password, devuelve 201.                                      |
-| POST   | `/auth/forgot-password`           | Idempotente — siempre devuelve 202 para evitar enumeración de emails. Dispara evento. |
-| POST   | `/auth/reset-password`            | `{ token, password }`. 200 en éxito, 410 en expirado/inválido.                         |
-| GET    | `/auth/sessions`                  | Lista las sesiones activas del caller. Requiere JWT.                                    |
-| DELETE | `/auth/sessions/:id`              | Revoca una sesión; chequeo de ownership vía `RbacService`.                             |
+| Method | Path                    | Notas                                                                                    |
+| ------ | ----------------------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/auth/login`           | Envuelve el authorize de credentials de NextAuth; devuelve el JWT de sesión de NextAuth. |
+| POST   | `/auth/register`        | Crea el `User`, hashea el password, devuelve 201.                                        |
+| POST   | `/auth/forgot-password` | Idempotente — siempre devuelve 202 para evitar enumeración de emails. Dispara evento.    |
+| POST   | `/auth/reset-password`  | `{ token, password }`. 200 en éxito, 410 en expirado/inválido.                           |
+| GET    | `/auth/sessions`        | Lista las sesiones activas del caller. Requiere JWT.                                     |
+| DELETE | `/auth/sessions/:id`    | Revoca una sesión; chequeo de ownership vía `RbacService`.                               |
 
 Los controllers usan `ZodValidationPipe` (§6.1) con los schemas de `libs/features/auth/shared/schemas/*.ts`.
 
@@ -433,12 +433,12 @@ Rutas con prefijo de locale vía `next-intl`. El route group `(auth)` es la supe
 
 ### 4.7 Eventos emitidos
 
-| Event                              | Payload (validado por Zod)                                              | Emitido por                                  |
-|------------------------------------|--------------------------------------------------------------------------|----------------------------------------------|
-| `auth.password-reset.requested`    | `{ userId: string, token: string (raw, solo dev), requestedAt: Date }`  | `PasswordResetService.requestReset`          |
-| `auth.password-reset.completed`    | `{ userId: string, resetAt: Date }`                                     | `PasswordResetService.consumeReset`          |
-| `auth.session.revoked`             | `{ userId: string, sessionId: string, revokedAt: Date }`                | `SessionService.revokeSession`               |
-| `auth.rbac.denied`                 | `{ userId: string, action: string, resourceType: string, at: Date }`    | `RbacService.can` (audit; observable)        |
+| Event                           | Payload (validado por Zod)                                             | Emitido por                           |
+| ------------------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| `auth.password-reset.requested` | `{ userId: string, token: string (raw, solo dev), requestedAt: Date }` | `PasswordResetService.requestReset`   |
+| `auth.password-reset.completed` | `{ userId: string, resetAt: Date }`                                    | `PasswordResetService.consumeReset`   |
+| `auth.session.revoked`          | `{ userId: string, sessionId: string, revokedAt: Date }`               | `SessionService.revokeSession`        |
+| `auth.rbac.denied`              | `{ userId: string, action: string, resourceType: string, at: Date }`   | `RbacService.can` (audit; observable) |
 
 Los cuatro están declarados en `libs/core/events/types.ts` y son consumidos por un subscriber in-memory que loggea al dev mailbox (§4.5) y escribe una línea de log estructurada con `pino` en producción.
 
@@ -478,14 +478,17 @@ export interface TransactionRepository {
 }
 
 export interface CategoryRepository {
-  findById(id: string): Promise<Category | null>;          // MUST filtrar deletedAt: null
-  list(filter: CategoryFilter): Promise<Category[]>;       // MUST filtrar deletedAt: null
+  findById(id: string): Promise<Category | null>; // MUST filtrar deletedAt: null
+  list(filter: CategoryFilter): Promise<Category[]>; // MUST filtrar deletedAt: null
   create(input: CategoryCreate): Promise<Category>;
   update(id: string, input: CategoryUpdate): Promise<Category>;
   softDelete(id: string, actorId: string): Promise<void>;
 }
 
-export interface CurrencyRepository { findByCode(code: string): Promise<Currency | null>; list(): Promise<Currency[]>; }
+export interface CurrencyRepository {
+  findByCode(code: string): Promise<Currency | null>;
+  list(): Promise<Currency[]>;
+}
 
 export interface FxRateRepository {
   findMostRecent(fromCode: string, toCode: string): Promise<FxRate | null>;
@@ -498,7 +501,8 @@ export interface IdempotencyRepository {
   purgeExpired(now: Date): Promise<number>;
 }
 
-export interface FxRateProvider {                        // port — D-TX-2
+export interface FxRateProvider {
+  // port — D-TX-2
   getRate(fromCode: string, toCode: string): Promise<{ rate: Decimal; recordedAt: Date } | null>;
 }
 ```
@@ -512,16 +516,16 @@ export interface FxRateProvider {                        // port — D-TX-2
 
 `libs/features/transactions/server/controllers/transactions.controller.ts` — endpoints REST montados por `apps/api/modules/transactions/`:
 
-| Method | Path                          | Notas                                                                                  |
-|--------|-------------------------------|----------------------------------------------------------------------------------------|
-| POST   | `/transactions`               | Requiere header `Idempotency-Key`; 200/201 en el primer call, 200 en replay.           |
-| GET    | `/transactions`               | Cursor pagination; filters: `categoryId`, `fromDate`, `toDate`, `currencyCode`.        |
-| PATCH  | `/transactions/:id`           | Update parcial; chequeo de ownership vía `RbacService`.                                |
-| DELETE | `/transactions/:id`           | Soft-delete; 204 en éxito.                                                              |
-| GET    | `/categories`                 | Sólo categorías activas.                                                                |
-| POST   | `/categories`                 | Create; unicidad sobre `slug`.                                                          |
-| PATCH  | `/categories/:id`             | Update name / kind.                                                                     |
-| DELETE | `/categories/:id`             | Soft-delete (`deletedAt = now`).                                                        |
+| Method | Path                | Notas                                                                           |
+| ------ | ------------------- | ------------------------------------------------------------------------------- |
+| POST   | `/transactions`     | Requiere header `Idempotency-Key`; 200/201 en el primer call, 200 en replay.    |
+| GET    | `/transactions`     | Cursor pagination; filters: `categoryId`, `fromDate`, `toDate`, `currencyCode`. |
+| PATCH  | `/transactions/:id` | Update parcial; chequeo de ownership vía `RbacService`.                         |
+| DELETE | `/transactions/:id` | Soft-delete; 204 en éxito.                                                      |
+| GET    | `/categories`       | Sólo categorías activas.                                                        |
+| POST   | `/categories`       | Create; unicidad sobre `slug`.                                                  |
+| PATCH  | `/categories/:id`   | Update name / kind.                                                             |
+| DELETE | `/categories/:id`   | Soft-delete (`deletedAt = now`).                                                |
 
 Todos los endpoints aplican `ZodValidationPipe` con los schemas en §5.5.
 
@@ -573,13 +577,13 @@ Todas bajo `(app)`, por lo que aplica el guard de auth. El locale activo conduce
 
 ### 5.9 Eventos emitidos
 
-| Event                                  | Payload                                                                                                              | Emitido por                                  |
-|----------------------------------------|----------------------------------------------------------------------------------------------------------------------|----------------------------------------------|
-| `transactions.created`                  | `{ transactionId, userId, amount (Decimal como string), currency, occurredAt }`                                      | `TransactionService.create`                  |
-| `transactions.updated`                  | `{ transactionId, userId, changedFields: string[], at: Date }`                                                       | `TransactionService.update`                  |
-| `transactions.soft-deleted`             | `{ transactionId, userId, at: Date }`                                                                               | `TransactionService.softDelete`              |
-| `transactions.fx.stale`                 | `{ from, to, recordedAt, observedAt, ageHours }`                                                                     | `TransactionService.create` cuando age > 24h |
-| `transactions.threshold.exceeded`      | `{ userId, categoryId, threshold, total, observedAt }`                                                              | `ThresholdService.evaluate`                  |
+| Event                             | Payload                                                                         | Emitido por                                  |
+| --------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------- |
+| `transactions.created`            | `{ transactionId, userId, amount (Decimal como string), currency, occurredAt }` | `TransactionService.create`                  |
+| `transactions.updated`            | `{ transactionId, userId, changedFields: string[], at: Date }`                  | `TransactionService.update`                  |
+| `transactions.soft-deleted`       | `{ transactionId, userId, at: Date }`                                           | `TransactionService.softDelete`              |
+| `transactions.fx.stale`           | `{ from, to, recordedAt, observedAt, ageHours }`                                | `TransactionService.create` cuando age > 24h |
+| `transactions.threshold.exceeded` | `{ userId, categoryId, threshold, total, observedAt }`                          | `ThresholdService.evaluate`                  |
 
 Los cinco están declarados en `libs/core/events/types.ts`. El evento `transactions.fx.stale` es **informativo** — D-TX-4 manda que la staleness NO bloquee el write; los subscribers downstream (audit, notification, toast) deciden la policy.
 
@@ -611,9 +615,8 @@ Los cinco están declarados en `libs/core/events/types.ts`. El evento `transacti
   ```
   Cada controller vincula el schema al pipe vía un pequeño helper decorator:
   ```ts
-  export const Body = (schema: ZodTypeAny) =>
-    (target: any, key: string, index: number) =>
-      UsePipes(new ZodValidationPipe(schema))(target, key, index);
+  export const Body = (schema: ZodTypeAny) => (target: any, key: string, index: number) =>
+    UsePipes(new ZodValidationPipe(schema))(target, key, index);
   ```
 
 ### 6.2 Event dispatcher (`libs/core/events`)
@@ -671,6 +674,7 @@ export interface EventDispatcher {
 El plugin vive en `tools/eslint-plugin-boundary/` (fallback: inline en `eslint.config.mjs` si la carpeta está vacía en el primer slice). Cada regla está documentada con su selector y el patrón de violación (§3.4). El plugin también expone una config `recommended` que `eslint.config.mjs` extiende.
 
 **Sanity check driven por fixtures.** Cada regla tiene un fixture matching bajo `tools/eslint-plugin-boundary/__fixtures__/<rule>/`:
+
 - `valid.ts` — no dispara.
 - `invalid.ts` — dispara; commiteado para que la suite de tests asegure que la regla efectivamente dispara.
 
@@ -717,20 +721,20 @@ El mecanismo de proxy es **el handler propio de NextAuth** hosteado en `apps/web
    b. `RbacService.can(user, 'transaction:write:self', null)` → allow.
    c. `ZodValidationPipe(createSchema)` parsea el body.
    d. `IdempotencyService.lookup(userId, key)`:
-      - **Hit + fingerprint match + no expirado** → devuelve la response cacheada.
-      - **Hit + fingerprint mismatch** → `409 IDEMPOTENCY_KEY_REUSED`.
-      - **Miss** → procede.
-   e. `CategoryRepository.findById(categoryId)` — aplica el filter de soft-delete; rechaza con `TX_CATEGORY_DELETED` si ausente.
-   f. `CurrencyRepository.findByCode(currencyCode)` — rechaza con `TX_CURRENCY_NOT_FOUND` si ausente.
-   g. Si `currencyCode !== user.reportingCurrencyCode`:
-      - `FxRateProvider.getRate(currencyCode, user.reportingCurrencyCode)`.
-      - **null** → rechaza con `TX_FX_PAIR_UNKNOWN`.
-      - **Stale** (`now - recordedAt > 24h`) → dispatch `transactions.fx.stale`; NO bloquea.
-   h. `TransactionRepository.create({ ...input, reportingAmount, reportingCurrencyCode, fxRateId, createdBy, updatedBy })`.
-   i. `AuditLog.create({ entityType: 'Transaction', entityId, action: 'create', actorId: userId })`.
-   j. `IdempotencyService.upsert({ key, userId, requestFingerprint, responsePayload, responseStatus: 201, transactionId, expiresAt: now + 1h })`.
-   k. `events.dispatch({ name: 'transactions.created', payload: ... })`.
-   l. `ThresholdService.evaluate(transaction, threshold)` → si cruzó, `events.dispatch({ name: 'transactions.threshold.exceeded', payload: ... })`.
+   - **Hit + fingerprint match + no expirado** → devuelve la response cacheada.
+   - **Hit + fingerprint mismatch** → `409 IDEMPOTENCY_KEY_REUSED`.
+   - **Miss** → procede.
+     e. `CategoryRepository.findById(categoryId)` — aplica el filter de soft-delete; rechaza con `TX_CATEGORY_DELETED` si ausente.
+     f. `CurrencyRepository.findByCode(currencyCode)` — rechaza con `TX_CURRENCY_NOT_FOUND` si ausente.
+     g. Si `currencyCode !== user.reportingCurrencyCode`:
+   - `FxRateProvider.getRate(currencyCode, user.reportingCurrencyCode)`.
+   - **null** → rechaza con `TX_FX_PAIR_UNKNOWN`.
+   - **Stale** (`now - recordedAt > 24h`) → dispatch `transactions.fx.stale`; NO bloquea.
+     h. `TransactionRepository.create({ ...input, reportingAmount, reportingCurrencyCode, fxRateId, createdBy, updatedBy })`.
+     i. `AuditLog.create({ entityType: 'Transaction', entityId, action: 'create', actorId: userId })`.
+     j. `IdempotencyService.upsert({ key, userId, requestFingerprint, responsePayload, responseStatus: 201, transactionId, expiresAt: now + 1h })`.
+     k. `events.dispatch({ name: 'transactions.created', payload: ... })`.
+     l. `ThresholdService.evaluate(transaction, threshold)` → si cruzó, `events.dispatch({ name: 'transactions.threshold.exceeded', payload: ... })`.
 7. El server devuelve `201` con el payload de la transaction.
 8. El cliente navega a `/{locale}/(app)/transactions`; la nueva fila aparece en la lista. Si la response llevó una warning de stale-rate, un toast la surface por ~5 segundos.
 
@@ -822,17 +826,17 @@ Estos son **explícitamente OUT-OF-SCOPE** para este slice. Se reafirman acá pa
 
 ## 12. Cross-references
 
-| Referencia                                                | Where                                                                                                              |
-|-----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| Proposal (canónico)                                       | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`                                                |
-| Proposal (mirror en español)                              | `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/proposal.md`                                    |
-| Auth spec                                                 | `openspec/changes/vertical-slicing-reference-scaffold/specs/auth/spec.md`                                          |
-| Transactions spec                                         | `openspec/changes/vertical-slicing-reference-scaffold/specs/transactions/spec.md`                                  |
-| Engram: project context                                   | `sdd-init/gastos-personales-reference` (id 2130)                                                                   |
-| Engram: resumen de proposal                               | `sdd/vertical-slicing-reference-scaffold/proposal` (id 2131)                                                       |
-| Engram: resumen de spec                                   | `sdd/vertical-slicing-reference-scaffold/spec` (id 2134)                                                           |
-| Engram: convención UI complete-not-scaffold               | `gastos-personales-reference/conventions/ui-complete-not-scaffold` (id 2133)                                       |
-| Engram: convención doc-mirror-spanish (HARD RULE)         | `gastos-personales-reference/conventions/doc-mirror-spanish` (id 2132)                                             |
-| Engram: convención branch-model                           | `gastos-personales-reference/conventions/branch-model` (id 2129)                                                   |
-| Skills loaded                                             | `architecture-standards`, `architecture-patterns`, `next-best-practices`, `database-strategy`, `auth-implementation-patterns`, `env-config`, `api-design-principles` |
-| Downstream phases                                         | `sdd-tasks` → `sdd-apply` → `sdd-verify` → `sdd-archive`                                                            |
+| Referencia                                        | Where                                                                                                                                                                |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proposal (canónico)                               | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`                                                                                                   |
+| Proposal (mirror en español)                      | `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/proposal.md`                                                                                      |
+| Auth spec                                         | `openspec/changes/vertical-slicing-reference-scaffold/specs/auth/spec.md`                                                                                            |
+| Transactions spec                                 | `openspec/changes/vertical-slicing-reference-scaffold/specs/transactions/spec.md`                                                                                    |
+| Engram: project context                           | `sdd-init/gastos-personales-reference` (id 2130)                                                                                                                     |
+| Engram: resumen de proposal                       | `sdd/vertical-slicing-reference-scaffold/proposal` (id 2131)                                                                                                         |
+| Engram: resumen de spec                           | `sdd/vertical-slicing-reference-scaffold/spec` (id 2134)                                                                                                             |
+| Engram: convención UI complete-not-scaffold       | `gastos-personales-reference/conventions/ui-complete-not-scaffold` (id 2133)                                                                                         |
+| Engram: convención doc-mirror-spanish (HARD RULE) | `gastos-personales-reference/conventions/doc-mirror-spanish` (id 2132)                                                                                               |
+| Engram: convención branch-model                   | `gastos-personales-reference/conventions/branch-model` (id 2129)                                                                                                     |
+| Skills loaded                                     | `architecture-standards`, `architecture-patterns`, `next-best-practices`, `database-strategy`, `auth-implementation-patterns`, `env-config`, `api-design-principles` |
+| Downstream phases                                 | `sdd-tasks` → `sdd-apply` → `sdd-verify` → `sdd-archive`                                                                                                             |
