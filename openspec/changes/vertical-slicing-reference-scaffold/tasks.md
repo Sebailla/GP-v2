@@ -780,7 +780,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.4-sha>`.
 - **Files touched (rough).** ~60 lines.
 
-### Task T7.5 — `apps/web/playwright.config.ts` (two projects: `en`, `es`) (~20 lines)
+### Task T7.5 — `apps/web/playwright.config.ts` (two projects: `en`, `es`) (~20 lines) — `[x]`
 
 - **Description.** Per design §8.4: two Playwright projects (`en`, `es`) so axe-core runs per locale and the report is split. `@axe-core/playwright` is wired per project.
 - **Discovery / file targets.** `apps/web/playwright.config.ts`; add `apps/web/e2e/utils/axe.ts` as the assertion helper.
@@ -789,7 +789,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.5-sha>`.
 - **Files touched (rough).** ~20 lines.
 
-### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 critical flow × 2 locales) (~30 lines)
+### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 critical flow × 2 locales) (~30 lines) — `[x]`
 
 - **Description.** G47 + design §8.4: clean session → fill the sign-in form → submit → assert the authenticated landing route is reached for both locales.
 - **Discovery / file targets.** `apps/web/e2e/auth/login-and-landing.spec.ts`.
@@ -798,7 +798,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.6-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 lines)
+### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 lines) — `[x]`
 
 - **Description.** G47 + design §8.4: sign in → navigate to the transactions list → open the create form → fill it → submit → assert the new row appears. Runs under both `en` and `es` projects.
 - **Discovery / file targets.** `apps/web/e2e/transactions/login-list-create.spec.ts`.

@@ -732,7 +732,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.4-sha>`.
 - **Files touched (rough).** ~60 líneas.
 
-### Task T7.5 — `apps/web/playwright.config.ts` (dos proyectos: `en`, `es`) (~20 líneas)
+### Task T7.5 — `apps/web/playwright.config.ts` (dos proyectos: `en`, `es`) (~20 líneas) — `[x]`
 
 - **Description.** Según design §8.4: dos proyectos de Playwright (`en`, `es`) para que axe-core corra por locale y el reporte quede split. `@axe-core/playwright` se cablea por proyecto.
 - **Discovery / file targets.** `apps/web/playwright.config.ts`; agregar `apps/web/e2e/utils/axe.ts` como helper de aserción.
@@ -741,7 +741,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.5-sha>`.
 - **Files touched (rough).** ~20 líneas.
 
-### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 flujo crítico × 2 locales) (~30 líneas)
+### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 flujo crítico × 2 locales) (~30 líneas) — `[x]`
 
 - **Description.** G47 + design §8.4: session limpia → llenar el form de sign-in → submittear → assertear que se llega a la ruta de landing autenticada para ambos locales.
 - **Discovery / file targets.** `apps/web/e2e/auth/login-and-landing.spec.ts`.
@@ -750,7 +750,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.6-sha>`.
 - **Files touched (rough).** ~30 líneas.
 
-### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 líneas)
+### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 líneas) — `[x]`
 
 - **Description.** G47 + design §8.4: sign in → navegar a la lista de transactions → abrir el form de create → llenarlo → submittear → assertear que la nueva fila aparece. Corre bajo ambos proyectos `en` y `es`.
 - **Discovery / file targets.** `apps/web/e2e/transactions/login-list-create.spec.ts`.
