@@ -32,9 +32,7 @@ import type { FieldValues, Resolver } from "react-hook-form";
  * for tuple indices + object keys + symbol keys if any).
  */
 export interface SafeParseAsyncSchema<TOutput> {
-  safeParseAsync(
-    input: unknown,
-  ): Promise<
+  safeParseAsync(input: unknown): Promise<
     | { success: true; data: TOutput }
     | {
         success: false;
@@ -49,9 +47,10 @@ export interface SafeParseAsyncSchema<TOutput> {
   >;
 }
 
-export function zodResolver<TSchema extends SafeParseAsyncSchema<TOutput>, TOutput extends FieldValues>(
-  schema: TSchema,
-): Resolver<TOutput> {
+export function zodResolver<
+  TSchema extends SafeParseAsyncSchema<TOutput>,
+  TOutput extends FieldValues,
+>(schema: TSchema): Resolver<TOutput> {
   return async (values) => {
     const result = await schema.safeParseAsync(values);
     if (result.success) {
@@ -61,10 +60,7 @@ export function zodResolver<TSchema extends SafeParseAsyncSchema<TOutput>, TOutp
       };
     }
 
-    const errors: Record<
-      string,
-      { type: string; message: string }
-    > = {};
+    const errors: Record<string, { type: string; message: string }> = {};
     for (const issue of result.error.issues) {
       const path = issue.path.join(".");
       if (!(path in errors)) {

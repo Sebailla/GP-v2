@@ -10,19 +10,7 @@
  */
 export type { Currency } from "./currency.entity.js";
 export type { Category, CategoryKind } from "./category.entity.js";
-export type {
-  Transaction,
-  TransactionKind,
-  TransactionListItem,
-} from "./transaction.entity.js";
+export type { Transaction, TransactionKind, TransactionListItem } from "./transaction.entity.js";
 export type { FxRate, FxRateInsert } from "./fx-rate.entity.js";
-export type {
-  IdempotencyKey,
-  IdempotencyKeyInsert,
-} from "./idempotency-key.entity.js";
-export type {
-  AuditLog,
-  AuditLogAppend,
-  AuditEntityType,
-  AuditAction,
-} from "./audit-log.entity.js";
+export type { IdempotencyKey, IdempotencyKeyInsert } from "./idempotency-key.entity.js";
+export type { AuditLog, AuditLogAppend, AuditEntityType, AuditAction } from "./audit-log.entity.js";

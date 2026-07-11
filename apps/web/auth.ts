@@ -68,10 +68,10 @@ import { env } from "@core/config";
 // `ReturnType<typeof NextAuth>` (the factory is a value, not a
 // generic class).
 type NextAuthExport = {
-	handlers: { GET: unknown; POST: unknown };
-	auth: unknown;
-	signIn: unknown;
-	signOut: unknown;
+  handlers: { GET: unknown; POST: unknown };
+  auth: unknown;
+  signIn: unknown;
+  signOut: unknown;
 };
 
 // The `NextAuthExport` type annotation below names the inferred return
@@ -80,71 +80,71 @@ type NextAuthExport = {
 // the explicit `NextAuthExport` alias re-roots to a stable public
 // type. The runtime exports are correct.
 const _nextAuth: NextAuthExport = NextAuth({
-	providers: [
-		Credentials({
-			name: "credentials",
-			credentials: {
-				email: { label: "Email", type: "email" },
-				password: { label: "Password", type: "password" },
-			},
-			// Stub — the web client does NOT delegate to NextAuth's
-			// signIn (the API already verified the credentials and
-			// minted the JWT). Returning null tells NextAuth to
-			// reject the credentials-signin flow. The route
-			// handler still answers the canonical
-			// `/api/auth/signin` page (HTML) + the
-			// `/api/auth/csrf` + `/api/auth/session` endpoints,
-			// which keeps future OAuth providers a drop-in.
-			async authorize() {
-				return null;
-			},
-		}),
-	],
-	session: {
-		strategy: "jwt",
-		maxAge: 30 * 24 * 60 * 60, // 30 days — NextAuth v5 default
-	},
-	pages: {
-		signIn: "/api/auth/signin",
-	},
-	trustHost: true,
-	secret: env.NEXTAUTH_SECRET,
-	callbacks: {
-		// Mirror the API's `jwt` callback — promote `userId` +
-		// `role` onto the token on first sign-in. The API's
-		// AuthService mints the JWT with these claims directly,
-		// so the callback mostly acts as a safety net for the
-		// route handler's `/api/auth/session` endpoint.
-		jwt({ token, user }) {
-			if (user !== undefined) {
-				const u = user as { id?: string; role?: string; userId?: string };
-				token.userId = u.userId ?? u.id ?? token.sub;
-				if (u.role !== undefined) {
-					token.role = u.role;
-				}
-			}
-			return token;
-		},
-		// Mirror the API's `session` callback — project
-		// `token.userId` + `token.role` onto `session.user`.
-		// The web's `getSession()` reads the result via
-		// `auth()` and passes `session.user.email` to the
-		// landing page.
-		session({ session, token }) {
-			if (session.user !== undefined) {
-				if (typeof token.userId === "string") {
-					(session.user as { id?: string }).id = token.userId;
-				}
-				if (typeof token.role === "string") {
-					(session.user as { role?: string }).role = token.role;
-				}
-				if (typeof token.email === "string") {
-					session.user.email = token.email;
-				}
-			}
-			return session;
-		},
-	},
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      // Stub — the web client does NOT delegate to NextAuth's
+      // signIn (the API already verified the credentials and
+      // minted the JWT). Returning null tells NextAuth to
+      // reject the credentials-signin flow. The route
+      // handler still answers the canonical
+      // `/api/auth/signin` page (HTML) + the
+      // `/api/auth/csrf` + `/api/auth/session` endpoints,
+      // which keeps future OAuth providers a drop-in.
+      async authorize() {
+        return null;
+      },
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days — NextAuth v5 default
+  },
+  pages: {
+    signIn: "/api/auth/signin",
+  },
+  trustHost: true,
+  secret: env.NEXTAUTH_SECRET,
+  callbacks: {
+    // Mirror the API's `jwt` callback — promote `userId` +
+    // `role` onto the token on first sign-in. The API's
+    // AuthService mints the JWT with these claims directly,
+    // so the callback mostly acts as a safety net for the
+    // route handler's `/api/auth/session` endpoint.
+    jwt({ token, user }) {
+      if (user !== undefined) {
+        const u = user as { id?: string; role?: string; userId?: string };
+        token.userId = u.userId ?? u.id ?? token.sub;
+        if (u.role !== undefined) {
+          token.role = u.role;
+        }
+      }
+      return token;
+    },
+    // Mirror the API's `session` callback — project
+    // `token.userId` + `token.role` onto `session.user`.
+    // The web's `getSession()` reads the result via
+    // `auth()` and passes `session.user.email` to the
+    // landing page.
+    session({ session, token }) {
+      if (session.user !== undefined) {
+        if (typeof token.userId === "string") {
+          (session.user as { id?: string }).id = token.userId;
+        }
+        if (typeof token.role === "string") {
+          (session.user as { role?: string }).role = token.role;
+        }
+        if (typeof token.email === "string") {
+          session.user.email = token.email;
+        }
+      }
+      return session;
+    },
+  },
 });
 
 export const { handlers, auth, signIn, signOut } = _nextAuth;

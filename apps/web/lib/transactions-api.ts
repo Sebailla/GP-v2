@@ -174,9 +174,7 @@ function safeJsonParse(text: string): unknown {
   }
 }
 
-function qs(
-  filter: Record<string, string | number | Date | undefined>,
-): string {
+function qs(filter: Record<string, string | number | Date | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(filter)) {
     if (v === undefined) continue;

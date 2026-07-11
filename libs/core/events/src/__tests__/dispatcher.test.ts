@@ -20,7 +20,13 @@ import type { DomainEvent } from "../types";
 
 const sampleEvent = (overrides: Partial<DomainEvent> = {}): DomainEvent => ({
   name: "transactions.created",
-  payload: { transactionId: "t1", userId: "u1", amount: "10.00", currency: "USD", occurredAt: new Date("2026-07-05T00:00:00.000Z") },
+  payload: {
+    transactionId: "t1",
+    userId: "u1",
+    amount: "10.00",
+    currency: "USD",
+    occurredAt: new Date("2026-07-05T00:00:00.000Z"),
+  },
   occurredAt: new Date("2026-07-05T00:00:00.000Z"),
   userId: "u1",
   ...overrides,
@@ -144,7 +150,7 @@ describe("createInMemoryDispatcher", () => {
               currency: "USD",
               occurredAt: new Date(2026, 6, 5),
             },
-          })
+          }),
         );
       }
       const recent = dispatcher.replay("u1");
@@ -152,7 +158,8 @@ describe("createInMemoryDispatcher", () => {
       // The oldest entries (t0..t49) should have been trimmed; the
       // newest (t150-1, then t51..t149 preserved in FIFO order).
       const firstId = (recent[0]?.payload as { transactionId?: string })?.transactionId;
-      const lastId = (recent[recent.length - 1]?.payload as { transactionId?: string })?.transactionId;
+      const lastId = (recent[recent.length - 1]?.payload as { transactionId?: string })
+        ?.transactionId;
       expect(firstId).toBe("t50");
       expect(lastId).toBe("t149");
     });

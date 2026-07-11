@@ -73,10 +73,7 @@ export class TotalsService {
    * per active `categoryId` in the result set; the order is
    * `categoryId ASC` for deterministic output.
    */
-  async perCategory(
-    userId: string,
-    range: TotalsRange = {},
-  ): Promise<CategoryTotal[]> {
+  async perCategory(userId: string, range: TotalsRange = {}): Promise<CategoryTotal[]> {
     const txns = await this.txRepo.findManyForUser(userId, range);
     return this.aggregateByCategory(txns);
   }
@@ -105,9 +102,7 @@ export class TotalsService {
    * categories are omitted; the result is sorted by `categoryId`
    * for deterministic output.
    */
-  private aggregateByCategory(
-    txns: readonly Transaction[],
-  ): CategoryTotal[] {
+  private aggregateByCategory(txns: readonly Transaction[]): CategoryTotal[] {
     const byCategory = new Map<string, { total: Decimal; kind: TransactionKind }>();
     for (const t of txns) {
       const existing = byCategory.get(t.categoryId);

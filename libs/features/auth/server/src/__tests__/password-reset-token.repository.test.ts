@@ -63,8 +63,7 @@ vi.mock("@core/database", () => ({
 
 import { prisma } from "@core/database";
 
-const sha256Hex = (s: string): string =>
-  createHash("sha256").update(s).digest("hex");
+const sha256Hex = (s: string): string => createHash("sha256").update(s).digest("hex");
 
 describe("PrismaPasswordResetTokenRepository", () => {
   beforeEach(() => {
@@ -73,9 +72,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
 
   describe("create", () => {
     it("persists a row with tokenHash + expiresAt + userId, projecting onto the public PasswordResetTokenRecord", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       vi.mocked(prisma.passwordResetToken.create).mockResolvedValue({
         id: "prt-1",
@@ -102,8 +100,9 @@ describe("PrismaPasswordResetTokenRepository", () => {
       // explicit `connect` keeps the adapter type-safe against the
       // generated client signature.
       expect(prisma.passwordResetToken.create).toHaveBeenCalledTimes(1);
-      const callArg = (vi.mocked(prisma.passwordResetToken.create).mock
-        .calls[0] as unknown as [{ data: unknown }])[0];
+      const callArg = (
+        vi.mocked(prisma.passwordResetToken.create).mock.calls[0] as unknown as [{ data: unknown }]
+      )[0];
       expect(callArg.data).toMatchObject({
         tokenHash: "h-abc",
         expiresAt,
@@ -124,17 +123,12 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("propagates a foreign-key violation when the user does not exist", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       const fkError = new Error("Foreign key constraint failed");
-      (
-        fkError as Error & { code?: string }
-      ).code = "P2003";
-      vi.mocked(prisma.passwordResetToken.create).mockRejectedValue(
-        fkError as never,
-      );
+      (fkError as Error & { code?: string }).code = "P2003";
+      vi.mocked(prisma.passwordResetToken.create).mockRejectedValue(fkError as never);
 
       const repo = new PrismaPasswordResetTokenRepository();
       await expect(
@@ -149,9 +143,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
 
   describe("findByHash", () => {
     it("returns the row whose tokenHash matches", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       const tokenHash = sha256Hex("raw-token-1");
       vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue({
@@ -168,9 +161,11 @@ describe("PrismaPasswordResetTokenRepository", () => {
 
       expect(prisma.passwordResetToken.findUnique).toHaveBeenCalledTimes(1);
       expect(
-        (vi.mocked(prisma.passwordResetToken.findUnique).mock.calls[0] as unknown as [
-          { where: { tokenHash: string } },
-        ])[0].where,
+        (
+          vi.mocked(prisma.passwordResetToken.findUnique).mock.calls[0] as unknown as [
+            { where: { tokenHash: string } },
+          ]
+        )[0].where,
       ).toEqual({ tokenHash });
       expect(record).toMatchObject({
         id: "prt-2",
@@ -181,13 +176,10 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("returns null when no row matches (no enumeration side-channel)", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
-      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(
-        null as never,
-      );
+      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(null as never);
 
       const repo = new PrismaPasswordResetTokenRepository();
       const record = await repo.findByHash("nonexistent-hash");
@@ -197,9 +189,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
 
   describe("markConsumed", () => {
     it("sets consumedAt = supplied timestamp on the row matching the tokenHash", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       const consumedAt = new Date("2030-01-01T12:00:00Z");
       vi.mocked(prisma.passwordResetToken.update).mockResolvedValue({
@@ -216,9 +207,11 @@ describe("PrismaPasswordResetTokenRepository", () => {
 
       expect(prisma.passwordResetToken.update).toHaveBeenCalledTimes(1);
       expect(
-        (vi.mocked(prisma.passwordResetToken.update).mock.calls[0] as unknown as [
-          { where: { tokenHash: string }; data: { consumedAt: Date } },
-        ])[0],
+        (
+          vi.mocked(prisma.passwordResetToken.update).mock.calls[0] as unknown as [
+            { where: { tokenHash: string }; data: { consumedAt: Date } },
+          ]
+        )[0],
       ).toEqual({
         where: { tokenHash: "h-consumed" },
         data: { consumedAt },
@@ -226,20 +219,15 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("silently no-ops on Prisma P2025 (row already gone) — idempotent post-condition", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       const p2025 = new Error("Record to update not found.");
       (p2025 as Error & { code?: string }).code = "P2025";
-      vi.mocked(prisma.passwordResetToken.update).mockRejectedValue(
-        p2025 as never,
-      );
+      vi.mocked(prisma.passwordResetToken.update).mockRejectedValue(p2025 as never);
 
       const repo = new PrismaPasswordResetTokenRepository();
-      await expect(
-        repo.markConsumed("orphan-hash", new Date()),
-      ).resolves.toBeUndefined();
+      await expect(repo.markConsumed("orphan-hash", new Date())).resolves.toBeUndefined();
     });
   });
 
@@ -265,9 +253,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("returns the number of removed unconsumed+expired rows", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       const cutoff = new Date("2026-01-01T00:00:00Z");
       vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
@@ -280,15 +267,16 @@ describe("PrismaPasswordResetTokenRepository", () => {
       expect(count).toBe(2);
       expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledTimes(1);
       expect(
-        (vi.mocked(prisma.passwordResetToken.deleteMany).mock
-          .calls[0] as unknown as [
-          {
-            where: {
-              expiresAt: { lt: Date };
-              consumedAt: null;
-            };
-          },
-        ])[0],
+        (
+          vi.mocked(prisma.passwordResetToken.deleteMany).mock.calls[0] as unknown as [
+            {
+              where: {
+                expiresAt: { lt: Date };
+                consumedAt: null;
+              };
+            },
+          ]
+        )[0],
       ).toEqual({
         where: {
           expiresAt: { lt: cutoff },
@@ -298,9 +286,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("does NOT remove consumed rows (consumedAt: null filter is enforced)", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
         count: 0,
@@ -312,8 +299,7 @@ describe("PrismaPasswordResetTokenRepository", () => {
       // The where clause MUST include `consumedAt: null` regardless of
       // any other filter \u2014 asserts that consumed rows are not pruned.
       const callArg = (
-        vi.mocked(prisma.passwordResetToken.deleteMany).mock
-          .calls[0] as unknown as [
+        vi.mocked(prisma.passwordResetToken.deleteMany).mock.calls[0] as unknown as [
           {
             where: Record<string, unknown>;
           },
@@ -323,9 +309,8 @@ describe("PrismaPasswordResetTokenRepository", () => {
     });
 
     it("returns 0 when no rows match", async () => {
-      const { PrismaPasswordResetTokenRepository } = await import(
-        "../infrastructure/repositories/prisma-password-reset-token.repository.js"
-      );
+      const { PrismaPasswordResetTokenRepository } =
+        await import("../infrastructure/repositories/prisma-password-reset-token.repository.js");
 
       vi.mocked(prisma.passwordResetToken.deleteMany).mockResolvedValue({
         count: 0,

@@ -63,10 +63,7 @@ module.exports = {
       const targetModule = extractModuleFromSource(source);
       if (!targetModule) return;
       if (targetModule === selfModule) return;
-      if (
-        source.startsWith("@core/events") ||
-        source.includes("libs/core/events/")
-      ) {
+      if (source.startsWith("@core/events") || source.includes("libs/core/events/")) {
         return;
       }
       context.report({

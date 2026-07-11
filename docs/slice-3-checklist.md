@@ -32,17 +32,17 @@ apps/api e2e tests.
 
 ## 2. Tasks status (T3.1 – T3.9)
 
-| #   | Task                                                        | Lines | PR / commit | Status |
-|-----|-------------------------------------------------------------|-------|-------------|--------|
-| T3.1 | RED — failing tests for `AuthService.login`               | ~30   | slice 3 batch 1 (PR #5) | [x] |
-| T3.2 | `libs/features/auth/shared/schemas` (5 Zod schemas)        | ~50   | slice 3 batch 6 (PR #10) | [x] |
-| T3.3 | NextAuth v5 config + real `JwtAuthGuard`                    | ~50   | slice 3 batch 7 (PR #12) | [x] |
-| T3.4 | Auth services (Auth + Session + Rbac + PasswordReset)      | ~150  | slice 3 batches 1-4 (PRs #5-#7) | [x] |
-| T3.5 | `events.ts` (4 events) + Prisma repository adapters        | ~30   | slice 3 batches 3-4 (PR #7) | [x] |
-| T3.6 | `apps/api/modules/auth` (NestJS thin wrapper)              | ~50   | slice 3 batches 6 + 6b (PRs #9, #11) | [x] |
-| T3.7 | Integration scenarios (multi-provider / expiry / idempotency) | ~40 | slice 3 batch 8 (this PR) | [x] |
-| T3.8 | REFACTOR pass — duplication + boundary ESLint fixtures     | ~10   | slice 3 batch 6 (PR #10) | [x] |
-| T3.9 | Slice-wide `turbo run lint typecheck test` green            | ~30   | slice 3 batch 8 (this PR) | [x] |
+| #    | Task                                                          | Lines | PR / commit                          | Status |
+| ---- | ------------------------------------------------------------- | ----- | ------------------------------------ | ------ |
+| T3.1 | RED — failing tests for `AuthService.login`                   | ~30   | slice 3 batch 1 (PR #5)              | [x]    |
+| T3.2 | `libs/features/auth/shared/schemas` (5 Zod schemas)           | ~50   | slice 3 batch 6 (PR #10)             | [x]    |
+| T3.3 | NextAuth v5 config + real `JwtAuthGuard`                      | ~50   | slice 3 batch 7 (PR #12)             | [x]    |
+| T3.4 | Auth services (Auth + Session + Rbac + PasswordReset)         | ~150  | slice 3 batches 1-4 (PRs #5-#7)      | [x]    |
+| T3.5 | `events.ts` (4 events) + Prisma repository adapters           | ~30   | slice 3 batches 3-4 (PR #7)          | [x]    |
+| T3.6 | `apps/api/modules/auth` (NestJS thin wrapper)                 | ~50   | slice 3 batches 6 + 6b (PRs #9, #11) | [x]    |
+| T3.7 | Integration scenarios (multi-provider / expiry / idempotency) | ~40   | slice 3 batch 8 (this PR)            | [x]    |
+| T3.8 | REFACTOR pass — duplication + boundary ESLint fixtures        | ~10   | slice 3 batch 6 (PR #10)             | [x]    |
+| T3.9 | Slice-wide `turbo run lint typecheck test` green              | ~30   | slice 3 batch 8 (this PR)            | [x]    |
 
 **Slice 3 total: ~390 changed lines (well within the 400-line PR
 budget).** All 9 tasks closed; 8/8 PRs merged into `develop`.
@@ -51,20 +51,20 @@ budget).** All 9 tasks closed; 8/8 PRs merged into `develop`.
 
 ## 3. Quality gates (run end-to-end against `develop @ 324c36b`)
 
-| Gate                                            | Command | Result |
-|-------------------------------------------------|---------|--------|
-| Workspace install                               | `pnpm install` | exit 0 |
-| Auth tests (Vitest)                             | `pnpm --filter @features/auth exec vitest run` | 105/105 PASS (101 prior + 4 new T3.7) |
-| Events tests (Vitest)                           | `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
-| Config tests (Vitest)                           | `pnpm --filter @core/config exec vitest run` | 19/19 PASS |
-| apps/api e2e (Vitest)                           | `cd apps/api && pnpm exec vitest run` | 21/21 PASS (18 prior + 3 new T3.7 session-expiry) |
-| Full turbo (auth + core + utils + api)          | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS |
-| Lint (workspace)                                | `pnpm turbo run lint` | exit 0 |
-| Lint (boundary fixtures)                        | `pnpm run lint:fixtures` | exit 0 (11/11 fixtures, 18 expected violations) |
-| Typecheck (auth)                                | `pnpm turbo run typecheck --filter=@features/auth` | exit 0 |
-| Typecheck (events)                              | `pnpm turbo run typecheck --filter=@core/events` | exit 0 |
-| Typecheck (api)                                 | `pnpm turbo run typecheck --filter=api` | exit 0 |
-| Typecheck (workspace)                           | `pnpm turbo run typecheck` | exit 0 |
+| Gate                                   | Command                                                                                              | Result                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Workspace install                      | `pnpm install`                                                                                       | exit 0                                            |
+| Auth tests (Vitest)                    | `pnpm --filter @features/auth exec vitest run`                                                       | 105/105 PASS (101 prior + 4 new T3.7)             |
+| Events tests (Vitest)                  | `pnpm --filter @core/events exec vitest run`                                                         | 37/37 PASS                                        |
+| Config tests (Vitest)                  | `pnpm --filter @core/config exec vitest run`                                                         | 19/19 PASS                                        |
+| apps/api e2e (Vitest)                  | `cd apps/api && pnpm exec vitest run`                                                                | 21/21 PASS (18 prior + 3 new T3.7 session-expiry) |
+| Full turbo (auth + core + utils + api) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS                                        |
+| Lint (workspace)                       | `pnpm turbo run lint`                                                                                | exit 0                                            |
+| Lint (boundary fixtures)               | `pnpm run lint:fixtures`                                                                             | exit 0 (11/11 fixtures, 18 expected violations)   |
+| Typecheck (auth)                       | `pnpm turbo run typecheck --filter=@features/auth`                                                   | exit 0                                            |
+| Typecheck (events)                     | `pnpm turbo run typecheck --filter=@core/events`                                                     | exit 0                                            |
+| Typecheck (api)                        | `pnpm turbo run typecheck --filter=api`                                                              | exit 0                                            |
+| Typecheck (workspace)                  | `pnpm turbo run typecheck`                                                                           | exit 0                                            |
 
 Pre-existing failures NOT caused by Slice 3 (deferred from slice 1):
 
@@ -77,13 +77,13 @@ Pre-existing failures NOT caused by Slice 3 (deferred from slice 1):
 
 ## 4. Verification gates (G17, G20, G21, G22, G23)
 
-| Gate | Description | File + test proving it | Status |
-|------|-------------|------------------------|--------|
-| **G17** | Shared Zod schemas reused on server (single source of truth) | `libs/features/auth/shared/schemas/{login,register,forgot-password,reset-password,session-list}.ts` imported by `libs/features/auth/server/src/auth-service.ts` (loginSchema + registerSchema) and `apps/api/src/modules/auth/auth.controller.ts` (all 5 schemas via `validateOrThrow`). Pin: `pnpm --filter @features/auth exec vitest run` (5 schema suites pass). | PASS |
-| **G20** | Credentials + Google in parallel against `@auth/prisma-adapter` | `apps/api/src/lib/auth.config.ts` — `buildAuthConfig()` returns a NextAuth v5 config with `[Credentials(...), Google(...)]` providers wired against `PrismaAdapter(prisma)`. Pin: `apps/api/test/session-expiry.e2e-spec.ts` (Credentials-issued JWT decodes through the same `@auth/core/jwt#decode` path the Google callback would use). Multi-provider identity invariant pinned by `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts`. | PASS |
-| **G21** | Password reset (forgot + reset) with mocked email | `libs/features/auth/server/src/password-reset.service.ts` — `requestReset` (silent return for unknown email; token mint + persist + dispatch for known) + `consumeReset` (token validation + bcrypt hash + tx-wrapped update + dispatch). Mocked email = `createInMemoryDispatcher()` (apps/api NestJS module) carrying the raw token in the ring buffer for the dev mailbox (slice 4 UI). Pin: `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts` (5 scenarios; known vs unknown paths). | PASS |
-| **G22** | Sessions list + revoke implemented | `libs/features/auth/server/src/session-service.ts` — `listActiveSessions(userId)` (returns the canonical SessionRecord projection) + `revokeSession(token, userId)` (Pattern A: SessionRepository.revokeByToken + dispatch `auth.session.revoked`). Pin: `libs/features/auth/server/src/__tests__/session-service.test.ts` (7 tests) + `pattern-a-dispatch.test.ts` (3 revokeSession tests). NestJS endpoints: `GET /auth/sessions` (200) + `DELETE /auth/sessions/:id` (204). | PASS |
-| **G23** | RBAC roles enforced in **domain** layer | `libs/features/auth/server/src/rbac-service.ts` — `can(actor, action, resource)` is the single entry point every guard/controller routes through (the slice 3 batch 6 follow-up moves the call to the domain layer; the controller is a thin wrapper). Pin: `libs/features/auth/server/src/__tests__/rbac-service.test.ts` (11 scenarios covering USER + ADMIN, `*:own` + `*:any`, denials emit `auth.rbac.denied`). | PASS |
+| Gate    | Description                                                     | File + test proving it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Status |
+| ------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **G17** | Shared Zod schemas reused on server (single source of truth)    | `libs/features/auth/shared/schemas/{login,register,forgot-password,reset-password,session-list}.ts` imported by `libs/features/auth/server/src/auth-service.ts` (loginSchema + registerSchema) and `apps/api/src/modules/auth/auth.controller.ts` (all 5 schemas via `validateOrThrow`). Pin: `pnpm --filter @features/auth exec vitest run` (5 schema suites pass).                                                                                                                                                             | PASS   |
+| **G20** | Credentials + Google in parallel against `@auth/prisma-adapter` | `apps/api/src/lib/auth.config.ts` — `buildAuthConfig()` returns a NextAuth v5 config with `[Credentials(...), Google(...)]` providers wired against `PrismaAdapter(prisma)`. Pin: `apps/api/test/session-expiry.e2e-spec.ts` (Credentials-issued JWT decodes through the same `@auth/core/jwt#decode` path the Google callback would use). Multi-provider identity invariant pinned by `libs/features/auth/server/src/__tests__/integration/multi-provider.test.ts`.                                                             | PASS   |
+| **G21** | Password reset (forgot + reset) with mocked email               | `libs/features/auth/server/src/password-reset.service.ts` — `requestReset` (silent return for unknown email; token mint + persist + dispatch for known) + `consumeReset` (token validation + bcrypt hash + tx-wrapped update + dispatch). Mocked email = `createInMemoryDispatcher()` (apps/api NestJS module) carrying the raw token in the ring buffer for the dev mailbox (slice 4 UI). Pin: `libs/features/auth/server/src/__tests__/integration/forgot-password-idempotency.test.ts` (5 scenarios; known vs unknown paths). | PASS   |
+| **G22** | Sessions list + revoke implemented                              | `libs/features/auth/server/src/session-service.ts` — `listActiveSessions(userId)` (returns the canonical SessionRecord projection) + `revokeSession(token, userId)` (Pattern A: SessionRepository.revokeByToken + dispatch `auth.session.revoked`). Pin: `libs/features/auth/server/src/__tests__/session-service.test.ts` (7 tests) + `pattern-a-dispatch.test.ts` (3 revokeSession tests). NestJS endpoints: `GET /auth/sessions` (200) + `DELETE /auth/sessions/:id` (204).                                                   | PASS   |
+| **G23** | RBAC roles enforced in **domain** layer                         | `libs/features/auth/server/src/rbac-service.ts` — `can(actor, action, resource)` is the single entry point every guard/controller routes through (the slice 3 batch 6 follow-up moves the call to the domain layer; the controller is a thin wrapper). Pin: `libs/features/auth/server/src/__tests__/rbac-service.test.ts` (11 scenarios covering USER + ADMIN, `*:own` + `*:any`, denials emit `auth.rbac.denied`).                                                                                                             | PASS   |
 
 ---
 

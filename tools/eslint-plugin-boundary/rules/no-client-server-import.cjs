@@ -20,8 +20,7 @@ module.exports = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Forbid importing from /server/ paths into /client/ feature slices.",
+      description: "Forbid importing from /server/ paths into /client/ feature slices.",
       category: "Architectural boundaries",
       recommended: false,
     },

@@ -229,11 +229,7 @@ describe("validatePayload helper", () => {
       currency: "USD",
       occurredAt: new Date(),
     };
-    const parsed = validatePayload(
-      "transactions.created",
-      transactionsCreatedPayload,
-      payload
-    );
+    const parsed = validatePayload("transactions.created", transactionsCreatedPayload, payload);
     expect(parsed.transactionId).toBe("t1");
   });
 
@@ -244,7 +240,7 @@ describe("validatePayload helper", () => {
         userId: "u1",
         amount: "10.00",
         // missing currency and occurredAt
-      })
+      }),
     ).toThrow(/transactions\.created/);
   });
 });

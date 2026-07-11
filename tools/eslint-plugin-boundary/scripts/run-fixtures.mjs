@@ -131,20 +131,16 @@ for (const rule of RULES) {
   try {
     const valids = await findFixtures(ruleDir, "valid", ext);
     if (valids.length === 0) {
-      throw new Error(
-        `missing fixture: valid.${ext} under ${relative(repoRoot, ruleDir)}`
-      );
+      throw new Error(`missing fixture: valid.${ext} under ${relative(repoRoot, ruleDir)}`);
     }
     validPaths = valids;
     const invalids = await findFixtures(ruleDir, "invalid", ext);
     if (invalids.length === 0) {
-      throw new Error(
-        `missing fixture: invalid.${ext} under ${relative(repoRoot, ruleDir)}`
-      );
+      throw new Error(`missing fixture: invalid.${ext} under ${relative(repoRoot, ruleDir)}`);
     }
     if (invalids.length > 1) {
       throw new Error(
-        `ambiguous invalid fixture (${invalids.length} matches); only one allowed: ${relative(repoRoot, ruleDir)}`
+        `ambiguous invalid fixture (${invalids.length} matches); only one allowed: ${relative(repoRoot, ruleDir)}`,
       );
     }
     invalidPath = invalids[0];
@@ -200,7 +196,7 @@ for (const rule of RULES) {
           (m) =>
             `[${m.severity === 2 ? "err" : "warn"}] ${m.message} (line ${
               m.line ?? "?"
-            }, col ${m.column ?? "?"})`
+            }, col ${m.column ?? "?"})`,
         )
         .join("\n        ");
       failures.push({

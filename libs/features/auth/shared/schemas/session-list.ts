@@ -36,4 +36,3 @@ export const sessionListSchema = z.object({
 });
 
 export type SessionListResponse = z.infer<typeof sessionListSchema>;
-

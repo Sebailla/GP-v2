@@ -30,7 +30,7 @@ import { getSession } from "@/lib/auth";
  * in slice 4 batch 2 alongside the NextAuth client config.
  */
 interface ResetPasswordPageProps {
-	params: Promise<{ locale: string; token: string }>;
+  params: Promise<{ locale: string; token: string }>;
 }
 
 // Force-dynamic: same rationale as the forgot-password page (see
@@ -42,40 +42,36 @@ interface ResetPasswordPageProps {
 export const dynamic = "force-dynamic";
 
 export default async function ResetPasswordPage({
-	params,
+  params,
 }: ResetPasswordPageProps): Promise<React.JSX.Element> {
-	const { locale, token } = await params;
+  const { locale, token } = await params;
 
-	// Redirect-if-already-authenticated (slice 4 batch 2).
-	const session = await getSession();
-	if (session !== null) {
-		redirect(`/${locale}`);
-	}
+  // Redirect-if-already-authenticated (slice 4 batch 2).
+  const session = await getSession();
+  if (session !== null) {
+    redirect(`/${locale}`);
+  }
 
-	const t = await getTranslations("auth.resetPassword");
+  const t = await getTranslations("auth.resetPassword");
 
-	return (
-		<main
-			style={{
-				minHeight: "100dvh",
-				display: "grid",
-				placeItems: "center",
-				padding: "2rem",
-				background: "var(--ui-bg)",
-			}}
-		>
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle>{t("title")}</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<ResetPasswordForm
-						apiUrl={env.API_URL}
-						token={token}
-						locale={locale}
-					/>
-				</CardContent>
-			</Card>
-		</main>
-	);
+  return (
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        background: "var(--ui-bg)",
+      }}
+    >
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResetPasswordForm apiUrl={env.API_URL} token={token} locale={locale} />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

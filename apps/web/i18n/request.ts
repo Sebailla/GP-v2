@@ -46,26 +46,25 @@ import esMessages from "../messages/es.json";
  *    keep the request config synchronous-after-await, which is the
  *    pattern the next-intl docs use.
  */
-const MESSAGES: Record<(typeof routing.locales)[number], AbstractIntlMessages> =
-	{
-		en: enMessages as AbstractIntlMessages,
-		es: esMessages as AbstractIntlMessages,
-	};
+const MESSAGES: Record<(typeof routing.locales)[number], AbstractIntlMessages> = {
+  en: enMessages as AbstractIntlMessages,
+  es: esMessages as AbstractIntlMessages,
+};
 
 export default getRequestConfig(async ({ requestLocale }) => {
-	// The active locale may not be in the supported list (e.g. an old
-	// cookie or an unsupported URL prefix). Fall back to the default
-	// rather than 500ing — the middleware redirects unsupported
-	// locales before they reach this code, but defensive fallthrough is
-	// the next-intl-recommended pattern.
-	const requested = await requestLocale;
-	const locale: (typeof routing.locales)[number] =
-		requested && (routing.locales as readonly string[]).includes(requested)
-			? (requested as (typeof routing.locales)[number])
-			: routing.defaultLocale;
+  // The active locale may not be in the supported list (e.g. an old
+  // cookie or an unsupported URL prefix). Fall back to the default
+  // rather than 500ing — the middleware redirects unsupported
+  // locales before they reach this code, but defensive fallthrough is
+  // the next-intl-recommended pattern.
+  const requested = await requestLocale;
+  const locale: (typeof routing.locales)[number] =
+    requested && (routing.locales as readonly string[]).includes(requested)
+      ? (requested as (typeof routing.locales)[number])
+      : routing.defaultLocale;
 
-	return {
-		locale,
-		messages: MESSAGES[locale],
-	};
+  return {
+    locale,
+    messages: MESSAGES[locale],
+  };
 });
