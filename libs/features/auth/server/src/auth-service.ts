@@ -127,7 +127,7 @@ export class AuthService {
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
       throw new ValidationError(
-        parsed.error.issues.map((issue) => ({
+        parsed.error.issues.map((issue: { path: ReadonlyArray<string | number | symbol>; message: string }) => ({
           path: issue.path.map((segment) =>
             typeof segment === "symbol" ? String(segment) : segment,
           ),
@@ -158,7 +158,7 @@ export class AuthService {
       throw new AuthError("INVALID_CREDENTIALS");
     }
 
-    // 4. Create the session. sessionToken is a NextAuth v5 JWE
+// 4. Create the session. sessionToken is a NextAuth v5 JWE
     // (encrypted via @auth/core/jwt#encode); expires is now +
     // SESSION_TTL_MS. The Session model (User-session relation) is
     // declared in libs/core/database/prisma/schema.prisma. The JWT
@@ -201,127 +201,133 @@ export class AuthService {
     });
 
     // 5. Project the public result. role is whatever Prisma returns
-    // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
-    // local role type if needed.
-    return {
-      id: user.id,
-      email: user.email,
-      role: String(user.role),
-      sessionToken,
-    };
-  }
+            // (Role enum string — 'USER' | 'ADMIN'); callers cast to their
+            // local role type if needed.
+            return {
+              id: user.id,
+              email: user.email,
+              role: String(user.role),
+              sessionToken,
+            };
+          }
 
-  /**
-   * Register a new user with email + password (optional display name).
-   *
-   * Errors:
-   *  - ValidationError — input failed Zod parse (empty email, malformed
-   *    email, password shorter than 8 chars). Thrown BEFORE any DB or
-   *    bcrypt call.
-   *  - AuthError('EMAIL_ALREADY_EXISTS') — a user with this email is
-   *    already in the database (caught at the uniqueness check, BEFORE
-   *    hashing or persisting anything).
-   *
-   * On success, returns `LoginResult` (same shape as login — the
-   * register flow is a one-shot sign-up: it creates the user AND a
-   * session so the client lands authenticated immediately).
-   *
-   * Boundary contract:
-   *   1. Validate input with Zod FIRST (parse at the boundary).
-   *   2. Normalize empty name to null (empty string is the form's
-   *      natural empty-state; persisting `""` would clutter SELECTs).
-   *   3. Check email uniqueness. If taken → AuthError.
-   *   4. Hash password with bcryptjs at cost factor 10.
-   *      Cost 10 is the reference-repo convention (per design §4.1);
-   *      the auth-rbac skill recommends ≥12 for production — slice 4+
-   *      surfaces the cost factor as env-configurable.
-   *   5. Create the User row with the hashed credential.
-   *   6. Create a Session row with a random UUID sessionToken.
-   *   7. Return { id, email, role, sessionToken }.
-   */
-  async register(email: string, password: string, name?: string | null): Promise<LoginResult> {
-    // 1. Boundary validation.
-    const parsed = registerSchema.safeParse({ email, password, name });
-    if (!parsed.success) {
-      throw new ValidationError(
-        parsed.error.issues.map((issue) => ({
-          path: issue.path.map((segment) =>
-            typeof segment === "symbol" ? String(segment) : segment,
-          ),
-          message: issue.message,
-        })),
-      );
+      /**
+       * Register a new user with email + password (optional display name).
+       *
+       * Errors:
+       *  - ValidationError — input failed Zod parse (empty email, malformed
+       *    email, password shorter than 8 chars). Thrown BEFORE any DB or
+       *    bcrypt call.
+       *  - AuthError('EMAIL_ALREADY_EXISTS') — a user with this email is
+       *    already in the database (caught at the uniqueness check, BEFORE
+       *    hashing or persisting anything).
+       *
+       * On success, returns `LoginResult` (same shape as login — the
+       * register flow is a one-shot sign-up: it creates the user AND a
+       * session so the client lands authenticated immediately).
+       *
+       * Boundary contract:
+       *   1. Validate input with Zod FIRST (parse at the boundary).
+       *   2. Normalize empty name to null (empty string is the form's
+       *      natural empty-state; persisting `""` would clutter SELECTs).
+       *   3. Check email uniqueness. If taken → AuthError.
+       *   4. Hash password with bcryptjs at cost factor 10.
+       *      Cost 10 is the reference-repo convention (per design §4.1);
+       *      the auth-rbac skill recommends ≥12 for production — slice 4+
+       *      surfaces the cost factor as env-configurable.
+       *   5. Create the User row with the hashed credential.
+       *   6. Create a Session row with a random UUID sessionToken.
+       *   7. Return { id, email, role, sessionToken }.
+       */
+      async register(
+        email: string,
+        password: string,
+        name?: string | null,
+      ): Promise<LoginResult> {
+        // 1. Boundary validation.
+        const parsed = registerSchema.safeParse({ email, password, name });
+        if (!parsed.success) {
+          throw new ValidationError(
+            parsed.error.issues.map((issue: { path: ReadonlyArray<string | number | symbol>; message: string }) => ({
+              path: issue.path.map((segment) =>
+                typeof segment === "symbol" ? String(segment) : segment,
+              ),
+              message: issue.message,
+            })),
+          );
+        }
+
+        // 2. Normalize empty / missing name to null. The `name` column on
+        // User is `String?` — persisting "" would make equality checks
+        // (e.g. "WHERE name = ''") surprising and would render as an empty
+        // string in the UI instead of "no name set".
+        const normalizedName: string | null =
+          parsed.data.name === undefined || parsed.data.name === ""
+            ? null
+            : parsed.data.name;
+
+        // 3. Email uniqueness check via the UserRepository port.
+        //    Done BEFORE hashing so the duplicate-email path costs
+        //    a single SELECT, not a bcrypt round-trip.
+        const existing = await this.userRepo.findByEmail(parsed.data.email);
+        if (existing !== null) {
+          throw new AuthError("EMAIL_ALREADY_EXISTS");
+        }
+
+        // 4. Hash the password. bcryptjs cost 10 — see method docstring.
+        const hashed = await bcrypt.hash(parsed.data.password, BCRYPT_COST_FACTOR);
+
+        // 5. Create the User. `role` defaults to USER at the schema level;
+        // we set it explicitly here so the contract is visible at the call
+        // site and so future admin-promotion paths have an obvious place
+        // to branch on.
+        const user = await this.prisma.user.create({
+          data: {
+            email: parsed.data.email,
+            hashedPassword: hashed,
+            name: normalizedName,
+            role: "USER",
+          },
+        });
+
+// 6. Mint the session. sessionToken is a NextAuth v5 JWE
+        // (encrypted via @auth/core/jwt#encode) — same shape as the
+        // login flow. The canonical user projection lives in the
+        // JWT payload: `sub`, `email`, `role`, `userId`, plus
+        // NextAuth defaults `name` + `picture`. The `salt` MUST
+        // match `NEXTAUTH_SESSION_TOKEN_NAME` so the API's
+        // `JwtAuthGuard` and the web client's `auth()` helper
+        // decode the cookie with the same HKDF-derived key.
+        const sessionToken = await encodeJwt({
+          token: {
+            name: normalizedName,
+            email: user.email,
+            picture: null,
+            sub: user.id,
+            userId: user.id,
+            role: String(user.role),
+          },
+          secret: env.NEXTAUTH_SECRET,
+          salt: "authjs.session-token",
+          maxAge: Math.floor(SESSION_TTL_MS / 1000),
+        });
+        const expires = new Date(Date.now() + SESSION_TTL_MS);
+        await this.prisma.session.create({
+          data: {
+            sessionToken,
+            userId: user.id,
+            expires,
+          },
+        });
+
+        // 7. Project the public result — same shape as LoginResult so the
+        // client can dispatch the same redirect-after-auth code path for
+        // both sign-in and sign-up.
+        return {
+          id: user.id,
+          email: user.email,
+          role: String(user.role),
+          sessionToken,
+        };
+      }
     }
-
-    // 2. Normalize empty / missing name to null. The `name` column on
-    // User is `String?` — persisting "" would make equality checks
-    // (e.g. "WHERE name = ''") surprising and would render as an empty
-    // string in the UI instead of "no name set".
-    const normalizedName: string | null =
-      parsed.data.name === undefined || parsed.data.name === "" ? null : parsed.data.name;
-
-    // 3. Email uniqueness check via the UserRepository port.
-    //    Done BEFORE hashing so the duplicate-email path costs
-    //    a single SELECT, not a bcrypt round-trip.
-    const existing = await this.userRepo.findByEmail(parsed.data.email);
-    if (existing !== null) {
-      throw new AuthError("EMAIL_ALREADY_EXISTS");
-    }
-
-    // 4. Hash the password. bcryptjs cost 10 — see method docstring.
-    const hashed = await bcrypt.hash(parsed.data.password, BCRYPT_COST_FACTOR);
-
-    // 5. Create the User. `role` defaults to USER at the schema level;
-    // we set it explicitly here so the contract is visible at the call
-    // site and so future admin-promotion paths have an obvious place
-    // to branch on.
-    const user = await this.prisma.user.create({
-      data: {
-        email: parsed.data.email,
-        hashedPassword: hashed,
-        name: normalizedName,
-        role: "USER",
-      },
-    });
-
-    // 6. Mint the session. sessionToken is a NextAuth v5 JWE
-    // (encrypted via @auth/core/jwt#encode) — same shape as the
-    // login flow. The canonical user projection lives in the
-    // JWT payload: `sub`, `email`, `role`, `userId`, plus
-    // NextAuth defaults `name` + `picture`. The `salt` MUST
-    // match `NEXTAUTH_SESSION_TOKEN_NAME` so the API's
-    // `JwtAuthGuard` and the web client's `auth()` helper
-    // decode the cookie with the same HKDF-derived key.
-    const sessionToken = await encodeJwt({
-      token: {
-        name: normalizedName,
-        email: user.email,
-        picture: null,
-        sub: user.id,
-        userId: user.id,
-        role: String(user.role),
-      },
-      secret: env.NEXTAUTH_SECRET,
-      salt: "authjs.session-token",
-      maxAge: Math.floor(SESSION_TTL_MS / 1000),
-    });
-    const expires = new Date(Date.now() + SESSION_TTL_MS);
-    await this.prisma.session.create({
-      data: {
-        sessionToken,
-        userId: user.id,
-        expires,
-      },
-    });
-
-    // 7. Project the public result — same shape as LoginResult so the
-    // client can dispatch the same redirect-after-auth code path for
-    // both sign-in and sign-up.
-    return {
-      id: user.id,
-      email: user.email,
-      role: String(user.role),
-      sessionToken,
-    };
-  }
-}
