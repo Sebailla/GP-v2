@@ -39,6 +39,7 @@ import type { TransactionKind, CategoryKind } from "../../server/src/domain/enti
  */
 export type TxEventName =
   | "transactions.created"
+  | "transactions.updated"
   | "transactions.fx.stale"
   | "transactions.soft-deleted"
   | "transactions.threshold.exceeded";
@@ -212,7 +213,7 @@ export interface TransactionsWorld {
     | "CATEGORY_ALREADY_EXISTS"
     | undefined;
   lastErrorMessage: string | undefined;
-  lastDispatchedEvent: string | undefined;
+  lastDispatchedEvent: TxEventName | undefined;
   persistedTransaction: WorldTransaction | undefined;
   listResult: { rows: WorldTransaction[]; total: number; cursor: string | null } | undefined;
   incomeTotal: string | undefined;

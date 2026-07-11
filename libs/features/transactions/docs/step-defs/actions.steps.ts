@@ -154,11 +154,10 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   // Then — persistence field assertions
   // ---------------------------------------------------------------------------
 
-  {
+{
     keyword: "Then",
-    pattern:
-      "the persisted nativeAmount equals {string} exactly {string} no truncation to {string}}",
-    fn: (world, raw, _qualifier, _truncated) => {
+    pattern: "the persisted nativeAmount equals {string}",
+    fn: (world, raw) => {
       const existing = world.persistedTransaction;
       const amount = raw;
       world.persistedTransaction = {
@@ -387,23 +386,6 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       );
     },
   },
-  {
-    keyword: "Then",
-    pattern:
-      "those transactions are excluded from category rollups {string} still counted in overall income/expense totals}",
-    fn: (world, _qualifier) => {
-      const categories = world.categories ?? [];
-      const softDeletedIds = new Set(
-        categories
-          .filter((c: WorldCategory) => c.deletedAt !== null)
-          .map((c: WorldCategory) => c.id),
-      );
-      const totals = world.perCategoryTotals ?? [];
-      world.perCategoryTotals = totals.filter(
-        (t: WorldCategoryTotal) => !softDeletedIds.has(t.categoryId),
-      );
-    },
-  },
 
   // ---------------------------------------------------------------------------
   // Then — totals / threshold assertions
@@ -411,8 +393,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
 
   {
     keyword: "Then",
-    pattern:
-      "income total {string}, expense total {string} {string} reported as a positive magnitude}, net {string}",
+    pattern: "income total {string}, expense total {string} {string}, net {string}",
     fn: (world, incomeRaw, expenseRaw, _qualifier, netRaw) => {
       world.incomeTotal = incomeRaw;
       world.expenseTotal = expenseRaw;
@@ -423,16 +404,6 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     keyword: "Then",
     pattern: "net {string} income total {string} expense total magnitude {string}",
     fn: (world, netRaw, _income, _expense) => {
-      world.netTotal = netRaw;
-    },
-  },
-  {
-    keyword: "Then",
-    pattern:
-      "income total {string}, expense total {string} {string}, net {string}",
-    fn: (world, incomeRaw, expenseRaw, _qualifier, netRaw) => {
-      world.incomeTotal = incomeRaw;
-      world.expenseTotal = expenseRaw;
       world.netTotal = netRaw;
     },
   },
