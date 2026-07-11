@@ -44,8 +44,19 @@ function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
   // Convert `{string}` placeholders into regex capture groups so cucumber
   // treats the pattern as a RegExp (no Cucumber Expression rewrites that
   // mis-tokenize route-shaped text like `{string}/sign-in`).
+  //
+  // The capture alternation `(?:"[^"]*"|[^\s"]+)` matches EITHER:
+  //   - a quoted phrase like `"invalid credentials"` or `"en"` (allows spaces), OR
+  //   - a single unquoted token like `foo`.
+  //
+  // This mirrors cucumber's `{string}` semantics without the grammar
+  // conflicts around `/` and certain punctuation.
   const regexPattern = new RegExp(
-    "^" + binding.pattern.replace(/\{string\}/g, "([^\\s]+)").replace(/\//g, "\\/") + "$",
+    "^" +
+      binding.pattern
+        .replace(/\{string\}/g, "((?:\"[^\"]*\"|[^\\s\"]+))")
+        .replace(/\//g, "\\/") +
+      "$",
   );
   switch (binding.keyword) {
     case "Given":

@@ -20,7 +20,7 @@
  * boolean — the step binding here wires that into the World state.
  */
 
-import type { AuthWorld } from "./world.js";
+import type { AuthWorld as _AuthWorld } from "./world.js";
 import type { StepBinding } from "./common.steps.js";
 
 /**
@@ -79,8 +79,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern:
-      "no policy-internal details {string} the action name, the permission matrix} are exposed",
+    pattern: "no policy-internal details {string} are exposed",
     fn: (world, _details) => {
       // RBAC denial surface MUST NOT leak policy internals (spec
       // §Rbac). The step asserts that the last error message is a
@@ -102,8 +101,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern:
-      "a session is created for that email {string} the account if it does not exist} via {string}",
+    pattern: "a session is created for that email {string} via {string}",
     fn: (world, _createIfMissing, _adapter) => {
       world.sessionCreated = true;
     },
@@ -117,7 +115,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the success state of the sign-in form is rendered {string} no raw HTML dump}",
+    pattern: "the success state of the sign-in form is rendered {string}",
     fn: (world, _qualifier) => {
       world.formState = "success";
     },
@@ -131,7 +129,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders an error state with a generic {string} invalid credentials} message",
+    pattern: "the form renders an error state with a generic {string} message",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "invalid credentials";
@@ -140,7 +138,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   {
     keyword: "Then",
     pattern:
-      "the form renders an error state with the same generic {string} invalid credentials} message used for the unknown-email case",
+      "the form renders an error state with the same generic {string} message used for the unknown-email case",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "invalid credentials";
@@ -191,7 +189,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "a mocked email capture is produced {string} inspectable in development}",
+    pattern: "a mocked email capture is produced {string}",
     fn: (_world, _qualifier) => {
       // The dev mailbox is exercised by PR-5's e2e specs; this step
       // only asserts that the dispatcher fired (the upstream
@@ -200,8 +198,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern:
-      "the form renders the success state {string}if this email is registered, you will receive instructions}",
+    pattern: "the form renders the success state {string}",
     fn: (world, _copy) => {
       world.formState = "success";
     },
@@ -215,7 +212,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the token is marked consumed {string} cannot be reused}",
+    pattern: "the token is marked consumed {string}",
     fn: (world, _qualifier) => {
       const record = world.resetTokens?.[0];
       if (record) record.consumedAt = new Date();
@@ -239,8 +236,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern:
-      "the form renders the error state with a generic {string} invalid or expired token} message",
+    pattern: "the form renders the error state with a generic {string} message",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "invalid or expired token";
@@ -274,7 +270,14 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "{string} persists both {string} Account} rows linked to the user",
+    pattern: "@auth/prisma-adapter persists both {string} rows linked to the user",
+    fn: (world, _adapter, _label) => {
+      world.lastDispatchedEvent = "auth.account.linked";
+    },
+  },
+  {
+    keyword: "Given",
+    pattern: "@auth/prisma-adapter persists both {string} rows linked to the user",
     fn: (world, _adapter, _label) => {
       world.lastDispatchedEvent = "auth.account.linked";
     },
@@ -294,7 +297,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form/screen renders in its success state {string} non-empty result}",
+    pattern: "the form/screen renders in its success state {string}",
     fn: (world, _qualifier) => {
       world.formState = "success";
     },
@@ -315,7 +318,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the sessions list reflects the removal {string} success state re-rendered}",
+    pattern: "the sessions list reflects the removal {string}",
     fn: (world, _qualifier) => {
       world.formState = "success";
     },
@@ -341,7 +344,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the user lands on {string} {string} same surface, new locale}",
+    pattern: "the user lands on {string} {string}",
     fn: (world, path, _qualifier) => {
       world.redirectedTo = path;
     },

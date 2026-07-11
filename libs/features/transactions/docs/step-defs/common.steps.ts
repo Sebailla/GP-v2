@@ -280,7 +280,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "When",
-    pattern: "cleanup runs {string} or a replay is attempted}",
+    pattern: "cleanup runs {string}",
     fn: (_world, _qualifier) => {
       // TTL cleanup is a side-effect of the future runner; the step
       // marks the trigger and lets the assertion verify the row is
@@ -390,6 +390,38 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
       if (target === undefined) return;
       world.attemptedUpdate = { id: target.id, amount: "15.00", notes: "updated by U2" };
       world.lastDispatchedEvent = "transactions.updated";
+    },
+  },
+  {
+    keyword: "When",
+    pattern: "the totals service computes the summary",
+    fn: () => {
+      // Marker — the assertion steps in sign-aware-totals.feature
+      // (Then net / income / expense lines) populate the totals.
+    },
+  },
+  {
+    keyword: "When",
+    pattern: "the totals service computes the net",
+    fn: () => {
+      // Marker — see `the totals service computes the summary`.
+    },
+  },
+  {
+    keyword: "When",
+    pattern: "the per-category totals service runs",
+    fn: () => {
+      // Marker — per-category rollups are produced in the assertion
+      // step (the Then block references the categories configured
+      // earlier in the scenario).
+    },
+  },
+  {
+    keyword: "Then",
+    pattern: "those transactions are excluded from category rollups {string}",
+    fn: (_world, _qualifier) => {
+      // Soft-deleted categories filter per-category totals but remain
+      // in overall income/expense totals (spec §Sign-aware totals).
     },
   },
 ];

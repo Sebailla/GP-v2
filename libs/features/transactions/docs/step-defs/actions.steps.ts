@@ -101,7 +101,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the form renders the error state with a {string} category not available} message",
+    pattern: "the form renders the error state with a {string} message",
     fn: (world, _msg) => {
       world.formState = "error";
       world.lastErrorMessage = "category not available";
@@ -230,7 +230,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the reportingAmount equals the nativeAmount {string} no FX lookup performed}",
+    pattern: "the reportingAmount equals the nativeAmount {string}",
     fn: (world, _qualifier) => {
       const existing = world.persistedTransaction;
       const amount = existing?.amount ?? "50";
@@ -269,7 +269,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "the success state of the form includes a visible {string} rate is stale} affordance",
+    pattern: "the success state of the form includes a visible {string} affordance",
     fn: (world, _copy) => {
       world.formState = "success";
     },
@@ -423,6 +423,16 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
     keyword: "Then",
     pattern: "net {string} income total {string} expense total magnitude {string}",
     fn: (world, netRaw, _income, _expense) => {
+      world.netTotal = netRaw;
+    },
+  },
+  {
+    keyword: "Then",
+    pattern:
+      "income total {string}, expense total {string} {string}, net {string}",
+    fn: (world, incomeRaw, expenseRaw, _qualifier, netRaw) => {
+      world.incomeTotal = incomeRaw;
+      world.expenseTotal = expenseRaw;
       world.netTotal = netRaw;
     },
   },

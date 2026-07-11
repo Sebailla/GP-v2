@@ -95,6 +95,17 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Given",
+    pattern: "a registered user",
+    fn: (world) => {
+      world.user ??= {
+        id: nextId("user"),
+        email: "user@example.test",
+        role: "USER",
+      };
+    },
+  },
+  {
+    keyword: "Given",
     pattern: "the user is on the sign-in screen at {string}/sign-in",
     fn: (world, locale) => {
       world.activeLocale = locale === "en" || locale === "es" ? locale : undefined;
