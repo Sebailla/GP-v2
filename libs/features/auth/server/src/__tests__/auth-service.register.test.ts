@@ -86,7 +86,7 @@ describe("AuthService.register", () => {
       expires: new Date(Date.now() + 60_000),
     });
 
-const auth = new AuthService(prisma);
+    const auth = new AuthService(prisma);
     const result = await auth.register("alice@example.com", "StrongP@ss123", "Alice");
 
     // Slice 4 NextAuth integration follow-up: the `sessionToken`
@@ -107,11 +107,8 @@ const auth = new AuthService(prisma);
       where: { email: "alice@example.com" },
     });
 
-        // 2. Password was hashed with bcrypt at BCRYPT_COST_FACTOR (NOT stored plain)
-        expect(bcrypt.hash).toHaveBeenCalledWith(
-          "StrongP@ss123",
-          BCRYPT_COST_FACTOR,
-        );
+    // 2. Password was hashed with bcrypt at BCRYPT_COST_FACTOR (NOT stored plain)
+    expect(bcrypt.hash).toHaveBeenCalledWith("StrongP@ss123", BCRYPT_COST_FACTOR);
 
     // 3. User row was created with the hashed password, NOT the plain one
     expect(prisma.user.create).toHaveBeenCalledTimes(1);
@@ -214,7 +211,7 @@ const auth = new AuthService(prisma);
   // invalid input that throws ValidationError at the boundary BEFORE
   // any DB or bcrypt call. This matches design §4.2 verbatim: name is
   // a user-visible display name, not an optional handle.
-it("throws ValidationError when name is empty (canonical schema makes name REQUIRED)", async () => {
+  it("throws ValidationError when name is empty (canonical schema makes name REQUIRED)", async () => {
     const { AuthService, ValidationError } = await import("../auth-service.js");
     const auth = new AuthService(prisma);
 
@@ -240,8 +237,7 @@ it("throws ValidationError when name is empty (canonical schema makes name REQUI
 // -------------------------------------------------------------------------
 describe("AuthService.register — round-trip JWT (NextAuth integration)", () => {
   const NEXTAUTH_SESSION_TOKEN_NAME = "authjs.session-token";
-  const NEXTAUTH_SECRET_FOR_TEST =
-    "test-secret-at-least-32-characters-long-for-hkdf";
+  const NEXTAUTH_SECRET_FOR_TEST = "test-secret-at-least-32-characters-long-for-hkdf";
 
   it("returns a sessionToken that decodes as a valid NextAuth JWT with the canonical user claims", async () => {
     const { AuthService } = await import("../auth-service.js");
@@ -267,11 +263,7 @@ describe("AuthService.register — round-trip JWT (NextAuth integration)", () =>
     });
 
     const auth = new AuthService(prisma);
-    const result = await auth.register(
-      "alice@example.com",
-      "StrongP@ss123",
-      "Alice",
-    );
+    const result = await auth.register("alice@example.com", "StrongP@ss123", "Alice");
 
     const { decode: decodeJwt } = await import("next-auth/jwt");
     const decoded = await decodeJwt({

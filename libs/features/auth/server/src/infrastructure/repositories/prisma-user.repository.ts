@@ -1,10 +1,7 @@
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
 
-import type {
-  UserRecord,
-  UserRepository,
-} from "../../domain/interfaces/user.repository.js";
+import type { UserRecord, UserRepository } from "../../domain/interfaces/user.repository.js";
 
 /**
  * Prisma adapter for `UserRepository`.

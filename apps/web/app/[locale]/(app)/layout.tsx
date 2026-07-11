@@ -34,21 +34,21 @@ import { getSession } from "@/lib/auth";
  * not on `/en/sign-in`.
  */
 interface LayoutProps {
-	children: ReactNode;
-	params: Promise<{ locale: string }>;
+  children: ReactNode;
+  params: Promise<{ locale: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children, params }: LayoutProps) {
-	const { locale } = await params;
-	const session = await getSession();
-	if (session === null) {
-		// Cookie missing or expired → kick to the sign-in surface.
-		// next/navigation's `redirect()` throws a `NEXT_REDIRECT` error
-		// that the framework catches — control never returns from this
-		// line on the unauthenticated path.
-		redirect(`/${locale}/sign-in`);
-	}
-	return <>{children}</>;
+  const { locale } = await params;
+  const session = await getSession();
+  if (session === null) {
+    // Cookie missing or expired → kick to the sign-in surface.
+    // next/navigation's `redirect()` throws a `NEXT_REDIRECT` error
+    // that the framework catches — control never returns from this
+    // line on the unauthenticated path.
+    redirect(`/${locale}/sign-in`);
+  }
+  return <>{children}</>;
 }

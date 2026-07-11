@@ -17,18 +17,14 @@ const ALLOWED_DIR = "libs/core/database/src";
 function isAllowed(filename) {
   if (!filename) return false;
   const normalized = filename.replace(/\\/g, "/");
-  return (
-    normalized.includes(`/${ALLOWED_DIR}/`) ||
-    normalized.endsWith(`/${ALLOWED_DIR}`)
-  );
+  return normalized.includes(`/${ALLOWED_DIR}/`) || normalized.endsWith(`/${ALLOWED_DIR}`);
 }
 
 module.exports = {
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Forbid `new PrismaClient()` outside libs/core/database/src/.",
+      description: "Forbid `new PrismaClient()` outside libs/core/database/src/.",
       category: "Architectural boundaries",
       recommended: false,
     },
@@ -44,8 +40,7 @@ module.exports = {
       NewExpression(node) {
         if (!node.callee) return;
         const isPrismaClient =
-          (node.callee.type === "Identifier" &&
-            node.callee.name === "PrismaClient") ||
+          (node.callee.type === "Identifier" && node.callee.name === "PrismaClient") ||
           (node.callee.type === "MemberExpression" &&
             node.callee.property &&
             node.callee.property.name === "PrismaClient");

@@ -16,55 +16,52 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
-	reactStrictMode: true,
-	poweredByHeader: false,
-	// Next.js 16 moved typedRoutes out of `experimental` to the top level.
-	// Keep it disabled for now (slice 1 minimal landing has no typed links
-	// to validate). Enable when slices 4+ add typed routes.
-	typedRoutes: false,
-	// Defense-in-depth for the reset-password token URL: the token is in
-	// the URL path, so a `Referrer-Policy: same-origin` header ensures the
-	// full URL (including the token) is NEVER sent as the `Referer` header
-	// on any cross-origin request originating from these auth pages. The
-	// browser's default policy (`strict-origin-when-cross-origin`) already
-	// strips the path for cross-origin requests, but this header eliminates
-	// the surface entirely. Scoped to the (auth) route group so it does
-	// not affect the slice-1 landing or the slice-3-protected `/(auth)/sessions`.
-	async headers() {
-		return [
-			{
-				source: "/:locale(en|es)/(sign-in|sign-up|forgot-password|reset-password|dev/mailbox)/:path*",
-				headers: [
-					{ key: "Referrer-Policy", value: "same-origin" },
-				],
-			},
-		];
-	},
-	// Next.js 16 makes Turbopack the default for `next build`. Turbopack
-	// fails to resolve relative `.js` imports to their `.ts` siblings
-	// (the canonical NodeNext pattern) when the workspace uses
-	// `moduleResolution: "Bundler"` — it tries the literal `.js` first
-	// and reports `Module not found: Can't resolve './foo.js'`. Webpack,
-	// by contrast, exposes `resolve.extensionAlias` which rewrites `.js`
-	// requests to `.ts`/`.tsx`/`.js`. Until Turbopack adds the
-	// equivalent (tracked upstream as a 16.x regression for cross-
-	// package monorepo imports), we opt the `next build` script into
-	// the webpack path so the auth-slice barrel at
-	// `libs/features/auth/shared/schemas/index.ts` resolves cleanly.
-	// `next dev` keeps Turbopack (faster HMR) because the dev server
-	// uses SWC to compile each workspace package separately and the
-	// `.js` extension issue does not surface there.
-	webpack: (config) => {
-		config.resolve = config.resolve ?? {};
-		config.resolve.extensionAlias = {
-			...(config.resolve.extensionAlias as
-				| Record<string, string[]>
-				| undefined),
-			".js": [".ts", ".tsx", ".js"],
-			".mjs": [".mts", ".mjs"],
-		};
-		return config;
-	},
+  reactStrictMode: true,
+  poweredByHeader: false,
+  // Next.js 16 moved typedRoutes out of `experimental` to the top level.
+  // Keep it disabled for now (slice 1 minimal landing has no typed links
+  // to validate). Enable when slices 4+ add typed routes.
+  typedRoutes: false,
+  // Defense-in-depth for the reset-password token URL: the token is in
+  // the URL path, so a `Referrer-Policy: same-origin` header ensures the
+  // full URL (including the token) is NEVER sent as the `Referer` header
+  // on any cross-origin request originating from these auth pages. The
+  // browser's default policy (`strict-origin-when-cross-origin`) already
+  // strips the path for cross-origin requests, but this header eliminates
+  // the surface entirely. Scoped to the (auth) route group so it does
+  // not affect the slice-1 landing or the slice-3-protected `/(auth)/sessions`.
+  async headers() {
+    return [
+      {
+        source:
+          "/:locale(en|es)/(sign-in|sign-up|forgot-password|reset-password|dev/mailbox)/:path*",
+        headers: [{ key: "Referrer-Policy", value: "same-origin" }],
+      },
+    ];
+  },
+  // Next.js 16 makes Turbopack the default for `next build`. Turbopack
+  // fails to resolve relative `.js` imports to their `.ts` siblings
+  // (the canonical NodeNext pattern) when the workspace uses
+  // `moduleResolution: "Bundler"` — it tries the literal `.js` first
+  // and reports `Module not found: Can't resolve './foo.js'`. Webpack,
+  // by contrast, exposes `resolve.extensionAlias` which rewrites `.js`
+  // requests to `.ts`/`.tsx`/`.js`. Until Turbopack adds the
+  // equivalent (tracked upstream as a 16.x regression for cross-
+  // package monorepo imports), we opt the `next build` script into
+  // the webpack path so the auth-slice barrel at
+  // `libs/features/auth/shared/schemas/index.ts` resolves cleanly.
+  // `next dev` keeps Turbopack (faster HMR) because the dev server
+  // uses SWC to compile each workspace package separately and the
+  // `.js` extension issue does not surface there.
+  webpack: (config) => {
+    config.resolve = config.resolve ?? {};
+    config.resolve.extensionAlias = {
+      ...(config.resolve.extensionAlias as Record<string, string[]> | undefined),
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+    };
+    return config;
+  },
 };
 
 export default withNextIntl(nextConfig);

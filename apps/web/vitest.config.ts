@@ -37,22 +37,49 @@ export default defineConfig({
     globals: false,
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
+    // Slice 7 PR-7: the happy-dom 20.10 + vitest 4.1 worker pool
+    // has a known instability with React 18 + useEffect-driven state
+    // updates in component trees (e.g. EditTransactionForm's
+    // mount-then-load-then-setState pattern). The worker exits
+    // prematurely after ~3-4 minutes with the default
+    // `pool: "threads"` setting when 5 forms × 5 states race each
+    // other in the same worker.
+    //
+    // Fix: serialize the test suite by switching to the
+    // `forks` pool with `singleFork: true`. Tests run serially in
+    // a single fork, which is slower (~30% slower) but stable.
+    // The throughput regression is acceptable for the 25-test
+    // state-coverage harness; the rest of the apps/web unit
+    // suite is small enough that the regression is in the noise.
+    pool: "forks",
+    // @ts-expect-error — poolOptions is in the vitest runtime config
+    // but not on the strict `InlineConfig` type in vitest 4.1.
+    // The fix in the upstream type is queued; using a comment here
+    // is cheaper than the `@ts-expect-error` on the whole line.
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
+    // Bounded test timeouts. Default is 5s; the slice 6 PR-D
+    // EditTransactionForm `prefills` test needs a longer window
+    // for the `findByDisplayValue` poll (the happy-dom worker
+    // exit failure was a worker-pool signal, but the per-test
+    // timeout was also too tight for the multi-form state-coverage
+    // harness). 15s gives each test the room it needs without
+    // letting a single bad test mask the whole suite.
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
-resolve: {
-alias: [
+  resolve: {
+    alias: [
       {
         find: /^@features\/auth\/shared\/schemas$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/auth/shared/schemas/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/auth/shared/schemas/index.ts"),
       },
       {
         find: /^@features\/auth$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/auth/server/src/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/auth/server/src/index.ts"),
       },
       {
         find: /^@features\/transactions\/shared\/schemas$/,
@@ -63,10 +90,7 @@ alias: [
       },
       {
         find: /^@features\/transactions$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/transactions/client/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/transactions/client/index.ts"),
       },
       {
         find: "@",
@@ -74,18 +98,12 @@ alias: [
       },
       {
         find: /^next-intl\/navigation$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/navigation.client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/navigation.client.js"),
       },
       {
         find: /^next-intl\/server$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/server.react-client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/server.react-client.js"),
       },
-],
+    ],
   },
 });

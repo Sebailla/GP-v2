@@ -44,7 +44,9 @@ export function formatDate(date: Date, options: FormatDateOptions = {}): string 
  */
 export function parseIsoDate(iso: string): Date {
   if (typeof iso !== "string" || iso.length === 0) {
-    throw new TypeError(`parseIsoDate: expected non-empty ISO 8601 string, got ${JSON.stringify(iso)}`);
+    throw new TypeError(
+      `parseIsoDate: expected non-empty ISO 8601 string, got ${JSON.stringify(iso)}`,
+    );
   }
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) {

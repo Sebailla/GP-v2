@@ -26,21 +26,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
  */
 
 vi.mock("@core/database", () => ({
-	prisma: {
-		user: {
-			findUnique: vi.fn(),
-		},
-		session: {
-			create: vi.fn(),
-		},
-	},
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+    },
+    session: {
+      create: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("bcryptjs", () => ({
-	default: {
-		compare: vi.fn(),
-		hash: vi.fn(),
-	},
+  default: {
+    compare: vi.fn(),
+    hash: vi.fn(),
+  },
 }));
 
 import { prisma } from "@core/database";
@@ -74,7 +74,7 @@ describe("AuthService.login", () => {
   });
 
   // AC-1: success path
-it("returns { id, email, role, sessionToken } for valid credentials and creates a session", async () => {
+  it("returns { id, email, role, sessionToken } for valid credentials and creates a session", async () => {
     const { AuthService } = await import("../auth-service.js");
 
     const fakeUser = {
@@ -112,10 +112,7 @@ it("returns { id, email, role, sessionToken } for valid credentials and creates 
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: "alice@example.com" },
     });
-    expect(bcrypt.compare).toHaveBeenCalledWith(
-      "correct-password",
-      fakeUser.hashedPassword,
-    );
+    expect(bcrypt.compare).toHaveBeenCalledWith("correct-password", fakeUser.hashedPassword);
     expect(prisma.session.create).toHaveBeenCalledTimes(1);
     const sessionArgs = vi.mocked(prisma.session.create).mock.calls[0]?.[0];
     expect(sessionArgs?.data?.userId).toBe("user-1");
@@ -195,7 +192,7 @@ it("returns { id, email, role, sessionToken } for valid credentials and creates 
   });
 
   // AC-4b: validation rejects malformed email
-it("throws ValidationError when email is not a valid address", async () => {
+  it("throws ValidationError when email is not a valid address", async () => {
     const { AuthService, ValidationError } = await import("../auth-service.js");
     const auth = new AuthService(prisma);
 
@@ -268,7 +265,7 @@ describe("AuthService.login — round-trip JWT (NextAuth integration)", () => {
       expires: new Date(Date.now() + 60_000),
     });
 
-const auth = new AuthService(prisma);
+    const auth = new AuthService(prisma);
     const result = await auth.login("alice@example.com", "correct-password");
 
     // Round-trip: the returned sessionToken MUST decode via

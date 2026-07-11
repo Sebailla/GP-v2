@@ -13,10 +13,10 @@ import {
 import type { Request } from "express";
 
 import {
-  AuthService,
-  PasswordResetService,
-  RbacService,
-  SessionService,
+  type AuthService,
+  type PasswordResetService,
+  type RbacService,
+  type SessionService,
   AuthError,
   ValidationError,
   type CurrentUser,
@@ -24,10 +24,6 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
-  type ForgotPasswordInput,
-  type LoginInput,
-  type RegisterInput,
-  type ResetPasswordInput,
 } from "@features/auth";
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
@@ -123,19 +119,6 @@ function validateOrThrow<T extends import("zod").ZodTypeAny>(
  */
 @Controller("/auth")
 export class AuthController {
-  /**
-   * Static runtime anchors. These force the services to be imported
-   * as runtime values (the linter's `useImportType` rule preserves
-   * imports when the symbol is used as a value). The anchors are
-   * never accessed at runtime — they're a marker for the linter.
-   */
-  private static readonly _ServiceAnchor: ReadonlyArray<unknown> = [
-    AuthService,
-    PasswordResetService,
-    RbacService,
-    SessionService,
-  ];
-
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
@@ -167,11 +150,7 @@ export class AuthController {
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
     return runOrThrowHttp(async () => {
       const body = validateOrThrow<typeof registerSchema>(raw, registerSchema);
-      const result = await this.authService.register(
-        body.email,
-        body.password,
-        body.name,
-      );
+      const result = await this.authService.register(body.email, body.password, body.name);
       return {
         id: result.id,
         email: result.email,
@@ -209,9 +188,7 @@ export class AuthController {
         { kind: "session", ownerId: request.user.id },
       );
       if (!allowed) {
-        throw new Error(
-          "RbacService denied session:read:own — invariant violation",
-        );
+        throw new Error("RbacService denied session:read:own — invariant violation");
       }
       return this.sessionService.listActiveSessions(request.user.id);
     });
@@ -234,9 +211,7 @@ export class AuthController {
         { kind: "session", ownerId: request.user.id, id: sessionId },
       );
       if (!allowed) {
-        throw new Error(
-          "RbacService denied session:revoke:own — invariant violation",
-        );
+        throw new Error("RbacService denied session:revoke:own — invariant violation");
       }
       await this.sessionService.revokeSession(sessionId, request.user.id);
     });

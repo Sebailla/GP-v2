@@ -127,7 +127,7 @@ export class AuthService {
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
       throw new ValidationError(
-        parsed.error.issues.map((issue) => ({
+        parsed.error.issues.map((issue: { path: ReadonlyArray<string | number | symbol>; message: string }) => ({
           path: issue.path.map((segment) =>
             typeof segment === "symbol" ? String(segment) : segment,
           ),
@@ -248,7 +248,7 @@ export class AuthService {
         const parsed = registerSchema.safeParse({ email, password, name });
         if (!parsed.success) {
           throw new ValidationError(
-            parsed.error.issues.map((issue) => ({
+            parsed.error.issues.map((issue: { path: ReadonlyArray<string | number | symbol>; message: string }) => ({
               path: issue.path.map((segment) =>
                 typeof segment === "symbol" ? String(segment) : segment,
               ),

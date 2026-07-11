@@ -31,10 +31,7 @@ function getOrCreate(): PrismaClient {
       // slice 3+ (api wire-up).
       // TODO(slice-3+): replace with @prisma/adapter-pg and remove this placeholder.
       accelerateUrl: "postgresql://placeholder.localhost/db",
-      log:
-        process.env.NODE_ENV === "production"
-          ? ["error"]
-          : ["query", "error", "warn"],
+      log: process.env.NODE_ENV === "production" ? ["error"] : ["query", "error", "warn"],
     });
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = _instance;

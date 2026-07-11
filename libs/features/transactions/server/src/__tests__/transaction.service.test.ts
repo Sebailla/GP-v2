@@ -67,34 +67,35 @@ function fakeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-function makeService(opts: {
-  /** Override the `now` for the service's clock (used for FX staleness). */
-  now?: Date;
-  /** Pre-mocked category returned by `findById` (default: `fakeCategory()`). */
-  category?: Category | null;
-  /** Pre-mocked transaction returned by `create` (default: `fakeTransaction()`). */
-  transaction?: Transaction;
-  /** Pre-mocked FX rate (`{ rate, recordedAt }`); omit to make `getRate` return null. */
-  fxRate?: { rate: Decimal; recordedAt: Date } | null;
-  /** Pre-mocked idempotency `find` result. */
-  idempotencyFind?: IdempotencyKey | null;
-  /** When true, `idempotency.create` throws `DuplicateIdempotencyKeyError`. */
-  idempotencyCreateRaces?: boolean;
-} = {}) {
-  const findById = vi.fn().mockResolvedValue(
-    opts.category === null ? null : opts.category ?? fakeCategory(),
-  );
-  const txCreate = vi.fn().mockResolvedValue(
-    opts.transaction ?? fakeTransaction(),
-  );
-  const getRate = opts.fxRate === null
-    ? vi.fn().mockResolvedValue(null)
-    : vi.fn().mockResolvedValue(
-        opts.fxRate ?? {
-          rate: toDecimal("1000.001"),
-          recordedAt: new Date("2026-06-01T00:00:00.000Z"),
-        },
-      );
+function makeService(
+  opts: {
+    /** Override the `now` for the service's clock (used for FX staleness). */
+    now?: Date;
+    /** Pre-mocked category returned by `findById` (default: `fakeCategory()`). */
+    category?: Category | null;
+    /** Pre-mocked transaction returned by `create` (default: `fakeTransaction()`). */
+    transaction?: Transaction;
+    /** Pre-mocked FX rate (`{ rate, recordedAt }`); omit to make `getRate` return null. */
+    fxRate?: { rate: Decimal; recordedAt: Date } | null;
+    /** Pre-mocked idempotency `find` result. */
+    idempotencyFind?: IdempotencyKey | null;
+    /** When true, `idempotency.create` throws `DuplicateIdempotencyKeyError`. */
+    idempotencyCreateRaces?: boolean;
+  } = {},
+) {
+  const findById = vi
+    .fn()
+    .mockResolvedValue(opts.category === null ? null : (opts.category ?? fakeCategory()));
+  const txCreate = vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction());
+  const getRate =
+    opts.fxRate === null
+      ? vi.fn().mockResolvedValue(null)
+      : vi.fn().mockResolvedValue(
+          opts.fxRate ?? {
+            rate: toDecimal("1000.001"),
+            recordedAt: new Date("2026-06-01T00:00:00.000Z"),
+          },
+        );
   const find = vi.fn().mockResolvedValue(opts.idempotencyFind ?? null);
   const create = opts.idempotencyCreateRaces
     ? vi.fn().mockRejectedValue(new DuplicateIdempotencyKeyError("user-1", "key-1"))
@@ -106,7 +107,9 @@ function makeService(opts: {
 
   const txRepo: TransactionRepository = {
     findByIdForUser: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
-      findByIdForUserIncludingDeleted: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
+    findByIdForUserIncludingDeleted: vi
+      .fn()
+      .mockResolvedValue(opts.transaction ?? fakeTransaction()),
     list: vi.fn().mockResolvedValue({ rows: [], total: 0, cursor: null }),
     create: txCreate,
     update: vi.fn().mockResolvedValue(opts.transaction ?? fakeTransaction()),
@@ -124,25 +127,24 @@ function makeService(opts: {
   const idempotencyRepo: IdempotencyRepository = { find, create, purgeExpired: vi.fn() };
   const auditLogRepo: AuditLogRepository = { append, findByEntity: vi.fn(), listByActor: vi.fn() };
 
-      // Test-only UnitOfWork: invokes the callback synchronously with
-      // a benign `{ tx: undefined }` context. Repositories that branch on
-      // `tx?.tx` and fall back to their default `this.prisma` see the
-      // same null context as a non-unit-of-work call.
-      const unitOfWork: UnitOfWork = {
-        run: <T>(fn: (ctx: { tx: unknown }) => Promise<T>) =>
-          fn({ tx: undefined }),
-      };
+  // Test-only UnitOfWork: invokes the callback synchronously with
+  // a benign `{ tx: undefined }` context. Repositories that branch on
+  // `tx?.tx` and fall back to their default `this.prisma` see the
+  // same null context as a non-unit-of-work call.
+  const unitOfWork: UnitOfWork = {
+    run: <T>(fn: (ctx: { tx: unknown }) => Promise<T>) => fn({ tx: undefined }),
+  };
 
-      const service = new TransactionService(
-        txRepo,
-        categoryRepo,
-        fxProvider,
-        idempotencyRepo,
-        auditLogRepo,
-        events,
-        unitOfWork,
-        clock,
-      );
+  const service = new TransactionService(
+    txRepo,
+    categoryRepo,
+    fxProvider,
+    idempotencyRepo,
+    auditLogRepo,
+    events,
+    unitOfWork,
+    clock,
+  );
 
   return {
     service,
@@ -198,9 +200,11 @@ describe("TransactionService.create", () => {
       expect(callArg.reportingAmount?.toString()).toBe("12340.01234");
       expect(append).toHaveBeenCalledTimes(1);
       expect(events).toHaveBeenCalledTimes(1);
-      const event = (vi.mocked(events).mock.calls[0] as unknown as [
-        { name: string; payload: Record<string, unknown> },
-      ])[0];
+      const event = (
+        vi.mocked(events).mock.calls[0] as unknown as [
+          { name: string; payload: Record<string, unknown> },
+        ]
+      )[0];
       expect(event.name).toBe(TRANSACTIONS_CREATED);
       expect(txn.id).toBe("txn-1");
     });
@@ -220,9 +224,11 @@ describe("TransactionService.create", () => {
 
       // First event is the stale-rate dispatch; second is `transactions.created`.
       expect(events).toHaveBeenCalledTimes(2);
-      const staleEvent = (vi.mocked(events).mock.calls[0] as unknown as [
-        { name: string; payload: { ageHours: number } },
-      ])[0];
+      const staleEvent = (
+        vi.mocked(events).mock.calls[0] as unknown as [
+          { name: string; payload: { ageHours: number } },
+        ]
+      )[0];
       expect(staleEvent.name).toBe(TRANSACTIONS_FX_STALE);
       expect(staleEvent.payload.ageHours).toBeGreaterThan(24);
     });
@@ -305,10 +311,11 @@ describe("TransactionService.create", () => {
         idempotencyFind: cached,
       });
 
-      const result = await service.create(
-        baseInput(),
-        { ...baseCtx, idempotencyKey: "key-1", requestFingerprint: "fp-1" },
-      );
+      const result = await service.create(baseInput(), {
+        ...baseCtx,
+        idempotencyKey: "key-1",
+        requestFingerprint: "fp-1",
+      });
 
       // The replay path does NOT touch category / FX / persist / audit.
       expect(result.id).toBe("txn-cached");
@@ -333,24 +340,22 @@ describe("TransactionService.create", () => {
       const { service, txCreate } = makeService({ idempotencyFind: cached });
 
       await expect(
-        service.create(
-          baseInput(),
-          {
-            ...baseCtx,
-            idempotencyKey: "key-1",
-            requestFingerprint: "fp-different",
-          },
-        ),
+        service.create(baseInput(), {
+          ...baseCtx,
+          idempotencyKey: "key-1",
+          requestFingerprint: "fp-different",
+        }),
       ).rejects.toBeInstanceOf(IdempotencyKeyReusedError);
       expect(txCreate).not.toHaveBeenCalled();
     });
 
     it("caches the response after a successful first-call write (atomic create, no P2002)", async () => {
       const { service, create, find } = makeService();
-      await service.create(
-        baseInput(),
-        { ...baseCtx, idempotencyKey: "key-1", requestFingerprint: "fp-1" },
-      );
+      await service.create(baseInput(), {
+        ...baseCtx,
+        idempotencyKey: "key-1",
+        requestFingerprint: "fp-1",
+      });
 
       // The cache is written exactly once with the projected
       // transaction as the response payload.
@@ -390,10 +395,11 @@ describe("TransactionService.create", () => {
         idempotencyCreateRaces: true,
       });
 
-      const result = await service.create(
-        baseInput(),
-        { ...baseCtx, idempotencyKey: "key-1", requestFingerprint: "fp-1" },
-      );
+      const result = await service.create(baseInput(), {
+        ...baseCtx,
+        idempotencyKey: "key-1",
+        requestFingerprint: "fp-1",
+      });
 
       // The transaction write succeeded.
       expect(txCreate).toHaveBeenCalledTimes(1);

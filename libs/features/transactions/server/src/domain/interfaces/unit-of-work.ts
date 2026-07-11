@@ -20,16 +20,16 @@
  * orchestrator without coupling to the SQL flavor.
  */
 export interface UnitOfWork {
-	/**
-	 * Execute `fn` inside a single transactional boundary. The function
-	 * receives a `UnitOfWorkContext` that the adapter binds to the
-	 * transactional client. Commits on resolve; rolls back on throw.
-	 *
-	 * The function MUST NOT commit or roll back the boundary itself —
-	 * the unit of work owns the lifecycle. Compositional units of work
-	 * (nested boundaries) are explicitly out of scope.
-	 */
-	run<T>(fn: (ctx: UnitOfWorkContext) => Promise<T>): Promise<T>;
+  /**
+   * Execute `fn` inside a single transactional boundary. The function
+   * receives a `UnitOfWorkContext` that the adapter binds to the
+   * transactional client. Commits on resolve; rolls back on throw.
+   *
+   * The function MUST NOT commit or roll back the boundary itself —
+   * the unit of work owns the lifecycle. Compositional units of work
+   * (nested boundaries) are explicitly out of scope.
+   */
+  run<T>(fn: (ctx: UnitOfWorkContext) => Promise<T>): Promise<T>;
 }
 
 /**
@@ -40,11 +40,11 @@ export interface UnitOfWork {
  * optional `tx` parameter and forward it to the underlying call.
  */
 export interface UnitOfWorkContext {
-	/**
-	 * Opaque transactional client. The adapter binds this to its
-	 * underlying storage handle (Prisma `TransactionClient` today;
-	 * a future SQL `BEGIN/COMMIT` boundary would expose a different
-	 * shape here).
-	 */
-	readonly tx: unknown;
+  /**
+   * Opaque transactional client. The adapter binds this to its
+   * underlying storage handle (Prisma `TransactionClient` today;
+   * a future SQL `BEGIN/COMMIT` boundary would expose a different
+   * shape here).
+   */
+  readonly tx: unknown;
 }

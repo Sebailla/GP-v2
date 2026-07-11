@@ -53,18 +53,14 @@ export const authPasswordResetRequestedPayload = z.object({
   token: z.string().min(32),
   requestedAt: isoDate,
 });
-export type AuthPasswordResetRequestedPayload = z.infer<
-  typeof authPasswordResetRequestedPayload
->;
+export type AuthPasswordResetRequestedPayload = z.infer<typeof authPasswordResetRequestedPayload>;
 
 // ----- auth.password-reset.completed -------------------------------------
 export const authPasswordResetCompletedPayload = z.object({
   userId: z.string().min(1),
   resetAt: isoDate,
 });
-export type AuthPasswordResetCompletedPayload = z.infer<
-  typeof authPasswordResetCompletedPayload
->;
+export type AuthPasswordResetCompletedPayload = z.infer<typeof authPasswordResetCompletedPayload>;
 
 // ----- auth.session.revoked ----------------------------------------------
 export const authSessionRevokedPayload = z.object({
@@ -108,9 +104,7 @@ export const transactionsSoftDeletedPayload = z.object({
   userId: z.string().min(1),
   at: isoDate,
 });
-export type TransactionsSoftDeletedPayload = z.infer<
-  typeof transactionsSoftDeletedPayload
->;
+export type TransactionsSoftDeletedPayload = z.infer<typeof transactionsSoftDeletedPayload>;
 
 // ----- transactions.fx.stale --------------------------------------------
 export const transactionsFxStalePayload = z.object({
@@ -156,7 +150,7 @@ export interface DomainEvent {
 export function validatePayload<T extends z.ZodTypeAny>(
   name: EventName,
   schema: T,
-  payload: unknown
+  payload: unknown,
 ): z.infer<T> {
   const result = schema.safeParse(payload);
   if (!result.success) {

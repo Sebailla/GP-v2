@@ -12,11 +12,5 @@
 export { createSchema, type CreateTransactionInput } from "./create.js";
 export { updateSchema, type UpdateTransactionInput } from "./update.js";
 export { listSchema, type ListTransactionsQuery } from "./list.js";
-export {
-  categoryCreateSchema,
-  type CreateCategoryInput,
-} from "./category-create.js";
-export {
-  categoryUpdateSchema,
-  type UpdateCategoryInput,
-} from "./category-update.js";
+export { categoryCreateSchema, type CreateCategoryInput } from "./category-create.js";
+export { categoryUpdateSchema, type UpdateCategoryInput } from "./category-update.js";

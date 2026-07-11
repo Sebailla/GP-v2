@@ -79,9 +79,7 @@ test.describe("WCAG AA — auth screens", () => {
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
-  test("reset-password/[token] page has zero WCAG AA violations", async ({
-    page,
-  }) => {
+  test("reset-password/[token] page has zero WCAG AA violations", async ({ page }) => {
     await page.goto(
       "/en/reset-password/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
     );

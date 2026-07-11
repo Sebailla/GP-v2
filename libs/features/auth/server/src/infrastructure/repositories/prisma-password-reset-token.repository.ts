@@ -42,9 +42,7 @@ import type {
  *    on the consumed/expired/unknown paths, so a missed match here
  *    is benign.
  */
-export class PrismaPasswordResetTokenRepository
-  implements PasswordResetTokenRepository
-{
+export class PrismaPasswordResetTokenRepository implements PasswordResetTokenRepository {
   private readonly prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
@@ -66,9 +64,7 @@ export class PrismaPasswordResetTokenRepository
     return projectPasswordResetTokenRecord(row);
   }
 
-  async findByHash(
-    tokenHash: string,
-  ): Promise<PasswordResetTokenRecord | null> {
+  async findByHash(tokenHash: string): Promise<PasswordResetTokenRecord | null> {
     const row = await this.prisma.passwordResetToken.findUnique({
       where: { tokenHash },
     });

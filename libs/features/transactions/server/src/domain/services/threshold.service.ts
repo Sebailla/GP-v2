@@ -1,6 +1,4 @@
-import {
-  TRANSACTIONS_THRESHOLD_EXCEEDED,
-} from "@core/events";
+import { TRANSACTIONS_THRESHOLD_EXCEEDED } from "@core/events";
 import type { Decimal } from "@shared-utils/decimal";
 
 import type { Transaction } from "../entities/transaction.entity.js";

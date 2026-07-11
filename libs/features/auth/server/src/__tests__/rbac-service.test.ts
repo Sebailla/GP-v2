@@ -62,11 +62,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:read:own",
-        { kind: "session", ownerId: "user-1", id: "session-1" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:read:own", {
+        kind: "session",
+        ownerId: "user-1",
+        id: "session-1",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -76,11 +76,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:read:own",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:read:own", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(false);
     });
@@ -89,11 +89,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:read:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:read:any", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(false);
     });
@@ -102,11 +102,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:revoke:own",
-        { kind: "session", ownerId: "user-1", id: "session-1" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:revoke:own", {
+        kind: "session",
+        ownerId: "user-1",
+        id: "session-1",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -116,11 +116,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:revoke:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:revoke:any", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(false);
     });
@@ -129,11 +129,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "transaction:read:own",
-        { kind: "transaction", ownerId: "user-1", id: "tx-1" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "transaction:read:own", {
+        kind: "transaction",
+        ownerId: "user-1",
+        id: "tx-1",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -143,11 +143,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "transaction:read:any",
-        { kind: "transaction", ownerId: "user-2", id: "tx-2" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "transaction:read:any", {
+        kind: "transaction",
+        ownerId: "user-2",
+        id: "tx-2",
+      });
 
       expect(allowed).toBe(false);
     });
@@ -158,11 +158,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "admin-1", role: "ADMIN" },
-        "session:read:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "admin-1", role: "ADMIN" }, "session:read:any", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -172,11 +172,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "admin-1", role: "ADMIN" },
-        "session:revoke:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "admin-1", role: "ADMIN" }, "session:revoke:any", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -186,11 +186,11 @@ describe("RbacService", () => {
       const { RbacService } = await import("../rbac-service.js");
       const rbac = new RbacService(noopDispatcher);
 
-      const allowed = rbac.can(
-        { id: "admin-1", role: "ADMIN" },
-        "session:read:own",
-        { kind: "session", ownerId: "admin-1", id: "session-1" },
-      );
+      const allowed = rbac.can({ id: "admin-1", role: "ADMIN" }, "session:read:own", {
+        kind: "session",
+        ownerId: "admin-1",
+        id: "session-1",
+      });
 
       expect(allowed).toBe(true);
       expect(noopDispatcher).not.toHaveBeenCalled();
@@ -205,11 +205,11 @@ describe("RbacService", () => {
       // Cast past the literal-union `Action` type to simulate an attacker
       // calling `can()` with a fabricated action name. The lookup table
       // must return `false` for any value not explicitly granted.
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:promote:any" as Action,
-        { kind: "session", ownerId: "user-1", id: "session-1" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:promote:any" as Action, {
+        kind: "session",
+        ownerId: "user-1",
+        id: "session-1",
+      });
 
       expect(allowed).toBe(false);
     });
@@ -219,13 +219,9 @@ describe("RbacService", () => {
     it("throws TypeError when dispatcher is null or undefined", async () => {
       const { RbacService } = await import("../rbac-service.js");
 
-      expect(
-        () => new RbacService(null as unknown as AuthEventDispatcher),
-      ).toThrow(TypeError);
+      expect(() => new RbacService(null as unknown as AuthEventDispatcher)).toThrow(TypeError);
 
-      expect(
-        () => new RbacService(undefined as unknown as AuthEventDispatcher),
-      ).toThrow(TypeError);
+      expect(() => new RbacService(undefined as unknown as AuthEventDispatcher)).toThrow(TypeError);
     });
   });
 });

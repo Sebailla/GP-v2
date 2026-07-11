@@ -12,9 +12,5 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "../../../core/database/src/generated/**"
-  ]
+  "exclude": ["node_modules", "dist", "../../../core/database/src/generated/**"]
 }

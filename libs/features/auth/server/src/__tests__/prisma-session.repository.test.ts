@@ -48,9 +48,8 @@ describe("PrismaSessionRepository", () => {
 
   describe("listActive", () => {
     it("returns the active sessions for the user, projected onto the SessionRecord shape", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       vi.mocked(prisma.session.findMany).mockResolvedValue([
         {
           id: "sess-1",
@@ -82,9 +81,7 @@ describe("PrismaSessionRepository", () => {
       // filter and that the value is a Date in the future-relative
       // bucket.
       expect(callArg.where.expires.gt).toBeInstanceOf(Date);
-      expect(callArg.where.expires.gt.getTime()).toBeGreaterThanOrEqual(
-        Date.now() - 5_000,
-      );
+      expect(callArg.where.expires.gt.getTime()).toBeGreaterThanOrEqual(Date.now() - 5_000);
 
       expect(records).toHaveLength(2);
       expect(records[0]).toMatchObject({
@@ -96,9 +93,8 @@ describe("PrismaSessionRepository", () => {
     });
 
     it("returns an empty array when the user has no active sessions (NOT an error)", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
 
       const repo = new PrismaSessionRepository();
@@ -110,9 +106,8 @@ describe("PrismaSessionRepository", () => {
 
   describe("findByToken", () => {
     it("returns the row matching the token, projected onto SessionRecord", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: "sess-1",
         sessionToken: "valid-token",
@@ -135,9 +130,8 @@ describe("PrismaSessionRepository", () => {
     });
 
     it("returns null when no row matches (no enumeration side-channel)", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       vi.mocked(prisma.session.findUnique).mockResolvedValue(null as never);
 
       const repo = new PrismaSessionRepository();
@@ -149,9 +143,8 @@ describe("PrismaSessionRepository", () => {
 
   describe("revokeByToken", () => {
     it("deletes the row matching the token", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
       const repo = new PrismaSessionRepository();
@@ -163,9 +156,8 @@ describe("PrismaSessionRepository", () => {
     });
 
     it("silently no-ops on Prisma P2025 (row already gone) — idempotent post-condition", async () => {
-      const { PrismaSessionRepository } = await import(
-        "../infrastructure/repositories/prisma-session.repository.js"
-      );
+      const { PrismaSessionRepository } =
+        await import("../infrastructure/repositories/prisma-session.repository.js");
       const p2025 = new Error("Record to delete does not exist.");
       (p2025 as Error & { code?: string }).code = "P2025";
       vi.mocked(prisma.session.delete).mockRejectedValue(p2025 as never);
