@@ -43,12 +43,12 @@ import { handlers } from "../../../lib/auth.js";
  */
 
 export const { GET, POST } = {
-	GET: handlers.GET,
-	POST: handlers.POST,
+  GET: handlers.GET,
+  POST: handlers.POST,
 } as unknown as {
-	GET: unknown;
-	POST: unknown;
+  GET: unknown;
+  POST: unknown;
 } as {
-	GET: (request: unknown) => Promise<Response>;
-	POST: (request: unknown) => Promise<Response>;
+  GET: (request: unknown) => Promise<Response>;
+  POST: (request: unknown) => Promise<Response>;
 };

@@ -51,23 +51,23 @@ Then open `http://localhost:3000` (web) and `http://localhost:3001` (api).
 
 ## Scripts
 
-| Command                | What it does                                     |
-|------------------------|--------------------------------------------------|
-| `pnpm dev`             | Run both apps concurrently (turbo)               |
-| `pnpm build`           | Build all workspaces                             |
-| `pnpm test`            | Run Vitest across workspaces                     |
-| `pnpm typecheck`       | `tsc --noEmit` across workspaces                 |
-| `pnpm lint`            | ESLint across workspaces                         |
-| `pnpm lint:fixtures`   | Run boundary plugin's rule fixtures              |
-| `pnpm bdd`             | Cucumber scenarios                               |
-| `pnpm e2e`             | Playwright (with axe-core a11y)                  |
-| `pnpm db:up`           | docker compose up -d postgres                    |
-| `pnpm db:down`         | docker compose down                              |
-| `pnpm db:reset`        | docker compose down -v && up -d                  |
-| `pnpm db:logs`         | docker compose logs -f postgres                  |
-| `pnpm prisma migrate dev` | Apply Prisma migrations                        |
-| `pnpm format`          | Prettier write                                   |
-| `pnpm format:check`    | Prettier check                                   |
+| Command                   | What it does                        |
+| ------------------------- | ----------------------------------- |
+| `pnpm dev`                | Run both apps concurrently (turbo)  |
+| `pnpm build`              | Build all workspaces                |
+| `pnpm test`               | Run Vitest across workspaces        |
+| `pnpm typecheck`          | `tsc --noEmit` across workspaces    |
+| `pnpm lint`               | ESLint across workspaces            |
+| `pnpm lint:fixtures`      | Run boundary plugin's rule fixtures |
+| `pnpm bdd`                | Cucumber scenarios                  |
+| `pnpm e2e`                | Playwright (with axe-core a11y)     |
+| `pnpm db:up`              | docker compose up -d postgres       |
+| `pnpm db:down`            | docker compose down                 |
+| `pnpm db:reset`           | docker compose down -v && up -d     |
+| `pnpm db:logs`            | docker compose logs -f postgres     |
+| `pnpm prisma migrate dev` | Apply Prisma migrations             |
+| `pnpm format`             | Prettier write                      |
+| `pnpm format:check`       | Prettier check                      |
 
 ## Conventions
 

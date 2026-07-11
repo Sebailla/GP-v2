@@ -27,35 +27,34 @@ import { getSession } from "@/lib/auth";
  * the auth signal flow.
  */
 interface PageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage({ params }: PageProps) {
-	const { locale } = await params;
-	const session = await getSession();
-	// The (app) layout's session guard guarantees `session` is
-	// non-null by the time this page renders. The non-null assertion
-	// is a TypeScript narrowing aid only.
-	if (session === null) {
-		// Defensive: if the layout's redirect somehow didn't fire, we
-		// return an empty <></> rather than throwing. The user lands
-		// on a blank page; Next.js will follow up with a server-render
-		// pass that hits the layout's redirect path.
-		return <></>;
-	}
-	const t = await getTranslations("auth.dashboard");
-	return (
-		<main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-			<h1>{t("welcome", { email: session.user.email })}</h1>
-			<p style={{ color: "#666" }}>
-				Locale: <code>{locale}</code> · slice 6 dashboard placeholder.
-			</p>
-			<p style={{ color: "#999", fontSize: "0.75rem" }}>
-				Slice 6 follow-ups: transactions list, category manager,
-				TotalsCard, sessions list.
-			</p>
-		</main>
-	);
+  const { locale } = await params;
+  const session = await getSession();
+  // The (app) layout's session guard guarantees `session` is
+  // non-null by the time this page renders. The non-null assertion
+  // is a TypeScript narrowing aid only.
+  if (session === null) {
+    // Defensive: if the layout's redirect somehow didn't fire, we
+    // return an empty <></> rather than throwing. The user lands
+    // on a blank page; Next.js will follow up with a server-render
+    // pass that hits the layout's redirect path.
+    return <></>;
+  }
+  const t = await getTranslations("auth.dashboard");
+  return (
+    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <h1>{t("welcome", { email: session.user.email })}</h1>
+      <p style={{ color: "#666" }}>
+        Locale: <code>{locale}</code> · slice 6 dashboard placeholder.
+      </p>
+      <p style={{ color: "#999", fontSize: "0.75rem" }}>
+        Slice 6 follow-ups: transactions list, category manager, TotalsCard, sessions list.
+      </p>
+    </main>
+  );
 }

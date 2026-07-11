@@ -32,23 +32,20 @@ import { LoginForm } from "./LoginForm";
  * `getTranslations` from `next-intl/server`).
  */
 export interface SignInClientProps {
-	/** Base URL of the API — sourced from `env.API_URL` at the page level. */
-	apiUrl: string;
-	/** Active locale — preserved across the redirect (e.g. `en` or `es`). */
-	locale: string;
+  /** Base URL of the API — sourced from `env.API_URL` at the page level. */
+  apiUrl: string;
+  /** Active locale — preserved across the redirect (e.g. `en` or `es`). */
+  locale: string;
 }
 
-export function SignInClient({
-	apiUrl,
-	locale,
-}: SignInClientProps): React.JSX.Element {
-	const router = useRouter();
-	return (
-		<LoginForm
-			apiUrl={apiUrl}
-			onSuccess={() => {
-				router.replace(`/${locale}`);
-			}}
-		/>
-	);
+export function SignInClient({ apiUrl, locale }: SignInClientProps): React.JSX.Element {
+  const router = useRouter();
+  return (
+    <LoginForm
+      apiUrl={apiUrl}
+      onSuccess={() => {
+        router.replace(`/${locale}`);
+      }}
+    />
+  );
 }

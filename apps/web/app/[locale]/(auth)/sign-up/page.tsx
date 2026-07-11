@@ -2,13 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { env } from "@core/config";
 
-import {
-	Card,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-	CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 import { SignUpClient } from "@/components/auth/SignUpClient";
 import { getSession } from "@/lib/auth";
@@ -40,41 +34,39 @@ import { getSession } from "@/lib/auth";
  * SignUpClient JSDoc).
  */
 interface SignUpPageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
-export default async function SignUpPage({
-	params,
-}: SignUpPageProps): Promise<React.JSX.Element> {
-	const { locale } = await params;
+export default async function SignUpPage({ params }: SignUpPageProps): Promise<React.JSX.Element> {
+  const { locale } = await params;
 
-	// Redirect-if-already-authenticated (slice 4 batch 2).
-	const session = await getSession();
-	if (session !== null) {
-		redirect(`/${locale}`);
-	}
+  // Redirect-if-already-authenticated (slice 4 batch 2).
+  const session = await getSession();
+  if (session !== null) {
+    redirect(`/${locale}`);
+  }
 
-	const t = await getTranslations("auth.signUp");
+  const t = await getTranslations("auth.signUp");
 
-	return (
-		<main
-			style={{
-				minHeight: "100dvh",
-				display: "grid",
-				placeItems: "center",
-				padding: "2rem",
-				background: "var(--ui-bg)",
-			}}
-		>
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle>{t("title")}</CardTitle>
-					<CardDescription>{t("description")}</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<SignUpClient apiUrl={env.API_URL} locale={locale} />
-				</CardContent>
-			</Card>
-		</main>
-	);
+  return (
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        background: "var(--ui-bg)",
+      }}
+    >
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+          <CardDescription>{t("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SignUpClient apiUrl={env.API_URL} locale={locale} />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

@@ -1,13 +1,7 @@
-import {
-	prisma as defaultPrisma,
-	TransactionIsolationLevel,
-} from "@core/database";
+import { prisma as defaultPrisma, TransactionIsolationLevel } from "@core/database";
 import type { PrismaClient } from "@core/database";
 
-import type {
-	UnitOfWork,
-	UnitOfWorkContext,
-} from "../../domain/interfaces/unit-of-work.js";
+import type { UnitOfWork, UnitOfWorkContext } from "../../domain/interfaces/unit-of-work.js";
 
 /**
  * Prisma-backed implementation of `UnitOfWork`.
@@ -26,22 +20,22 @@ import type {
  * their optional `tx` parameter.
  */
 export class PrismaUnitOfWork implements UnitOfWork {
-	private readonly prisma: PrismaClient;
+  private readonly prisma: PrismaClient;
 
-	constructor(prisma?: PrismaClient) {
-		this.prisma = prisma ?? defaultPrisma;
-	}
+  constructor(prisma?: PrismaClient) {
+    this.prisma = prisma ?? defaultPrisma;
+  }
 
-	async run<T>(fn: (ctx: UnitOfWorkContext) => Promise<T>): Promise<T> {
-		return await this.prisma.$transaction(
-			async (tx) => {
-				return await fn({ tx });
-			},
-			{
-				isolationLevel: TransactionIsolationLevel.Serializable,
-				maxWait: 5_000,
-				timeout: 10_000,
-			},
-		);
-	}
+  async run<T>(fn: (ctx: UnitOfWorkContext) => Promise<T>): Promise<T> {
+    return await this.prisma.$transaction(
+      async (tx) => {
+        return await fn({ tx });
+      },
+      {
+        isolationLevel: TransactionIsolationLevel.Serializable,
+        maxWait: 5_000,
+        timeout: 10_000,
+      },
+    );
+  }
 }

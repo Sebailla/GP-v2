@@ -24,15 +24,11 @@ import { defineConfig } from "vitest/config";
  * via `next-auth/jwt#encode`.
  */
 export default defineConfig({
-	test: {
-		include: [
-			"test/**/*.spec.ts",
-			"test/**/*.test.ts",
-			"test/**/*.e2e-spec.ts",
-		],
-		environment: "node",
-		globals: false,
-		clearMocks: true,
-		setupFiles: ["./test/setup-env.ts"],
-	},
+  test: {
+    include: ["test/**/*.spec.ts", "test/**/*.test.ts", "test/**/*.e2e-spec.ts"],
+    environment: "node",
+    globals: false,
+    clearMocks: true,
+    setupFiles: ["./test/setup-env.ts"],
+  },
 });

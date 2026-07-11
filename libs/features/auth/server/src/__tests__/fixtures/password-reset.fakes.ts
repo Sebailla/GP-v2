@@ -6,10 +6,7 @@ import type {
   PasswordResetTokenRecord,
   PasswordResetTokenRepository,
 } from "../../domain/interfaces/password-reset-token.repository.js";
-import type {
-  UserRecord,
-  UserRepository,
-} from "../../domain/interfaces/user.repository.js";
+import type { UserRecord, UserRepository } from "../../domain/interfaces/user.repository.js";
 
 /**
  * Default token TTL (1h per design §4.1). Mirrors `TOKEN_TTL_MS` in
@@ -81,9 +78,7 @@ export interface FakePrismaStub {
  * Returns `UserRepository` (the GREEN port type, R2 #2). Callers
  * access spy internals via `vi.mocked(repo.updatePassword)` etc.
  */
-export function makeFakeUserRepo(
-  user?: Partial<UserRecord> | null,
-): UserRepository {
+export function makeFakeUserRepo(user?: Partial<UserRecord> | null): UserRepository {
   const hasUser = user != null;
   const id = user?.id ?? "user-1";
   const email = user?.email ?? "alice@example.com";
@@ -91,21 +86,17 @@ export function makeFakeUserRepo(
   const hashedPassword = user?.hashedPassword ?? "$2a$10$default-hash";
 
   return {
-    findByEmail: vi.fn(
-      async (lookupEmail: string): Promise<UserRecord | null> => {
-        if (!hasUser || email !== lookupEmail) return null;
-        return { id, email, role, hashedPassword };
-      },
-    ),
+    findByEmail: vi.fn(async (lookupEmail: string): Promise<UserRecord | null> => {
+      if (!hasUser || email !== lookupEmail) return null;
+      return { id, email, role, hashedPassword };
+    }),
     findById: vi.fn(async (lookupId: string): Promise<UserRecord | null> => {
       if (!hasUser || id !== lookupId) return null;
       return { id, email, role, hashedPassword };
     }),
-    updatePassword: vi.fn(
-      async (_userId: string, _hashed: string): Promise<void> => {
-        // The fake never persists; the test asserts via vi.mocked() spies.
-      },
-    ),
+    updatePassword: vi.fn(async (_userId: string, _hashed: string): Promise<void> => {
+      // The fake never persists; the test asserts via vi.mocked() spies.
+    }),
   };
 }
 
@@ -135,18 +126,14 @@ export function makeFakeTokenRepo(): FakeTokenRepo {
         return row;
       },
     ),
-    findByHash: vi.fn(
-      async (tokenHash: string): Promise<PasswordResetTokenRecord | null> => {
-        return rows.get(tokenHash) ?? null;
-      },
-    ),
-    markConsumed: vi.fn(
-      async (tokenHash: string, consumedAt: Date): Promise<void> => {
-        const row = rows.get(tokenHash);
-        if (row === undefined) return;
-        rows.set(tokenHash, { ...row, consumedAt });
-      },
-    ),
+    findByHash: vi.fn(async (tokenHash: string): Promise<PasswordResetTokenRecord | null> => {
+      return rows.get(tokenHash) ?? null;
+    }),
+    markConsumed: vi.fn(async (tokenHash: string, consumedAt: Date): Promise<void> => {
+      const row = rows.get(tokenHash);
+      if (row === undefined) return;
+      rows.set(tokenHash, { ...row, consumedAt });
+    }),
     // F4: deleteExpired is NOT implemented by the fake \u2014 the brief's F4
     // tests live in `password-reset-token.repository.test.ts` against
     // the real `PrismaPasswordResetTokenRepository`, not the service
@@ -207,8 +194,7 @@ export function seedTokenRow(
     id: overrides?.id ?? `prt-${repo.rows.size + 1}`,
     userId: overrides?.userId ?? "user-1",
     tokenHash,
-    expiresAt:
-      overrides?.expiresAt ?? new Date(Date.now() + FIXTURES_TOKEN_TTL_MS),
+    expiresAt: overrides?.expiresAt ?? new Date(Date.now() + FIXTURES_TOKEN_TTL_MS),
     consumedAt: overrides?.consumedAt ?? null,
   };
   repo.rows.set(tokenHash, row);

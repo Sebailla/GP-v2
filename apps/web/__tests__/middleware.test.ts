@@ -50,9 +50,9 @@ async function callMiddleware(path: string): Promise<Response> {
   // URL parser, which is what next-intl's middleware consults on
   // every request to decide whether to redirect.
   const request = new NextRequest(`${HOST}${path}`, { method: "GET" });
-  const response = (await (middleware as unknown as (
-    req: NextRequest,
-  ) => Response | Promise<Response>)(request)) as Response;
+  const response = (await (
+    middleware as unknown as (req: NextRequest) => Response | Promise<Response>
+  )(request)) as Response;
   return response;
 }
 
