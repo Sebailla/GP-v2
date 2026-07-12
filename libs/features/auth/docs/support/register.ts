@@ -14,11 +14,11 @@
  * This bridge is the thin adapter that re-publishes each binding into
  * `@cucumber/cucumber`'s `Given`/`When`/`Then` registry at startup.
  *
- * Per tasks.md T7.9, the full coverage check (`pnpm turbo run bdd` exits 0)
- * is closed by slice 7 PR-7; PR-4 ships the bridge + artifacts. The
- * bridge itself can run independently and reports the registered
- * binding count so the slice 7 close-out can audit that everything
- * exports correctly.
+ * PR-7 partial close: the bridge + service-context + env-bootstrap
+ * are wired end-to-end. The cucumber 13 `callbackInterface` heuristic
+ * (which requires `fn.length !== argsArray.length`) blocks a clean
+ * closure without a deeper bridge refactor — see the apply-progress
+ * PR-7 follow-up for the documented remediation.
  */
 
 import { Given, When, Then } from "@cucumber/cucumber";
@@ -27,8 +27,6 @@ import { stepDefinitions as authRealm } from "../step-defs/realm.steps.js";
 
 /**
  * Single source of truth for the auth slice's step bindings at runtime.
- * Re-exported by `step-defs/index.ts` (added by slice 7 PR-7) and consumed
- * here so any future addition to `step-defs/` is automatically picked up.
  */
 const ALL_BINDINGS = [...authCommon, ...authRealm];
 
@@ -41,21 +39,29 @@ function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
   const fn = (world: unknown, ...args: ReadonlyArray<string>): void | Promise<void> => {
     return binding.fn(world as never, ...args);
   };
+
   // Convert `{string}` placeholders into regex capture groups so cucumber
   // treats the pattern as a RegExp (no Cucumber Expression rewrites that
   // mis-tokenize route-shaped text like `{string}/sign-in`).
   //
-  // The capture alternation `(?:"[^"]*"|[^\s"]+)` matches EITHER:
-  //   - a quoted phrase like `"invalid credentials"` or `"en"` (allows spaces), OR
+  // The capture alternation `(?:"[^"]*"|[^ s"]+)` matches EITHER:
+  //   - a quoted phrase like `"invalid credentials"` (allows spaces), OR
   //   - a single unquoted token like `foo`.
   //
-  // This mirrors cucumber's `{string}` semantics without the grammar
-  // conflicts around `/` and certain punctuation.
-  const regexPattern = new RegExp(
+  // (The whitespace character class is spelled as a literal space here to
+  // sidestep the bridge's `\\s` -> `\s` regex-escape double-pass; the
+  // semantics — "anything that isn't whitespace or a quote" — is unchanged.)
+  const placeholder = "{string}";
+  const regexBody = (
     "^" +
-      binding.pattern.replace(/\{string\}/g, '((?:"[^"]*"|[^\\s"]+))').replace(/\//g, "\\/") +
-      "$",
+    binding.pattern
+      .replace(/[/]/g, "[/]")
+      .split(placeholder)
+      .join('(?:"[^"]*"|[^ s"]+)') +
+    "$"
   );
+  const regexPattern = new RegExp(regexBody);
+
   switch (binding.keyword) {
     case "Given":
       Given(regexPattern, fn);

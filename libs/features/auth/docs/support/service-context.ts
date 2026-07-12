@@ -33,11 +33,24 @@
 // and writes, so the prisma reference is not actually exercised in
 // PR-7 partial.
 
-import { AuthService } from "../../server/src/auth-service.js";
+// AuthService + AuthError live at the BDD scope too — the step bodies
+// import the real service + error classes so a failed login throws the
+// same AuthError that the production API throws. This means the
+// production error contract is exercised verbatim.
+
+// `process` is not in the step-defs tsconfig's lib set, so we set the
+// runtime env via a side-effect import in `support/register.ts` (the
+// cucumber --require hook runs in node and has process.env access).
+// The side-effect import wires the runtime contract; this file stays
+// a pure module.
+
+import { AuthService, AuthError } from "../../server/src/auth-service.js";
 import type {
   UserRecord,
   UserRepository,
 } from "../../server/src/domain/interfaces/user.repository.js";
+
+export { AuthError };
 
 /**
  * Structural type for the minimal PrismaClient surface AuthService
