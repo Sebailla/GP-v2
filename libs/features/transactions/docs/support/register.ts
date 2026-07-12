@@ -17,7 +17,7 @@ import { stepDefinitions as txActions } from "../step-defs/actions.steps.js";
 
 const ALL_BINDINGS = [...txCommon, ...txData, ...txActions];
 
-function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
+export function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
   const fn = (world: unknown, ...args: ReadonlyArray<string>): void | Promise<void> => {
     return binding.fn(world as never, ...args);
   };
