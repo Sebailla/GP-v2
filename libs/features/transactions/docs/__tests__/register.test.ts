@@ -139,14 +139,16 @@ describe("transactions/docs/support/register.ts — bridge contract", () => {
 
     // Assert — stepFn must be called with EXACTLY
     // (world.inner, "first-capture", "second-capture"). The callback
-    // must NOT have been passed in.
+    // is the cucumber-style `done` and is invoked by the wrapper once
+    // the step completes (no error arg → success).
     expect(stepFn).toHaveBeenCalledTimes(1);
     expect(stepFn.mock.calls[0]).toEqual([
       world.inner,
       "first-capture",
       "second-capture",
     ]);
-    expect(callback).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith();
   });
 
   it("produces a regex that captures the matched substring for each {string} placeholder", () => {
