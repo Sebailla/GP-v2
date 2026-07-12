@@ -54,8 +54,33 @@ function parseReportingCurrency(raw: string): string {
   return raw.toUpperCase();
 }
 
-function parseAmount(raw: string): string {
-  if (/^\d{1,15}(\.\d{1,2})?$/.test(raw)) return raw;
+/**
+ * Parse a decimal-string fixture captured from a `.feature` step.
+ *
+ * Accepts:
+ *   - plain unsigned decimals: `"100"`, `"100.50"`, `"0"`, `"0.99"`
+ *   - signed decimals: `"+100"`, `"-40"`, `"+1.50"`, `"-0.99"`
+ *   - quoted captures (the regex bridge wraps captures in quotes):
+ *     `'"+100"'`, `'"-40"'`, `'"12.34"'`
+ *   - malformed / mixed: digits + dots kept, everything else dropped
+ *     (`"abc"` → `""`, `" 100 "` → `"100"`)
+ *
+ * Returns the magnitude as a clean decimal string — the sign, when
+ * present, lives in the downstream `Transaction.kind` field, not in the
+ * amount column (per D-TX-6 in `openspec/.../design.md`).
+ *
+ * Two paths:
+ *   1. Fast path: the regex matches a clean signed decimal within the
+ *      D-TX-6 precision envelope (1-15 integer digits, 0-2 fraction
+ *      digits). The sign, if any, is stripped with `/^[+-]/`.
+ *   2. Fallback: strip every non-digit, non-dot character. This handles
+ *      quoted captures (`"+100"` → `100`) and dirty inputs. Decimal
+ *      precision is NOT re-validated on this path — the production code
+ *      will fail validation if the magnitude is malformed, which is the
+ *      right place for that check.
+ */
+export function parseAmount(raw: string): string {
+  if (/^[+-]?\d{1,15}(\.\d{1,2})?$/.test(raw)) return raw.replace(/^[+-]/, "");
   return raw.replace(/[^0-9.]/g, "");
 }
 
