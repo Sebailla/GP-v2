@@ -33,9 +33,7 @@ function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
   // conflicts around `/` and certain punctuation.
   const regexPattern = new RegExp(
     "^" +
-      binding.pattern
-        .replace(/\{string\}/g, "((?:\"[^\"]*\"|[^\\s\"]+))")
-        .replace(/\//g, "\\/") +
+      binding.pattern.replace(/\{string\}/g, '((?:"[^"]*"|[^\\s"]+))').replace(/\//g, "\\/") +
       "$",
   );
   switch (binding.keyword) {

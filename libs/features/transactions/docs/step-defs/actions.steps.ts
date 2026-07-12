@@ -154,7 +154,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   // Then — persistence field assertions
   // ---------------------------------------------------------------------------
 
-{
+  {
     keyword: "Then",
     pattern: "the persisted nativeAmount equals {string}",
     fn: (world, raw) => {

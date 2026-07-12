@@ -59,9 +59,7 @@ test.describe("T7.6 — login critical flow (both locales)", () => {
   });
 
   for (const locale of ["en", "es"] as const) {
-    test(`clean session → sign-in form → submit → land on /${locale}/`, async ({
-      page,
-    }) => {
+    test(`clean session → sign-in form → submit → land on /${locale}/`, async ({ page }) => {
       // 1. Navigate to the locale's sign-in screen.
       await page.goto(`/${locale}/sign-in`);
 
