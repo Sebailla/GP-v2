@@ -26,6 +26,11 @@
  * remains the canonical implementation for `pnpm turbo run lint` once
  * @eslint/markdown is wired in (deferred).
  *
+ * Multi-invalid semantics: a rule may declare `allowMultipleInvalids: true`
+ * (e.g. `no-mojibake-in-docs`) to permit multiple `invalid*.${ext}`
+ * fixtures — every match must still report >=1 errors. Other rules keep
+ * the "exactly one invalid" invariant; the runner throws on drift.
+ *
  * Exits 0 on full pass, 1 on any failure.
  */
 import { ESLint } from "eslint";
@@ -45,14 +50,17 @@ const plugin = (await import("../index.cjs")).default;
 const { findCjkInText } = require("../lib/cjk-detect.cjs");
 
 const RULES = [
-  "no-client-server-import",
-  "no-prisma-outside-core",
-  "no-schemas-outside-shared",
-  "no-cross-module-import",
-  "no-mojibake-in-docs",
+  { name: "no-client-server-import" },
+  { name: "no-prisma-outside-core" },
+  { name: "no-schemas-outside-shared" },
+  { name: "no-cross-module-import" },
+  // `no-mojibake-in-docs` opts in to multiple invalid fixtures so the
+  // triangulation case (CJK on a non-first line) can land alongside the
+  // primary fixture (CJK on first lines). Both must still report >=1 CJK.
+  { name: "no-mojibake-in-docs", allowMultipleInvalids: true },
 ];
 
-const extFor = (rule) => (rule === "no-mojibake-in-docs" ? "md" : "ts");
+const extFor = (ruleName) => (ruleName === "no-mojibake-in-docs" ? "md" : "ts");
 
 async function findFixtures(ruleDir, variant, ext) {
   // For `invalid`, exactly one match is required by default (the primary
@@ -80,7 +88,7 @@ async function findFixtures(ruleDir, variant, ext) {
 /**
  * Lint a .ts fixture via ESLint, applying ONLY the named rule.
  */
-async function lintTsFixture(rule, fixture) {
+async function lintTsFixture(ruleName, fixture) {
   const eslint = new ESLint({
     cwd: repoRoot,
     overrideConfigFile: true,
@@ -88,7 +96,7 @@ async function lintTsFixture(rule, fixture) {
       files: ["**/*.ts"],
       plugins: { "@gpr/boundary": plugin },
       rules: {
-        [`@gpr/boundary/${rule}`]: "error",
+        [`@gpr/boundary/${ruleName}`]: "error",
       },
       languageOptions: {
         ecmaVersion: 2022,
@@ -125,12 +133,12 @@ let failed = 0;
 const failures = [];
 
 for (const rule of RULES) {
-  const ext = extFor(rule);
-  const ruleDir = resolve(fixturesRoot, rule);
+  const ext = extFor(rule.name);
+  const ruleDir = resolve(fixturesRoot, rule.name);
 
   if (!existsSync(ruleDir)) {
     failures.push({
-      rule,
+      rule: rule.name,
       fixture: relative(repoRoot, ruleDir),
       reason: "fixture directory missing",
     });
@@ -139,7 +147,7 @@ for (const rule of RULES) {
   }
 
   let validPaths;
-  let invalidPath;
+  let invalidPaths;
   try {
     const valids = await findFixtures(ruleDir, "valid", ext);
     if (valids.length === 0) {
@@ -150,15 +158,18 @@ for (const rule of RULES) {
     if (invalids.length === 0) {
       throw new Error(`missing fixture: invalid.${ext} under ${relative(repoRoot, ruleDir)}`);
     }
-    if (invalids.length > 1) {
+    // Per-rule invariant: by default exactly one invalid fixture;
+    // rules that opt in via `allowMultipleInvalids: true` may have
+    // many — every match still has to report >=1 errors below.
+    if (!rule.allowMultipleInvalids && invalids.length > 1) {
       throw new Error(
         `ambiguous invalid fixture (${invalids.length} matches); only one allowed: ${relative(repoRoot, ruleDir)}`,
       );
     }
-    invalidPath = invalids[0];
+    invalidPaths = invalids;
   } catch (err) {
     failures.push({
-      rule,
+      rule: rule.name,
       fixture: relative(repoRoot, ruleDir),
       reason: err.message,
     });
@@ -167,10 +178,11 @@ for (const rule of RULES) {
   }
 
   // Build the test set: all valid fixtures must report 0 errors;
-  // the single invalid fixture must report >=1 errors.
+  // every invalid fixture (one by default, multiple for rules that
+  // opt in) must report >=1 errors.
   const tests = [
     ...validPaths.map((p) => ({ variant: "valid", fixture: p })),
-    { variant: "invalid", fixture: invalidPath },
+    ...invalidPaths.map((p) => ({ variant: "invalid", fixture: p })),
   ];
 
   for (const { variant, fixture } of tests) {
@@ -180,7 +192,7 @@ for (const rule of RULES) {
     let runnerThrew = null;
     try {
       if (ext === "ts") {
-        const results = await lintTsFixture(rule, fixture);
+        const results = await lintTsFixture(rule.name, fixture);
         result = results[0] ?? { errorCount: 0, fatalErrorCount: 0, messages: [] };
       } else {
         result = detectCjkInMdFixture(fixture);
@@ -191,7 +203,7 @@ for (const rule of RULES) {
 
     if (runnerThrew !== null) {
       failures.push({
-        rule,
+        rule: rule.name,
         fixture: fixtureRel,
         reason: `runner threw: ${runnerThrew}`,
       });
@@ -212,7 +224,7 @@ for (const rule of RULES) {
         )
         .join("\n        ");
       failures.push({
-        rule,
+        rule: rule.name,
         fixture: fixtureRel,
         reason: `rule crashed (fatalErrorCount=${fatalErrorCount}); messages:\n        ${messages || "<no messages>"}`,
       });
@@ -222,7 +234,7 @@ for (const rule of RULES) {
 
     if (variant === "valid" && errorCount > 0) {
       failures.push({
-        rule,
+        rule: rule.name,
         fixture: fixtureRel,
         reason: `expected 0 errors, got ${errorCount}`,
       });
@@ -232,7 +244,7 @@ for (const rule of RULES) {
 
     if (variant === "invalid" && errorCount === 0) {
       failures.push({
-        rule,
+        rule: rule.name,
         fixture: fixtureRel,
         reason: `expected >=1 errors, got 0`,
       });
@@ -242,7 +254,13 @@ for (const rule of RULES) {
 
     if (variant === "invalid") totalViolations += errorCount;
     passed += 1;
-    console.log(`PASS  ${rule}/${variant}.${ext}  (errors=${errorCount})`);
+    // For multi-invalid rules, the bare `<variant>.${ext}` name would be
+    // ambiguous; show the relative path so each fixture is identifiable
+    // in the runner's output.
+    const label = rule.allowMultipleInvalids
+      ? `${rule.name}/${relative(ruleDir, fixture)}`
+      : `${rule.name}/${variant}.${ext}`;
+    console.log(`PASS  ${label}  (errors=${errorCount})`);
   }
 }
 
