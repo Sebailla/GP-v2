@@ -377,8 +377,403 @@ without poisoning `process.env`.
 
 ---
 
-_Next: sections 7-12 land in slice 8 PR-A2
-(`feat/v1.1.2-slice-8-docs-arch-a2`): `libs/shared-utils`,
-slicing contract, BDD colocated strategy, ESLint boundaries,
-branch model + SDD workflow, glossary + cross-references._
+## 7. `libs/shared-utils` — pure helpers rule
+
+Every package under `libs/shared-utils/<x>/` MUST be a **pure helper**:
+no I/O, no framework dependencies, no Prisma, no NestJS, no Next.js,
+no React. Anything that touches the outside world (disk, network, env,
+time, randomness) belongs in a slice's `server/` or `infrastructure/`,
+not here. This rule is what keeps `libs/shared-utils` cheap to test
+(Vitest only, no container spin-up) and safe to import from any
+package — including `client/` code.
+
+**The three packages that exist today** (slice 4 batch-4a added
+`date-formatting`; slice 5 PR-1 added `currency`; slice 5 PR-3 added
+`decimal` per D-TX-6):
+
+| Package | Purpose | Why it has to live here |
+|---|---|---|
+| `@shared-utils/date-formatting` | Locale-aware `Intl.DateTimeFormat` wrappers, ISO-8601 round-trip | Both client forms and server validation need identical date formatting |
+| `@shared-utils/currency` | ISO-4217 currency-code list + display-formatter | Transactions slice displays currency codes; auth slice displays amounts on password-reset receipts |
+| `@shared-utils/decimal` | `decimal.js` wrappers — `toDecimal`, `fromPrismaDecimal`, `sum`, `roundHalfEven` | D-TX-6 forbids IEEE-754 math on money; wrapper gives one canonical home for the conversion rules |
+
+All three are consumed via the `@shared-utils/*` alias declared in
+`tsconfig.base.json`. Adding a fourth is a deliberate move; see §11
+for the branch-naming convention when a new package lands.
+
+### 7.1 When to add a new `@shared-utils` package
+
+A new helper package is the right call when **all three** of these
+hold:
+
+1. The helper is consumed from **at least two workspaces**
+   (e.g. `@features/auth` and `@features/transactions`, or
+   `@features/<x>` plus `apps/web`).
+2. The helper has **no side effects** — no I/O, no env reads, no
+   framework hooks.
+3. The helper would create a **circular import or duplication**
+   if it were instead placed inside one slice's `shared/` folder.
+
+If only condition 1 holds: keep it inline in the consuming slice
+first; promote to `@shared-utils` on the first duplication. If
+condition 2 fails: the helper belongs in a slice's `server/` or
+`infrastructure/`, not in `libs/shared-utils`. AGENTS.md §8 names
+"single source of truth" as the reason this rule exists: every
+financial calculation that ever happens on the same input MUST
+route through the same code path or audit trails break.
+
+### 7.2 Why `decimal.js` (not `BigInt`, not `number`)
+
+D-TX-6 locked the choice: money is `@shared-utils/decimal`. The
+rationale (preserved verbatim from slice-5 design §4.1 so future
+contributors can find it):
+
+- **`number`** is IEEE-754 double. `0.1 + 0.2 !== 0.3`. Drift on
+  totals + threshold checks = real money lost from a user's
+  ledger. Not acceptable for audit trails.
+- **`BigInt`** has no decimal point. Satoshis-as-bigint is the
+  only viable use; ARS/USD/EUR decimal amounts are not.
+- **`decimal.js`** is the smallest sane wrapper. Fixed scale
+  (28 digits default), configurable rounding mode
+  (`roundHalfEven` for half-to-even / banker's rounding,
+  matching IFRS), string serialization that survives JSON
+  without precision loss.
+
+The Prisma runtime `Decimal` (imported as type-only via
+`@core/database`) is converted at the **repository boundary**
+via `fromPrismaDecimal(row.field.toString())`. Adapters do NOT
+return a Prisma `Decimal` upward into the domain layer; they
+return a `@shared-utils/decimal` value object. This is the
+boundary that makes `number` math on money impossible by
+construction.
+
+{ #section-7 }
+
+## 8. Slicing contract — `libs/features/<x>/{server,shared,docs}`
+
+Every feature slice owns **four top-level folders**, and the ESLint
+plugin enforces each one. The reference scaffold currently has
+`server/`, `shared/`, and `docs/` populated; `client/` is reserved
+for the next slice (slice-1 Locked Decision #12 extends the path
+alias without forcing a `client/` directory today — see §2's "client/
+anomaly" note).
+
+### 8.1 The four-folder contract
+
+| Folder | Lives there | MUST NOT import |
+|---|---|---|
+| `client/` | React components, hooks, browser-only glue (later slice) | anything from `server/`, anything from `apps/api/*` |
+| `server/` | NestJS services, controllers, infrastructure adapters, repository ports | anything from `client/`, `apps/web/*` |
+| `shared/` | Zod schemas, pure types, isomorphic helpers (no React, no NestJS) | `server/`, `client/`, `@core/database`, `@core/events` |
+| `docs/` | `.feature` files, step definitions, cucumber bridge, world state, BDD support | `client/`, `apps/*` (BDD is a test concern, not a runtime concern) |
+
+Two axioms follow:
+
+1. **`shared/` is the only folder that every other folder may
+   import from.** `client/`, `server/`, and `docs/` may all import
+   from `shared/`. `shared/` may import from nothing inside the
+   slice except other `shared/` modules.
+2. **`docs/` is the only folder that may import from everywhere
+   inside the slice.** BDD scenarios test the integration; the
+   bridge (`register.ts`) calls `server/` services through their
+   public barrel. `docs/` does NOT leak back into `server/` or
+   `client/`.
+
+The exceptions are deliberate, not absences: `shared/` is the
+seam where schemas cross the wire, so it has the right to depend
+upward on nothing else inside the slice.
+
+### 8.2 Path aliases carry the contract
+
+`tsconfig.base.json` declares the aliases; `eslint.config.mjs`
+inspects imports against them. Every `import` into another
+workspace goes through an alias — never a relative `../../../`
+reach-through. The aliases in use today (slice-4 batch-4a +
+slice-5 PR-1):
+
+- `@features/auth` → `libs/features/auth/server` (default; pair
+  with `/*` for sub-paths)
+- `@features/auth/shared` → `libs/features/auth/shared` (explicit;
+  lets `server/` import `shared/schemas/login` without round-trip
+  through default)
+- `@features/auth/docs` → `libs/features/auth/docs` (explicit;
+  BDD step-defs and `.feature` files use this)
+- Same triplet for `@features/transactions`
+
+The `no-cross-module-import` rule (§10) catches the bad case:
+`import { authService } from "@features/auth/server"` is fine
+inside the slice's own `docs/support/`; it is NOT fine inside
+`@features/transactions/server/`. The ESLint layer reads the
+containing file's path and refuses the import before it reaches
+the type-checker.
+
+### 8.3 The public barrel is the API
+
+Every `server/` package declares its public surface through
+`src/index.ts`. Consumers — the same slice's `docs/support/` and
+external slices — `import { AuthService, SessionService, … }` from
+the barrel only. The rule forces a discipline: nothing inside the
+barrel reaches across to another slice; nothing outside reaches
+past the barrel into internals.
+
+The auth slice's `src/index.ts` is the canonical example:
+
+- Exports the four services (`AuthService`, `SessionService`,
+  `RbacService`, `PasswordResetService`) plus the three
+  repository adapter classes (`PrismaUserRepository`,
+  `PrismaSessionRepository`,
+  `PrismaPasswordResetTokenRepository`).
+- Exports the slice's error classes
+  (`InvalidCredentialsError`, `SessionNotFoundError`, etc.)
+  so the BDD step assertions can `expect(...).toBeInstanceof(...)`
+  without reaching into `domain/errors/`.
+- Does NOT export the `@auth/prisma-adapter` wrapper (slice
+  8.1.2 narrowed that to client-only; see commit `2e05fc5`).
+
+### 8.4 Worked example — extracting `notifications` from a monolith
+
+Suppose the next migration slice pulls a `notifications` module out
+of `gastos-personales/src/notifications/`. The trajectory it should
+follow:
+
+**Step 1 — pre-flight (`scripts/migrate/00-preflight.sh`).**
+Verify `pnpm`, `docker`, `git`, Node 22. Bail if the working tree
+is dirty. The full pre-flight is a separate script (Locked
+Decision #4 dual-format); the architecture says only that PRs
+without a clean pre-flight MUST not start the slice.
+
+**Step 2 — extract domain (`10-extract-domain.sh`).** Move
+`src/notifications/{domain,application,infrastructure}` into
+`libs/features/notifications/server/src/`. Adjust the
+`tsconfig.base.json` paths: add `@features/notifications` →
+`libs/features/notifications/server`. Note that this is THE place
+the slicing contract is created; after this step there are two
+code paths to the same logic, and the duplicate MUST be deleted
+before merging (consumers of the old path orphan at that point).
+
+**Step 3 — create the slice skeleton (`20-create-feature-slice.sh`).
+** Materialize `libs/features/notifications/{client,server,shared,docs}`
+with `package.json`, `tsconfig.json`, `vitest.config.ts`,
+`cucumber.mjs`, and an empty `src/index.ts` in each. The slice's
+`package.json` declares the four subpath entries
+(`.` for server, `/shared`, `/docs`, `/client`).
+
+**Step 4 — write the feature files (`docs/*.feature` per Locked
+Decision #3).** Four to six `.feature` files minimum; every
+business rule in the source module maps to at least one
+scenario. Step definitions go under `docs/step-defs/{common,
+<feature>}.steps.ts`. The cucumber bridge lives at
+`docs/support/register.ts` and follows the same `a9b550d`
+build-wrapper pattern as auth and transactions.
+
+**Step 5 — add a `shared/schemas/` barrel.** Whatever inputs the
+new slice validates get a Zod schema under
+`shared/schemas/<input>.ts`, re-exported from
+`shared/schemas/index.ts`. The `no-schemas-outside-shared` rule
+turns this into a non-negotiable structural invariant.
+
+**Step 6 — wire the routes (`30-wire-routes.sh`).**
+`apps/api/src/app.module.ts` registers the slice's NestJS
+module; `apps/web` adds the slice's UI surface (deferred for
+this scaffold — see §2's "client/ anomaly"). The tsconfig path
+addition is idempotent: re-running the script with the alias
+already present exits 0 + `already applied`.
+
+**Step 7 — port tests + BDD (`40-port-tests.sh`).** Vitest suites
+copy across with `cp -r`; `.feature` files come from step 4.
+`pnpm --filter @features/notifications test` and
+`pnpm --filter @features/notifications bdd` both exit 0.
+
+**Step 8 — update the docs (`50-update-docs.sh`).** Append a
+`## Domain design — notifications` section to
+`docs/architecture.md` (the section lands in slice 8's docs
+prose, mirroring the structure of §4 and §5). Mirror the new
+section to `Documents-es/docs/architecture.md` in the same
+atomic commit (AGENTS.md §13).
+
+**Step 9 — finalize (`99-finalize.sh`).** Run lint, typecheck,
+test, BDD. If all four exit 0, write the marker file
+`.migration-notifications-done`. Subsequent re-runs of
+`99-finalize.sh` short-circuit on the marker.
+
+The eight-stage trajectory is the canonical "monolith → slice"
+recipe. It runs once per slice during the real migration out of
+`gastos-personales/` (separate change, not slice 8's scope per
+AGENTS.md §11).
+
+{ #section-8 }
+
+## 9. BDD colocated strategy
+
+BDD lives **next to the code it tests**, in `libs/features/<x>/docs/`,
+not in a top-level `tests/` or `features-e2e/` folder. The choice
+is structural — colocated scenarios and step-defs survive
+copy/paste across the slice migration, and the cucumber runner
+discovers them with the same Vitest config that already exists
+in the slice (added in slice 7 PR-7 + slice 8 PR-1's
+`vitest.config.ts` include bump).
+
+### 9.1 The directory shape
+
+```
+libs/features/<x>/docs/
+├── cucumber.mjs                      # cucumber binary entry; require()s register.ts
+├── *.feature                         # 4-6 Gherkin files per Locked Decision #3
+├── __tests__/                        # vitest in-slice tests for the bridge + step-defs
+│   └── register.test.ts              # the RED → GREEN bridge contract test
+├── step-defs/                        # shared step definitions
+│   ├── common.steps.ts               # generic ("Given I am logged in", …)
+│   ├── <feature>.steps.ts            # 4-6 files mirroring the .feature files
+│   └── world.ts                      # declares <X>World + create<X>World()
+└── support/                          # non-step glue; loaded once
+    ├── env-bootstrap.js              # sets DATABASE_URL etc. before bridge load
+    ├── register.ts                   # the cucumber 13 bridge (a9b550d pattern)
+    ├── service-context.ts            # module-level singleton: repos + services
+    └── register.cjs                  # optional; required when cucumber.mjs can't .ts
+```
+
+The split is deliberate. **`step-defs/*.steps.ts` carries the
+human-language steps** ("Given the user logs in with valid
+credentials"). **`support/*.ts` carries the mechanism that wires
+those steps into cucumber** (the bridge, the world, the
+module-level service context, environment bootstrapping).
+
+### 9.2 The cucumber-13 bridge pattern (`a9b550d`)
+
+The bridge at `libs/features/<x>/docs/support/register.ts`
+publishes every entry from `step-defs/*.steps.ts` into cucumber
+13's `Given`/`When`/`Then` registries, using a callback-style
+wrapper whose `fn.length === argsArray.length`. The key insight
+(captured from the transactions bridge at `a9b550d`, now mirrored
+in auth via slice 8 PR-1 / commit `af56075`):
+
+Cucumber 13 inspects every registered step's arity. If
+`fn.length === argsArray.length`, it takes the
+`callbackInterface` branch and pushes a `(err, result) =>
+void` callback onto `argsArray`. If `fn` returns a thenable, it
+takes the `promiseInterface` branch. If both flags match, it
+throws the "function uses multiple asynchronous interfaces"
+error and the entire suite freezes.
+
+The slice-7 transactions fix solved this by building a thin
+callback-style wrapper:
+
+```ts
+function buildWrapper(numCaptures: number, stepFn: StepFn): CallbackWrapper {
+  if (numCaptures === 0) {
+    return function (done) { /* world via this.inner; resolve/stepFn */ };
+  }
+  // Synthesize a function with numCaptures capture parameters + done;
+  // new Function is the only way to set fn.length dynamically.
+  const paramNames = Array.from({ length: numCaptures }, (_, i) => `c${i + 1}`).join(", ");
+  const stringCalls = Array.from({ length: numCaptures }, (_, i) => `String(c${i + 1})`).join(", ");
+  const factory = new Function("stepFn",
+    `return function (${paramNames}, done) { /* …world=this.inner; Promise.resolve(stepFn(world, …)).then(…); */ };`,
+  );
+  return factory(stepFn);
+}
+```
+
+The wrapper declares exactly `numCaptures` named capture
+parameters plus a trailing `done` callback. `fn.length ===
+numCaptures + 1`, which matches `argsArray.length`, so cucumber
+takes the callback branch exclusively. The wrapper never returns
+a Promise from its synchronous body, so the dual-interface guard
+cannot fire.
+
+Slice 8 PR-1 ported this verbatim to the auth slice
+(`libs/features/auth/docs/support/register.ts`) with five
+substitutions documented in the file's header comment. The
+auth-only change is `AuthWorld` replaces `TxWorld`; everything
+else is byte-identical.
+
+### 9.3 The bridge contract — what every test asserts
+
+Every slice's `docs/__tests__/register.test.ts` asserts three
+things (mirrored from
+`libs/features/transactions/docs/__tests__/register.test.ts`,
+177 LOC, into auth at slice 8 PR-1):
+
+1. **Wrapper arity matches `argsArray.length`.** Mock cucumber
+   (`Given`, `When`, `Then`, `setWorldConstructor` spies).
+   Register a 2-capture binding. Invoke the registered wrapper
+   with `thisArg = new AuthWorldWrapper()` and
+   `argsArray = ["first", "second", callback]`. Assert the
+   inner `fn` is called with
+   `(world.inner, "first", "second")` exactly, length 3. Assert
+   the `callback` is invoked once with no error arg.
+2. **Capture-group regex exposes both captures.** Assert the
+   `RegExp` registered to cucumber exposes `match[1]` and
+   `match[2]` when matched against a sample string. This is the
+   RED assertion that proves the bridge transforms
+   `{string}` placeholders into real capturing groups, not
+   non-capturing alternations.
+3. **`setWorldConstructor` is called once at bridge load.**
+   Assert the spy is invoked at least once when
+   `import "../support/register.js"` runs, with a class whose
+   prototype exposes `.inner: <X>World`.
+
+Three assertions, three regression classes. The fix that turned
+the slice-7 transactions suite green (`a9b550d`) covers all
+three; the slice-8 auth port (`af56075`) preserves them.
+
+### 9.4 World state — mutable, per-scenario reset
+
+`AuthWorld` and `TxWorld` are **mutable** state objects passed
+as `world` to every step binding. Each scenario gets a fresh
+`AuthWorldWrapper`/`TransactionsWorldWrapper` (the class
+registered with `setWorldConstructor`); each scenario sees a
+clean world.
+
+World fields carry **step-level** state: `lastErrorMessage`,
+`sessionCreated`, `lastUserId`. They do NOT carry
+cross-scenario persistence — that lives in `service-context.ts`,
+a module-level singleton constructed once per bridge load.
+`service-context.ts` holds the in-memory user repository and
+service instance (`{ users, authService }` in auth,
+`{ prismaUnitOfWork, fxProvider, … }` in transactions), so
+state created in scenario A genuinely persists into scenario B
+when the test wants it to (e.g. "Given I previously logged in"
+inside a multi-scenario rule).
+
+**The two-tier separation is intentional.** Crossing the layers
+would force one of two failures:
+
+- If `service-context` was per-scenario, then scenarios that
+  depend on prior state (the password-reset flow's
+  "Given a reset token was issued earlier" pattern) would
+  have to re-seed state in every step — verbose and brittle.
+- If `World` was the cross-scenario store, then cucumber's
+  per-scenario reset would break the entire persistence
+  guarantee — and `setWorldConstructor` exists precisely to
+  prevent that pattern.
+
+The bridge (`register.ts`) is the **indirection** that lets
+cucumber's `thisArg` carry a fresh wrapper per scenario while
+the singleton lives on. The slice-8 PR-1 fix preserved this
+two-tier design verbatim; do not collapse it.
+
+### 9.5 Discovery — `vitest.config.ts` include arrays
+
+For a slice's Vitest to discover `docs/__tests__/*.test.ts`, the
+slice's `server/vitest.config.ts` MUST include the path:
+
+```ts
+include: [
+  "src/__tests__/**/*.test.ts",
+  "../shared/schemas/__tests__/**/*.test.ts",
+  "../docs/__tests__/**/*.test.ts",   // BDD bridge contract test
+],
+```
+
+Transactions had this line at slice 7 PR-7 (commit `36386e1`).
+Auth did not — slice 8 PR-1 added the third entry. Future
+slices inherit the pattern from the canonical
+`libs/features/transactions/server/vitest.config.ts`; an
+absent entry means the bridge contract test never runs and a
+regression to `(world, ...args) => ...` style would not be
+caught in unit tests.
+
+{ #section-9 }
+
 
