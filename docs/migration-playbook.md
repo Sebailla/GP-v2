@@ -309,3 +309,258 @@ paths; Stage 20 does that.
 
 { #stage-20 }
 
+## Stage 20 — create feature slice
+
+**Goal**: scaffold the four-folder contract (`client/`, `server/`,
+`shared/`, `docs/`) for the slice and add `package.json`,
+`tsconfig.json`, and a public barrel to each.
+
+**Inputs**: the moved domain code from Stage 10.
+
+**Actions**:
+
+1. Create the four folders:
+   `libs/features/<feature>/{client,server,shared}/src/` and
+   `libs/features/<feature>/docs/`.
+2. For each of `client/`, `server/`, `shared/` scaffold:
+   - `package.json` with `name: "@features/<feature>-<role>"`,
+     `private: true`, `exports` → `./src/index.ts`.
+   - `tsconfig.json` extending `../../../../tsconfig.base.json`
+     with `composite: true` (Turbo tracks build order via project
+     references).
+   - `src/index.ts` — the public barrel (per architecture.md §8.3
+     the barrel IS the API).
+3. Add `libs/features/<feature>/docs/cucumber.mjs` and an empty
+   `docs/__tests__/` directory; both come for free here even
+   though Stage 40 populates them.
+4. Add `@features/<feature>` and the three role sub-packages to
+   `tsconfig.base.json` `compilerOptions.paths`.
+5. Verify the `no-prisma-outside-core` and
+   `no-schemas-outside-shared` rules still pass.
+
+**Before — `libs/features/auth/` does not have the four-folder
+shape**:
+
+```text
+libs/features/auth/
+└── README.md
+```
+
+**After — `libs/features/auth/` follows the four-folder contract**:
+
+```text
+libs/features/auth/
+├── client/
+│   ├── package.json     # @features/auth-client
+│   ├── src/
+│   │   └── index.ts     # public barrel
+│   └── tsconfig.json
+├── server/
+│   ├── package.json     # @features/auth-server
+│   ├── src/
+│   │   ├── application/
+│   │   ├── domain/
+│   │   ├── infrastructure/
+│   │   └── index.ts     # public barrel
+│   └── tsconfig.json
+├── shared/
+│   ├── package.json     # @features/auth-shared
+│   ├── schemas/
+│   │   └── create-user.schema.ts
+│   ├── src/
+│   │   └── index.ts
+│   └── tsconfig.json
+├── docs/
+│   ├── cucumber.mjs
+│   ├── features/        # populated in Stage 40
+│   ├── step-defs/       # populated in Stage 40
+│   └── __tests__/       # populated in Stage 40
+└── README.md
+```
+
+**Before — `tsconfig.base.json`** does not include `@features/auth/*`:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["libs/core/*"],
+      "@shared-utils/*": ["libs/shared-utils/*"]
+    }
+  }
+}
+```
+
+**After — `tsconfig.base.json`** declares all four sub-packages:
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["libs/core/*"],
+      "@shared-utils/*": ["libs/shared-utils/*"],
+      "@features/auth": ["libs/features/auth/server/src"],
+      "@features/auth-server": ["libs/features/auth/server/src"],
+      "@features/auth-client": ["libs/features/auth/client/src"],
+      "@features/auth-shared": ["libs/features/auth/shared/src"]
+    }
+  }
+}
+```
+
+**Before — `libs/features/auth/server/src/index.ts`** (empty):
+
+```ts
+export {};
+```
+
+**After — `libs/features/auth/server/src/index.ts`** (the public
+barrel, manually maintained):
+
+```ts
+export { AuthService } from "./application/services/auth.service.js";
+export { AuthRepository } from "./infrastructure/auth.repository.js";
+export { AuthController } from "./controllers/auth.controller.js";
+export type { UserEntity } from "./domain/user.entity.js";
+```
+
+Anything NOT exported from this file is internal to the slice and
+not covered by the public contract; importing it directly is a
+`no-cross-module-import` violation per AGENTS.md §7.
+
+**Done when**:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @features/auth-server build
+pnpm lint:fixtures
+echo $?   # must be 0
+```
+
+{ #stage-30 }
+
+## Stage 30 — wire routes
+
+**Goal**: make the slice reachable from `apps/api` (NestJS) and
+`apps/web` (Next.js) through the established module conventions.
+
+**Inputs**: the four-folder slice from Stage 20.
+
+**Actions**:
+
+1. **NestJS**: in `apps/api/src/app.module.ts`, replace
+   `import { AuthModule } from "./modules/auth/auth.module"` with
+   `import { AuthModule } from "@features/auth-server"`. The NestJS
+   module-per-feature convention stays: the slice exports a NestJS
+   module that the API app imports.
+2. **Next.js**: in `apps/web/`, create the route group
+   `apps/web/app/[locale]/(<feature>)/` if absent. Server
+   components import from `@features/<feature>-server` (server
+   actions) and `@features/<feature>-client` (client components).
+3. The `no-client-server-import` boundary rule fires when
+   `libs/features/<feature>/client/*` imports from `*/server/*`.
+   Routes in `apps/web/` are NOT inside `libs/features/<feature>/`,
+   so the rule does not apply to them.
+
+**Before — `apps/api/src/app.module.ts`** (imports the monolith
+auth module):
+
+```ts
+import { Module } from "@nestjs/common";
+import { AuthModule } from "./modules/auth/auth.module";
+import { TransactionsModule } from "./modules/transactions/transactions.module";
+
+@Module({
+  imports: [AuthModule, TransactionsModule],
+})
+export class AppModule {}
+```
+
+**After — `apps/api/src/app.module.ts`** (imports the slice's
+NestJS module):
+
+```ts
+import { Module } from "@nestjs/common";
+import { AuthModule } from "@features/auth-server";
+import { TransactionsModule } from "@features/transactions-server";
+
+@Module({
+  imports: [AuthModule, TransactionsModule],
+})
+export class AppModule {}
+```
+
+**Before — `apps/web/app/[locale]/(auth)/sign-in/page.tsx`**:
+
+```tsx
+import { SignInForm } from "@/components/auth/sign-in-form";
+
+export default function SignInPage() {
+  return <SignInForm />;
+}
+```
+
+**After — `apps/web/app/[locale]/(auth)/sign-in/page.tsx`** (route
+group stays; imports route through the slice):
+
+```tsx
+import { SignInForm } from "@features/auth-client";
+import { signInAction } from "@features/auth-server";
+
+export default function SignInPage() {
+  return <SignInForm action={signInAction} />;
+}
+```
+
+**Before — `apps/api/src/modules/auth/auth.controller.ts`**
+(declared inside the monolith):
+
+```ts
+import { Controller, Post, Body } from "@nestjs/common";
+import { AuthService } from "./services/auth.service";
+
+@Controller("auth")
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Post("sign-in")
+  signIn(@Body() input: unknown) {
+    return this.auth.signIn(input);
+  }
+}
+```
+
+**After — `libs/features/auth/server/src/controllers/auth.controller.ts`**
+(declared inside the slice):
+
+```ts
+import { Controller, Post, Body } from "@nestjs/common";
+import { AuthService } from "../application/services/auth.service.js";
+import { CreateUserInput } from "../../../shared/schemas/create-user.schema.js";
+
+@Controller("auth")
+export class AuthController {
+  constructor(private readonly auth: AuthService) {}
+
+  @Post("sign-in")
+  signIn(@Body() input: CreateUserInput) {
+    return this.auth.signIn(input);
+  }
+}
+```
+
+The `apps/api/src/modules/auth/auth.module.ts` file is the LAST
+monolith file removed — Stage 99 deletes it once the slice proves
+itself.
+
+**Done when**:
+
+```bash
+pnpm --filter apps/api build && pnpm --filter apps/web build && pnpm lint:fixtures
+echo $?   # must be 0
+```
+
+{ #stage-40 }
+
