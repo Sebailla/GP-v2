@@ -55,11 +55,23 @@ const RULES = [
 const extFor = (rule) => (rule === "no-mojibake-in-docs" ? "md" : "ts");
 
 async function findFixtures(ruleDir, variant, ext) {
-  // For `invalid`, exactly one match is required (the primary violation case).
-  // For `valid`, multiple matches are allowed (primary case + triangulation cases
-  // such as allowed exceptions); every match must report 0 errors.
+  // For `invalid`, exactly one match is required by default (the primary
+  // violation case); rules that opt in to triangulation (e.g.
+  // `no-mojibake-in-docs` with `allowMultipleInvalids: true`) may have more
+  // than one — every match must still report >=1 errors.
+  // For `valid`, multiple matches are allowed (primary case + triangulation
+  // cases such as allowed exceptions); every match must report 0 errors.
+  // The invalid glob is anchored as a *substring* (`*invalid*.${ext}`) so
+  // triangulation fixtures like `secondCjkLine.invalid.md` match alongside
+  // the primary `invalid.${ext}`. The valid glob stays anchored at the start
+  // (`valid*.${ext}`) so `invalid.${ext}` files do NOT appear as valid
+  // candidates — preventing cross-rule leakage in the runner.
   const matches = [];
-  for await (const entry of glob(`**/${variant}*.${ext}`, { cwd: ruleDir })) {
+  const pattern =
+    variant === "invalid"
+      ? `**/*${variant}*.${ext}`
+      : `**/${variant}*.${ext}`;
+  for await (const entry of glob(pattern, { cwd: ruleDir })) {
     matches.push(resolve(ruleDir, entry));
   }
   return matches;
