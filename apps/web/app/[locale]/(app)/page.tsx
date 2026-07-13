@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * (app) route group landing page — slice 6 placeholder dashboard.

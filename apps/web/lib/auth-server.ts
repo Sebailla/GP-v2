@@ -5,19 +5,19 @@
  * so Next.js's bundler treats it as a server-only module. The
  * companion `auth-client.ts` holds the `setSessionCookie` /
  * `clearSessionCookie` browser-only functions (which use
- * `document.cookie`). The original `lib/auth.ts` barrel re-exports
- * both so existing call sites keep working without a refactor.
+ * `document.cookie`), plus the `isSessionPayload` type-guard +
+ * `SessionPayload` type (slice 8.1.2 moved these here so client
+ * forms can pull them without touching this server-only module).
  *
  * **Why this matters.** Next.js's Pages Router vs App Router
  * detection treats files outside the `app/` tree as Pages Router
  * by default. A file that imports `next/headers` (a server-only
  * module) must be in the App Router server bundle; otherwise the
  * build fails with "next/headers import is only valid in Server
- * Components in the App Router, but you are using it in the Pages
- * Router". Splitting `lib/auth.ts` into
- * `auth-server.ts` + `auth-client.ts` + the barrel makes the
- * server / client boundary explicit, which the bundler
- * understands.
+ * Components in the App Router, but you are using it in the
+ * Pages Router". Splitting `lib/auth.ts` into
+ * `auth-server.ts` + `auth-client.ts` made the server / client
+ * boundary explicit, which the bundler understands.
  *
  * **The `import "server-only"` guard (slice 8.1.2).** This is a
  * Next.js convention marker package: importing it from a module
@@ -126,34 +126,4 @@ export async function getSession(): Promise<Session | null> {
 	const store = await cookies();
 	const raw = store.get(AUTH_SESSION_COOKIE)?.value;
 	return decodeSession(raw);
-}
-
-/**
- * Shape the auth API's login / register response takes. Re-exported
- * as a type so the form-level `onSuccess` can assert on the API
- * contract without a hand-rolled intersection.
- */
-export type SessionPayload = {
-	id: string;
-	email: string;
-	role: string;
-	sessionToken: string;
-};
-
-/**
- * Type-guard for the auth API's login / register response. Returns
- * `true` when the parsed JSON has the canonical `SessionPayload`
- * shape (string `id` + `email` + `role` + `sessionToken`). Used by
- * the forms to transform the API response into a `Session` without
- * duplicating the shape check.
- */
-export function isSessionPayload(value: unknown): value is SessionPayload {
-	if (typeof value !== "object" || value === null) return false;
-	const candidate = value as Record<string, unknown>;
-	return (
-		typeof candidate.id === "string" &&
-		typeof candidate.email === "string" &&
-		typeof candidate.role === "string" &&
-		typeof candidate.sessionToken === "string"
-	);
 }

@@ -5,7 +5,7 @@ import { env } from "@core/config";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * ResetPasswordPage — slice 4 batch 4d (T4.11) + slice 4 batch 2

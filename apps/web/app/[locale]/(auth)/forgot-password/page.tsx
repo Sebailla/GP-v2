@@ -5,7 +5,7 @@ import { env } from "@core/config";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * ForgotPasswordPage — slice 4 batch 4d (T4.10) + slice 4 batch 2

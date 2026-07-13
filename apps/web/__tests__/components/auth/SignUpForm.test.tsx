@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 import { SignUpForm } from "../../../components/auth/SignUpForm";
-import { AUTH_SESSION_COOKIE } from "../../../lib/auth";
+import { AUTH_SESSION_COOKIE } from "../../../lib/auth-server";
 
 /**
  * TDD contract for `apps/web/components/auth/SignUpForm.tsx` — slice 4

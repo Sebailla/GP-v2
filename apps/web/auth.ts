@@ -25,7 +25,7 @@ import { env } from "@core/config";
  *      a future NextAuth integration (e.g. real Google OAuth in
  *      slice 5+) is a drop-in.
  *
- *   2. `apps/web/lib/auth.ts#getSession()` — the server-side
+ *   2. `apps/web/lib/auth-server.ts#getSession()` — the server-side
  *      session reader. Calls `auth()` from this module; NextAuth
  *      reads the `authjs.session-token` cookie via
  *      `next/headers#cookies()`, decodes the JWT using

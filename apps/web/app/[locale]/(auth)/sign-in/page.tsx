@@ -5,7 +5,7 @@ import { env } from "@core/config";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 import { SignInClient } from "@/components/auth/SignInClient";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * SignInPage — slice 4 batch 4c (T4.8) + slice 4 batch 2

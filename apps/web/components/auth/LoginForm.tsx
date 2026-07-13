@@ -13,9 +13,8 @@ import { FormFieldRow } from "@/components/auth/FormFieldRow";
 import { useAuthApiPost } from "@/lib/useAuthApiPost";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
-import { isSessionPayload } from "@/lib/auth";
-import type { Session } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/auth-client";
+import type { Session } from "@/lib/auth-server";
+import { isSessionPayload, setSessionCookie } from "@/lib/auth-client";
 
 /**
  * LoginForm — slice 4 batch 4e (T4.15 REFACTOR).
