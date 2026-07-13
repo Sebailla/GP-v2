@@ -34,8 +34,14 @@ const ALL_BINDINGS = [...authCommon, ...authRealm];
  * Re-publish each portable binding into cucumber's keyword-registry.
  * `Given`/`When`/`Then` share the same registration shape so the
  * dispatch is a single switch.
+ *
+ * Exported so the bridge-contract test at
+ * `libs/features/auth/docs/__tests__/register.test.ts` can register a
+ * single binding and exercise the wrapper directly. The module-load
+ * loop at the bottom of this file remains the production wiring
+ * path; `registerBinding` is also the per-binding unit of work.
  */
-function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
+export function registerBinding(binding: (typeof ALL_BINDINGS)[number]): void {
   const fn = (world: unknown, ...args: ReadonlyArray<string>): void | Promise<void> => {
     return binding.fn(world as never, ...args);
   };

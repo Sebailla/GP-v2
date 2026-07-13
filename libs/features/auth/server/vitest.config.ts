@@ -15,7 +15,11 @@ export default defineConfig({
     // the server package's vitest config picks both up so a single
     // `pnpm --filter @features/auth exec vitest run` discovers every
     // auth-slice test.
-    include: ["src/__tests__/**/*.test.ts", "../shared/schemas/__tests__/**/*.test.ts"],
+    include: [
+      "src/__tests__/**/*.test.ts",
+      "../shared/schemas/__tests__/**/*.test.ts",
+      "../docs/__tests__/**/*.test.ts",
+    ],
     environment: "node",
     globals: false,
     clearMocks: true,
