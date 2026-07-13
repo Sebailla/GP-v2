@@ -14,6 +14,12 @@
  * handle Markdown). To enable the rule via `pnpm turbo run lint` on
  * Markdown files, wire `@eslint/markdown` as the parser for .md
  * (deferred to slice 8 polish).
+ *
+ * AST root dispatch: ESLint's standard ESTree parser (used for
+ * .ts/.tsx via @typescript-eslint/parser) emits a `Program` root
+ * node. The `@eslint/markdown` language plugin emits a `root` node
+ * instead. Both are the topmost node of their respective ASTs, so
+ * the same scan applies — we just visit both.
  */
 
 const { findCjkInText } = require("../lib/cjk-detect.cjs");
@@ -35,31 +41,40 @@ module.exports = {
   },
 
   create(context) {
-    return {
-      Program(node) {
-        const sourceCode = context.sourceCode || context.getSourceCode();
-        const text = sourceCode.getText(node);
-        const hits = findCjkInText(text);
-        if (hits.length === 0) return;
+    function scan(node) {
+      const sourceCode = context.sourceCode || context.getSourceCode();
+      const text = sourceCode.getText(node);
+      const hits = findCjkInText(text);
+      if (hits.length === 0) return;
 
-        const programStartOffset = sourceCode.getIndexFromLoc(node.loc.start);
-        for (const hit of hits) {
-          const absIndex = programStartOffset + hit.index;
-          context.report({
-            node,
-            loc: {
-              start: sourceCode.getLocFromIndex(absIndex),
-              end: sourceCode.getLocFromIndex(absIndex + 1),
-            },
-            messageId: "cjkInDoc",
-            data: {
-              codeHex: hit.code.toString(16).toUpperCase().padStart(4, "0"),
-              index: hit.index,
-              file: context.filename,
-            },
-          });
-        }
-      },
+      // Standard ESTree (used for .ts/.tsx via @typescript-eslint/parser)
+      // exposes `loc` on every node. The @eslint/markdown language plugin
+      // exposes a Remark-style `position` object with the same shape.
+      // Both name `start.line`/`start.column`; we read whichever is present.
+      const nodeStart = (node.loc && node.loc.start) || (node.position && node.position.start);
+      if (!nodeStart) return;
+      const programStartOffset = sourceCode.getIndexFromLoc(nodeStart);
+      for (const hit of hits) {
+        const absIndex = programStartOffset + hit.index;
+        context.report({
+          node,
+          loc: {
+            start: sourceCode.getLocFromIndex(absIndex),
+            end: sourceCode.getLocFromIndex(absIndex + 1),
+          },
+          messageId: "cjkInDoc",
+          data: {
+            codeHex: hit.code.toString(16).toUpperCase().padStart(4, "0"),
+            index: hit.index,
+            file: context.filename,
+          },
+        });
+      }
+    }
+
+    return {
+      Program: scan,
+      root: scan,
     };
   },
 };
