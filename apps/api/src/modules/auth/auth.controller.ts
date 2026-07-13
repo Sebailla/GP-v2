@@ -13,10 +13,10 @@ import {
 import type { Request } from "express";
 
 import {
-  type AuthService,
-  type PasswordResetService,
-  type RbacService,
-  type SessionService,
+  AuthService,
+  PasswordResetService,
+  RbacService,
+  SessionService,
   AuthError,
   ValidationError,
   type CurrentUser,
@@ -109,13 +109,20 @@ function validateOrThrow<T extends import("zod").ZodTypeAny>(
  * JwtAuthGuard is a stub that reads the bearer token and looks up
  * the session via SessionService. Real JWT verification lands later.
  *
- * AUTO-FORMATTER MITIGATION: The harness's biome auto-formatter
- * converts `import { Foo }` to `import { type Foo }` when the symbol
- * is only used as a parameter type annotation. NestJS's reflective
- * DI requires runtime class identity. We defeat the heuristic with
- * a class-level static field that references each service as a VALUE
- * (not a type). After NestJS resolves the constructor at startup, this
- * anchor is unused; it exists purely to keep the runtime import.
+ * AUTO-FORMATTER MITIGATION (per ADR 0008): NestJS's reflective DI
+ * reads `import { Foo }` symbols as runtime class references, not
+ * types. Under `isolatedModules: true` (`tsconfig.base.json` line 10)
+ * the `import { type Foo }` form is fully erased at compile time and
+ * Nest's container sees `undefined` for the constructor parameter.
+ * The harness's biome auto-formatter prefers `import { type Foo }`
+ * when the symbol looks like a type-only reference, which silently
+ * breaks DI. We defeat that heuristic with a class-level static field
+ * that references each service as a VALUE (not a type). After NestJS
+ * resolves the constructor at startup, this anchor is unused at
+ * runtime; it exists purely to keep the runtime import alive.
+ *
+ * Enforced by ESLint rule `@gpr/boundary/no-import-type-injectable`
+ * (see ADR 0008).
  */
 @Controller("/auth")
 export class AuthController {
@@ -216,4 +223,19 @@ export class AuthController {
       await this.sessionService.revokeSession(sessionId, request.user.id);
     });
   }
+
+  /**
+   * Runtime anchor — LAST field, defensive against future `import type`
+   * regressions (see ADR 0008 + ESLint rule
+   * `@gpr/boundary/no-import-type-injectable`). The anchor references
+   * each service as a VALUE so that even if a future auto-formatter
+   * rewrites the import to `import { type Service }`, the symbols
+   * remain reachable at runtime.
+   */
+  private static readonly _ServiceAnchor: ReadonlyArray<unknown> = [
+    AuthService,
+    PasswordResetService,
+    RbacService,
+    SessionService,
+  ] as const;
 }
