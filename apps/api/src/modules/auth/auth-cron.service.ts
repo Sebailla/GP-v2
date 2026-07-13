@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 
-import type { PasswordResetTokenRepository } from "@features/auth";
+import { PasswordResetTokenRepository } from "@features/auth";
 
 /**
  * F4 cron registration (slice 3 batch 6 — T3.6 NestJS wrapper).
