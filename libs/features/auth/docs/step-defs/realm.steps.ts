@@ -270,14 +270,7 @@ export const stepDefinitions: ReadonlyArray<StepBinding> = [
   },
   {
     keyword: "Then",
-    pattern: "@auth/prisma-adapter persists both {string} rows linked to the user",
-    fn: (world, _adapter, _label) => {
-      world.lastDispatchedEvent = "auth.account.linked";
-    },
-  },
-  {
-    keyword: "Given",
-    pattern: "@auth/prisma-adapter persists both {string} rows linked to the user",
+    pattern: "{string} persists both {string} rows linked to the user",
     fn: (world, _adapter, _label) => {
       world.lastDispatchedEvent = "auth.account.linked";
     },
