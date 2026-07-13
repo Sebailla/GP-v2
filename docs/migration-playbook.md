@@ -839,8 +839,373 @@ by hand.
 
 ---
 
-> **Next**: PR-B2 appends [§8 Stage 99 — finalize](./architecture.md#section-11)
-> (the pre-PR checklist + rollback boundary), §9 (ESLint boundaries
-> as the enforcement loop), §10 (when to introduce `@core/events`),
-> and §11 (glossary + cross-references). PR-B2 also ships
-> `Documents-es/docs/migration-playbook.md` per AGENTS.md §13.
+{ #stage-99 }
+
+## Stage 99 — finalize
+
+**Goal**: prove the slice is shippable end-to-end, capture the
+artifact trail the reviewer needs, and remove the last monolith
+debris so the next migration starts on a clean tree.
+
+**Inputs**: the slice from Stages 10-50, the seven
+`scripts/migrate/<stage>.sh` shells from PR-C, and the upstream
+`develop` branch (the squash-merge target).
+
+**Actions**:
+
+1. Run the full gate locally on a clean clone of the feature
+   branch. Every command MUST exit `0` before opening the PR:
+
+   ```bash
+   pnpm install --frozen-lockfile
+   pnpm db:up && docker compose ps             # Postgres healthy
+   pnpm turbo run build lint typecheck test bdd
+   pnpm lint:fixtures
+   ```
+
+2. Update [`docs/architecture.md`](./architecture.md) §6 **Slice
+   inventory** with the new slice: name, four-folder path, public
+   barrel contents, BDD scenario count. The Spanish mirror under
+   `Documents-es/docs/architecture.md` MUST carry the same row in
+   the same commit (AGENTS.md §13 hard rule).
+3. Tag the release. Slice additions bump the **minor** segment
+   because they introduce a new public surface
+   (`@features/<feature>-server` et al.); the format is
+   `vN.M.<X+1>`:
+
+   ```bash
+   git tag -a v1.1.<X+1> -m "feat: add <feature> slice (slice 8 PR-B2)"
+   git push origin v1.1.<X+1>
+   ```
+
+4. Delete the migration branch once the PR merges. The branch's
+   job is over; the slice lives on `develop` via the squash-merge:
+
+   ```bash
+   git push origin --delete feat/migrate-<feature>-v1
+   git branch -d feat/migrate-<feature>-v1
+   ```
+
+5. Archive the OpenSpec change folder. Move
+   `openspec/changes/<change-id>/` into
+   `openspec/changes/.archive/YYYY-MM-DD-<change-id>/` once the
+   change ships — the orchestrator does this after the
+   squash-merge to `develop` (see `sdd-archive`).
+
+**Before — terminal output of `pnpm turbo run build lint typecheck test`**
+on the slice branch (one task line per workspace):
+
+```text
+  × Extend ⇢ pnpm turbo run build lint typecheck test
+  Tasks:    7 successful, 7 total
+Cached:    0 cached, 7 total
+  Time:    9.412s
+```
+
+**After — same command** after Stage 99's pre-PR gate runs on the
+slice branch (note the new slice adds a workspace to the task
+list):
+
+```text
+  × Extend ⇢ pnpm turbo run build lint typecheck test
+  Tasks:    8 successful, 8 total
+Cached:    0 cached, 8 total
+  Time:   11.084s
+```
+
+**Before — `docs/architecture.md` §6 (Slice inventory)** before the
+release tag:
+
+```md
+| Slice         | Public barrel                                | BDD |
+|---------------|----------------------------------------------|-----|
+| auth          | @features/auth-server                        | 18  |
+| transactions  | @features/transactions-server                | 25  |
+```
+
+**After — `docs/architecture.md` §6 (Slice inventory)** once the
+slice lands:
+
+```md
+| Slice         | Public barrel                                | BDD |
+|---------------|----------------------------------------------|-----|
+| auth          | @features/auth-server                        | 18  |
+| transactions  | @features/transactions-server                | 25  |
+| notifications | @features/notifications-server               | 11  |
+```
+
+**Before — `apps/api/src/modules/notifications/notifications.module.ts`**
+(the last monolith file from this migration, still present in the
+repo):
+
+```ts
+import { Module } from "@nestjs/common";
+import { NotificationsController } from "./notifications.controller";
+import { NotificationsService } from "./notifications.service";
+
+@Module({
+  controllers: [NotificationsController],
+  providers: [NotificationsService],
+})
+export class NotificationsModule {}
+```
+
+**After — `git rm apps/api/src/modules/notifications/`** (Stage 99
+removes the monolith residue; `app.module.ts` no longer imports it):
+
+```text
+$ git rm -r apps/api/src/modules/notifications/
+rm 'apps/api/src/modules/notifications/notifications.controller.ts'
+rm 'apps/api/src/modules/notifications/notifications.module.ts'
+rm 'apps/api/src/modules/notifications/notifications.service.ts'
+
+$ grep -n NotificationsModule apps/api/src/app.module.ts || echo "no-monolith-import"
+no-monolith-import
+```
+
+**Before — `git tag` (no slice release tag exists yet)**:
+
+```text
+v1.0.0
+v1.0.1
+v1.1.0
+v1.1.1
+```
+
+**After — `git tag`** after Stage 99 tags the release:
+
+```text
+v1.0.0
+v1.0.1
+v1.1.0
+v1.1.1
+v1.1.2
+```
+
+**Done when**:
+
+```bash
+pnpm turbo run build lint typecheck test bdd && pnpm lint:fixtures
+echo $?   # must be 0
+```
+
+If any gate fails, **stop**. Do NOT tag, do NOT open the PR. Fix
+the failure on the feature branch, push again, and re-run the
+gate. The slice is shippable only when every command exits `0`.
+
+---
+
+{ #eslint-enforcement-loop }
+
+## ESLint boundaries as the enforcement loop
+
+**Goal**: make the four boundary rules the single source of truth
+that prevents the migration from silently regressing. A reviewer
+should never have to ask "does this PR keep the architecture
+honest?" — the boundary plugin answers the question at lint time.
+
+The four rules that ship today
+([`tools/eslint-plugin-boundary/`](../../tools/eslint-plugin-boundary/))
+cover every cross-cutting invariant the migration touches:
+
+| Rule                          | What it forbids                                                       | Where the rule lives                                                          |
+|-------------------------------|-----------------------------------------------------------------------|------------------------------------------------------------------------------|
+| `no-prisma-outside-core`      | `new PrismaClient()` anywhere except `libs/core/database/src/`        | `tools/eslint-plugin-boundary/rules/no-prisma-outside-core.cjs`               |
+| `no-schemas-outside-shared`   | Zod literal (`z.object(...)`, `z.string(...)`) outside `*/shared/schemas/` and `libs/core/config/env.schema.ts` | `tools/eslint-plugin-boundary/rules/no-schemas-outside-shared.cjs`            |
+| `no-client-server-import`     | `libs/features/<x>/client/*` importing from `*/server/*` paths        | `tools/eslint-plugin-boundary/rules/no-client-server-import.cjs`              |
+| `no-cross-module-import`      | `libs/features/<x>/...` importing directly from `libs/features/<y>/...` | `tools/eslint-plugin-boundary/rules/no-cross-module-import.cjs`               |
+| `no-mojibake-in-docs`         | CJK / ideographic codepoints in `Documents-es/**/*.md`                 | `tools/eslint-plugin-boundary/rules/no-mojibake-in-docs.cjs` (slice 8 PR-3)   |
+
+`pnpm lint:fixtures` is the gate that proves every rule both
+**fires on its `invalid.{ts,md}` fixture** and **stays silent on
+its `valid.{ts,md}`**. Slice 8 PR-3 wired the markdown parser so
+the mojibake rule fires on `.md` files; the runner also globs
+production `Documents-es/**/*.md` and asserts CJK-free on every
+PR. The gate MUST exit `0` before any migration PR can land.
+
+**When to add a new boundary rule**: a new rule earns its slot
+when the same fix-or-revert PR cycle repeats three times for the
+same class of import. The pattern looks like this in review:
+
+1. PR-1 lands a feature that imports across slices directly.
+2. PR-2 adds the same kind of import.
+3. PR-3 (or the migration auditor) flags it again.
+
+At that point the rule stops being "reviewer taste" and becomes
+"infrastructure". File a small ADR-style decision record under
+`docs/architecture/decisions/` (or the
+`openspec/changes/<id>/design.md` if the rule lands in the same
+change), add the rule under
+`tools/eslint-plugin-boundary/rules/`, write the `valid.{ts,md}`
++ `invalid.{ts,md}` pair under
+`tools/eslint-plugin-boundary/__fixtures__/`, and register the
+rule in `tools/eslint-plugin-boundary/index.cjs`. The fixture
+runner picks it up automatically.
+
+**Worked example — extracting a `notifications` slice** (this
+example is hypothetical; it predates the actual `notifications`
+migration):
+
+```text
+MIGRATION: notifications (from apps/api/src/modules/notifications/)
+SLICE:      libs/features/notifications/{client,server,shared,docs}/
+
+Stage 00 → preflight: baseline green on develop.
+Stage 10 → move src/modules/notifications/{domain,application,infrastructure}
+           into libs/features/notifications/server/src/.
+           Fix every `new PrismaClient()` → `import { prisma } from "@core/database"`.
+           no-prisma-outside-core fires 3 times during the port; each one is a fix.
+Stage 20 → scaffold the four folders; add path aliases.
+Stage 30 → wire `apps/api/src/app.module.ts` to `@features/notifications-server`;
+           wire `apps/web/app/[locale]/(notifications)/...` to the client barrel.
+Stage 40 → port Vitest + 11 Cucumber scenarios; add the bridge wrapper
+           mirroring the auth slice (slice 8 PR-1 pattern).
+Stage 50 → add §6 row to docs/architecture.md; mirror to Documents-es/.
+Stage 99 → run all gates; tag v1.1.2; archive the change folder.
+```
+
+If, mid-migration, you find yourself wanting a
+`notifications-client → auth-server` direct import, **stop**. That
+import is what the boundary rule forbids; route through
+`@core/events` (see §10) or through a shared port under
+`libs/core/`. The rule is the design, not a fence.
+
+---
+
+{ #core-events }
+
+## When to introduce `@core/events`
+
+**Goal**: give slices a single, async-friendly channel for
+cross-module side effects so the boundary rules in §9 stay
+enforceable. Direct cross-slice imports are forbidden by
+`no-cross-module-import`; events are the only sanctioned
+escape hatch.
+
+The events channel lives at `libs/core/events/`. It is a thin
+port-and-adapter surface: slices **emit** typed events through
+`emitEvent(name, payload)`, and other slices **subscribe** through
+`onEvent(name, handler)`. The transport is in-process today (no
+Redis, no Kafka — those are explicitly out of scope per AGENTS.md
+§11) but the interface is shaped so a future bus adapter is a
+drop-in.
+
+The **9-event catalog** that ships today (slice 1 Locked Decision
+#5 + slice 4 additions) is the contract. Each event declares a
+typed payload and an owner slice:
+
+| Event name                        | Owner slice      | Payload (summary)                                            | Consumers (typical)            |
+|-----------------------------------|------------------|--------------------------------------------------------------|-------------------------------|
+| `auth.user.signed-up`             | `auth`           | `{ userId, email, locale }`                                   | `notifications`, `transactions`|
+| `auth.session.created`            | `auth`           | `{ sessionId, userId, expiresAt }`                           | `notifications` (audit trail)  |
+| `auth.password.reset.requested`   | `auth`           | `{ userId, resetToken, expiresAt }`                          | `notifications`               |
+| `auth.password.reset.completed`   | `auth`           | `{ userId, completedAt }`                                    | `notifications`               |
+| `transactions.created`            | `transactions`   | `{ transactionId, userId, amount, currency, categoryId }`    | `notifications`, `auth`        |
+| `transactions.updated`            | `transactions`   | `{ transactionId, userId, diff, at }`                        | `notifications`               |
+| `transactions.deleted`            | `transactions`   | `{ transactionId, userId, at }`                              | `notifications`               |
+| `transactions.threshold.crossed`  | `transactions`   | `{ userId, thresholdId, month, total, currency }`            | `notifications`               |
+| `transactions.fxrate.updated`     | `transactions`   | `{ baseCurrency, quoteCurrency, rate, at }`                  | (none today; future consumers) |
+
+**When to add a new event**: when a non-owning slice asks "I
+need to react to `<X>`", and the answer is "yes, but not via a
+direct import". The consumer asks for the event through the
+events port (`@core/events`), the owner slice adds the event to
+its catalog, and both sides compile against the typed payload.
+The boundary rule stays green; the integration stays loose.
+
+**Worked example — `transactions.created` consumed by
+`notifications`**:
+
+```ts
+// libs/features/transactions/server/src/application/services/transaction.service.ts
+import { emitEvent } from "@core/events";
+
+export class TransactionService {
+  async create(input: CreateTransactionInput): Promise<Transaction> {
+    const tx = await this.repo.create(input);
+    emitEvent("transactions.created", {
+      transactionId: tx.id,
+      userId: tx.userId,
+      amount: tx.amount,
+      currency: tx.currency,
+      categoryId: tx.categoryId,
+    });
+    return tx;
+  }
+}
+```
+
+```ts
+// libs/features/notifications/server/src/application/services/notification.service.ts
+import { onEvent } from "@core/events";
+
+export class NotificationsService {
+  init(): void {
+    onEvent("transactions.created", async (payload) => {
+      await this.deliver({
+        userId: payload.userId,
+        template: "transaction.created",
+        data: { amount: payload.amount, currency: payload.currency },
+      });
+    });
+  }
+}
+```
+
+`notifications` never imports from `transactions`; `transactions`
+never imports from `notifications`. The events port is the only
+handshake. If a future need arises for a synchronous response
+(transaction creation should **fail** if the notification system
+is down), revisit this contract under a new ADR — synchronous
+cross-slice calls re-open the coupling that events close.
+
+---
+
+{ #glossary }
+
+## Cross-references + glossary
+
+### Glossary
+
+| Term                       | Definition                                                                                                              |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| **Slice**                  | A single feature module under `libs/features/<x>/`; the vertical unit of the architecture.                              |
+| **Feature module**         | The four-folder shape (`client/`, `server/`, `shared/`, `docs/`) every slice ships.                                     |
+| **Bridge**                 | The `docs/support/register.ts` file that re-publishes every Cucumber binding into cucumber's `Given`/`When`/`Then` registries; sets `setWorldConstructor(<Feature>WorldWrapper)`. |
+| **BDD**                    | Behaviour-Driven Development — here, Cucumber scenarios colocated with each slice under `docs/*.feature`.               |
+| **RED → GREEN → TRIANGULATE → REFACTOR** | The TDD cycle (AGENTS.md §4). RED: failing test exists. GREEN: minimum code to pass. TRIANGULATE: more cases pin down edge behaviour. REFACTOR: clean up without changing behaviour. |
+| **Mojibake**               | Stray CJK / ideographic codepoints in `Documents-es/**/*.md` (auto-translation drift). The `no-mojibake-in-docs` rule fires on every hit. |
+| **`fn.length`**            | JavaScript `Function.prototype.length` — the count of **declared** parameters before the first default or rest. The cucumber-13 wrapper depends on this matching the binding's capture count exactly. |
+| **Arity-matched wrapper**  | A function whose `fn.length` equals the cucumber binding's `argsArray.length`; anything else triggers cucumber 13's dual-interface error. |
+| **`@core/events`**         | The port-and-adapter surface in `libs/core/events/` that is the only sanctioned path for cross-slice side effects.       |
+| **Tracker branch**         | The `feat/<change-name>` branch that gates a chained SDD PR set; children target the tracker, the tracker targets `develop`. |
+| **Slice inventory**        | The `docs/architecture.md` §6 table that lists every shipped slice, its public barrel, and its BDD scenario count.       |
+
+### Cross-references
+
+- [`docs/architecture.md`](./architecture.md) — the source of
+  truth for the layout this playbook targets. Sections 2
+  (Repository layout), 8 (Slicing contract), 9 (BDD colocated
+  strategy), 10 (ESLint boundaries), and 11 (Branch model + SDD
+  workflow) are the parts the playbook operates against.
+- `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`
+  — slice 1's umbrella proposal; Locked Decision #4 (playbook
+  dual format) and Locked Decision #5 (9-event catalog) are the
+  upstream contracts this playbook honours.
+- `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+  §3.4 — the boundary-rule selector table; §4 (the original
+  `auth` and `transactions` slice designs).
+- `openspec/changes/slice-8-closing-bdd-and-docs/proposal.md`,
+  `spec.md`, `design.md`, `tasks.md` — the change that shipped
+  this playbook (PR-B1 wrote §1-§7, PR-B2 wrote §8-§11 + the
+  Spanish mirror, PR-C ships the seven shells).
+- [AGENTS.md §13](../../AGENTS.md#13-spanish-mirror-hard-rule) —
+  the Spanish mirror hard rule this document's mirror
+  obeys.
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) — branch-naming and
+  conventional-commit conventions referenced by Stage 99 and
+  the work-unit commit discipline.
+- The seven idempotent shells: `scripts/migrate/00-preflight.sh`,
+  `10-extract-domain.sh`, `20-create-feature-slice.sh`,
+  `30-wire-routes.sh`, `40-port-tests.sh`, `50-update-docs.sh`,
+  `99-finalize.sh`. PR-C ships them.
