@@ -58,7 +58,7 @@ afterEach(() => {
 
 // Component under test — imported AFTER the mocks above so the mocks win.
 import { LoginForm } from "../../../components/auth/LoginForm";
-import { AUTH_SESSION_COOKIE } from "../../../lib/auth";
+import { AUTH_SESSION_COOKIE } from "../../../lib/auth-server";
 
 /**
  * TDD contract for `apps/web/components/auth/LoginForm.tsx` — slice 4

@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { env } from "@core/config";
 
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * Slice-1 placeholder landing page + slice 4 batch 2

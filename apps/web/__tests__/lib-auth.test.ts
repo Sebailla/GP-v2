@@ -2,14 +2,27 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { cookies } from "next/headers";
 
 /**
- * TDD contract for `apps/web/lib/auth.ts` — slice 4 cookie migration
- * (final, post-NextAuth integration).
+ * TDD contract for the apps/web auth-helper surface — slice 4 cookie
+ * migration (final, post-NextAuth integration) + slice 8.1.2
+ * server/client split finalisation.
+ *
+ * Slice 7 introduced `auth-server.ts` (server-only `getSession()` via
+ * `next/headers`) and `auth-client.ts` (browser-only `setSessionCookie`
+ * / `clearSessionCookie` via `document.cookie`), with a `lib/auth.ts`
+ * barrel re-exporting both for backward compatibility. Slice 8.1.2
+ * deleted that barrel because it pulled server-only code into the
+ * client bundle; the two client forms (LoginForm, SignUpForm) now
+ * import directly from `auth-client.ts` and the seven RSC pages /
+ * layouts import directly from `auth-server.ts`. This test mirrors
+ * that split: the server half imports from `auth-server.ts`, the
+ * client half from `auth-client.ts`.
  *
  * The web client uses the canonical NextAuth v5 cookie
  * (`authjs.session-token`) to persist the session token + user
  * projection returned by `POST /auth/login` and `POST /auth/register`.
- * The cookie is opaque to the rest of the app; helpers in `auth.ts` are
- * the only surface that reads / writes / clears it.
+ * The cookie is opaque to the rest of the app; helpers in
+ * `auth-server.ts` + `auth-client.ts` are the only surface that
+ * reads / writes / clears it.
  *
  * Two distinct execution contexts:
  *  - **Server side** (`getSession`): RSC pages call `cookies()` from
@@ -51,18 +64,17 @@ function mockCookieStore(values: Record<string, string | undefined>): void {
 
 const {
   getSession,
-  setSessionCookie,
-  clearSessionCookie,
   AUTH_SESSION_COOKIE,
   SESSION_TTL_SECONDS,
-} = await import("../lib/auth");
+} = await import("../lib/auth-server");
+const { setSessionCookie, clearSessionCookie } = await import("../lib/auth-client");
 
 const SAMPLE_SESSION = {
   token: "session-token-abc",
   user: { id: "user-1", email: "alice@example.com", role: "USER" },
 } as const;
 
-describe("apps/web/lib/auth.ts — session helpers (slice 4 cookie migration final)", () => {
+describe("apps/web/lib/auth-{server,client} — session helpers (slice 4 cookie migration final + slice 8.1.2 split)", () => {
   // -----------------------------------------------------------------------
   // document.cookie capture helper
   //

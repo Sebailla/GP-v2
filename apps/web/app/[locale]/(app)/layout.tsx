@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * (app) route group layout — slice 6 (T6.2).
  *
  * Server Component. Reads the `authjs.session-token` cookie via
- * `getSession()` (apps/web/lib/auth.ts). If no session is present,
+ * `getSession()` (apps/web/lib/auth-server.ts). If no session is present,
  * the layout redirects to the active locale's sign-in page.
  *
  * **Why a layout, not a per-page guard.** The layout is the single

@@ -1,21 +1,62 @@
 /**
- * apps/web/lib/auth-client.ts — slice 7 server/client split.
+ * apps/web/lib/auth-client.ts — slice 7 server/client split +
+ * slice 8.1.2 client-side surface expansion.
  *
  * Browser-only helpers: `setSessionCookie` (write the
  * `authjs.session-token` cookie via `document.cookie`) and
  * `clearSessionCookie` (expire it). The companion `auth-server.ts`
- * holds the server-only `getSession()`; the original
- * `lib/auth.ts` barrel re-exports both for backward compatibility
- * with existing call sites.
+ * holds the server-only `getSession()` plus the cookie
+ * read/decoder surface.
+ *
+ * **Slice 8.1.2 — `isSessionPayload` + `SessionPayload` move.** These
+ * were previously exported from `auth-server.ts` and re-exported by
+ * the (now-deleted) `lib/auth.ts` barrel. They describe the API
+ * login/register response shape — a contract that only the
+ * client-side forms consume (LoginForm + SignUpForm transform the
+ * JSON response into a `Session` cookie). Keeping them here means
+ * client components can pull them without transitively importing
+ * `next/headers` from `auth-server.ts`, which is the bug the
+ * slice 8.1.2 fix closes.
  *
  * **Why this matters.** The `document.cookie` API is browser-only;
  * bundling it into the server bundle would explode at runtime
  * (the server has no `document` global). Splitting the client-only
- * cookie writers into their own file lets the bundler tree-shake
- * the cookie code out of the server bundle cleanly.
+ * cookie writers + payload type-guard into their own file lets the
+ * bundler tree-shake the server code out of the client bundle cleanly.
  */
 
 import type { Session } from "./auth-server.js";
+
+/**
+ * Shape the auth API's login / register response takes. Mirrors the
+ * API's response contract (slice 4 batch 2). The form-level
+ * `onSuccess` narrows the parsed JSON to this shape before writing
+ * the cookie.
+ */
+export type SessionPayload = {
+	id: string;
+	email: string;
+	role: string;
+	sessionToken: string;
+};
+
+/**
+ * Type-guard for the auth API's login / register response. Returns
+ * `true` when the parsed JSON has the canonical `SessionPayload`
+ * shape (string `id` + `email` + `role` + `sessionToken`). Used by
+ * the forms to transform the API response into a `Session` without
+ * duplicating the shape check.
+ */
+export function isSessionPayload(value: unknown): value is SessionPayload {
+	if (typeof value !== "object" || value === null) return false;
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.id === "string" &&
+		typeof candidate.email === "string" &&
+		typeof candidate.role === "string" &&
+		typeof candidate.sessionToken === "string"
+	);
+}
 
 /**
  * Encode the session as a JSON string and write it to
