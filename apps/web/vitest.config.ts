@@ -104,6 +104,17 @@ export default defineConfig({
         find: /^next-intl\/server$/,
         replacement: path.resolve(__dirname, "node_modules/next-intl/dist/server.react-client.js"),
       },
+      // Slice 8.1.2 — the `server-only` marker package throws unconditionally
+      // when imported from a Node-side test runner (vitest runs in Node, not
+      // in a Next.js react-server context). The package ships an `empty.js`
+      // shim under the `react-server` export condition that does nothing; we
+      // alias it so vitest can import `auth-server.ts` (which uses the marker
+      // to gate itself against client bundling) without exploding at module
+      // load time.
+      {
+        find: /^server-only$/,
+        replacement: path.resolve(__dirname, "node_modules/server-only/empty.js"),
+      },
     ],
   },
 });

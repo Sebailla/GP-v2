@@ -13,11 +13,22 @@
  * by default. A file that imports `next/headers` (a server-only
  * module) must be in the App Router server bundle; otherwise the
  * build fails with "next/headers import is only valid in Server
- * Components in the App Router, but you are using it in the
- * Pages Router". Splitting `lib/auth.ts` into
+ * Components in the App Router, but you are using it in the Pages
+ * Router". Splitting `lib/auth.ts` into
  * `auth-server.ts` + `auth-client.ts` + the barrel makes the
  * server / client boundary explicit, which the bundler
  * understands.
+ *
+ * **The `import "server-only"` guard (slice 8.1.2).** This is a
+ * Next.js convention marker package: importing it from a module
+ * that ends up in a client bundle throws at build time, which
+ * makes the server-only contract explicit at the bundler level.
+ * It is preventative — the build still fails (the barrel still
+ * re-exports `getSession` from here, so client code that pulls
+ * the barrel still pulls this file transitively), but a future
+ * refactor that accidentally imports this file from a client
+ * module would now fail loudly at build time instead of silently
+ * bundling `next/headers` into the client tree.
  *
  * The split is purely a build-system concern. The behavior is
  * unchanged: `getSession()` reads the cookie via `next/headers`
@@ -25,6 +36,8 @@
  * `clearSessionCookie` write / expire the cookie via
  * `document.cookie` on the client.
  */
+
+import "server-only";
 
 import { cookies } from "next/headers";
 
