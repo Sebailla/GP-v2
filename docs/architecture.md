@@ -776,4 +776,270 @@ caught in unit tests.
 
 { #section-9 }
 
+## 10. ESLint boundary rules — the five-rule enforcement loop
+
+The custom ESLint plugin at `tools/eslint-plugin-boundary/` encodes
+the architectural contract as a flat-config ESLint plugin. Five
+rules cover the four code-side boundaries plus the one docs-side
+boundary. Each rule ships with a fixture pair (an `invalid.<ext>`
+that must fire the rule, and a `valid.<ext>` that must stay silent);
+the rule sanity check is `pnpm lint:fixtures`, which MUST exit 0
+on every commit that touches the plugin or its fixtures.
+
+### 10.1 The four code-side rules
+
+| Rule | Forbidden shape | Where it fires | Why it exists |
+|---|---|---|---|
+| `no-prisma-outside-core` | `new PrismaClient()`, `new Prisma.<Model>Delegate`, `Prisma.dmmf`, etc. anywhere except `libs/core/database/src/` | All `*.ts` / `*.tsx` / `*.js` / `*.cjs` / `*.mjs` | AGENTS.md §7 — single Prisma client; consumer adapters reach for `@core/database` only |
+| `no-schemas-outside-shared` | Zod `z.object(...)`, `z.enum(...)`, `z.discriminatedUnion(...)`, etc. outside `libs/features/<x>/shared/schemas/` + `libs/core/config/env.schema.ts` | All code-side files | AGENTS.md §7 — single home for schema literals; client form + server ZodValidationPipe import the same schema |
+| `no-cross-module-import` | `from "@features/<x>/..."` across slices (e.g. transactions imports from auth) | All code-side files | AGENTS.md §7 — cross-slice reach-throughs must go through `@core/events` or a shared port, never a direct file path |
+| `no-client-server-import` | `from "*/server/..."` inside `libs/features/<x>/client/*` (and the symmetric `from "*/client/..."` inside `libs/features/<x>/server/*`) | The `client/` folder when it exists; the symmetric guard fires once the `client/` directories ship | Split-architecture enforcement — the boundary exists for a reason |
+
+For `no-cross-module-import`, the rule reads the importing file's
+path and refuses the import before it reaches the type-checker.
+Same logic for `no-client-server-import` once `client/` lands.
+
+### 10.2 The one docs-side rule
+
+The fifth rule, `no-mojibake-in-docs`, scans
+`Documents-es/**/*.md` for CJK / ideographic codepoints (the
+auto-translation drift that polluted the mirror before slice 8).
+It uses an ESLint `Program` visitor plus `sourceCode.getText()` to
+report every offending codepoint with the file path and offset.
+Wired in slice 8 PR #3 (`b2f3401`) with `@eslint/markdown@8.0.3`
+(exact pin — no caret — per slice-1 §5 Stack-churn mitigation).
+
+The rule is scoped to `Documents-es/**/*.md` in `eslint.config.mjs`,
+not to `*.ts` / `*.tsx`: without the scoping, Spanish prose in
+TypeScript comments would erroneously fire the rule (a regression
+class the runner caught during slice-8 PR #3's triangulation).
+The `tools/eslint-plugin-boundary/__fixtures__/no-mojibake-in-docs/Documents-es/`
+folder holds `invalid.md` (CJK on lines 6 and 8 — pre-existing),
+`secondCjkLine.invalid.md` (CJK on line 5 — added in slice 8 PR #3
+to triangulate line-position dependency), and `valid.md` (no CJK).
+
+### 10.3 Fixture-runner contract
+
+`tools/eslint-plugin-boundary/scripts/run-fixtures.mjs` is a tiny
+single-purpose runner — no `jest`, no `vitest`. For each rule in
+the `RULES` array, it:
+
+1. globs `__fixtures__/<rule-name>/{valid,invalid}.<ext>`,
+2. invokes ESLint programmatically on each fixture,
+3. asserts `valid.*` reports 0 errors and `invalid.*` reports ≥1
+   error, and
+4. prints a `PASS` / `FAIL` line per fixture.
+
+For `no-mojibake-in-docs`, an extra step scans every production
+`Documents-es/**/*.md` (excluding `__fixtures__/`) and asserts
+zero CJK codepoints — exit 1 with the offending path on a hit.
+`pnpm lint:fixtures` MUST exit 0 in CI; the slice-8 PR #3 commit
+made it part of the merge gate via the BDD gate + the rule
+triangulation.
+
+The runner's per-rule `allowMultipleInvalids` flag
+(slice-8 PR #3 design §4.4) keeps the four `.ts` rules on the
+single-invalid-fixture invariant while allowing the `.md` rule
+to accumulate triangulation cases (today:
+`invalid.md` + `secondCjkLine.invalid.md`).
+
+### 10.4 Why ESLint, not a separate CI check
+
+The natural temptation is to enforce these rules in a separate
+linter — a bash script, a custom CLI, a pre-commit hook. Three
+reasons the rules live as ESLint:
+
+1. **Editor feedback.** ESLint integrates with every editor
+   the team uses (VSCode, JetBrains). The same rule fires on
+   save AND in CI AND in `pnpm lint`. A standalone script has
+   CI feedback but no editor feedback; the round-trip from
+   "I just broke the boundary" to "VSCode squiggly" is the only
+   fast enough signal humans pick up.
+2. **Auto-fix where applicable.** Some ESLint rules can ship
+   `--fix`-able suggestions. None of the five boundary rules
+   do today (the fixes would be invasive), but the door is
+   open — and an ESLint shape is the prerequisite.
+3. **One config, one command.** `eslint.config.mjs` is the
+   single source of truth. Adding a sixth rule is a PR to the
+   plugin + a fixture pair; no separate linter to wire up.
+
+The ESLint plugin is intentionally CommonJS `.cjs` (not
+TypeScript) — per spec §"Out of scope" item 7, refactoring it
+to TypeScript is its own change with its own SDD lifecycle.
+
+{ #section-10 }
+
+## 11. Branch model + SDD workflow
+
+The reference scaffold's branch model and commit conventions are
+the two docs that determine whether new work lands in a way the
+team can review. The shape is two-sided:
+
+- **Branching** is a deliberate chain that keeps `main` clean
+  and `develop` shippable.
+- **Committing** follows Conventional Commits so every commit
+  message answers "what changed and why" in one line; every
+  commit is atomic so `git revert <sha>` reverses one logical
+  unit of behavior.
+
+### 11.1 The branch graph
+
+```
+main                 (immutable — GitHub-protected)
+  │
+  └── develop         (working branch — every PR targets here
+       │              until the slice-1 / slice-8 chain closes,
+       │              then forks off `feat/...` chains)
+       │
+       ├── feat/<version>-slice-<N>-<name>-<stage>     (child
+       │                                                  chains;
+       │                                                  each targets
+       │                                                  the tracker)
+       │     │
+       │     └── feat/<version>-slice-<N>-<name>-<stage>-<X>
+       │           (sub-child; targets the immediate parent)
+       │
+       └── fix/<short-name> / chore/<short-name> / docs/<short-name>
+             (single-shot PRs that target `develop` directly)
+```
+
+**`main` is immutable.** AGENTS.md §2 plus the GitHub
+branch-protection rule (`no force-push, no delete`) makes
+`main` write-once from the team's perspective. Every release
+tag is a squash-merge from `develop`; the tag itself is
+immutable history (`v1.1.1` is the current G2 release; `v1.1.2`
+lands when slice 8 closes).
+
+**`develop` is the integration branch.** Every PR that isn't
+explicitly chained onto a `feat/...` tracker merges directly
+into `develop`. The BDD gate (slice 8 PR-2, commit `c9d3112`)
+runs on every PR-to-`develop`; failure blocks merge.
+
+**Feature branches target the tracker.** When a change (a
+slice) is large enough to need chained PRs, the orchestrator
+opens a `feat/v<version>-slice-<N>-<name>` branch off `develop`
+and child PRs target that tracker. The tracker stays open /
+draft until every child PR has merged, then squash-merges to
+`develop` to close the slice. This is the `feature-branch-chain`
+strategy (defined in `openspec/config.yaml`); slice-7 and slice-8
+both follow it.
+
+**Branch naming convention** (slice 7 locked, slice 8 carried):
+`feat/<semver-bumped-major.minor>-slice-<N>-<short-name>`. The
+version bump reflects the change's semantics: `v1.1.x` series for
+backward-compatible features; `v1.2.x` for breaking changes;
+`v2.x` for major rewrites. Child branches append the stage:
+`feat/v1.1.2-slice-8-docs-arch-a2` is the second-stage child of
+the slice-8 tracker.
+
+### 11.2 Conventional Commits, atomic, no AI trailer
+
+Every commit message follows Conventional Commits (AGENTS.md §6):
+
+- **Type**: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`,
+  `build`, `ci`, `perf`, `style`. PR titles use the same
+  vocabulary.
+- **Scope**: the package or surface the change touches (auth,
+  bdd, web, architecture, lint, migrate). Required for slice
+  work; optional for one-line chores.
+- **Subject**: imperative present, ≤72 chars, no trailing
+  period. "Add foo" not "Added foo" or "Adds foo".
+- **Body**: explains WHY, not WHAT. The diff is the WHAT.
+
+Atomic commits (AGENTS.md §5): each commit represents one
+deliverable behavior, fix, migration, or docs unit. `git revert
+<sha>` reverses a task cleanly. Tests and docs stay with the
+code they verify.
+
+**No AI-attribution trailer.** AGENTS.md §6 hard rule. Commit
+messages MUST NOT contain `Co-Authored-By: <anything-AI>` or
+equivalent AI co-author lines. The committer is the human;
+the AI was the executor; the human owns the merge.
+
+### 11.3 Chained-PR + tracker pattern
+
+When a slice exceeds the 400-line review budget, the orchestrator
+applies the `ask-on-risk` delivery strategy (declared in
+`openspec/config.yaml`): stop, surface the workload forecast to the
+user, get an explicit split or a `size:exception` recorded before
+implementing. Slice 8 used this twice — once for PR-A2 (architecture
+§7-§12 + Spanish mirror, ~850 LOC), once for PR-B2 (playbook §8-§11 +
+Spanish mirror, ~950 LOC). The user accepted `size:exception` in
+both cases; the architecture and playbook shipped as single PRs
+with that annotation in the PR body.
+
+The chained-PR pattern uses **three rhythms**:
+
+1. **Simple chain (1 → 2 → 3)**: ordered, dependent. PR #1 must
+   land before PR #2; PR #2 must land before PR #3. The
+   auth-bridge → BDD-gate chain in slice 8 is this shape.
+2. **Parallel fan-out**: independent children, all targeting the
+   same tracker. Slice 8's `PR #3 + PR #4 + PR #6 + PR #8` were
+   a fan-out — zero mutual deps, all opened after PR #1+PR #2
+   merged.
+3. **Sequenced despite parallel-deps**: the file targets overlap.
+   `PR #5` (architecture §7-§12 EN) sequenced after `PR #4`
+   (architecture §1-§6 EN) because they touch the same file;
+   `PR #7` (playbook §8-§11) sequenced after `PR #6` (playbook
+   §1-§7) for the same reason.
+
+The chained-pr skill (`feature-branch-chain`) is the canonical
+reference for the merge-bookkeeping steps.
+
+{ #section-11 }
+
+## 12. Glossary + cross-references
+
+The full glossary lives in `openspec/changes/vertical-slicing-reference-scaffold/`
+as part of slice-1's locked decisions (decisions 1-11). This section
+re-states only the terms every reader of this document needs, plus
+links to the deeper material.
+
+### 12.1 Glossary (workspace-local)
+
+| Term | Meaning |
+|---|---|
+| Slice | A feature module under `libs/features/<x>/` with the four-folder contract (§8.1) |
+| Slice-package | One of `client/`, `server/`, `shared/`, `docs/` inside a slice; corresponds to a TypeScript subpath export |
+| Boundary | An enforced rule (ESLint or `tsconfig.base.json` path alias) that prevents one location from importing from another |
+| Bridge | The cucumber-step-binding factory at `libs/features/<x>/docs/support/register.ts`; the `a9b550d` callback-style wrapper pattern |
+| `AuthWorld` / `TxWorld` / `<X>World` | Per-scenario mutable state object passed as the first argument to every cucumber step binding |
+| World-wrapper | The class registered with `setWorldConstructor` in the bridge; exposes a typed `.inner: <X>World` and reads the world via `this` |
+| Service context | Module-level singleton constructed once per bridge load; carries cross-scenario persistence (`{ users, authService }`, etc.) |
+| Path alias | A `@scope/name` import alias declared in `tsconfig.base.json`; the only legal way to cross workspace boundaries |
+| Pure helper | A package under `libs/shared-utils/`; no I/O, no framework deps, no env reads (§7) |
+| D-TX-N | A Locked Decision number from slice-1's transactions design (D-TX-5: soft-delete; D-TX-6: decimal.js) |
+| G-N | A proposal-level outcome gate (G8: bridge fix; G14-18: docs slice outcome gates) |
+
+### 12.2 Cross-references
+
+- **Slice-1 source of truth** (locked decisions 1-11, all 9-domain-event
+  catalog, transaction design D-TX-1 through D-TX-6):
+  `openspec/changes/vertical-slicing-reference-scaffold/`
+- **Slice-8 change folder** (this slice's proposal / spec / design / tasks):
+  `openspec/changes/slice-8-closing-bdd-and-docs/`
+- **Migration playbook** (lands in `docs/migration-playbook.md`):
+  slice 8 PR-B1 (sections 1-7) + PR-B2 (sections 8-11 + Spanish mirror);
+  the playbook is the executable companion to §8.4's "extract
+  notifications" worked example.
+- **AGENTS.md** (project-local conventions — branch model,
+  strict TDD, atomic commits, conventional commits, boundary
+  rules, SSoT, UI-complete-not-scaffold, Spanish mirror hard
+  rule): `AGENTS.md` at the repo root.
+- **README.md** (entry point — stack summary, scripts,
+  one-shot setup): `README.md` at the repo root.
+- **G2 GitHub release tag** (the milestone this slice rounds
+  out toward): `v1.1.1` on `main`. Slice-8 closes by
+  incrementing to `v1.1.2`.
+- **Existing Spanish mirrors** (kept in sync per AGENTS.md §13):
+  `Documents-es/openspec/changes/slice-8-closing-bdd-and-docs/design.md`
+  (the design's Spanish mirror, established in slice 8's
+  design phase). This PR adds `Documents-es/docs/architecture.md`
+  for the new sections §7-§12.
+- **Slice-7 chain evidence** (squash `bb25aab` on `develop`;
+  bridge-fix commit `a9b550d` on `libs/features/transactions/docs/support/register.ts`):
+  the canonical pattern every new bridge ports from.
+
+{ #section-12 }
+
 
