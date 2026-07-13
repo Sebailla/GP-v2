@@ -54,6 +54,7 @@ const RULES = [
   { name: "no-prisma-outside-core" },
   { name: "no-schemas-outside-shared" },
   { name: "no-cross-module-import" },
+  { name: "no-import-type-injectable" },
   // `no-mojibake-in-docs` opts in to multiple invalid fixtures so the
   // triangulation case (CJK on a non-first line) can land alongside the
   // primary fixture (CJK on first lines). Both must still report >=1 CJK.
