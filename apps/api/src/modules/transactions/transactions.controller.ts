@@ -20,11 +20,11 @@ import type { Request } from "express";
 import {
   CategoryAlreadyExistsError,
   CategoryNotFoundError,
-  type CategoryService,
+  CategoryService,
   IdempotencyKeyReusedError,
-  type ThresholdService,
+  ThresholdService,
   TransactionNotFoundError,
-  type TransactionService,
+  TransactionService,
   UnsupportedCurrencyPairError,
   categoryCreateSchema,
   categoryUpdateSchema,
@@ -84,10 +84,14 @@ import { QuerySchema } from "../../shared/decorators/query.decorator.js";
  * dispatch for downstream subscribers (notification, audit, slice-6+
  * dashboard).
  *
- * AUTO-FORMATTER NOTE: NestJS's reflective DI reads `import { Foo }`
- * symbols as runtime class references, not types. `verbatimModuleSyntax`
- * keeps the runtime imports intact here so the container can resolve
- * each constructor parameter.
+ * AUTO-FORMATTER MITIGATION (per ADR 0008): NestJS's reflective DI
+ * reads `import { Foo }` symbols as runtime class references, not
+ * types. Under `isolatedModules: true` (`tsconfig.base.json` line 10)
+ * the `import { type Foo }` form is fully erased at compile time and
+ * Nest's container sees `undefined` for the constructor parameter.
+ * The `_ServiceAnchor` static field references each service as a
+ * VALUE so the symbols survive any future biome reformat. Enforced
+ * by ESLint rule `@gpr/boundary/no-import-type-injectable`.
  */
 @Controller("/transactions")
 @UseGuards(JwtAuthGuard)
@@ -383,6 +387,20 @@ export class TransactionsController {
     if (body.occurredAt !== undefined) result["occurredAt"] = body.occurredAt;
     return result as Parameters<TransactionService["update"]>[1];
   }
+
+  /**
+   * Runtime anchor — LAST field, defensive against future `import type`
+   * regressions (see ADR 0008 + ESLint rule
+   * `@gpr/boundary/no-import-type-injectable`). The anchor references
+   * each service as a VALUE so that even if a future auto-formatter
+   * rewrites the import to `import { type Service }`, the symbols
+   * remain reachable at runtime.
+   */
+  private static readonly _ServiceAnchor: ReadonlyArray<unknown> = [
+    CategoryService,
+    ThresholdService,
+    TransactionService,
+  ] as const;
 }
 
 // ---- module-private helpers ----
