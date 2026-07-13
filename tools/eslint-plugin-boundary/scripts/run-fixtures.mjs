@@ -264,6 +264,36 @@ for (const rule of RULES) {
   }
 }
 
+// Production-tree CJK scan: every Documents-es/**/*.md file under the
+// repo root MUST be CJK-clean. The eslint.config.mjs ignores list
+// (line 30) already excludes __fixtures__/** so this glob sees only
+// production mirrors. Mirrors the rule's AST Program/root scan via
+// lib/cjk-detect.cjs.
+console.log("");
+console.log("Production Documents-es/**/*.md CJK scan:");
+const prodMirrorFiles = [];
+for await (const entry of glob("Documents-es/**/*.md", { cwd: repoRoot })) {
+  prodMirrorFiles.push(resolve(repoRoot, entry));
+}
+for (const file of prodMirrorFiles) {
+  const text = readFileSync(file, "utf8");
+  const hits = findCjkInText(text);
+  if (hits.length === 0) {
+    passed += 1;
+    console.log(`PASS  ${relative(repoRoot, file)}  (clean)`);
+  } else {
+    failures.push({
+      rule: "no-mojibake-in-docs",
+      fixture: relative(repoRoot, file),
+      reason: `production mirror contains ${hits.length} CJK codepoints`,
+    });
+    failed += 1;
+    console.error(
+      `FAIL  ${relative(repoRoot, file)}  (${hits.length} CJK codepoints)`,
+    );
+  }
+}
+
 console.log("");
 console.log(`Fixture summary: ${passed} passed, ${failed} failed`);
 console.log(`Total violations across invalid fixtures: ${totalViolations}`);
