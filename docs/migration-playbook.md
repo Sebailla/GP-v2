@@ -564,3 +564,283 @@ echo $?   # must be 0
 
 { #stage-40 }
 
+## Stage 40 — port tests (Vitest + BDD)
+
+**Goal**: move Vitest suites and Cucumber `.feature` files into the
+slice's `__tests__/` and `docs/` directories without losing coverage
+or scenarios.
+
+**Inputs**: Vitest files under `src/modules/<feature>/__tests__/` and
+BDD files under `src/modules/<feature>/bdd/`. The slice's
+`vitest.config.ts` MUST include `../docs/__tests__/**/*.test.ts` for
+the BDD bridge tests to be discovered — see architecture.md §9.5 and
+the discovery gap closed by slice-8 PR #1.
+
+**Actions**:
+
+1. Move every `*.test.ts` from `src/modules/<feature>/__tests__/`
+   into `libs/features/<feature>/server/src/__tests__/` (Vitest) or
+   `libs/features/<feature>/docs/__tests__/` (BDD bridge tests).
+2. Move every `*.feature` into
+   `libs/features/<feature>/docs/*.feature`. Per slice-1 Locked
+   Decision #3 each slice ships **4–6 `.feature` files**; create
+   stubs if the monolith has fewer.
+3. Move `step-defs/` into
+   `libs/features/<feature>/docs/step-defs/`. Each binding is its
+   own file (`common.steps.ts`, `realm.steps.ts`, etc.).
+4. Add `../docs/__tests__/**/*.test.ts` to
+   `libs/features/<feature>/server/vitest.config.ts` `include`.
+   Without this line the BDD bridge test is silently skipped by
+   `pnpm --filter @features/<feature> test`.
+5. Port the BDD bridge per the **cucumber-13 callback-style
+   wrapper** (architecture.md §9.2). The wrapper class
+   `<Feature>WorldWrapper` exposes per-scenario `World.inner`;
+   `setWorldConstructor` MUST be called from the bridge so
+   cucumber's `thisArg` mechanism works.
+6. Run `pnpm --filter @features/<feature> test` until GREEN; then
+   `pnpm --filter @features/<feature> bdd` until all scenarios
+   pass. Apply the **RED → GREEN → TRIANGULATE → REFACTOR**
+   discipline (AGENTS.md §4) to every new test added during the
+   port.
+
+**Before — `src/modules/auth/__tests__/auth.service.test.ts`**:
+
+```ts
+import { AuthService } from "../services/auth.service";
+import { AuthRepository } from "../infrastructure/auth.repository";
+
+describe("AuthService", () => {
+  it("verifies a password", async () => {
+    const repo = new AuthRepository();
+    const svc = new AuthService(repo);
+    expect(await svc.verifyPassword("a@b.c", "hunter2")).toBe(true);
+  });
+});
+```
+
+**After — `libs/features/auth/server/src/__tests__/auth.service.test.ts`**:
+
+```ts
+import { describe, it, expect } from "vitest";
+import { AuthService } from "../application/services/auth.service.js";
+import { AuthRepository } from "../infrastructure/auth.repository.js";
+
+describe("AuthService", () => {
+  it("verifies a password", async () => {
+    const repo = new AuthRepository();
+    const svc = new AuthService(repo);
+    expect(await svc.verifyPassword("a@b.c", "hunter2")).toBe(true);
+  });
+});
+```
+
+**Before — `apps/api/src/modules/auth/auth.steps.ts`** (bindings
+live with the monolith module):
+
+```ts
+import { Given } from "@cucumber/cucumber";
+import type { AuthWorld } from "./auth.world";
+
+Given("a user with email {string}", function (email: string) {
+  this.user = { email, password: "hunter2" };
+});
+```
+
+**After — `libs/features/auth/docs/step-defs/common.steps.ts`**
+(bindings live with the slice; the bridge re-publishes them):
+
+```ts
+import { Given } from "@cucumber/cucumber";
+import type { AuthWorld } from "./world.js";
+
+export const stepDefinitions = [
+  Given("a user with email {string}", function (this: AuthWorld, email: string) {
+    this.user = { email, password: "hunter2" };
+  }),
+  // ... 34 more entries
+];
+```
+
+**Before — `src/modules/auth/auth.hooks.ts`** (legacy cucumber
+bootstrap; replaced by the bridge):
+
+```ts
+import { Before } from "@cucumber/cucumber";
+
+Before(function () {
+  this.startTime = Date.now();
+});
+```
+
+**After — `libs/features/auth/docs/support/register.ts`** (the
+bridge file; sets up `setWorldConstructor` for the wrapper):
+
+```ts
+import { Given, When, Then, setWorldConstructor } from "@cucumber/cucumber";
+import { stepDefinitions as authCommon } from "../step-defs/common.steps.js";
+import { stepDefinitions as authRealm } from "../step-defs/realm.steps.js";
+import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
+
+const ALL_BINDINGS = [...authCommon, ...authRealm];
+
+for (const { keyword, pattern, fn } of ALL_BINDINGS) {
+  const register = { Given, When, Then }[keyword];
+  if (!register) continue;
+  register(pattern, function (this: AuthWorldWrapper, ...args: unknown[]) {
+    return fn.call(this.inner, ...args);
+  });
+}
+
+class AuthWorldWrapper {
+  public readonly inner: AuthWorld = createAuthWorld();
+}
+
+setWorldConstructor(AuthWorldWrapper as unknown as new () => AuthWorld);
+
+export function registerBinding(): void {
+  /* bindings registered at module load */
+}
+```
+
+The bridge re-publishes every entry from `ALL_BINDINGS` so
+cucumber's loader sees them at startup. `AuthWorldWrapper` is the
+indirection cucumber's `thisArg` mechanism requires — it carries the
+per-scenario `AuthWorld` while the module-level singleton
+(`service-context.ts`) keeps cross-scenario state.
+
+**Done when**:
+
+```bash
+pnpm --filter @features/<feature> test      # all vitest PASS
+pnpm --filter @features/<feature> bdd       # all cucumber PASS
+```
+
+{ #stage-50 }
+
+## Stage 50 — update docs
+
+**Goal**: keep `docs/architecture.md` honest about what the slice
+ships, so the next person (or AI agent) does not have to reverse-
+engineer the layout from fifty files.
+
+**Inputs**: the slice from Stage 40 + `docs/architecture.md`. The
+Spanish mirror under `Documents-es/docs/architecture.md` MUST ship
+in the same atomic commit-or-chain (AGENTS.md §13; PR-B2 ships the
+mirror).
+
+**Actions**:
+
+1. Read `docs/architecture.md` §2 (Repository layout) and §8
+   (Slicing contract). Confirm the slice's path appears in §2 and
+   the four-folder contract is reflected in §8.
+2. If the slice introduced a new pattern (e.g. a new event
+   category in `@core/events`), update the relevant section in the
+   SAME atomic commit as the slice code.
+3. If the slice uncovered a new boundary rule violation pattern,
+   document the finding as an addendum to architecture.md §10.
+4. If the slice needed a new `tsconfig.base.json` path alias,
+   mention it in architecture.md §3 (Monorepo tooling).
+5. Run the mojibake verification —
+   `grep -P '[\x{4e00}-\x{9fff}]' Documents-es/docs/architecture.md`
+   MUST exit `1` (no match). AGENTS.md §13 enforces this contract.
+
+**Before — `docs/architecture.md` §2** (the slice does not exist):
+
+```text
+libs/
+├── core/                # database, events, config
+├── features/
+│   ├── auth/            # { server, shared, docs }
+│   └── transactions/    # { server, shared, docs }
+└── shared-utils/        # currency, date-formatting, decimal
+```
+
+**After — `docs/architecture.md` §2** (the new slice appears in the
+tree):
+
+```text
+libs/
+├── core/                # database, events, config
+├── features/
+│   ├── auth/            # { server, shared, docs }
+│   ├── notifications/   # NEW — extracted from monolith via the playbook
+│   └── transactions/    # { server, shared, docs }
+└── shared-utils/        # currency, date-formatting, decimal
+```
+
+**Before — `docs/architecture.md` §8.4** has a placeholder for the
+worked example:
+
+```md
+### 8.4 Worked example — extracting `notifications` from a monolith
+
+_Pending. This worked example lands when the first non-auth,
+non-transactions slice migrates._
+```
+
+**After — `docs/architecture.md` §8.4** documents the migration:
+
+```md
+### 8.4 Worked example — extracting `notifications` from a monolith
+
+The `notifications` slice was migrated on 2026-07-13 following
+[`docs/migration-playbook.md`](./migration-playbook.md) §1-§7.
+Original tree: `apps/api/src/modules/notifications/` (4 files,
+~120 LOC). Migrated tree:
+`libs/features/notifications/{client,server,shared,docs}/` (16 files,
+~620 LOC including the bridge test). Stages 10-50 took ~3 hours
+including the bridge port. The slice's only external surface is
+`@features/notifications-server`, exporting `NotificationsService`
+and `NotificationsController`. The `no-cross-module-import` boundary
+rule fires on any attempt to import the slice from a sibling slice
+directly — consumers MUST route through `@core/events`.
+```
+
+**Before — `docs/architecture.md` §9** (BDD colocated strategy):
+
+```md
+## 9. BDD colocated strategy
+
+The reference repo ships BDD in `libs/features/<feature>/docs/`.
+The current slices are:
+
+- `auth` — 18 scenarios across 4 `.feature` files.
+- `transactions` — 25 scenarios across 5 `.feature` files.
+```
+
+**After — `docs/architecture.md` §9** (the new slice adds its
+scenario count):
+
+```md
+## 9. BDD colocated strategy
+
+The reference repo ships BDD in `libs/features/<feature>/docs/`.
+The current slices are:
+
+- `auth` — 18 scenarios across 4 `.feature` files.
+- `transactions` — 25 scenarios across 5 `.feature` files.
+- `notifications` — 11 scenarios across 4 `.feature` files (new).
+```
+
+**Done when**:
+
+```bash
+git diff --stat -- 'docs/architecture.md'
+grep -E 'libs/features/<feature>' docs/architecture.md
+echo $?   # must be 0
+```
+
+Stage 50 is the last stage PR-B1 ships. PR-B2 adds §8-§11 (Stage 99
+finalize + ESLint enforcement loop + `@core/events` + glossary);
+PR-C adds the seven idempotent `scripts/migrate/<stage>.sh` shells.
+Until those land, treat the prose in this document as the
+authoritative recipe and translate each stage into shell commands
+by hand.
+
+---
+
+> **Next**: PR-B2 appends [§8 Stage 99 — finalize](./architecture.md#section-11)
+> (the pre-PR checklist + rollback boundary), §9 (ESLint boundaries
+> as the enforcement loop), §10 (when to introduce `@core/events`),
+> and §11 (glossary + cross-references). PR-B2 also ships
+> `Documents-es/docs/migration-playbook.md` per AGENTS.md §13.
