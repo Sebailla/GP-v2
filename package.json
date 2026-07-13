@@ -15,6 +15,7 @@
     "lint": "turbo run lint",
     "lint:fixtures": "node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs",
     "test": "turbo run test",
+    "test:migrate": "bash scripts/migrate/__tests__/idempotency.test.sh",
     "typecheck": "turbo run typecheck",
     "bdd": "turbo run bdd",
     "e2e": "turbo run e2e",
