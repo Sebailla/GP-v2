@@ -100,8 +100,13 @@ export function TransactionsList() {
                 : t("error.load"),
         });
       }
+      // listTransactions + filters are captured in closure; `t` is the
+      // only external dependency. `fetchers` was removed from deps —
+      // it was a no-op placeholder that changed identity every render
+      // and caused an infinite render loop in vitest when
+      // `listTransactions` was mocked to `new Promise(() => {})`.
     },
-    [fetchers, t],
+    [t],
   );
 
   React.useEffect(() => {
@@ -232,12 +237,6 @@ export function TransactionsList() {
       )}
     </div>
   );
-
-  function fetchers() {
-    // Empty ref so the useEffect dependency is stable; the actual
-    // filters are captured in the callback's closure.
-    return null;
-  }
 }
 
 /**
