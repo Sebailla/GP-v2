@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "bdd": "cd ../docs && NODE_OPTIONS='--import tsx/esm' cucumber-js --config cucumber.mjs"
+    "bdd": "cd ../docs && NODE_OPTIONS='--import tsx/cjs' cucumber-js --config cucumber.mjs"
   },
   "dependencies": {
     "@core/config": "workspace:*",
