@@ -19,7 +19,18 @@
       "@/*": ["apps/web/*"],
       "@features/auth": ["libs/features/auth/server/src/index.ts"],
       "@features/auth/*": ["libs/features/auth/*"],
-      "@features/transactions/shared/*": ["libs/features/transactions/shared/*"]
+      "@features/transactions/shared/*": ["libs/features/transactions/shared/*"],
+      // zod path mapping closes the orphan-schema resolution gap for web#build:
+      // apps/web components import @features/auth/shared/schemas (e.g. LoginForm),
+      // which TypeScript resolves through apps/web/tsconfig.json paths to
+      // libs/features/auth/shared/schemas/*. The shared/ directories have no
+      // package.json, so the bare 'zod' specifier inside them cannot be resolved
+      // by the Bundler module resolution from apps/web's perspective. This
+      // mapping mirrors the apps/api/tsconfig.json fix and points to the same
+      // pnpm-canonical store entry. apps/web still uses zod 3.24.1 at runtime
+      // (apps/web/node_modules/zod); this mapping is TS-only and does not
+      // affect Node runtime resolution.
+      "zod": ["node_modules/.pnpm/zod@4.4.3/node_modules/zod"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
