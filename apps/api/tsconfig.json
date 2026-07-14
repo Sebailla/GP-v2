@@ -29,12 +29,7 @@
       "@features/auth/*": ["libs/features/auth/*"],
       "@features/transactions": ["libs/features/transactions/server"],
       "@features/transactions/*": ["libs/features/transactions/*"],
-      "@shared-utils/*": ["../libs/shared-utils/*"],
-      // zod path mapping closes the orphan-schema resolution gap:
-      // `libs/features/{auth,transactions}/shared/` has no package.json, so
-      // Node10 ancestor-walk cannot reach zod. This mapping intercepts ALL
-      // files compiled by apps/api's tsc (including the orphan schemas).
-      "zod": ["node_modules/.pnpm/zod@4.4.3/node_modules/zod"]
+      "@shared-utils/*": ["../libs/shared-utils/*"]
     }
   },
   "include": [
