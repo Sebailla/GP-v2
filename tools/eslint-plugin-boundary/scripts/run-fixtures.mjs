@@ -54,6 +54,11 @@ const RULES = [
   { name: "no-prisma-outside-core" },
   { name: "no-schemas-outside-shared" },
   { name: "no-cross-module-import" },
+  // `no-import-type-injectable` requires the TypeScript parser so the
+  // runner can see decorator metadata + type-only import specifiers
+  // (`importKind: 'type'`). Espree's default parser cannot represent
+  // either, so the rule opts in to a TS parser via `parser: "ts"`.
+  { name: "no-import-type-injectable", parser: "ts" },
   // `no-mojibake-in-docs` opts in to multiple invalid fixtures so the
   // triangulation case (CJK on a non-first line) can land alongside the
   // primary fixture (CJK on first lines). Both must still report >=1 CJK.
@@ -87,22 +92,40 @@ async function findFixtures(ruleDir, variant, ext) {
 
 /**
  * Lint a .ts fixture via ESLint, applying ONLY the named rule.
+ *
+ * `parser: "ts"` opt-in: rules that need to see TypeScript-specific
+ * AST nodes (decorators, `importKind: "type"`, type annotations) opt
+ * into the TS parser. The default parser (espree) cannot represent
+ * these node kinds, so without the opt-in the rule's predicates
+ * cannot fire and the runner crashes with parse errors instead of
+ * reporting the expected diagnostic count.
  */
-async function lintTsFixture(ruleName, fixture) {
+async function lintTsFixture(ruleName, fixture, parserOpt) {
+  const baseConfig = {
+    files: ["**/*.ts"],
+    plugins: { "@gpr/boundary": plugin },
+    rules: {
+      [`@gpr/boundary/${ruleName}`]: "error",
+    },
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+    },
+  };
+  if (parserOpt === "ts") {
+    // Resolve @typescript-eslint/parser from the workspace. The runner
+    // lives under tools/eslint-plugin-boundary/scripts/ and uses
+    // createRequire(import.meta.url) so node_modules resolution walks
+    // up to the repo root. The TS parser emits decorator metadata +
+    // `importKind: "type"` per specifier, which is exactly the AST
+    // shape the no-import-type-injectable rule's predicates inspect.
+    const tsParser = require("@typescript-eslint/parser");
+    baseConfig.languageOptions.parser = tsParser;
+  }
   const eslint = new ESLint({
     cwd: repoRoot,
     overrideConfigFile: true,
-    baseConfig: {
-      files: ["**/*.ts"],
-      plugins: { "@gpr/boundary": plugin },
-      rules: {
-        [`@gpr/boundary/${ruleName}`]: "error",
-      },
-      languageOptions: {
-        ecmaVersion: 2022,
-        sourceType: "module",
-      },
-    },
+    baseConfig,
   });
   return eslint.lintFiles([fixture]);
 }
@@ -192,7 +215,7 @@ for (const rule of RULES) {
     let runnerThrew = null;
     try {
       if (ext === "ts") {
-        const results = await lintTsFixture(rule.name, fixture);
+        const results = await lintTsFixture(rule.name, fixture, rule.parser);
         result = results[0] ?? { errorCount: 0, fatalErrorCount: 0, messages: [] };
       } else {
         result = detectCjkInMdFixture(fixture);
