@@ -37,30 +37,31 @@ export default defineConfig({
     globals: false,
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
-    // Slice 7 PR-7: the happy-dom 20.10 + vitest 4.1 worker pool
-    // has a known instability with React 18 + useEffect-driven state
-    // updates in component trees (e.g. EditTransactionForm's
+    // Slice 7 PR-7 (commit 36386e1): the happy-dom 20.10 + vitest 4.1
+    // worker pool has a known instability with React 18 + useEffect-
+    // driven state updates in component trees (e.g. EditTransactionForm's
     // mount-then-load-then-setState pattern). The worker exits
     // prematurely after ~3-4 minutes with the default
     // `pool: "threads"` setting when 5 forms × 5 states race each
     // other in the same worker.
     //
-    // Fix: serialize the test suite by switching to the
-    // `forks` pool with `singleFork: true`. Tests run serially in
-    // a single fork, which is slower (~30% slower) but stable.
-    // The throughput regression is acceptable for the 25-test
-    // state-coverage harness; the rest of the apps/web unit
-    // suite is small enough that the regression is in the noise.
+    // Fix: serialize the test suite by switching to the `forks` pool
+    // with a single worker and no isolation between test files. Tests
+    // run serially in one fork, which is slower (~30% slower) but
+    // stable. The throughput regression is acceptable for the 25-test
+    // state-coverage harness; the rest of the apps/web unit suite is
+    // small enough that the regression is in the noise.
+    //
+    // DO NOT drop `maxWorkers: 1` or set `isolate: true` without
+    // re-reading slice 7 — the worker-pool OOM regresses.
+    //
+    // Vitest 4 migration: `poolOptions.forks.singleFork` is removed
+    // in vitest 4 (https://vitest.dev/guide/migration#pool-rework);
+    // the upstream-blessed replacement is the top-level
+    // `pool` + `maxWorkers` + `isolate` triple below.
     pool: "forks",
-    // @ts-expect-error — poolOptions is in the vitest runtime config
-    // but not on the strict `InlineConfig` type in vitest 4.1.
-    // The fix in the upstream type is queued; using a comment here
-    // is cheaper than the `@ts-expect-error` on the whole line.
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    maxWorkers: 1,
+    isolate: false,
     // Bounded test timeouts. Default is 5s; the slice 6 PR-D
     // EditTransactionForm `prefills` test needs a longer window
     // for the `findByDisplayValue` poll (the happy-dom worker

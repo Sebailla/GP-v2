@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { beforeAll, vi } from "vitest";
 
 /**
  * Vitest setupFiles hook for `apps/web` — slice 4 batch 4b.
@@ -75,3 +75,31 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   useParams: () => ({}),
 }));
+
+/**
+ * Vitest 4 + `isolate: false` cross-file isolation hook.
+ *
+ * `fix-vitest-4-deprecation` (commit 06eda80) migrated the apps/web
+ * vitest config to the Vitest 4 top-level pool shape
+ * (`pool: "forks"` + `maxWorkers: 1` + `isolate: false`,
+ * https://vitest.dev/guide/migration#pool-rework). The previous
+ * attempt of this change was BLOCKED at T1 verify: with `isolate: false`
+ * the global `vi.mock("next/navigation", ...)` above PERSISTS ACROSS
+ * test files in the same worker, and 7-21 auth-page tests fail
+ * non-deterministically because the mock state leaks between files
+ * (e.g. a `vi.fn()` count from one file bleeds into the next).
+ *
+ * The Vitest 4 migration guide prescribes:
+ *   "If your tests were relying on module reset between tests,
+ *    you'll need to add setupFile that calls `vi.resetModules()` in
+ *    `beforeAll` test hook."
+ *
+ * `beforeAll` runs once per test file (not per test), so the cost is
+ * one extra module-graph reset per file — well below the OOM-causing
+ * happy-dom isolated-runner cost we're avoiding. `clearMocks: true`
+ * in vitest.config.ts (L38) still resets the `vi.fn()` instances
+ * between individual tests; this hook handles the cross-file boundary.
+ */
+beforeAll(() => {
+  vi.resetModules();
+});
