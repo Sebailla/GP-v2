@@ -18,6 +18,7 @@
     "test:migrate": "bash scripts/migrate/__tests__/idempotency.test.sh",
     "typecheck": "turbo run typecheck",
     "bdd": "turbo run bdd",
+    "bdd:verify": "bash scripts/bdd/verify.sh",
     "e2e": "turbo run e2e",
     "coverage": "turbo run coverage",
     "db:up": "docker compose up -d postgres",
