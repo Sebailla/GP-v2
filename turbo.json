@@ -4,7 +4,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"],
+      "env": [
+        "DATABASE_URL",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "API_URL",
+        "WEB_ORIGIN",
+        "PORT",
+        "NODE_ENV"
+      ]
     },
     "dev": {
       "cache": false,
@@ -24,7 +33,16 @@
     },
     "bdd": {
       "dependsOn": ["build"],
-      "outputs": ["bdd-reports/**"]
+      "outputs": ["bdd-reports/**"],
+      "env": [
+        "DATABASE_URL",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "API_URL",
+        "WEB_ORIGIN",
+        "PORT",
+        "NODE_ENV"
+      ]
     },
     "e2e": {
       "dependsOn": ["build"],
