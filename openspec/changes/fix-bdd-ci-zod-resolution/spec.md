@@ -99,7 +99,7 @@ The package `apps/api/package.json` MUST move the entry `"zod": "^4.4.3"` from `
 The `apps/api/tsconfig.json` `compilerOptions.paths` block MUST contain an entry mapping the bare specifier `"zod"` to the pnpm-canonical hoisted location. The mapping value MUST be a **string array** (not a glob) pointing to a real on-disk path under `node_modules/.pnpm/zod@<version>/node_modules/zod`. Concretely the entry MUST read:
 
 ```json
-"zod": ["../../node_modules/.pnpm/zod@4.4.3/node_modules/zod"]
+"zod": ["node_modules/.pnpm/zod@4.4.3/node_modules/zod"]
 ```
 
 The mapping MUST be inserted as the **last** entry inside the existing `compilerOptions.paths` block (immediately after `"@shared-utils/*": ["../libs/shared-utils/*"]` at line 32). The relative-path resolution is from `apps/api/tsconfig.json` to the workspace root then into the `.pnpm` content-addressed store. The pnpm-canonical path (`node_modules/.pnpm/zod@<version>/node_modules/zod`) is invariant across pnpm's `public-hoist-pattern` settings.
@@ -159,7 +159,7 @@ The PR description SHOULD close with a "Known follow-up" section noting the arch
 #### Scenario: apps/api build exits 0 in a clean Linux container
 
 - GIVEN `apps/api/package.json` has `zod` in `dependencies` (not `devDependencies`)
-- AND `apps/api/tsconfig.json` has a `compilerOptions.paths` mapping for `zod` pointing to `../../node_modules/.pnpm/zod@4.4.3/node_modules/zod`
+- AND `apps/api/tsconfig.json` has a `compilerOptions.paths` mapping for `zod` pointing to `node_modules/.pnpm/zod@4.4.3/node_modules/zod` (bare path; `baseUrl: "../.."` handles the workspace-root anchoring)
 - WHEN `pnpm install --frozen-lockfile && pnpm --filter api build` is run in a clean Linux container with no `~/node_modules/zod` pollution
 - THEN exit code MUST be 0
 - AND no TS2307 errors about zod MUST be reported
@@ -307,8 +307,8 @@ This change is **config-only**. There is no production code to test, so the RED-
 | AC2 | `zod` is NOT in `apps/api/devDependencies` | `jq '.devDependencies.zod // "missing"' apps/api/package.json` returns `"missing"` |
 | AC3 | `zod` line in `dependencies` is byte-identical to pre-fix `devDependencies` line | `git log -p -- apps/api/package.json` shows the entry moved verbatim, version unchanged |
 | AC4 | `apps/api/tsconfig.json` has `zod` `paths` mapping | `jq '.compilerOptions.paths.zod // "missing"' apps/api/tsconfig.json` returns a 1-element array |
-| AC5 | The `zod` mapping points to the pnpm-canonical path | first element equals `"../../node_modules/.pnpm/zod@4.4.3/node_modules/zod"` |
-| AC6 | The mapping is a string, not a glob | element starts with `"../../node_modules/.pnpm/zod@"` (literal string, not a wildcard) |
+| AC5 | The `zod` mapping points to the pnpm-canonical path | first element equals `"node_modules/.pnpm/zod@4.4.3/node_modules/zod"` (bare path; no `../../` prefix — see §11 amend below) |
+| AC6 | The mapping is a string, not a glob | element starts with `"node_modules/.pnpm/zod@"` (literal string, not a wildcard) |
 | AC7 | JSDoc-style comment precedes the mapping | inspect tsconfig source lines: ≥3 consecutive `//` lines naming `libs/features/{auth,transactions}/shared/`, Node10 walk, and pnpm-canonical path, immediately above the `zod` paths key |
 | AC8 | `pnpm-lock.yaml` is regenerated | `git diff develop --stat pnpm-lock.yaml` shows non-zero byte changes |
 | AC9 | Lockfile diff is limited to apps/api zod snapshot reorder | manual `git diff develop -- pnpm-lock.yaml` review shows only the apps/api zod snapshot relocation; no other sections changed |
@@ -392,6 +392,10 @@ Rationale: per proposal §4.1, the proposal claims no spec-level behaviour chang
 **Resolved**: **YES — deferred to a separate `fix-orphan-shared-directories` change.**
 
 Rationale: the architecturally correct cleanup (turn `libs/features/{auth,transactions}/shared/` into proper workspace packages) is real but out of scope here. It would require each `shared/` directory to grow a `package.json` + `tsconfig.lib.json` + barrel `src/index.ts`, plus import-path updates in every consumer (`apps/api`, `apps/web`, `libs/features/{auth,transactions}/server/src/**`). At minimum a 5–10 PR change with its own design surface. Documented as a known follow-up in R13 (PR description "Known follow-up" section). When slice-9 starts (or whenever capacity allows), a separate `fix-orphan-shared-directories` change folder can be opened. Until then, the JSDoc comment (R3) is the breadcrumb that surfaces this gap to anyone editing the `paths` mapping.
+
+### Q6 — Design §8 Q1 spec↔design reconciliation (amended at apply time)
+
+**Amendment (2026-07-14, apply phase)**: the `paths` mapping value in R2, AC5, AC6, and the G1.1 Gherkin GIVEN clause above was corrected from `"../../node_modules/.pnpm/zod@4.4.3/node_modules/zod"` to `"node_modules/.pnpm/zod@4.4.3/node_modules/zod"` (drop `../../`). Root cause: `apps/api/tsconfig.json:10` already sets `"baseUrl": "../.."`, so `paths` entries resolve relative to `baseUrl` (workspace root), not the tsconfig file. The `../../`-prefixed value resolved to `<workspace-parent>/node_modules/.pnpm/...` (one level ABOVE the workspace root) and does not exist on this filesystem. Verified empirically via `path.resolve("../..", "../../node_modules/.pnpm/zod@4.4.3/node_modules/zod")` → `false` vs `path.resolve("../..", "node_modules/.pnpm/zod@4.4.3/node_modules/zod")` → `true`. The TypeScript compiler's `--traceResolution` log confirms every orphan-schema file (10 files across `libs/features/{auth,transactions}/shared/schemas/`) now resolves `zod` to `<workspace-root>/node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.d.cts`. The fix in `apps/api/tsconfig.json` uses the correct bare path; this spec is amended to match. See design.md §8 Q1 for the full rationale.
 
 ---
 
