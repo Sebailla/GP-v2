@@ -12,6 +12,9 @@ dist/
 out/
 build/
 
+# Next.js 16 auto-generated types file (auto-regenerated on every build)
+apps/web/next-env.d.ts
+
 # Prisma generated client (re-generated on `prisma generate`)
 libs/core/database/src/generated/
 
