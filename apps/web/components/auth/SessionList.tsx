@@ -57,7 +57,14 @@ export function SessionList() {
       if (!res.ok) {
         setState({
           kind: "error",
-          error: `${res.status} ${res.statusText}`,
+          // Guard against empty `statusText`: a real NestJS response
+          // sets the canonical reason phrase ("Internal Server Error",
+          // "Bad Request", etc.) and renders byte-identically to the
+          // prior template. A test mock that omits `statusText` would
+          // otherwise emit a trailing whitespace character
+          // (`<span>500 </span>`); per slice-9 spec R3 the DOM must
+          // contain no trailing whitespace when `statusText` is empty.
+          error: `${res.status}${res.statusText ? ` ${res.statusText}` : ""}`,
         });
         return;
       }

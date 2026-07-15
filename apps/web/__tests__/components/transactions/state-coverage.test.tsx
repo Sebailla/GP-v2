@@ -714,7 +714,12 @@ describe("SessionList 5-state coverage", () => {
   // directly via the global fetch, NOT via the transactions
   // api lib. The 5-state coverage here mocks the global fetch
   // instead of the lib.
-  function mockSessionsApi(opts: { status: number; body: unknown; delay?: number }): void {
+  function mockSessionsApi(opts: {
+    status: number;
+    body: unknown;
+    delay?: number;
+    statusText?: string;
+  }): void {
     const fetchSpy = vi.fn().mockImplementation(
       async () =>
         new Promise((resolve) => {
@@ -723,6 +728,13 @@ describe("SessionList 5-state coverage", () => {
               resolve(
                 new Response(JSON.stringify(opts.body), {
                   status: opts.status,
+                  // Mirror the real NestJS response shape: a 500
+                  // carries statusText "Internal Server Error".
+                  // The default exercises SessionList's guarded
+                  // render path (per slice-9 spec R3) so a future
+                  // regression that drops the guard would emit
+                  // "<span>500 </span>" trailing whitespace.
+                  statusText: opts.statusText ?? "Internal Server Error",
                   headers: { "Content-Type": "application/json" },
                 }),
               ),
