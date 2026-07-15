@@ -452,6 +452,18 @@ Create `libs/core/logging/src/redaction.ts`:
  * the logger boundary so no application code can accidentally leak
  * them — pino performs the substitution BEFORE the log line is
  * serialized to JSON.
+ *
+ * GOTCHA (resolved during T1.2 execution): pino 9.x uses fast-redact
+ * 3.5.x under the hood, which rejects wildcard path segments that
+ * are not valid JS identifiers (no hyphens). The HTTP header
+ * `Idempotency-Key` shows up in `req.headers["idempotency-key"]`
+ * (hyphenated literal) AND as camelCase `idempotencyKey` in domain
+ * objects. We list BOTH paths:
+ *   - `idempotency-key`  — top-level hyphenated (HTTP header literal)
+ *   - `idempotencyKey`, `*.idempotencyKey` — camelCase object keys
+ *
+ * The hyphenated wildcard `*.idempotency-key` is NOT valid pino syntax
+ * and would throw at logger construction time.
  */
 export const redactedPaths: ReadonlyArray<string> = [
   "password",
@@ -463,7 +475,8 @@ export const redactedPaths: ReadonlyArray<string> = [
   "authorization",
   "*.authorization",
   "idempotency-key",
-  "*.idempotency-key",
+  "idempotencyKey",
+  "*.idempotencyKey",
   "email",
   "*.email",
   "amount",

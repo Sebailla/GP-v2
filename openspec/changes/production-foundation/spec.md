@@ -98,7 +98,8 @@ The API MUST use `pino` for logging. The web app MUST use `pino-browser`. Logs M
 - `token`, `*.token`
 - `cookie`, `*.cookie`
 - `authorization`, `*.authorization`
-- `idempotency-key`, `*.idempotency-key`
+- `idempotency-key` (HTTP header literal — exact runtime shape; pino 9.x rejects `*.idempotency-key` because `fast-redact` requires JS-identifier segments under wildcard, see `docs/superpowers/plans/2026-07-15-production-foundation.md` §T1.2 Gotcha)
+- `idempotencyKey`, `*.idempotencyKey` (camelCase object keys)
 - `email`, `*.email`
 - `amount`, `*.amount`
 - `reportingAmount`, `*.reportingAmount`
@@ -109,11 +110,12 @@ The system MUST emit one structured log line per HTTP request containing `method
 ```gherkin
 Feature: Log redaction
   Scenario: Logging a transaction creation
-    Given a request with body { amount: "100.00", email: "user@example.com", password: "secret" }
+    Given a request with body { amount: "100.00", email: "user@example.com", password: "secret" } and the `Idempotency-Key` header `client-key-abc`
     When the request is processed
     Then the log line MUST NOT contain the substring "secret"
     And it MUST NOT contain "user@example.com"
     And it MUST NOT contain "100.00" verbatim
+    And it MUST NOT contain the Idempotency-Key header value verbatim (it MAY appear as the redaction sentinel)
 ```
 
 ## R-PF-6 — Free-tier staging deployment

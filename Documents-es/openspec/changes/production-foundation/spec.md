@@ -98,7 +98,8 @@ La API DEBE usar `pino` para logging. La app web DEBE usar `pino-browser`. Los l
 - `token`, `*.token`
 - `cookie`, `*.cookie`
 - `authorization`, `*.authorization`
-- `idempotency-key`, `*.idempotency-key`
+- `idempotency-key` (literal del header HTTP — forma exacta en runtime; pino 9.x rechaza `*.idempotency-key` porque `fast-redact` requiere segmentos JS-identifier bajo wildcard, ver `docs/superpowers/plans/2026-07-15-production-foundation.md` §T1.2 Gotcha)
+- `idempotencyKey`, `*.idempotencyKey` (claves camelCase de objeto)
 - `email`, `*.email`
 - `amount`, `*.amount`
 - `reportingAmount`, `*.reportingAmount`
