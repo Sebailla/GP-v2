@@ -25,6 +25,8 @@
       "@core/config/*": ["libs/core/config/*"],
       "@core/logging": ["libs/core/logging/src"],
       "@core/logging/*": ["libs/core/logging/src/*"],
+      "@core/rate-limit": ["libs/core/rate-limit/src"],
+      "@core/rate-limit/*": ["libs/core/rate-limit/src/*"],
       "@shared-utils/decimal": ["libs/shared-utils/decimal/src"],
       "@shared-utils/decimal/*": ["libs/shared-utils/decimal/src/*"],
       "@features/auth": ["libs/features/auth/server"],
