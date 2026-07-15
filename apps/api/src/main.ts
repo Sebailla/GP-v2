@@ -5,6 +5,8 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 
 import { AppModule } from "./app.module";
+import { requestIdMiddleware } from "./middleware/request-id.js";
+import { requestLoggerMiddleware } from "./middleware/request-logger.js";
 
 // Validate env at process boot. Any missing or malformed variable
 // throws a ZodError listing every offending field before NestJS
@@ -36,6 +38,13 @@ async function bootstrap() {
     origin: env.WEB_ORIGIN,
     credentials: true,
   });
+
+  // Per-request observability (R-PF-4, R-PF-5). Both run BEFORE the
+  // NestJS router so every request gets an id and a structured log
+  // line, including 404s and CORS preflights that never reach a
+  // controller.
+  app.use(requestIdMiddleware);
+  app.use(requestLoggerMiddleware);
 
   const port = Number.parseInt(process.env.PORT ?? "3001", 10);
   await app.listen(port);
