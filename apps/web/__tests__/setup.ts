@@ -29,8 +29,12 @@ import { beforeAll, vi } from "vitest";
  * ~4 GB before the worker is OOM-killed after ~4 minutes (slice-8
  * verify Gate 3, Engram `#2278`).
  *
- * Slice 7 PR-7 (`36386e1`) added `pool: "forks"` +
- * `singleFork: true` to `apps/web/vitest.config.ts` (lines 54-63).
+ * Slice 7 PR-7 (`36386e1`) added the serialized-fork worker-pool
+ * workaround to `apps/web/vitest.config.ts` (now at lines 62-64
+ * after `fix-vitest-4-deprecation` / PR #69 — `pool: "forks"`
+ * + `maxWorkers: 1` + `isolate: false` per the Vitest 4
+ * pool-rework migration guide at
+ * https://vitest.dev/guide/migration#pool-rework).
  * That workaround changed WHEN the worker OOM fires, not WHETHER —
  * it does NOT address the `useRouter()` invariant. This global mock
  * is the root-cause fix; both coexist.
