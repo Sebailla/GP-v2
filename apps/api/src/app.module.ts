@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
+import { MetricsModule } from "./modules/metrics/metrics.module.js";
 import { TransactionsModule } from "./modules/transactions/transactions.module.js";
 
 /**
@@ -15,10 +16,10 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
  * for /transactions + /categories; see design §5.3).
  *
  * Module 1 (T1.4) — HealthModule wires /healthz, /readyz, /status
- * (R-PF-4). MetricsModule (T1.7) and MailModule (T1.12) are added
- * in their own tasks to keep this diff small.
+ * (R-PF-4). T1.7 added MetricsModule to expose GET /metrics (R-PF-9).
+ * MailModule (T1.12) lands in its own task.
  */
 @Module({
-  imports: [AuthModule, HealthModule, TransactionsModule],
+  imports: [AuthModule, HealthModule, MetricsModule, TransactionsModule],
 })
 export class AppModule {}

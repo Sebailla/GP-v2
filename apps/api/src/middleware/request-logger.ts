@@ -26,6 +26,13 @@ export function requestLoggerMiddleware(
   res.on("finish", () => {
     const latencyNs = Number(process.hrtime.bigint() - startedAt);
     const latencyMs = Math.round(latencyNs / 1_000_000);
+    const route = (req.route?.path as string | undefined) ?? req.path;
+    const labels = { method: req.method, path: route, status: String(res.statusCode) };
+    void import("../modules/metrics/registry.js").then(({ httpRequestsTotal, httpErrors5xxTotal, httpRequestDurationSeconds }) => {
+      httpRequestsTotal.inc(labels);
+      if (res.statusCode >= 500) httpErrors5xxTotal.inc({ method: req.method, path: route });
+      httpRequestDurationSeconds.observe({ method: req.method, path: route }, latencyNs / 1_000_000_000);
+    });
     logger.info(
       {
         method: req.method,
