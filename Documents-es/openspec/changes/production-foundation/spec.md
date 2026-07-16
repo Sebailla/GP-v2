@@ -37,6 +37,16 @@ Feature: Seguridad de cookies
     Then DEBE contener Secure
     And DEBE contener HttpOnly
     And DEBE contener SameSite=Lax
+
+Nota: este escenario se verifica a nivel browser por la suite e2e
+de hardening del Módulo 6, no por un test unitario en el Módulo 1.
+Las cookies son emitidas por Next.js cuando se llama a
+`NextResponse.cookies.set`; el middleware del Módulo 1 solo añade
+headers HTTP (no emite cookies), por lo que los flags de cookie son
+parte del contrato de AuthSlice + NextAuth v5 que llega en el
+Módulo 2 (Autenticación Pública). El gate de hardening del Módulo 6
+correrá el flujo de sign-in completo de Playwright contra staging y
+asertará la forma del header Set-Cookie de extremo a extremo.
 ```
 
 ```gherkin

@@ -37,6 +37,15 @@ Feature: Cookie security
     Then it MUST contain Secure
     And it MUST contain HttpOnly
     And it MUST contain SameSite=Lax
+
+Note: this scenario is verified at browser-level by the Module 6
+hardening e2e suite, not by a unit test in Module 1. Cookies are
+emitted by Next.js when `NextResponse.cookies.set` is called; the
+Module 1 middleware only adds HTTP headers (no cookie emission), so
+the cookie flags are part of the AuthSlice + NextAuth v5 contract
+that ships in Module 2 (Public Authentication). The Module 6
+hardening gate will run the full Playwright sign-in flow against
+staging and assert the Set-Cookie header shape end-to-end.
 ```
 
 ```gherkin
