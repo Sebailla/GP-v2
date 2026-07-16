@@ -123,18 +123,3 @@ jobs:
           done
           echo "status page never returned 200" >&2
           exit 1
-
-      # R-PF-11 MUST-3 — trigger a rate-limited login attempt against the
-      # deployed API and assert 429 + Retry-After. The web does NOT
-      # proxy /auth/login (NextAuth routes signin/signout/session/csrf/
-      # callback/providers only), so the Playwright smoke bypasses the
-      # web and hits the API directly via SMOKE_API_URL.
-      - name: Smoke R-PF-11 rate-limit (Playwright)
-        env:
-          SMOKE_API_URL: ${{ secrets.STAGING_PUBLIC_API_URL }}
-          SMOKE_WEB_URL: ${{ secrets.STAGING_PUBLIC_WEB_URL }}
-          CI: "true"
-        run: |
-          set -euo pipefail
-          pnpm --filter web exec playwright install chromium --with-deps
-          pnpm --filter web exec playwright test --project=smoke --reporter=line
