@@ -1,5 +1,6 @@
 import { Controller, Get, HttpCode, HttpException, HttpStatus } from "@nestjs/common";
 
+import { env } from "@core/config";
 import { prisma } from "@core/database";
 
 import {
@@ -39,20 +40,25 @@ export class HealthController {
 
   @Get("/status")
   async status(): Promise<ReturnType<typeof buildStatusPayload>> {
-    // For Module 1, the backup status is sourced from a table that
-    // will be added by T1.8 (Postgres row). Until then, default to
-    // "never" and let T1.8 wire the real read.
+    // Dynamic import of latestBackupStatus keeps the controller free
+    // of a top-level dependency on @core/database for the status
+    // endpoint. Module-level imports would force `prisma` to be
+    // resolved at construction time, breaking
+    // `Test.createTestingModule({ imports: [HealthModule] }).compile()`
+    // when the test mock doesn't provide a backupRun delegate.
+    const { latestBackupStatus } = await import("@core/database");
     const rateLimitStore: RateLimitStoreKind = process.env["UPSTASH_REDIS_REST_URL"]
       ? "upstash"
       : "memory";
     const mailAdapter: MailAdapterKind = process.env["MAIL_DSN"]
       ? "smtp-gmail"
       : "console";
+    const backup = await latestBackupStatus(env.NODE_ENV);
     return buildStatusPayload({
       commit: process.env["GIT_COMMIT"] ?? "local",
       version: process.env["npm_package_version"] ?? "1.1.1",
-      lastBackupAt: null,
-      lastBackupStatus: "never",
+      lastBackupAt: backup.at?.toISOString() ?? null,
+      lastBackupStatus: backup.status,
       rateLimitStore,
       mailAdapter,
     });

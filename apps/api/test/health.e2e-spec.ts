@@ -12,7 +12,11 @@ import { HealthModule } from "../src/modules/health/health.module.js";
 vi.mock("@core/database", () => ({
   prisma: {
     $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
+    backupRun: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   },
+  latestBackupStatus: vi.fn().mockResolvedValue({ at: null, status: "never" }),
 }));
 
 describe("HealthController (e2e, R-PF-4)", () => {

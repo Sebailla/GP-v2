@@ -10,10 +10,12 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
+    "backup": "tsx scripts/operations/backup.ts",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "lint:fixtures": "node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs",
+    "restore-drill": "tsx scripts/operations/restore-drill.ts",
     "test": "turbo run test",
     "test:migrate": "bash scripts/migrate/__tests__/idempotency.test.sh",
     "typecheck": "turbo run typecheck",
@@ -39,6 +41,7 @@
     "prettier": "3.9.0",
     "tsx": "^4.23.0",
     "turbo": "2.10.3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
   }
 }

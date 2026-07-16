@@ -43,3 +43,9 @@ export type { PrismaNamespace as Prisma };
 // paths. The implementation handles both `string` and `string[]` shapes for
 // `meta.target` (single-field vs. compound unique constraints).
 export { isPrismaUniqueViolation, isPrismaNotFound } from "./prisma-error-guards.js";
+
+// Backup run status (R-PF-7). Read the most recent BackupRun row for a
+// given environment; the /status endpoint surfaces this to the public
+// status page.
+export { latestBackupStatus } from "./backup-status.js";
+export type { BackupStatus, BackupStatusKind } from "./backup-status.js";
