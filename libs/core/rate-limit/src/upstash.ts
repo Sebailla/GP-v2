@@ -17,24 +17,48 @@ import type { RateLimitDecision, RateLimitRequest, RateLimiter } from "./types.j
  *   - `limit(identifier, { rate })` overrides the per-call token
  *     consumption rate. We pass `req.limit` so the burst limit
  *     matches what the InMemory adapter reports.
- * The public `RateLimiter` interface is unchanged; only the internal
- * Upstash call adapts.
+ *
+ * C-2 fix (R-PF-8): the constructor must NOT pre-bind a window,
+ * because different rules ship different `windowSeconds` (e.g.
+ * `auth:login` = 600s, `auth:register` = 3600s). The `@upstash/ratelimit`
+ * v2 API only accepts the window at construction, so we cache one
+ * `Ratelimit` instance per `windowSeconds`. `consume()` becomes a Map
+ * lookup (option (b) from the ledger — chosen for performance over
+ * constructing a fresh instance per call).
+ *
+ * The `limit` per-call still flows through `req.rate`, so the burst
+ * number can vary per request even within the same window bucket.
  */
 export class UpstashRateLimiter implements RateLimiter {
-  private readonly ratelimit: Ratelimit;
+  private readonly redis: Redis;
+  private readonly prefix: string;
+  private readonly ratelimitsByWindowSeconds = new Map<number, Ratelimit>();
 
-  constructor(url: string, token: string) {
-    const redis = new Redis({ url, token });
-    this.ratelimit = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(10, "1 s"),
+  constructor(url: string, token: string, prefix = "gpr:rl") {
+    this.redis = new Redis({ url, token });
+    this.prefix = prefix;
+  }
+
+  private ratelimitFor(windowSeconds: number): Ratelimit {
+    const cached = this.ratelimitsByWindowSeconds.get(windowSeconds);
+    if (cached !== undefined) return cached;
+    // The burst number passed to `slidingWindow` is overridden per-call
+    // via the `rate` option of `limit()`. We pass `windowSeconds` as
+    // the burst so the unused constructor value is at least consistent
+    // with the window length; the actual cap comes from `req.limit`.
+    const created = new Ratelimit({
+      redis: this.redis,
+      limiter: Ratelimit.slidingWindow(windowSeconds, `${windowSeconds} s`),
       analytics: false,
-      prefix: "gpr:rl",
+      prefix: this.prefix,
     });
+    this.ratelimitsByWindowSeconds.set(windowSeconds, created);
+    return created;
   }
 
   async consume(req: RateLimitRequest): Promise<RateLimitDecision> {
-    const limit = await this.ratelimit.limit(req.key, { rate: req.limit });
+    const ratelimit = this.ratelimitFor(req.windowSeconds);
+    const limit = await ratelimit.limit(req.key, { rate: req.limit });
     return {
       allowed: limit.success,
       remaining: limit.remaining,
