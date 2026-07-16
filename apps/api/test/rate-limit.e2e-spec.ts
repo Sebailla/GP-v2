@@ -58,12 +58,30 @@ describe("RateLimitGuard (e2e, R-PF-8)", () => {
     if (app !== undefined) await app.close();
   });
 
-  it("returns 429 after the login limit is exceeded", async () => {
+  it("login rate-limit key includes email so DIFFERENT emails share no bucket (R-PF-8)", async () => {
+    const responses: number[] = [];
+    for (let i = 0; i < 11; i += 1) {
+      const res = await request(app.getHttpServer())
+        .post("/auth/login")
+        .send({ email: `distinct-${i}@example.com`, password: "StrongP@ss123" });
+      responses.push(res.status);
+    }
+    // Every distinct email from the same IP must NOT trip the per-IP
+    // bucket. The mocked auth returns 401 (user not found); none of
+    // the 11 requests may reach 429.
+    for (const status of responses) {
+      expect(status).toBe(401);
+    }
+    expect(responses.every((s) => s !== 429)).toBe(true);
+  });
+
+  it("login rate-limit key includes email so the 11th SAME email from same IP returns 429 (R-PF-8)", async () => {
+    const sharedEmail = "same-email-bucket@example.com";
     let last: { status: number; headers: Record<string, string> } | null = null;
     for (let i = 0; i < 11; i += 1) {
       last = await request(app.getHttpServer())
         .post("/auth/login")
-        .send({ email: `user-${i}@example.com`, password: "StrongP@ss123" });
+        .send({ email: sharedEmail, password: "StrongP@ss123" });
     }
     expect(last?.status).toBe(429);
     expect(Number(last?.headers["retry-after"] ?? 0)).toBeGreaterThan(0);
@@ -92,10 +110,14 @@ describe("RateLimitGuard (e2e, R-PF-8)", () => {
     const beforeLines = before.split("\n").filter((l) => l.startsWith("rate_limit_blocked_total{endpoint=\"auth:login\"}"));
     const beforeValue = beforeLines.length > 0 ? Number(beforeLines[0]!.split(" ").pop()) : 0;
 
+    // Same email across all 11 requests — required by R-PF-8's
+    // email-keyed bucket (auth:login). Distinct emails would each
+    // get their own bucket and never trip the limiter.
+    const sharedEmail = "metrics-shared-email@example.com";
     for (let i = 0; i < 11; i += 1) {
       await request(app.getHttpServer())
         .post("/auth/login")
-        .send({ email: `user-${i}@example.com`, password: "StrongP@ss123" });
+        .send({ email: sharedEmail, password: "StrongP@ss123" });
     }
 
     const after = await metricsRegistry.getSingleMetricAsString("rate_limit_blocked_total");
