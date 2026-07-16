@@ -23,7 +23,7 @@ Spanish mirror: `Documents-es/docs/architecture/production-foundation.md`.
 | Logging (Web) | `pino-browser` | Same JSON shape as API; browser-safe. |
 | Rate limiting | `@upstash/ratelimit` + Upstash Redis free tier | Distributed; SDK in TypeScript; 10k requests/day free. |
 | Backup storage | Cloudflare R2 free tier (10 GB, 1M ops) | S3-compatible; no egress fees; reliable. |
-| Email (deferred wiring) | Gmail dedicated + App Password | Costo cero inicial; isolation behind `MailAdapter`. |
+| Email (deferred wiring) | Gmail dedicated + App Password | Zero initial cost; isolated behind `MailAdapter`. |
 | Uptime monitor | UptimeRobot free tier | HTTP(s) checks every 5 minutes; email alerts. |
 | CI | GitHub Actions (existing) | Already in repo; adds deploy job. |
 | Tests | Vitest + Playwright + Cucumber (existing) | Already configured. |
@@ -100,6 +100,13 @@ Spanish mirror: `Documents-es/docs/architecture/production-foundation.md`.
 - **Where**: `apps/web/components/status/*`.
 - **When**: rendering the status page and the polling client.
 
+### `MailAdapter` — transactional email seam
+
+- **What**: API-runtime port with console and Gmail adapter implementations.
+- **Why**: keeps business code independent from SMTP transport and makes Module 2's password-reset flow testable.
+- **Where**: `apps/api/src/mail/mail.adapter.ts`, with DI composition in `apps/api/src/mail/mail.module.ts`.
+- **When**: the console adapter is selected without a DSN or in development; the Gmail skeleton is selected for non-development environments with `MAIL_DSN` and will be wired in Module 2.
+
 ## 3. Architecture
 
 ```
@@ -110,17 +117,17 @@ Spanish mirror: `Documents-es/docs/architecture/production-foundation.md`.
 │ │ Next.js 15 + next-intl    │ │◀──▶│ │ NestJS + pino │ │ (1 GB)       │  │
 │ │ Status UI + middleware    │ │    │ └──────┬────────┘ └──────┬───────┘  │
 │ └─────────────┬─────────────┘ │    │        │                │           │
-└───────────────┼───────────────┘    │        ▼                ▼           │
-                │ HTTPS             │ ┌──────────────────────────────┐   │
-                │                   │ │ Upstash Redis (free tier)   │   │
-                │                   │ └──────────────────────────────┘   │
-                │                   │ ┌──────────────────────────────┐   │
-                │                   │ │ Scheduled job: backup        │──▶ Cloudflare R2
-                │                   │ └──────────────────────────────┘   │
-                │                   │ ┌──────────────────────────────┐   │
-                │                   │ │ UptimeRobot check            │──▶ Gmail
-                │                   │ └──────────────────────────────┘   │
-                │                   └────────────────────────────────────┘
+└────────────────┼──────────────┘    │        ▼                ▼           │
+                 │ HTTPS             │ ┌──────────────────────────────┐   │
+                 │                   │ │ Upstash Redis (free tier)   │   │
+                 │                   │ └──────────────────────────────┘   │
+                 │                   │ ┌──────────────────────────────┐   │
+                 │                   │ │ Scheduled job: backup        │──▶ Cloudflare R2
+                 │                   │ └──────────────────────────────┘   │
+                 │                   │ ┌──────────────────────────────┐   │
+                 │                   │ │ UptimeRobot check            │──▶ Gmail
+                 │                   │ └──────────────────────────────┘   │
+                 │                   └────────────────────────────────────┘
 ```
 
 ## 4. When each piece activates
@@ -170,6 +177,7 @@ No application code outside the relevant adapter changes.
 - `apps/web/lib/logger.ts`.
 - `scripts/operations/{backup,restore-drill}.ts`.
 - `.github/workflows/deploy-staging.yml`.
+- `apps/api/src/mail/*` (MailAdapter port and skeleton adapters).
 - `docs/architecture/production-foundation.md` (this file).
 - `Documents-es/docs/architecture/production-foundation.md` (mirror).
 - `docs/operations/production-foundation-runbook.md`.

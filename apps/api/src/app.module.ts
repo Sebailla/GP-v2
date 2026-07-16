@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
+import { MailModule } from "./mail/mail.module.js";
 import { MetricsModule } from "./modules/metrics/metrics.module.js";
 import { TransactionsModule } from "./modules/transactions/transactions.module.js";
 
@@ -20,6 +21,6 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
  * MailModule (T1.12) lands in its own task.
  */
 @Module({
-  imports: [AuthModule, HealthModule, MetricsModule, TransactionsModule],
+  imports: [AuthModule, HealthModule, MailModule, MetricsModule, TransactionsModule],
 })
 export class AppModule {}
