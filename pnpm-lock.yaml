@@ -47,6 +47,9 @@ importers:
       '@core/logging':
         specifier: workspace:*
         version: link:../../libs/core/logging
+      '@core/rate-limit':
+        specifier: workspace:*
+        version: link:../../libs/core/rate-limit
       '@features/auth':
         specifier: workspace:*
         version: link:../../libs/features/auth/server

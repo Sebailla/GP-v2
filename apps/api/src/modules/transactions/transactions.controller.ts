@@ -46,6 +46,8 @@ import { toDecimal } from "@shared-utils/decimal";
 import type { CurrentUser } from "@features/auth";
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
+import { RateLimit } from "../../shared/guards/rate-limit.decorator.js";
+import { RateLimitGuard } from "../../shared/guards/rate-limit.guard.js";
 import { BodySchema } from "../../shared/decorators/body.decorator.js";
 import { QuerySchema } from "../../shared/decorators/query.decorator.js";
 
@@ -94,7 +96,7 @@ import { QuerySchema } from "../../shared/decorators/query.decorator.js";
  * by ESLint rule `@gpr/boundary/no-import-type-injectable`.
  */
 @Controller("/transactions")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RateLimitGuard)
 export class TransactionsController {
   constructor(
     private readonly transactionService: TransactionService,
@@ -105,6 +107,7 @@ export class TransactionsController {
   // ---- /transactions ----
 
   @Post()
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   @HttpCode(201)
   async create(
     @Headers("idempotency-key") idempotencyKey: string | undefined,
@@ -187,6 +190,7 @@ export class TransactionsController {
   }
 
   @Get()
+  @RateLimit({ key: "transactions:read", limit: 60, windowSeconds: 60 })
   async list(
     @QuerySchema(listSchema) query: ListTransactionsQuery,
     @Req() request: Request & { user: CurrentUser },
@@ -214,6 +218,7 @@ export class TransactionsController {
   }
 
   @Patch("/:id")
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   async update(
     @Param("id") id: string,
     @BodySchema(updateSchema) body: UpdateTransactionInput,
@@ -243,6 +248,7 @@ export class TransactionsController {
   }
 
   @Delete("/:id")
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   @HttpCode(204)
   async softDelete(
     @Param("id") id: string,
