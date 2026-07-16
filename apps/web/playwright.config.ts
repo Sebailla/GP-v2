@@ -13,40 +13,14 @@ import type { PlaywrightTestConfig } from "@playwright/test";
  * slice 7 PR-5 renamed to `en` + `es`. The locale values stayed
  * (en-US + es-ES) so the assertion surface is unchanged.
  *
- * WebServer strategy (R-PF-11 must-3 wiring, production-foundation):
- *   - The `en` and `es` projects spin up the local Next.js dev server
- *     via `pnpm dev`. The dev server is started by the `dev:test-server`
- *     npm script (defined in package.json), which is a thin wrapper
- *     around `pnpm dev` that NOOPs when `SMOKE_API_URL` is set.
- *   - The `smoke` project runs against the deployed staging API + web
- *     (`SMOKE_API_URL` + `SMOKE_WEB_URL`). The `dev:test-server` script
- *     detects `SMOKE_API_URL`, prints "skipping local dev server", and
- *     exits 0 — Playwright probes the configured URL, the probe fails
- *     (no local server), and the `reuseExistingServer: true` for non-CI
- *     makes Playwright skip the probe. The smoke specs hit the
- *     deployed stack via `request.newContext({ baseURL })` and
- *     `page.goto(SMOKE_WEB_URL + path)` directly.
+ * The dev server (`pnpm dev`) is started automatically by Playwright
+ * via `webServer`. The e2e suite is NOT wired into the `pnpm turbo
+ * run test` pipeline — the dev server would add significant CI time
+ * and the e2e suite is best-effort. Run via `pnpm e2e` from
+ * `apps/web/`.
  *
- *     Why this shape instead of per-project `webServer`:
- *     Playwright's `Project` type does NOT support a `webServer`
- *     field. The webServer lives at the TestConfig level. To make it
- *     conditional on the project, we put the condition INSIDE the
- *     server's `command` wrapper — the command exits 0 (no server)
- *     when SMOKE_API_URL is set, and `pnpm dev` otherwise.
- *
- *     `reuseExistingServer: !process.env.CI` means: locally we
- *     expect a running server; in CI we always start fresh. The
- *     smoke project's probe is short-circuited by the NOOP wrapper
- *     so the 120s timeout never fires — Playwright falls back to
- *     "server not started, expect failure" which is the desired
- *     behavior for smoke (the page-level goto's talk directly to
- *     SMOKE_WEB_URL, not localhost).
- *
- * The e2e suite is NOT wired into `pnpm turbo run test` — the dev
- * server adds significant CI time and the e2e suite is best-effort.
- * Run via `pnpm e2e` from `apps/web/`. Operators running the smoke
- * locally MUST export SMOKE_API_URL + SMOKE_WEB_URL before invoking
- * `pnpm --filter web exec playwright test --project=smoke`.
+ * Per the brief, the actual `chromium` browser binary is a
+ * per-developer step (`npx playwright install chromium`).
  */
 const config: PlaywrightTestConfig = {
   testDir: "./e2e",
@@ -84,10 +58,10 @@ const config: PlaywrightTestConfig = {
     },
   ],
   webServer: {
-    command: "pnpm dev:test-server",
+    command: "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    timeout: 120_000,
   },
 };
 

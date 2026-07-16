@@ -7,7 +7,6 @@
   "scripts": {
     "build": "next build --webpack",
     "dev": "next dev --webpack --port 3000",
-    "dev:test-server": "node -e \"if(process.env.SMOKE_API_URL){console.log('[dev:test-server] SMOKE_API_URL set — skipping local dev server (smoke hits the deployed stack).');process.exit(0)}require('child_process').spawn(require('os').platform()==='win32'?'npx.cmd':'npx',['next','dev','--webpack','--port','3000'],{stdio:'inherit'})\"",
     "lint": "pnpm exec eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
