@@ -58,8 +58,10 @@ vi.mock("@core/database", () => ({
 }));
 
 import { Test, type TestingModule } from "@nestjs/testing";
+import { InMemoryRateLimiter } from "@core/rate-limit";
 
 import { TransactionsModule } from "../src/modules/transactions/transactions.module.js";
+import { RATE_LIMITER_TOKEN } from "../src/shared/guards/rate-limit.guard.js";
 
 describe("TransactionsController (DI bootstrap — RED-first)", () => {
   it("bootstraps TransactionsModule without unresolved dependencies", async () => {
@@ -68,7 +70,10 @@ describe("TransactionsController (DI bootstrap — RED-first)", () => {
     try {
       moduleRef = await Test.createTestingModule({
         imports: [TransactionsModule],
-      }).compile();
+      })
+        .overrideProvider(RATE_LIMITER_TOKEN)
+        .useValue(new InMemoryRateLimiter())
+        .compile();
     } catch (err) {
       bootstrapError = err;
     }

@@ -64,8 +64,10 @@ import request from "supertest";
 
 import { prisma } from "@core/database";
 import bcrypt from "bcryptjs";
+import { InMemoryRateLimiter } from "@core/rate-limit";
 
 import { AuthModule } from "../src/modules/auth/auth.module.js";
+import { RATE_LIMITER_TOKEN } from "../src/shared/guards/rate-limit.guard.js";
 
 describe("AuthController (e2e)", () => {
   let app: INestApplication;
@@ -75,7 +77,10 @@ describe("AuthController (e2e)", () => {
     vi.resetAllMocks();
     moduleRef = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(RATE_LIMITER_TOKEN)
+      .useValue(new InMemoryRateLimiter())
+      .compile();
 
     app = moduleRef.createNestApplication();
     // No global validation pipe — this slice uses Zod exclusively via
