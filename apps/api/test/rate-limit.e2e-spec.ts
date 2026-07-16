@@ -82,4 +82,31 @@ describe("RateLimitGuard (e2e, R-PF-8)", () => {
     }
     expect(last?.status).toBe(429);
   });
+
+  it("increments rate_limit_blocked_total{endpoint=\"auth:login\"} on 429 (R-PF-9)", async () => {
+    const { metricsRegistry, rateLimitBlockedTotal } = await import(
+      "../src/modules/metrics/registry.js"
+    );
+    // Reset the counter for this test by reading the value before.
+    const before = await metricsRegistry.getSingleMetricAsString("rate_limit_blocked_total");
+    const beforeLines = before.split("\n").filter((l) => l.startsWith("rate_limit_blocked_total{endpoint=\"auth:login\"}"));
+    const beforeValue = beforeLines.length > 0 ? Number(beforeLines[0]!.split(" ").pop()) : 0;
+
+    for (let i = 0; i < 11; i += 1) {
+      await request(app.getHttpServer())
+        .post("/auth/login")
+        .send({ email: `user-${i}@example.com`, password: "StrongP@ss123" });
+    }
+
+    const after = await metricsRegistry.getSingleMetricAsString("rate_limit_blocked_total");
+    const afterLines = after.split("\n").filter((l) => l.startsWith("rate_limit_blocked_total{endpoint=\"auth:login\"}"));
+    expect(afterLines.length).toBeGreaterThan(0);
+    const afterValue = Number(afterLines[0]!.split(" ").pop());
+    // At least one block must have incremented the counter since `before`.
+    expect(afterValue).toBeGreaterThan(beforeValue);
+    // The label exists (confirms we used the right label key).
+    expect(afterLines[0]).toContain("endpoint=\"auth:login\"");
+    // Sanity: reference the symbol so tree-shaking does not strip it.
+    void rateLimitBlockedTotal;
+  });
 });

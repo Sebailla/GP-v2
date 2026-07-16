@@ -40,11 +40,36 @@ describeMaybe("backup + restore drill (R-PF-7 e2e)", () => {
 
     const target = new Client({ connectionString: DATABASE_URL.replace(/\/[^/]+$/, "/gastos_target") });
     await target.connect();
-    await target.query(
-      `CREATE TABLE IF NOT EXISTS "User" (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);`,
-    );
+    // Minimal schema mirroring the production slices (auth + transactions).
+    // The restore drill must assert counts on User, Transaction, and
+    // Category per the R-PF-7 contract — see Q-PF-D in the spec.
+    await target.query(`
+      CREATE TABLE IF NOT EXISTS "User" (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS "Category" (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS "Transaction" (
+        id TEXT PRIMARY KEY,
+        "userId" TEXT NOT NULL,
+        "categoryId" TEXT NOT NULL,
+        amount TEXT NOT NULL,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
     await target.query(
       `INSERT INTO "User" (id, email) VALUES ('e2e-user-1', 'e2e@example.com') ON CONFLICT DO NOTHING;`,
+    );
+    await target.query(
+      `INSERT INTO "Category" (id, name) VALUES ('e2e-cat-1', 'e2e-category') ON CONFLICT DO NOTHING;`,
+    );
+    await target.query(
+      `INSERT INTO "Transaction" (id, "userId", "categoryId", amount) VALUES ('e2e-tx-1', 'e2e-user-1', 'e2e-cat-1', '100.00') ON CONFLICT DO NOTHING;`,
     );
     await target.end();
   });
@@ -98,9 +123,21 @@ describeMaybe("backup + restore drill (R-PF-7 e2e)", () => {
       const { Client } = await import("pg");
       const iso = new Client({ connectionString: isolatedUrl });
       await iso.connect();
-      const { rows } = await iso.query(`SELECT COUNT(*)::int AS n FROM "User"`);
+      // R-PF-7 / Q-PF-D: assert row counts for User, Category, and
+      // Transaction (the three core tables in the auth + transactions
+      // slices). Production dumps may be empty for some slices; the
+      // minimum assertion is `>= 0` to prove pg_restore wired the
+      // tables without errors.
+      const counts = await iso.query<{ table_name: string; n: number }>(
+        `SELECT 'User' AS table_name, COUNT(*)::int AS n FROM "User"
+         UNION ALL SELECT 'Category', COUNT(*)::int FROM "Category"
+         UNION ALL SELECT 'Transaction', COUNT(*)::int FROM "Transaction"`,
+      );
       await iso.end();
-      expect(rows[0].n).toBeGreaterThanOrEqual(1);
+      const byTable = new Map(counts.rows.map((r) => [r.table_name, r.n]));
+      expect(byTable.get("User")).toBeGreaterThanOrEqual(1);
+      expect(byTable.get("Category")).toBeGreaterThanOrEqual(1);
+      expect(byTable.get("Transaction")).toBeGreaterThanOrEqual(1);
     } finally {
       await execFileAsync("dropdb", ["--if-exists", "-h", host, "-p", port, "-U", user, isolatedName], {
         env: pgEnv,

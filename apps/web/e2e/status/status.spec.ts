@@ -30,4 +30,29 @@ test.describe("status surface (R-PF-10, R-PF-11)", () => {
     const res = await request.get("/api/readyz");
     expect(res.status()).toBe(200);
   });
+
+  test("rate-limit guard returns 429 + Retry-After on the 11th login attempt (R-PF-8 + R-PF-11)", async ({
+    request,
+  }) => {
+    // R-PF-8 sets auth:login to 10 / 600s. The 11th attempt from the
+    // same IP within the window must return 429 with a Retry-After
+    // header. The previous tests in this file all use the SAME IP
+    // (Playwright's `request` fixture shares one connection pool), so
+    // we POST sequentially without skipping — the FIRST request in
+    // this test should land a 429 because the prior 10 (from the
+    // status + healthz + readyz tests above) also count if they hit
+    // the same IP. To make the assertion deterministic we issue 12
+    // requests and assert the LAST one is 429 + Retry-After ≥ 1.
+    let lastStatus = 0;
+    let lastRetryAfter = "";
+    for (let i = 0; i < 12; i += 1) {
+      const res = await request.post("/api/auth/login", {
+        data: { email: `smoke-${i}@example.com`, password: "StrongP@ss123" },
+      });
+      lastStatus = res.status();
+      lastRetryAfter = res.headers()["retry-after"] ?? "";
+    }
+    expect(lastStatus).toBe(429);
+    expect(Number(lastRetryAfter)).toBeGreaterThanOrEqual(1);
+  });
 });

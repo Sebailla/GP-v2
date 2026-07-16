@@ -58,6 +58,16 @@ async function bootstrap() {
   app.use(requestIdMiddleware);
   app.use(requestLoggerMiddleware);
 
+  // R-PF-8: without `trust proxy` Express returns the immediate socket
+  // address in `req.ip` (Fly.io's internal IP). With the reverse-proxy
+  // chain Fly → Vercel, every request looks like it came from the
+  // proxy, collapsing the per-IP rate-limit buckets into one global
+  // bucket. Trust the first hop (the load balancer / CDN in front of
+  // Fly) so `req.ip` resolves to the real client IP. Override via the
+  // `TRUST_PROXY_HOPS` env var when the deployment adds more proxies.
+  const trustProxyHops = Number.parseInt(process.env["TRUST_PROXY_HOPS"] ?? "1", 10);
+  app.set("trust proxy", Number.isFinite(trustProxyHops) && trustProxyHops > 0 ? trustProxyHops : 1);
+
   const port = Number.parseInt(process.env.PORT ?? "3001", 10);
   await app.listen(port);
 

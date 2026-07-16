@@ -11,6 +11,7 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 
 import { RateLimiter } from "@core/rate-limit";
+import { rateLimitBlockedTotal } from "../../modules/metrics/registry.js";
 
 import { RATE_LIMIT_META, type RateLimitRule } from "./rate-limit.decorator.js";
 
@@ -56,6 +57,7 @@ export class RateLimitGuard implements CanActivate {
     }
 
     if (!decision.allowed) {
+      rateLimitBlockedTotal.inc({ endpoint: rule.key });
       const response = ctx.switchToHttp().getResponse<{ setHeader(name: string, value: string): void }>();
       response.setHeader("Retry-After", String(decision.retryAfterSeconds));
       throw new HttpException(

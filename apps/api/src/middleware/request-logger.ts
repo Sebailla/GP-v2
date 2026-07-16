@@ -17,6 +17,19 @@ const logger = createLogger({
  * populated only when `req.user` is set by an upstream guard (the
  * JwtAuthGuard attaches the decoded token).
  */
+/**
+ * Bucket a request path for low-cardinality Prometheus labels. Unmatched
+ * routes (404s) collapse to a single label so a scanner hammering
+ * /wp-admin.php, /.env, etc. cannot blow up Prometheus memory. The
+ * raw URL is still preserved in the structured log line — metrics
+ * labels are aggregate, logs are per-request.
+ */
+function bucketPath(req: Request): string {
+  const matched = req.route?.path as string | undefined;
+  if (matched !== undefined) return matched;
+  return "unmatched";
+}
+
 export function requestLoggerMiddleware(
   req: Request & { id?: string; user?: { id?: string } },
   res: Response,
@@ -26,12 +39,12 @@ export function requestLoggerMiddleware(
   res.on("finish", () => {
     const latencyNs = Number(process.hrtime.bigint() - startedAt);
     const latencyMs = Math.round(latencyNs / 1_000_000);
-    const route = (req.route?.path as string | undefined) ?? req.path;
-    const labels = { method: req.method, path: route, status: String(res.statusCode) };
+    const metricPath = bucketPath(req);
+    const labels = { method: req.method, path: metricPath, status: String(res.statusCode) };
     void import("../modules/metrics/registry.js").then(({ httpRequestsTotal, httpErrors5xxTotal, httpRequestDurationSeconds }) => {
       httpRequestsTotal.inc(labels);
-      if (res.statusCode >= 500) httpErrors5xxTotal.inc({ method: req.method, path: route });
-      httpRequestDurationSeconds.observe({ method: req.method, path: route }, latencyNs / 1_000_000_000);
+      if (res.statusCode >= 500) httpErrors5xxTotal.inc({ method: req.method, path: metricPath });
+      httpRequestDurationSeconds.observe({ method: req.method, path: metricPath }, latencyNs / 1_000_000_000);
     });
     logger.info(
       {
