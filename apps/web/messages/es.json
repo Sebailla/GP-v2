@@ -175,7 +175,7 @@
   },
   "common": {
     "loading": "Cargando…",
-    "genericError": "Algo salió mal. Probá de nuevo.",
+    "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "cancel": "Cancelar",
     "save": "Guardar",
     "delete": "Eliminar",
@@ -187,5 +187,23 @@
     "no": "No",
     "close": "Cerrar",
     "retry": "Reintentar"
+  },
+  "status": {
+    "title": "Estado del sistema",
+    "description": "Instantánea operativa de la fundación de producción.",
+    "loading": "Cargando estado…",
+    "errorTitle": "Estado no disponible",
+    "error": "No pudimos cargar el estado. Detalle: {message}",
+    "retry": "Reintentar",
+    "notFoundTitle": "Página de estado no encontrada",
+    "cardTitle": "Detalle del estado",
+    "environment": "Entorno",
+    "commit": "Commit de la API",
+    "lastBackup": "Último backup",
+    "never": "Nunca",
+    "uptime": "Uptime de la API",
+    "publicApiUrl": "URL de la API",
+    "publicWebUrl": "URL del Web",
+    "lastUpdate": "Instantánea tomada el {ts}"
   }
 }
