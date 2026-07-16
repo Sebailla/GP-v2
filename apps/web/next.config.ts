@@ -1,35 +1,44 @@
+import path from "node:path";
 import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
 
-// Slice 1 deferred the next-intl plugin; slice 4 batch 4c shipped the
-// pages that use `getTranslations` (sign-in, sign-up) but never wired
-// the plugin itself, so `next build` failed with `Couldn't find
-// next-intl config file` during static page generation. The plugin
-// resolves the relative path to the i18n config file (apps/web/i18n.ts)
-// at build time so the worker bundles the messages catalog and the
-// `getTranslations` calls succeed during prerendering.
-//
-// The plugin is also the bridge between `i18n.ts` (server-only) and
-// the webpack module graph — without it, `getTranslations` and the
-// `useTranslations` client hook see different request scopes and the
-// production build refuses to compile.
-const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+/**
+ * Web next.config.ts.
+ *
+ * History:
+ *   - Slice 1 deferred the next-intl plugin; slice 4 batch 4c wired it
+ *     via `createNextIntlPlugin("./i18n/request.ts")`.
+ *   - Next.js 16 made that plugin's `experimental.turbo.resolveAlias`
+ *     injection a no-op (`experimental.turbo` is unrecognized in 16.x;
+ *     the key moved to top-level `config.turbo`). As a result, the
+ *     alias `next-intl/config → ./i18n/request.ts` was never created
+ *     and runtime `getTranslations` failed with "Couldn't find next-intl
+ *     config file" on every page.
+ *   - Module 1 (production-foundation) replaced the plugin call with
+ *     an explicit webpack alias + an explicit Turbopack alias (the two
+ *     resolver pipelines are separate in Next.js 16). The aliases
+ *     point at the absolute path to `apps/web/i18n/request.ts`,
+ *     resolved at config-load time so Turbopack and Webpack both find
+ *     the file regardless of cwd.
+ *
+ * Why not upgrade `next-intl` or downgrade Next.js? The plugin
+ * upstream has not yet shipped a Next.js-16-compatible release;
+ * downgrading Next.js would force a workspace-wide reshape of the
+ * auth + transactions slices. A 14-line config rewrite is the
+ * smallest correct change.
+ *
+ * The defense-in-depth `Referrer-Policy: same-origin` header on the
+ * (auth) route group is preserved (slice 4 batch 4c).
+ */
+
+// Resolve once at config-load time. `next.config.ts` runs from the
+// directory that owns the file (apps/web/), so `__dirname` is the
+// canonical cwd here.
+const i18nRequestAbsolute = path.resolve(__dirname, "i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Next.js 16 moved typedRoutes out of `experimental` to the top level.
-  // Keep it disabled for now (slice 1 minimal landing has no typed links
-  // to validate). Enable when slices 4+ add typed routes.
   typedRoutes: false,
-  // Defense-in-depth for the reset-password token URL: the token is in
-  // the URL path, so a `Referrer-Policy: same-origin` header ensures the
-  // full URL (including the token) is NEVER sent as the `Referer` header
-  // on any cross-origin request originating from these auth pages. The
-  // browser's default policy (`strict-origin-when-cross-origin`) already
-  // strips the path for cross-origin requests, but this header eliminates
-  // the surface entirely. Scoped to the (auth) route group so it does
-  // not affect the slice-1 landing or the slice-3-protected `/(auth)/sessions`.
   async headers() {
     return [
       {
@@ -39,20 +48,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Next.js 16 makes Turbopack the default for `next build`. Turbopack
-  // fails to resolve relative `.js` imports to their `.ts` siblings
-  // (the canonical NodeNext pattern) when the workspace uses
-  // `moduleResolution: "Bundler"` — it tries the literal `.js` first
-  // and reports `Module not found: Can't resolve './foo.js'`. Webpack,
-  // by contrast, exposes `resolve.extensionAlias` which rewrites `.js`
-  // requests to `.ts`/`.tsx`/`.js`. Until Turbopack adds the
-  // equivalent (tracked upstream as a 16.x regression for cross-
-  // package monorepo imports), we opt the `next build` script into
-  // the webpack path so the auth-slice barrel at
-  // `libs/features/auth/shared/schemas/index.ts` resolves cleanly.
-  // `next dev` keeps Turbopack (faster HMR) because the dev server
-  // uses SWC to compile each workspace package separately and the
-  // `.js` extension issue does not surface there.
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
     config.resolve.extensionAlias = {
@@ -60,8 +55,29 @@ const nextConfig: NextConfig = {
       ".js": [".ts", ".tsx", ".js"],
       ".mjs": [".mts", ".mjs"],
     };
+    // `next-intl/config` → absolute path to i18n/request.ts. Next.js
+    // 16 made the previous `experimental.turbo.resolveAlias` injection
+    // a no-op; we set it explicitly here for Webpack.
+    config.resolve.alias = {
+      ...(config.resolve.alias as Record<string, string> | undefined),
+      "next-intl/config": i18nRequestAbsolute,
+    };
     return config;
   },
 };
 
-export default withNextIntl(nextConfig);
+// Turbopack reads `config.turbo.resolveAlias` in Next.js 16. We attach
+// it ONLY when Turbopack is the active bundler; passing it under
+// webpack makes Next.js warn ("Unrecognized key(s) in object: 'turbo'")
+// because the webpack pipeline does not own the key. Set
+// `TURBOPACK=1` (or pass `--turbopack`) to opt in.
+const useTurbo = process.env["TURBOPACK"] !== undefined || process.env["NEXT_BUILDER"] === "turbopack";
+if (useTurbo) {
+  (nextConfig as unknown as { turbo?: unknown }).turbo = {
+    resolveAlias: {
+      "next-intl/config": i18nRequestAbsolute,
+    },
+  };
+}
+
+export default nextConfig;
