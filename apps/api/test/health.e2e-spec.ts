@@ -28,12 +28,20 @@ describe("HealthController (e2e, R-PF-4)", () => {
     }).compile();
     app = moduleRef.createNestApplication();
     // Mirror `apps/api/src/main.ts` CORS wiring so the triangulation
-    // in the CORS test below exercises the real allow-list. The
-    // production bootstrap is owned by main.ts (T1.3); this keeps
-    // the e2e surface identical without duplicating policy.
+    // in the CORS tests below exercises the real allow-list. The
+    // production bootstrap is owned by main.ts (T1.10 tightened to
+    // `env.PUBLIC_WEB_URL` per R-PF-2); this keeps the e2e surface
+    // identical without duplicating policy.
     app.enableCors({
-      origin: env.WEB_ORIGIN,
+      origin: env.PUBLIC_WEB_URL,
       credentials: true,
+      methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Metrics-Token",
+        "Idempotency-Key",
+      ],
     });
     await app.init();
   });
@@ -80,10 +88,19 @@ describe("HealthController (e2e, R-PF-4)", () => {
     expect(JSON.stringify(res.body)).not.toContain("MAIL_DSN");
   });
 
-  it("GET /status sets CORS headers when Origin matches the allow-list", async () => {
+  it("GET /status sets CORS headers when Origin matches PUBLIC_WEB_URL", async () => {
     const res = await request(app.getHttpServer())
       .get("/status")
-      .set("Origin", env.WEB_ORIGIN);
-    expect(res.headers["access-control-allow-origin"]).toBe(env.WEB_ORIGIN);
+      .set("Origin", env.PUBLIC_WEB_URL);
+    expect(res.headers["access-control-allow-origin"]).toBe(env.PUBLIC_WEB_URL);
+  });
+
+  it("responds to OPTIONS preflight from PUBLIC_WEB_URL", async () => {
+    const res = await request(app.getHttpServer())
+      .options("/status")
+      .set("Origin", env.PUBLIC_WEB_URL)
+      .set("Access-Control-Request-Method", "GET");
+    expect([200, 204]).toContain(res.status);
+    expect(res.headers["access-control-allow-origin"]).toBe(env.PUBLIC_WEB_URL);
   });
 });
