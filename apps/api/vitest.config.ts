@@ -25,7 +25,16 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
-    include: ["test/**/*.spec.ts", "test/**/*.test.ts", "test/**/*.e2e-spec.ts"],
+    include: [
+      "test/**/*.spec.ts",
+      "test/**/*.test.ts",
+      "test/**/*.e2e-spec.ts",
+      // PR #2 (module-2-public-auth) — mail adapter tests live alongside
+      // the production code under `src/mail/__tests__/`. The pattern is
+      // `**/*.test.ts` so any future src-side unit test (e.g.
+      // `src/auth/__tests__/*`) is picked up automatically.
+      "src/**/*.test.ts",
+    ],
     environment: "node",
     globals: false,
     clearMocks: true,
