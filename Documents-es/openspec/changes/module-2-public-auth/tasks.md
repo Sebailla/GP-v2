@@ -28,11 +28,11 @@ TDD estricto RED→GREEN→TRIANGULATE→REFACTOR; commits atómicos; pino `[ema
 
 Base `feat/public-authentication`. Verificar `pnpm --filter web test SignInClient`.
 
-- [ ] 1.1 RED `SignInClient.test.tsx`: enrutamiento por locale + ocultar botón Google cuando faltan credenciales.
-- [ ] 1.2 GREEN `auth.ts` mantener defaults (sin override `pages.signIn`); `middleware.ts` locale ausente → `/en/sign-in`; autenticado → `/{locale}/(app)`.
-- [ ] 1.3 GREEN `[locale]/(auth)/sign-in/page.tsx` + `SignInClient.tsx`: `next-intl`, 5 estados, formulario credentials, `signIn("google",{callbackUrl:"/{locale}/(app)"})`.
-- [ ] 1.4 TRIANGULATE `[locale]/(auth)/error/page.tsx`: `callbackUrl` ajeno → `pages.error` localizado.
-- [ ] 1.5 REFACTOR `googleEnabled()` + `config.turbo.resolveAlias` condicional en `next.config.ts`.
+- [x] 1.1 RED `SignInClient.test.tsx`: enrutamiento por locale + ocultar botón Google cuando faltan credenciales.
+- [x] 1.2 GREEN `auth.ts` mantener defaults (sin override `pages.signIn`); `middleware.ts` locale ausente → `/en/sign-in`; autenticado → `/{locale}/(app)`.
+- [x] 1.3 GREEN `[locale]/(auth)/sign-in/page.tsx` + `SignInClient.tsx`: `next-intl`, 5 estados, formulario credentials, `signIn("google",{callbackUrl:"/{locale}/(app)"})`.
+- [x] 1.4 TRIANGULATE `[locale]/(auth)/error/page.tsx`: `callbackUrl` ajeno → `pages.error` localizado.
+- [x] 1.5 REFACTOR `googleEnabled()` + `config.turbo.resolveAlias` condicional en `next.config.ts`.
 
 ## Fase 2 — Adaptador Gmail Mail + Env (PR #2)
 
