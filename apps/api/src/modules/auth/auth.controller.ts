@@ -424,6 +424,7 @@ export class AuthController implements OnModuleDestroy {
   @HttpCode(200)
   async resetPassword(
     @Body() raw: unknown,
+    @Headers("accept-language") acceptLanguage: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ redirectTo: string }> {
     try {
@@ -483,15 +484,22 @@ export class AuthController implements OnModuleDestroy {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
       });
 
-      // Spec: the user is redirected to `/{locale}/(app)`. The
-      // locale defaults to "en" (no Accept-Language on the reset
-      // POST — the user is following a link from the email, and
-      // the email already localized the link). A future change
-      // can thread the locale through the reset token (the token
-      // row already knows which locale was active when it was
-      // minted); for PR #3 we hard-code `en` to match the existing
-      // behavior the controller shipped in slice 4.
-      return { redirectTo: "/en/(app)" };
+      // Spec (`password-reset-user-flow/spec.md`): the user is
+      // redirected to `/{locale}/(app)` where `locale` matches the
+      // locale of the reset link the user clicked — the email body
+      // is rendered per-token with the locale active when the token
+      // was minted, and the user posts the new password back through
+      // the same browser session that carried that locale.
+      // Same parsing pattern as `forgotPassword` (line 337-341):
+      // accept only the closed `en | es` set and fall back to `en`
+      // when the header is missing or carries an unsupported value.
+      // A future change can thread the locale through the reset
+      // token row (the token already knows which locale was active
+      // when it was minted) for stronger fidelity; this reads from
+      // the request header because the same browser session is
+      // making the POST after clicking the email link.
+      const locale = resolveLocaleFromAcceptLanguage(acceptLanguage);
+      return { redirectTo: `/${locale}/(app)` };
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new HttpException(

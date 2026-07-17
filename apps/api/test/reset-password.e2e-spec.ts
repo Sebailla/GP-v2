@@ -208,6 +208,85 @@ describe("POST /auth/reset-password (e2e — Module-2 PR #3 tasks 3.5 + 3.6 + 3.
       // The token is a JWE-compact (5 base64url segments separated by `.`).
       expect(jwtValue.split(".")).toHaveLength(5);
     });
+
+    // Localization: per `openspec/changes/module-2-public-auth/spec.md`,
+    // the user is redirected to `/{locale}/(app)` where locale matches the
+    // locale of the reset link they clicked. The controller recovers the
+    // locale by parsing Accept-Language on the POST (the browser follows
+    // the localized link → posts from the same locale-aware session).
+    it("returns redirectTo `/es/(app)` when Accept-Language is `es`", async () => {
+      const userId = "user-1";
+      const email = "alice@example.com";
+      const rawToken = "e".repeat(64);
+      const tokenHash = sha256(rawToken);
+
+      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue({
+        id: "prt-es-1",
+        userId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        consumedAt: null,
+      } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: userId,
+        email,
+        role: "USER",
+        hashedPassword: "$2a$10$old",
+      } as never);
+      vi.mocked(prisma.$transaction).mockImplementation(
+        (async (cb: (tx: unknown) => Promise<unknown>) => {
+          return cb({
+            user: { update: vi.fn(async () => undefined) },
+            passwordResetToken: { update: vi.fn(async () => undefined) },
+          });
+        }) as never,
+      );
+
+      const res = await request(app.getHttpServer())
+        .post("/auth/reset-password")
+        .set("Accept-Language", "es")
+        .send({ token: rawToken, newPassword: "NewP@ss123" });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ redirectTo: "/es/(app)" });
+    });
+
+    it("returns redirectTo `/en/(app)` when Accept-Language is `en` (default fallback)", async () => {
+      const userId = "user-1";
+      const email = "alice@example.com";
+      const rawToken = "f".repeat(64);
+      const tokenHash = sha256(rawToken);
+
+      vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue({
+        id: "prt-en-1",
+        userId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        consumedAt: null,
+      } as never);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: userId,
+        email,
+        role: "USER",
+        hashedPassword: "$2a$10$old",
+      } as never);
+      vi.mocked(prisma.$transaction).mockImplementation(
+        (async (cb: (tx: unknown) => Promise<unknown>) => {
+          return cb({
+            user: { update: vi.fn(async () => undefined) },
+            passwordResetToken: { update: vi.fn(async () => undefined) },
+          });
+        }) as never,
+      );
+
+      const res = await request(app.getHttpServer())
+        .post("/auth/reset-password")
+        .set("Accept-Language", "en-US,en;q=0.9")
+        .send({ token: rawToken, newPassword: "NewP@ss123" });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ redirectTo: "/en/(app)" });
+    });
   });
 
   describe("threat matrix — Routing (D5 + spec scenarios)", () => {
