@@ -76,10 +76,10 @@ Base PR #3. Verificar `pnpm --filter web e2e oauth-mock.spec.ts && pnpm --filter
 
 Base PR #4. Verificar `pnpm turbo run bdd e2e`.
 
-- [ ] 5.1 RED Cucumber `auth.feature`: sign-up → login → forgot → dev-mailbox → reset → cookie → `/[locale]/(app)` `en`+`es`; GREEN step defs `docs/step-defs/`.
-- [ ] 5.2 RED Playwright `vertical-auth.spec.ts` mismo escenario `en`+`es`; GREEN pasa ambos.
-- [ ] 5.3 RED `@axe-core/playwright` por superficie `a11y/*.spec.ts`; GREEN cero serious/critical; ARIA vía `useTranslations`.
-- [ ] 5.4 RED borrador `docs/operations/auth-runbook.md`: Gmail app-password, Google client-secret, kill-switch `MAIL_DSN`, `GOOGLE_E2E_MOCK`.
-- [ ] 5.5 GREEN runbook completo; verificado `pnpm dev:api` + `pnpm dev:web`.
-- [ ] 5.6 ES mirror `Documents-es/docs/operations/auth-runbook.md` mismo commit; verificar 0 CJK en `Documents-es/.../module-2-public-auth/*.md`.
-- [ ] 5.7 Gate final: `pnpm turbo run build lint typecheck test bdd e2e` + `pnpm lint:fixtures` exit 0.
+- [x] 5.1 RED Cucumber `auth.feature`: sign-up → login → forgot → dev-mailbox → reset → cookie → `/[locale]/(app)` `en`+`es`; GREEN step defs `docs/step-defs/`.
+- [x] 5.2 RED Playwright `vertical-auth.spec.ts` mismo escenario `en`+`es`; GREEN pasa ambos.
+- [x] 5.3 RED `@axe-core/playwright` por superficie `a11y/*.spec.ts`; GREEN cero serious/critical; ARIA vía `useTranslations`.
+- [x] 5.4 RED borrador `docs/operations/auth-runbook.md`: Gmail app-password, Google client-secret, kill-switch `MAIL_DSN`, `GOOGLE_E2E_MOCK`.
+- [x] 5.5 GREEN runbook completo; verificado `pnpm dev:api` + `pnpm dev:web`.
+- [x] 5.6 ES mirror `Documents-es/docs/operations/auth-runbook.md` mismo commit; verificar 0 CJK en `Documents-es/.../module-2-public-auth/*.md`.
+- [x] 5.7 Gate final: `pnpm turbo run build lint typecheck test bdd e2e` + `pnpm lint:fixtures` exit 0.
