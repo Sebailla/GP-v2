@@ -336,8 +336,16 @@ export class AuthController implements OnModuleDestroy {
     @Body() raw: unknown,
     @Headers("accept-language") acceptLanguage: string | undefined,
   ): Promise<void> {
+    // Capture the parsed email in the OUTER scope so the catch block
+    // can include it in the structured log entry for pino redaction
+    // (R-PF-5). `validateOrThrow` is the first thing inside `try`,
+    // so when an error reaches `catch`, `email` is either a valid
+    // string (forgot-password path) or untouched (validation error,
+    // which is caught and re-thrown without logging).
+    let recipientEmail: string | undefined;
     try {
       const body = validateOrThrow<typeof forgotPasswordSchema>(raw, forgotPasswordSchema);
+      recipientEmail = body.email;
       const locale = resolveLocaleFromAcceptLanguage(acceptLanguage);
       // requestReset dispatches `auth.password-reset.requested`
       // synchronously; the MailAdapter subscriber runs before
@@ -347,11 +355,21 @@ export class AuthController implements OnModuleDestroy {
       await this.passwordResetService.requestReset(body.email, locale);
     } catch (error) {
       if (error instanceof MailDeliveryError) {
-        // Pino bracket-notation redaction: log the SMTP error code
-        // (R-PF-5) without leaking the recipient address verbatim.
+        // Pino structured-object redaction (R-PF-5). The global
+        // redact list (`libs/core/logging/src/redaction.ts:37-38`)
+        // covers `email` and `*.email` — those keys operate on
+        // JSON object properties, NOT on string substrings. The
+        // mail failure is therefore emitted as a structured
+        // merge-object with `email: recipientEmail` so the redact
+        // paths catch the recipient address before serialization.
+        // The SMTP message rides under `err`, matching the
+        // canonical pattern at `gmail-mail.adapter.ts:76-79`.
         const smtpMsg =
           error.cause instanceof Error ? error.cause.message : String(error.cause);
-        this.logger.error(`[mail] delivery failed for [email]: ${smtpMsg}`);
+        this.logger.error(
+          { mail: { adapter: "forgot-password" }, email: recipientEmail, err: smtpMsg },
+          "[mail] delivery failed",
+        );
         throw new HttpException(
           { error: "MAIL_DELIVERY_FAILED", message: "reset email delivery failed" },
           502,
