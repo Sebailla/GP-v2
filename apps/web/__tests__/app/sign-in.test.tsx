@@ -38,6 +38,14 @@ vi.mock("@core/config", () => ({
 const mockReplace = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
+  // Mirror Next.js's real `redirect()` shape: it throws an Error
+  // whose message embeds the target URL so RSC callers can
+  // observe the redirect at the seam. Module 2 (PR #1, task 1.2)
+  // pins the target to `/{locale}/(app)` for the authed-user
+  // bounce.
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT;${url}`);
+  },
 }));
 
 // Mock `next/headers` cookies() so the page's
@@ -130,25 +138,57 @@ describe("SignInPage — slice 4 batch 4c (T4.8)", () => {
     expect(screen.getByLabelText(/auth\.signIn\.email/i)).toBeInTheDocument();
   });
 
-  it("redirects to /{locale}/ when the authjs.session-token cookie is set (slice 4 cookie migration final)", async () => {
-    // Slice 4 batch 2: the SignInPage MUST call `getSession()`
-    // and `redirect(/${locale}/)` if a session is present, so an
-    // already-authenticated visitor who lands on the sign-in
-    // page is bounced to the landing instead of being shown the
-    // form. The page is an RSC; the redirect happens via
-    // `next/navigation#redirect` which throws a special error
-    // that the test harness intercepts.
+  it("redirects to /{locale}/(app) when the authjs.session-token cookie is set (module-2 PR #1 task 1.2 GREEN)", async () => {
+    // Module 2 (PR #1, task 1.2): an already-authenticated visitor
+    // who lands on the sign-in page is bounced to the (app) route
+    // group, not the bare landing. Per
+    // `openspec/changes/module-2-public-auth/proposal.md` §Product
+    // decisions ("Redirect post sign-in: /[locale]/(app) (dashboard)")
+    // and `openspec/specs/nextauth-web-routes/spec.md` §Requirement:
+    // Locale Defaulting and Authenticated Redirect.
+    //
+    // The page is an RSC; the redirect happens via
+    // `next/navigation#redirect` which throws a special error whose
+    // message includes the target URL. We pin the path component
+    // via the thrown error's message so the locale-routing
+    // contract is observable at the unit seam.
     cookieStore = {
       "authjs.session-token": JSON.stringify({
         token: "session-token-abc",
         user: { id: "user-1", email: "alice@example.com", role: "USER" },
       }),
     };
-    await expect(renderPage("en")).rejects.toThrow();
-    // The redirect target is `/${locale}/` (the landing).
-    // `redirect` throws an error whose message includes the
-    // target URL — the assertion is loose because the exact
-    // error shape is Next.js internal.
+    let captured: unknown;
+    try {
+      await renderPage("en");
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(Error);
+    const message = String((captured as Error).message);
+    expect(message).toContain("/en/(app)");
+  });
+
+  it("redirects Spanish-locale authed visitors to /es/(app) (module-2 PR #1 task 1.2 GREEN)", async () => {
+    // Triangulation: the redirect target MUST thread the active
+    // locale through. A future refactor that hard-codes the
+    // locale (e.g. always `/en/(app)`) would break this
+    // assertion.
+    cookieStore = {
+      "authjs.session-token": JSON.stringify({
+        token: "session-token-abc",
+        user: { id: "user-1", email: "alice@example.com", role: "USER" },
+      }),
+    };
+    let captured: unknown;
+    try {
+      await renderPage("es");
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(Error);
+    const message = String((captured as Error).message);
+    expect(message).toContain("/es/(app)");
   });
 
   it("triggers router.replace('/{locale}/') when the API returns 200", async () => {
