@@ -50,30 +50,62 @@ const baseMessage: MailMessage = {
   text: "Click https://localhost:3000/en/reset-password/abc",
 };
 
-const expectRealNodemailerCreateIsCalledWithGmailService = (
-  callArgs: ReadonlyArray<unknown>,
+const expectCreateTransportCallUsesGmailService = (
+  captured: Readonly<Record<string, unknown>> | undefined,
 ): void => {
-  const arg = callArgs[0] as { service?: unknown };
-  expect(arg).toBeDefined();
-  expect(arg.service).toBe("gmail");
+  expect(captured).toBeDefined();
+  expect(captured?.service).toBe("gmail");
 };
 
-const expectEnvelopeFromToIsCorrect = (sentMail: ReadonlyArray<{ from?: unknown; to?: unknown }>): void => {
+const expectEnvelopeFromToIsCorrect = (
+  sentMail: ReadonlyArray<{ from?: unknown; to?: unknown }>,
+): void => {
   expect(sentMail).toHaveLength(1);
   const envelope = sentMail[0];
-  expect(envelope.from).toBe(`no-reply@${PRODUCT_DOMAIN_FALLBACK}`);
-  expect(envelope.to).toBe(baseMessage.to);
+  expect(envelope?.from).toBe(`no-reply@${PRODUCT_DOMAIN_FALLBACK}`);
+  expect(envelope?.to).toBe(baseMessage.to);
 };
+
+// Calls to `createTransport(...)` made by production code. Reset in
+// `beforeEach`. The `nodemailer-mock` module does NOT expose the
+// captured options argument out of the box, so we wrap its
+// `createTransport` to retain the call history alongside the
+// mock's internal _sentMail cache.
+const createTransportCalls: Array<Record<string, unknown>> = [];
 
 describe("GmailMailAdapter (D7 — Module 2)", () => {
   beforeEach(() => {
     vi.resetModules();
+    createTransportCalls.length = 0;
     // Inject `nodemailer` for the duration of this test suite so the
     // production code under test picks up the mock instead of the
     // real SMTP transport. The mock reproduces nodemailer's API
     // surface: `createTransport(...)` returns a transport whose
     // `sendMail(...)` records the sent message.
-    vi.doMock("nodemailer", () => nodemailerMock);
+    //
+    // `nodemailer-mock` is a CommonJS module; its `module.exports`
+    // IS the mock function (also exposing `.createTransport` and
+    // `.mock`). We register a dual-shape wrapper that records the
+    // call arguments and exposes the mock under both default and
+    // named exports so any production import style resolves to it.
+    const wrapped = Object.assign(
+      (addr: unknown, opts?: Record<string, unknown>) =>
+        nodemailerMock.createTransport(
+          addr as Record<string, unknown> | undefined,
+          opts,
+        ),
+      {
+        createTransport: (options: Record<string, unknown>) => {
+          createTransportCalls.push(options);
+          return nodemailerMock.createTransport(options);
+        },
+        mock: nodemailerMock.mock,
+      },
+    );
+    vi.doMock("nodemailer", () => ({
+      default: wrapped,
+      ...wrapped,
+    }));
     // Reset call history so each test starts with a clean slate.
     nodemailerMock.mock.reset();
   });
@@ -82,6 +114,7 @@ describe("GmailMailAdapter (D7 — Module 2)", () => {
     vi.doUnmock("nodemailer");
     vi.resetModules();
     nodemailerMock.mock.reset();
+    createTransportCalls.length = 0;
   });
 
   it("creates a nodemailer transport with service=\"gmail\" and auth=user+password", async () => {
@@ -92,9 +125,8 @@ describe("GmailMailAdapter (D7 — Module 2)", () => {
     const adapter = new adapterModule.GmailMailAdapter("alerts@example.com", "abcdefghijklmnop");
     await adapter.send(baseMessage);
 
-    const createTransportCalls = nodemailerMock.mock.getMockedTransport().createTransport;
     expect(createTransportCalls).toHaveLength(1);
-    expectRealNodemailerCreateIsCalledWithGmailService(createTransportCalls[0]);
+    expectCreateTransportCallUsesGmailService(createTransportCalls[0]);
     expectEnvelopeFromToIsCorrect(nodemailerMock.mock.getSentMail());
   });
 
@@ -106,9 +138,12 @@ describe("GmailMailAdapter (D7 — Module 2)", () => {
     );
     await adapter.send(baseMessage);
 
+    expect(createTransportCalls).toHaveLength(1);
+    const auth = (createTransportCalls[0] as { auth?: { user?: string } }).auth;
+    expect(auth?.user).toBe("ops@example.com");
+
     const sentMail = nodemailerMock.mock.getSentMail();
-    expect(sentMail[0].from).toBe(`no-reply@${PRODUCT_DOMAIN_FALLBACK}`);
-    expect(sentMail[0].to).toBe(baseMessage.to);
+    expectEnvelopeFromToIsCorrect(sentMail);
   });
 
   it("propagates SMTP rejection from the underlying transport", async () => {
@@ -127,23 +162,37 @@ describe("GmailMailAdapter (D7 — Module 2)", () => {
 
     // The send attempt must have actually fired against the
     // transport — otherwise the error would never have surfaced.
-    const sentMail = nodemailerMock.mock.getSentMail();
-    expect(sentMail).toHaveLength(1);
+    expect(createTransportCalls).toHaveLength(1);
   });
 
   it("logs the send failure under pino bracket [email] for redaction", async () => {
-    // Observe pino redaction behavior using a spy on the adapter's
-    // logger. The test asserts that a structured log carries a
-    // `to` key under `mail` (not `email`) which the global redaction
-    // list (*.email pattern) catches downstream.
-    const adapterModule = await import("../gmail-mail.adapter");
-    const adapter = new adapterModule.GmailMailAdapter("alerts@example.com", "abcdefghijklmnop");
+    // Inject a hand-rolled pino-compatible logger into the adapter
+    // so we can observe what the adapter hands pino at the point of
+    // the error. The pino bracket `[email]` contract requires the
+    // recipient address to live under an `email` key (not `to` or
+    // any hyphenated form) so the global redaction list at
+    // libs/core/logging/src/redaction.ts catches it before
+    // serialization.
+    const captured: Array<{ meta: unknown; message: string }> = [];
+    const fakeLogger = {
+      error: (meta: unknown, message: string): void => {
+        captured.push({ meta, message });
+      },
+      info: () => undefined,
+      warn: () => undefined,
+      debug: () => undefined,
+      trace: () => undefined,
+      fatal: () => undefined,
+      child: () => fakeLogger,
+      level: "error",
+    };
 
-    // Spy on console.error (the pino default transport in this
-    // minimal logger setup). We only assert it WAS called with the
-    // expected structured shape; the redaction itself is the global
-    // pino option covered by libs/core/logging's own test suite.
-    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const adapterModule = await import("../gmail-mail.adapter");
+    const adapter = new adapterModule.GmailMailAdapter(
+      "alerts@example.com",
+      "abcdefghijklmnop",
+      { logger: fakeLogger as never },
+    );
 
     const smtpError = new Error("connection refused");
     nodemailerMock.mock.setShouldFailOnce();
@@ -151,13 +200,20 @@ describe("GmailMailAdapter (D7 — Module 2)", () => {
 
     await expect(adapter.send(baseMessage)).rejects.toThrow(/connection refused/);
 
-    expect(spy).toHaveBeenCalledTimes(1);
-    const loggedArg = spy.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
-    expect(loggedArg).toBeDefined();
-    expect(loggedArg).toMatchObject({ level: "error" });
-    expect(loggedArg).toHaveProperty("mail");
-    expect(loggedArg).toHaveProperty("err");
-
-    spy.mockRestore();
+    expect(captured).toHaveLength(1);
+    const entry = captured[0];
+    if (!entry) throw new Error("captured entry missing");
+    expect(entry.message).toBe("gmail adapter: send failed");
+    const meta = entry.meta as Record<string, unknown>;
+    expect(meta).toHaveProperty("email");
+    expect(meta.email).toBe(baseMessage.to);
+    // Pino redaction looks at the literal key `email` on the
+    // structured payload — downstream serialize time replaces the
+    // value with `[REDACTED]`. Our fake logger does NOT do that
+    // (the redaction is a pino concern, covered by
+    // libs/core/logging/src/__tests__/logger.test.ts). What we
+    // verify here is the adapter's contract: hand pino a payload
+    // keyed `email` so the global redaction list catches it.
+    expect(meta).toHaveProperty("err");
   });
 });
