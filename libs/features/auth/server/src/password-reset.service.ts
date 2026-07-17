@@ -238,9 +238,10 @@ export class PasswordResetService {
     //    dev mailbox (slice 4) consumes it. `occurredAt` is the
     //    envelope timestamp (drives ring-buffer ordering).
     //
-    //    Module-2 PR #3: also embed `locale` and `resetUrl` so the
-    //    controller subscriber can call MailAdapter.send with the
-    //    locale-aware URL without re-deriving it. The URL path is
+    //    Module-2 PR #3: also embed `locale`, `resetUrl`, and `to`
+    //    (the recipient's email) so the controller subscriber can
+    //    call MailAdapter.send with the locale-aware URL AND the
+    //    recipient address without re-deriving it. The URL path is
     //    `/{locale}/reset-password/{rawToken}` per D2.
     const resetUrl = `${env.PUBLIC_WEB_URL}/${locale}/reset-password/${rawToken}`;
     const event: DomainEvent = {
@@ -248,6 +249,7 @@ export class PasswordResetService {
       userId: user.id,
       payload: {
         userId: user.id,
+        to: user.email,
         token: rawToken,
         locale,
         resetUrl,

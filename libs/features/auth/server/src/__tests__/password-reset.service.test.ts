@@ -230,6 +230,7 @@ describe("PasswordResetService", () => {
       expect(event.name).toBe("auth.password-reset.requested");
       const payload = event.payload as {
         userId: string;
+        to: string;
         token: string;
         locale: string;
         resetUrl: string;
@@ -240,6 +241,10 @@ describe("PasswordResetService", () => {
       // Raw token appears exactly once in the URL (after `/es/reset-password/`).
       const pathTail = payload.resetUrl.split("/es/reset-password/")[1] ?? "";
       expect(pathTail).toBe(payload.token);
+      // Recipient email copied from the user record so the
+      // controller subscriber can call MailAdapter.send without a
+      // second DB hit.
+      expect(payload.to).toBe("alice@example.com");
     });
 
     it("dispatches a `resetUrl` whose path begins with `/en/reset-password/` when the locale is `en`", async () => {
@@ -261,6 +266,7 @@ describe("PasswordResetService", () => {
       const event = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
       const payload = event.payload as {
         userId: string;
+        to: string;
         token: string;
         locale: string;
         resetUrl: string;
@@ -268,6 +274,7 @@ describe("PasswordResetService", () => {
       };
       expect(payload.locale).toBe("en");
       expect(payload.resetUrl).toMatch(/^[^?#]*\/en\/reset-password\/[A-Za-z0-9_-]+$/);
+      expect(payload.to).toBe("alice@example.com");
     });
 
     it("mints NOTHING (no row, no event) for an unknown email regardless of locale (no enumeration leak)", async () => {
@@ -299,7 +306,7 @@ describe("PasswordResetService", () => {
       const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("alice@example.com");
+      await service.requestReset("alice@example.com", "en");
 
       expect(tokenRepo.create).toHaveBeenCalledTimes(1);
       const createdArg = (
@@ -318,10 +325,14 @@ describe("PasswordResetService", () => {
       expect(dispatched.userId).toBe("user-1");
       const payload = dispatched.payload as {
         userId: string;
+        to: string;
         token: string;
+        locale: string;
+        resetUrl: string;
         requestedAt: Date;
       };
       expect(payload.userId).toBe("user-1");
+      expect(payload.to).toBe("alice@example.com");
       expect(payload.token.length).toBeGreaterThanOrEqual(MIN_TOKEN_LENGTH);
       expect(sha256(payload.token)).toBe(createdArg.tokenHash);
       expect(payload.requestedAt).toBeInstanceOf(Date);
@@ -335,7 +346,7 @@ describe("PasswordResetService", () => {
       const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await expect(service.requestReset("ghost@example.com")).resolves.toBeUndefined();
+      await expect(service.requestReset("ghost@example.com", "es")).resolves.toBeUndefined();
 
       expect(tokenRepo.create).not.toHaveBeenCalled();
       expect(dispatcher).not.toHaveBeenCalled();
@@ -354,8 +365,8 @@ describe("PasswordResetService", () => {
       const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("alice@example.com");
-      await service.requestReset("alice@example.com");
+      await service.requestReset("alice@example.com", "en");
+      await service.requestReset("alice@example.com", "en");
 
       expect(tokenRepo.create).toHaveBeenCalledTimes(2);
       const first = (
@@ -399,7 +410,7 @@ describe("PasswordResetService", () => {
       // Contract: requestReset RESOLVES (no 500 to caller), row
       // persists (user can inspect dev mailbox OR retry), audit
       // sink fires with the F2-shaped signal.
-      await expect(service.requestReset("alice@example.com")).resolves.toBeUndefined();
+      await expect(service.requestReset("alice@example.com", "en")).resolves.toBeUndefined();
 
       expect(tokenRepo.create).toHaveBeenCalledTimes(1);
       expect(dispatcher).toHaveBeenCalledTimes(1);

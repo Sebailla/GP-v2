@@ -47,6 +47,10 @@ export type EventName = (typeof EVENT_NAMES)[number];
 // ----- auth.password-reset.requested -------------------------------------
 export const authPasswordResetRequestedPayload = z.object({
   userId: z.string().min(1),
+  // Module-2 PR #3 (task 3.4): the recipient email — copied from the
+  // user record the service already loaded. The controller subscriber
+  // uses this to call MailAdapter.send without a second DB hit.
+  to: z.string().email(),
   // Raw token is dev-only (slice 4 dev mailbox). The reference repo
   // never persists it; production deployments should remove this
   // field or replace it with a magic-link slug.

@@ -50,6 +50,7 @@ describe("auth.password-reset.requested", () => {
   it("accepts a well-formed payload", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
       locale: "en",
       resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),
@@ -61,6 +62,7 @@ describe("auth.password-reset.requested", () => {
   it("rejects a token shorter than 32 chars", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "short",
       locale: "en",
       resetUrl: "http://localhost:3000/en/reset-password/short",
@@ -69,9 +71,21 @@ describe("auth.password-reset.requested", () => {
     expect(result.success).toBe(false);
   });
 
+  it("rejects a missing `to` (recipient email is required by the controller subscriber)", () => {
+    const result = authPasswordResetRequestedPayload.safeParse({
+      userId: "u1",
+      token: "a".repeat(32),
+      locale: "en",
+      resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),
+      requestedAt: new Date(),
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects an unknown locale (closed enum: en|es)", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
       locale: "fr",
       resetUrl: "http://localhost:3000/fr/reset-password/" + "a".repeat(64),
@@ -83,6 +97,7 @@ describe("auth.password-reset.requested", () => {
   it("rejects a malformed resetUrl", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
       locale: "en",
       resetUrl: "not-a-url",
@@ -94,6 +109,7 @@ describe("auth.password-reset.requested", () => {
   it("accepts an ISO string for requestedAt and coerces to Date", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
       locale: "en",
       resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),

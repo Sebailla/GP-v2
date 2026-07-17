@@ -42,7 +42,10 @@ const eventWithToken = (rawToken: string, overrides: Partial<DomainEvent> = {}):
   userId: "u1",
   payload: {
     userId: "u1",
+    to: "alice@example.com",
     token: rawToken,
+    locale: "en",
+    resetUrl: `http://localhost:3000/en/reset-password/${rawToken}`,
     requestedAt: new Date("2030-01-01T00:00:00Z"),
   },
   occurredAt: new Date("2030-01-01T00:00:00Z"),
