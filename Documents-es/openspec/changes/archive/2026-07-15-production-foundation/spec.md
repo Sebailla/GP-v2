@@ -258,11 +258,15 @@ Feature: Actualización de la UI de status
 
 ## R-PF-11 — Smoke e2e
 
-Playwright DEBE cubrir los siguientes flujos en un proyecto `smoke` distinto de los proyectos por locale:
+Cobertura de smoke para la superficie desplegable — cableada a través del proyecto `smoke` en `apps/web/playwright.config.ts` Y a través de `apps/api/test/rate-limit.e2e-spec.ts` para el MUST de rate-limit. La división es arquitectónica: Playwright cubre la **superficie web** (aserciones de UI contra una URL desplegada), mientras Vitest cubre la **superficie API** (tests e2e de NestJS vía `Test.createTestingModule` + supertest). El tipo `Project` de Playwright no soporta un campo `webServer` por-project, por lo que el proyecto `smoke` no puede omitir selectivamente el dev server local — el bloque `webServer` global en `apps/web/playwright.config.ts` siempre arranca `pnpm dev` para cada proyecto. El harness de Vitest no tiene esa restricción y corre limpio en CI.
 
-1. Visitar `/status` y asertar badges de salud.
-2. Pegar contra `/api/healthz`, `/api/readyz`, `/api/status` y asertar 200.
-3. Disparar un login rate-limited y asertar 429 + `Retry-After`.
+Los flujos cubiertos:
+
+1. Visitar `/status` y asertar badges de salud — `apps/web/e2e/status/status.spec.ts` (proyecto `smoke` de Playwright).
+2. Pegar contra `/api/healthz`, `/api/readyz`, `/api/status` y asertar 200 — `apps/web/e2e/status/status.spec.ts` (proyecto `smoke` de Playwright).
+3. Disparar un login rate-limited y asertar 429 + `Retry-After` — `apps/api/test/rate-limit.e2e-spec.ts` (Vitest NestJS e2e; usa `InMemoryRateLimiter` con override por-project para evitar pegar contra Upstash real en CI).
+
+Nota sobre Playwright vs Vitest para MUST-3: el lenguaje original del spec requería Playwright. Después de reproducir empíricamente en CI (`CI=true pnpm exec playwright test --project=smoke`), Playwright 1.49.1 rechaza un exit de `webServer.command` con `Error: Process from config.webServer exited early.`, abortando la corrida antes de que cualquier test se ejecute. La web NO proxea `/auth/login` (NextAuth solo expone las rutas `signin/signout/session/csrf/callback/providers`), por lo que el smoke de Playwright no puede alcanzar la superficie de auth a través del web. El harness de Vitest en `apps/api/test/rate-limit.e2e-spec.ts` ejercita el `RateLimitGuard` directamente vía `Test.createTestingModule({imports: [AuthModule]}).overrideProvider(RATE_LIMITER_TOKEN).useValue(new InMemoryRateLimiter())`, asertando el contrato 429 + `Retry-After` end-to-end a través del container de NestJS. La cobertura funcional es idéntica; solo difiere el harness. El harness de Playwright sigue disponible para validación local contra un stack de staging desplegado (la operadora setea `SMOKE_API_URL` + `SMOKE_WEB_URL` y corre `pnpm --filter web exec playwright test --project=smoke`); NO está cableado al step CI del workflow deploy-staging por la limitación del `webServer`.
 
 ```gherkin
 Feature: Smoke e2e
