@@ -73,6 +73,29 @@ export type { AuthErrorCode } from "./errors.js";
  *     the database.
  */
 
+/**
+ * Module-2 PR #3 (task 3.6): the result of a successful `consumeReset`
+ * call. The controller needs the user identity to mint the NextAuth
+ * session JWT via `next-auth/jwt#encode` (D5 — passthrough cookie).
+ *
+ * Returning the identity from the service keeps the controller free
+ * of a second DB round-trip; the password-update transaction has
+ * already loaded the `userId`, and a single `userRepo.findById` after
+ * the tx returns the canonical record.
+ *
+ * The return type is widened from `Promise<void>` (slice-3 contract)
+ * to `Promise<PasswordResetResult>` (PR #3 contract). Slice-3 callers
+ * that `await service.consumeReset(...)` without asserting on the
+ * result continue to pass — they simply discard the new return value.
+ * Any downstream caller that typed the result as `void` must update
+ * its annotation.
+ */
+export interface PasswordResetResult {
+  readonly userId: string;
+  readonly email: string;
+  readonly role: string;
+}
+
 /** Token TTL for a fresh reset (1h per design §4.1). */
 export const TOKEN_TTL_MS = 60 * 60 * 1000;
 
@@ -300,7 +323,7 @@ export class PasswordResetService {
    *  7. markConsumed(tokenHash, now) — single-use guarantee.
    *  8. dispatch the completed event.
    */
-  async consumeReset(rawToken: string, newPassword: string): Promise<void> {
+  async consumeReset(rawToken: string, newPassword: string): Promise<PasswordResetResult> {
     // 1. Hash the raw token first. The hash is the lookup key; the
     //    raw token never reaches the port.
     const tokenHash = sha256Hex(rawToken);
@@ -376,5 +399,26 @@ export class PasswordResetService {
       // Swallow: the transaction committed; the audit signal is the
       // observability surface; the caller resolves normally.
     }
+
+    // 9. PR #3 (task 3.6): return the user identity so the controller
+    //    can mint the NextAuth session JWT via `next-auth/jwt#encode`
+    //    (D5 — passthrough cookie). We re-query the user via the
+    //    repository (one extra round-trip is acceptable; the password
+    //    change is the expensive operation, not the read).
+    const user = await this.userRepo.findById(row.userId);
+    if (user === null) {
+      // Defensive — the row references a userId, so this branch is
+      // unreachable in practice. Surface as 500 (the user is missing
+      // from the DB but the password HAS been reset; the operator
+      // needs to investigate the orphan row).
+      throw new Error(
+        `consumeReset: user ${row.userId} not found after password update`,
+      );
+    }
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 }

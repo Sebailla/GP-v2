@@ -12,9 +12,10 @@ import {
   Param,
   Post,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 
 import {
   AuthService,
@@ -49,6 +50,9 @@ import { MAIL_ADAPTER } from "../../mail/mail.module.js";
 // references `MAIL_ADAPTER` to belt-and-suspenders the runtime
 // anchor.
 import { MailAdapter } from "../../mail/mail.adapter.js";
+import { encode as encodeJwt } from "next-auth/jwt";
+import { env } from "@core/config";
+import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
 import {
   renderResetPasswordTemplate,
   lookupEmailForUserId,
@@ -84,6 +88,18 @@ function resolveLocaleFromAcceptLanguage(header: string | undefined): "en" | "es
  * Map an AuthError code to the HTTP status the controller should
  * return. Centralized so every route uses the same mapping; per design
  * §4.1.
+ *
+ * Module-2 PR #3 (task 3.10 — Routing threat matrix): the password
+ * reset spec scenarios ("Expired token is rejected", "Malformed
+ * token is rejected generically") require a 400 status, NOT 401.
+ * 401 would imply "you're not authenticated" — wrong shape for
+ * a stateful flow that explicitly receives a body. 400 conveys
+ * "your request body was malformed in a way we won't enumerate".
+ *
+ * The change is scoped to `INVALID_RESET_TOKEN`; the other 401
+ * codes stay 401 (they still describe an authentication failure
+ * shape). The mapping is the spec's source of truth for the
+ * password-reset-user-flow requirement set.
  */
 function authErrorToHttpStatus(error: AuthError | ValidationError): number {
   if (error instanceof ValidationError) {
@@ -92,10 +108,14 @@ function authErrorToHttpStatus(error: AuthError | ValidationError): number {
   switch (error.code) {
     case "USER_NOT_FOUND":
     case "INVALID_CREDENTIALS":
-    case "INVALID_RESET_TOKEN":
     case "INVALID_SESSION":
     case "SESSION_EXPIRED":
       return 401;
+    // PR #3 — 400 per spec (no enumeration: expired / malformed /
+    // already-consumed / forged all collapse to the same generic
+    // 400 response with no leak about which mode failed).
+    case "INVALID_RESET_TOKEN":
+      return 400;
     case "EMAIL_ALREADY_EXISTS":
       return 409;
     default:
@@ -353,14 +373,124 @@ export class AuthController implements OnModuleDestroy {
     }
   }
 
+  /**
+   * POST /auth/reset-password — Module-2 PR #3 task 3.6.
+   *
+   * D5 platform coupling: this method uses `@Res({passthrough:true})`
+   * so it can:
+   *  1. Call `consumeReset` to validate + replace the password.
+   *  2. Mint a NextAuth-compatible session JWT via
+   *     `next-auth/jwt#encode` (try/catch per
+   *     `pattern/nextauth-decode-try-catch`).
+   *  3. Set `authjs.session-token` via `response.cookie(...)` —
+   *     HttpOnly + SameSite=Lax per NextAuth defaults.
+   *  4. Return `{redirectTo: "/{locale}/(app)"}` so NestJS
+   *     serializes it as the response body.
+   *
+   * The `passthrough` mode preserves NestJS serialization for the
+   * JSON body AND lets Express emit the cookie — without
+   * passthrough, NestJS would short-circuit and the cookie would
+   * never reach the client.
+   *
+   * D5 future-proofing note: the @Res decorator binds this
+   * endpoint to Express. A future NestJS HTTP adapter swap
+   * (Fastify, etc.) requires revisiting this method's cookie
+   * emission. The supertest assertions in
+   * `test/reset-password.e2e-spec.ts` pin the Set-Cookie header
+   * shape so a swap breaks loudly instead of silently dropping
+   * the cookie.
+   *
+   * @param res Express Response (passthrough — NestJS still
+   *   serializes the return value as JSON).
+   */
   @Post("/reset-password")
   @RateLimit({ key: "auth:reset", limit: 10, windowSeconds: 3600 })
   @HttpCode(200)
-  async resetPassword(@Body() raw: unknown): Promise<void> {
-    return runOrThrowHttp(async () => {
+  async resetPassword(
+    @Body() raw: unknown,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ redirectTo: string }> {
+    try {
       const body = validateOrThrow<typeof resetPasswordSchema>(raw, resetPasswordSchema);
-      await this.passwordResetService.consumeReset(body.token, body.newPassword);
-    });
+      const result = await this.passwordResetService.consumeReset(
+        body.token,
+        body.newPassword,
+      );
+
+      // Mint the NextAuth session JWT (D5). The salt MUST match the
+      // canonical `NEXTAUTH_SESSION_TOKEN_NAME` so the encoder and
+      // decoder agree on the wire format. Wrapped in try/catch per
+      // `pattern/nextauth-decode-try-catch` — the encode path uses
+      // HKDF-derived AES-256-GCM under the hood; failures are
+      // exceptional (secret mismatch, key derivation error) and
+      // surface as 500 with a generic message.
+      let jwt: string;
+      try {
+        jwt = await encodeJwt({
+          token: {
+            sub: result.userId,
+            email: result.email,
+            role: result.role,
+            userId: result.userId,
+            name: null,
+            picture: null,
+          },
+          secret: env.NEXTAUTH_SECRET,
+          salt: NEXTAUTH_SESSION_TOKEN_NAME,
+          maxAge: 30 * 24 * 60 * 60, // 30 days — NextAuth default
+        });
+      } catch (jwtError) {
+        this.logger.error(
+          `[auth] JWT encode failed after password reset for [email]: ${
+            jwtError instanceof Error ? jwtError.message : String(jwtError)
+          }`,
+        );
+        throw new HttpException(
+          { error: "JWT_ENCODE_FAILED", message: "could not establish session" },
+          500,
+        );
+      }
+
+      // Emit the HttpOnly session cookie (D5). The cookie shape
+      // matches NextAuth v5 defaults: `authjs.session-token=...;
+      // HttpOnly; SameSite=Lax`. The `secure` flag is wired through
+      // the WEB_ORIGIN env (production: true, development: false)
+      // — the test harness uses NODE_ENV=test so `secure` is
+      // automatically false, and the cookie still flows in the
+      // supertest response.
+      const isProduction = env.NODE_ENV === "production";
+      res.cookie(NEXTAUTH_SESSION_TOKEN_NAME, jwt, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: isProduction,
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
+      });
+
+      // Spec: the user is redirected to `/{locale}/(app)`. The
+      // locale defaults to "en" (no Accept-Language on the reset
+      // POST — the user is following a link from the email, and
+      // the email already localized the link). A future change
+      // can thread the locale through the reset token (the token
+      // row already knows which locale was active when it was
+      // minted); for PR #3 we hard-code `en` to match the existing
+      // behavior the controller shipped in slice 4.
+      return { redirectTo: "/en/(app)" };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new HttpException(
+          { error: "VALIDATION_FAILED", message: error.message, issues: error.issues },
+          400,
+        );
+      }
+      if (error instanceof AuthError) {
+        throw new HttpException(
+          { error: error.code, message: error.message },
+          authErrorToHttpStatus(error),
+        );
+      }
+      throw error;
+    }
   }
 
   @Get("/sessions")

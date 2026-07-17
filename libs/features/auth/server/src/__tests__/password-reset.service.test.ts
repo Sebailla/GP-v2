@@ -516,7 +516,11 @@ describe("PasswordResetService", () => {
         auditSink,
       );
 
-      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toBeUndefined();
+      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toEqual({
+        userId: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+      });
 
       expect(prismaStub.$transaction).toHaveBeenCalledTimes(1);
       expect(prismaStub.txUserUpdate).toHaveBeenCalledTimes(1);
@@ -562,7 +566,11 @@ describe("PasswordResetService", () => {
         auditSink,
       );
 
-      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toBeUndefined();
+      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toEqual({
+        userId: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+      });
 
       expect(auditSink).not.toHaveBeenCalled();
     });
