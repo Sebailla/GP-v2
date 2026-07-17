@@ -108,7 +108,15 @@ vi.mock("bcryptjs", () => ({
 
 import { prisma } from "@core/database";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { Adapter, AdapterAccount, AdapterUser } from "@auth/core/adapters";
+// `PrismaAdapter` returns the canonical `Adapter` type from
+// `@auth/core`. We derive the helper types (`AdapterAccount`,
+// `AdapterUser`) from the return shape so we don't pull in the
+// `@auth/core/adapters` deep import path (apps/api depends on
+// `@auth/prisma-adapter` directly, not `@auth/core`).
+type Adapter = ReturnType<typeof PrismaAdapter>;
+type GetUserByEmailFn = Extract<Adapter["getUserByEmail"], (...args: unknown[]) => unknown>;
+type AdapterUser = NonNullable<Awaited<ReturnType<GetUserByEmailFn>>>;
+type AdapterAccount = Parameters<Extract<Adapter["linkAccount"], (...args: unknown[]) => unknown>>[0];
 
 import { buildAuthConfig } from "../auth.config.js";
 
@@ -138,20 +146,12 @@ describe("PrismaAdapter — Google account linking (Module-2 PR #4 task 4.1)", (
     vi.mocked(prisma.account.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.account.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
-    const newUser: AdapterUser = {
-      id: "user-new",
-      email: "alice@example.com",
-      name: null,
-      image: null,
-      emailVerified: new Date(),
-    };
-    vi.mocked(prisma.user.create).mockResolvedValue({
-      ...newUser,
-      // Adapter projects row via Prisma.UserSelect; cast to never
-      // keeps the mock strict-free.
-    } as never);
+    // The mock rows are typed loosely as `never` to avoid coupling
+    // the test to Prisma's row projection. The test asserts the
+    // adapter's CALL pattern, not the exact row shape.
+    vi.mocked(prisma.user.create).mockResolvedValue({ id: "user-new" } as never);
     vi.mocked(prisma.account.create).mockResolvedValue({
-      userId: newUser.id,
+      userId: "user-new",
       type: "oauth",
       provider: "google",
       providerAccountId: "google-uid-123",
@@ -169,27 +169,22 @@ describe("PrismaAdapter — Google account linking (Module-2 PR #4 task 4.1)", (
     const emailLookup = await adapter.getUserByEmail!("alice@example.com");
     expect(emailLookup).toBeNull();
 
-    const created = await adapter.createUser!({
-      email: "alice@example.com",
-      name: null,
-      image: null,
-      emailVerified: new Date(),
-    });
+    const created = await adapter.createUser!(
+      ({
+        email: "alice@example.com",
+        name: null,
+        image: null,
+        emailVerified: new Date(),
+      }) as AdapterUser,
+    );
     expect(created.id).toBe("user-new");
 
-    const linkArg: AdapterAccount = {
+    const linkArg: AdapterAccount = ({
       userId: created.id,
       type: "oauth",
       provider: "google",
       providerAccountId: "google-uid-123",
-      refresh_token: null,
-      access_token: "at",
-      expires_at: null,
-      token_type: "Bearer",
-      scope: "openid email profile",
-      id_token: null,
-      session_state: null,
-    };
+    }) as AdapterAccount;
     await adapter.linkAccount!(linkArg);
 
     // Adapter behavior — first sign-in:
@@ -216,18 +211,15 @@ describe("PrismaAdapter — Google account linking (Module-2 PR #4 task 4.1)", (
     // to that existing User without creating a second User row.
     vi.mocked(prisma.account.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.account.findFirst).mockResolvedValue(null);
-    const existingUser: AdapterUser = {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
       id: "user-existing",
       email: "alice@example.com",
       name: "Alice",
       image: null,
       emailVerified: new Date(),
-    };
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({
-      ...existingUser,
     } as never);
     vi.mocked(prisma.account.create).mockResolvedValue({
-      userId: existingUser.id,
+      userId: "user-existing",
       type: "oauth",
       provider: "google",
       providerAccountId: "google-uid-123",
@@ -245,20 +237,17 @@ describe("PrismaAdapter — Google account linking (Module-2 PR #4 task 4.1)", (
 
     // The OAuth callback hands the existing user's id to
     // `linkAccount` — the adapter inserts a new Account row bound
-    // to that user.
-    await adapter.linkAccount!({
-      userId: emailLookup!.id,
-      type: "oauth",
-      provider: "google",
-      providerAccountId: "google-uid-123",
-      refresh_token: null,
-      access_token: "at",
-      expires_at: null,
-      token_type: "Bearer",
-      scope: "openid email profile",
-      id_token: null,
-      session_state: null,
-    });
+    // to that user. The literal is cast to the AdapterAccount
+    // input shape so the strict `Lowercase<string>` / non-null
+    // type checks don't drown the test.
+    await adapter.linkAccount!(
+      ({
+        userId: emailLookup!.id,
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "google-uid-123",
+      }) as AdapterAccount,
+    );
 
     // The KEY assertion for the spec scenario: NO duplicate User
     // row is created. The user was already there; we only link

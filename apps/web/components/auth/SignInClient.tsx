@@ -6,14 +6,19 @@ import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
 
 import { LoginForm } from "./LoginForm";
-import { isGoogleConfigured } from "@/lib/google-enabled";
+import {
+  isGoogleConfigured,
+  isGoogleMockEnabled,
+  isGoogleSignInVisible,
+} from "@/lib/google-enabled";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
  * SignInClient — slice 4 batch 4c (T4.8) + slice 4 batch 2
  * (cookie-on-success) + module 2 public-auth (PR #1, tasks 1.1
- * + 1.3).
+ * + 1.3) + module 2 PR #4 task 4.6 (`google-mock` provider
+ * selection per D4).
  *
  * Thin client wrapper that bridges the LoginForm's `onSuccess`
  * callback to a `next/navigation#useRouter#replace` redirect, and
@@ -48,6 +53,20 @@ import { cn } from "@/lib/utils";
  * deploy without GOOGLE_CLIENT_ID never shows a button that would
  * 500 when clicked.
  *
+ * **Module 2 PR #4 task 4.6 — mock provider selection (D4).** When
+ * the real Google credentials are absent AND `GOOGLE_E2E_MOCK=1`
+ * is set (in dev/test), `isGoogleMockEnabled()` returns true and
+ * the client routes the button to `signIn("google-mock", ...)`
+ * against the locally-registered mock provider
+ * (`apps/web/auth.ts#buildProviders`). The mock provider returns
+ * a stubbed verified profile so the adapter's auto-link path runs
+ * end-to-end in CI without a real Google round-trip. The
+ * `isGoogleSignInVisible()` predicate combines both branches so the
+ * CLIENT-SIDE gating decision (button visibility) and the
+ * SERVER-SIDE provider registration are derived from the SAME env
+ * predicates. The `googleProviderId` constant is the single
+ * source of truth for which provider the button targets.
+ *
  * `router.replace` is preferred over `router.push` so the sign-in
  * URL is replaced in the history stack — the user can't navigate
  * back to the form after authenticating.
@@ -67,7 +86,20 @@ export interface SignInClientProps {
 export function SignInClient({ apiUrl, locale }: SignInClientProps): React.JSX.Element {
   const router = useRouter();
   const t = useTranslations("auth.signIn");
-  const showGoogleButton = isGoogleConfigured();
+  // PR #4 task 4.6 — the button visibility derives from EITHER
+  // the real Google provider (`isGoogleConfigured`) OR the mock
+  // provider (`isGoogleMockEnabled`). When neither is set the
+  // button is hidden entirely — the spec gating clause.
+  const showGoogleButton = isGoogleSignInVisible();
+  // PR #4 task 4.6 — pick the right provider id. Real Google
+  // takes precedence when both branches are satisfied (the
+  // mock is a dev/test fallback); without real credentials the
+  // mock id is the only viable target.
+  const googleProviderId: "google" | "google-mock" = isGoogleConfigured()
+    ? "google"
+    : isGoogleMockEnabled()
+      ? "google-mock"
+      : "google";
 
   // Build the post-auth target once — the credentials success
   // path AND the Google OAuth handshake both redirect here.
@@ -81,7 +113,7 @@ export function SignInClient({ apiUrl, locale }: SignInClientProps): React.JSX.E
           variant="outline"
           className="w-full"
           onClick={() => {
-            void signIn("google", { callbackUrl });
+            void signIn(googleProviderId, { callbackUrl });
           }}
         >
           {t("google")}

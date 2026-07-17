@@ -108,7 +108,14 @@ vi.mock("bcryptjs", () => ({
   default: { compare: vi.fn(), hash: vi.fn() },
 }));
 
-import type { Adapter } from "@auth/core/adapters";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+
+// `PrismaAdapter` returns the canonical `Adapter` type from
+// `@auth/core`. We derive the helper types (`AdapterAccount`,
+// `AdapterUser`) from the return shape so we don't pull in the
+// `@auth/core/adapters` deep import path (apps/api depends on
+// `@auth/prisma-adapter` directly, not `@auth/core`).
+type Adapter = ReturnType<typeof PrismaAdapter>;
 
 import { prisma } from "@core/database";
 
@@ -182,27 +189,29 @@ describe("Google OAuth callback surface (Module-2 PR #4 task 4.3 + 4.7)", () => 
     const emailLookup = await adapter.getUserByEmail!("alice@example.com");
     expect(emailLookup).toBeNull();
 
-    const created = await adapter.createUser!({
-      email: "alice@example.com",
-      name: null,
-      image: null,
-      emailVerified: new Date(),
-    });
+    const created = await adapter.createUser!(
+      ({
+        email: "alice@example.com",
+        name: null,
+        image: null,
+        emailVerified: new Date(),
+      }) as unknown as Parameters<NonNullable<Adapter["createUser"]>>[0],
+    );
     expect(created.id).toBe("user-new");
 
-    await adapter.linkAccount!({
-      userId: created.id,
-      type: "oauth",
-      provider: "google",
-      providerAccountId: "google-uid-123",
-      access_token: "at",
-      refresh_token: null,
-      expires_at: null,
-      token_type: "Bearer",
-      scope: "openid email profile",
-      id_token: null,
-      session_state: null,
-    });
+    // Cast to the canonical AdapterAccount input shape via
+    // `Parameters<...>[0]` so the structural literal passes type
+    // checking — the `AdapterAccount` interface requires
+    // `Lowercase<string>` for `token_type` and forbids `null` on
+    // `refresh_token` / `expires_at` / `id_token` / `session_state`.
+    await adapter.linkAccount!(
+      ({
+        userId: created.id,
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "google-uid-123",
+      }) as Parameters<NonNullable<Adapter["linkAccount"]>>[0],
+    );
 
     expect(prisma.user.create).toHaveBeenCalledTimes(1);
     expect(prisma.account.create).toHaveBeenCalledTimes(1);
@@ -231,19 +240,14 @@ describe("Google OAuth callback surface (Module-2 PR #4 task 4.3 + 4.7)", () => 
     const emailLookup = await adapter.getUserByEmail!("alice@example.com");
     expect(emailLookup?.id).toBe("user-existing");
 
-    await adapter.linkAccount!({
-      userId: emailLookup!.id,
-      type: "oauth",
-      provider: "google",
-      providerAccountId: "google-uid-123",
-      access_token: "at",
-      refresh_token: null,
-      expires_at: null,
-      token_type: "Bearer",
-      scope: "openid email profile",
-      id_token: null,
-      session_state: null,
-    });
+    await adapter.linkAccount!(
+      ({
+        userId: emailLookup!.id,
+        type: "oauth",
+        provider: "google",
+        providerAccountId: "google-uid-123",
+      }) as Parameters<NonNullable<Adapter["linkAccount"]>>[0],
+    );
 
     // NO duplicate user — the existing user is reused.
     expect(prisma.user.create).not.toHaveBeenCalled();
