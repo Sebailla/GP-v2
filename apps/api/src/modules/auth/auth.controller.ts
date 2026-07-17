@@ -237,9 +237,7 @@ export class AuthController implements OnModuleDestroy {
     // multiple times in the same Node process).
     const unsub = this.dispatcher.subscribe(
       AUTH_PASSWORD_RESET_REQUESTED,
-      (event) => {
-        void this.forwardResetEmail(event);
-      },
+      (event) => this.forwardResetEmail(event),
     );
     this.mailSubscriptions.push(unsub);
   }

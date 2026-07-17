@@ -69,7 +69,12 @@ import { MAIL_ADAPTER } from "../src/mail/mail.module.js";
  */
 class InMemoryMailAdapter implements MailAdapter {
   readonly messages: MailMessage[] = [];
+  /** When set, `send` rejects with this error (simulates SMTP failure). */
+  sendError: Error | null = null;
   async send(msg: MailMessage): Promise<void> {
+    if (this.sendError !== null) {
+      throw this.sendError;
+    }
     this.messages.push(msg);
   }
 }
@@ -189,5 +194,41 @@ describe("POST /auth/forgot-password (e2e — Module-2 PR #3 task 3.3 + 3.4)", (
       .send({ email: sharedEmail });
 
     expect(fourth.status).toBe(429);
+  });
+
+  it("returns 502 when the Gmail SMTP transport rejects (Module-2 PR #3 task 3.10 — TRIANGULATE)", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-1",
+      email: "alice@example.com",
+      role: "USER",
+      hashedPassword: "$2a$10$hash",
+    } as never);
+    vi.mocked(prisma.passwordResetToken.create).mockResolvedValue({
+      id: "prt-1",
+      userId: "user-1",
+      tokenHash: "x".repeat(64),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      consumedAt: null,
+    } as never);
+
+    // Configure the in-memory adapter to reject on send — simulates
+    // the Gmail SMTP transport rejecting (535 / connection refused /
+    // timeout, etc.).
+    inMemoryAdapter.sendError = new Error(
+      "Invalid login: 535-5.7.8 Username and Password not accepted",
+    );
+
+    const res = await request(app.getHttpServer())
+      .post("/auth/forgot-password")
+      .set("Accept-Language", "es")
+      .send({ email: "alice@example.com" });
+
+    // Per forgot-password spec scenario "Gmail SMTP failure surfaces
+    // 502": the response is 502 with a generic localized error. The
+    // SMTP error code MUST NOT leak into the response body.
+    expect(res.status).toBe(502);
+    const body = JSON.stringify(res.body);
+    expect(body).not.toMatch(/535-5\.7\.8/);
+    expect(body.toLowerCase()).not.toMatch(/smtp|transport|connection refused/i);
   });
 });

@@ -384,7 +384,7 @@ describe("PasswordResetService", () => {
       expect(events.every((e) => e.name === "auth.password-reset.requested")).toBe(true);
     });
 
-    it("R3 follow-up — swallows dispatcher rejection + emits AuditSink signal; row persists (orphan bounded by F4 cron)", async () => {
+    it("PR #3 (task 3.10) — propagates dispatcher rejection so the controller maps it to 502 (was swallowed in slice-3)", async () => {
       const userRepo = makeFakeUserRepo({
         id: "user-1",
         email: "alice@example.com",
@@ -394,7 +394,6 @@ describe("PasswordResetService", () => {
       const tokenRepo = makeFakeTokenRepo();
       const dispatcherError = new Error("email adapter offline");
       const dispatcher = vi.fn<AuthEventDispatcher>().mockRejectedValue(dispatcherError);
-      const auditSink = vi.fn();
 
       const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(
@@ -404,29 +403,22 @@ describe("PasswordResetService", () => {
         // prisma is required by the constructor shape; use a no-op
         // stub since requestReset never reaches the transaction.
         asPrismaStub(makePrismaStub()),
-        auditSink,
       );
 
-      // Contract: requestReset RESOLVES (no 500 to caller), row
-      // persists (user can inspect dev mailbox OR retry), audit
-      // sink fires with the F2-shaped signal.
-      await expect(service.requestReset("alice@example.com", "en")).resolves.toBeUndefined();
+      // PR #3 contract: requestReset REJECTS so the controller can
+      // catch the dispatcher error and return 502 (per forgot-password
+      // spec scenario "Gmail SMTP failure surfaces 502"). The
+      // dispatcher-error sink (`onError` inside the dispatcher)
+      // still receives the error for observability — see
+      // `src/__tests__/dispatcher.test.ts` for the propagation test.
+      await expect(service.requestReset("alice@example.com", "en")).rejects.toThrow(
+        "email adapter offline",
+      );
 
+      // Row still persists (F2 orphan-bounded invariant is preserved).
+      // The user can re-call requestReset to mint a fresh row + retry.
       expect(tokenRepo.create).toHaveBeenCalledTimes(1);
       expect(dispatcher).toHaveBeenCalledTimes(1);
-      expect(auditSink).toHaveBeenCalledTimes(1);
-      const auditCall = (
-        vi.mocked(auditSink).mock.calls[0] as unknown as [
-          {
-            kind: string;
-            event: DomainEvent;
-            error: unknown;
-          },
-        ]
-      )[0];
-      expect(auditCall.kind).toBe("AUTH_EVENT_DISPATCH_FAILURE");
-      expect(auditCall.event.name).toBe("auth.password-reset.requested");
-      expect((auditCall.error as Error).message).toBe("email adapter offline");
     });
   });
 

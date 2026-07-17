@@ -280,25 +280,21 @@ export class PasswordResetService {
       },
       occurredAt: new Date(),
     };
-    // 4R follow-up (slice 3 batch 5 R3 WARNING #2): wrap the dispatch
-    // in try/catch + auditSink — same pattern as `consumeReset` (F2
-    // fix). If the dispatcher rejects (email adapter down, mailbox
-    // full, etc.), the row is already persisted but the caller
-    // would otherwise see a 500. Swallowing the rejection is safe
-    // here: (a) the user can retry with a fresh `requestReset` call
-    // that mints a NEW token + new row; (b) the orphan row is
-    // bounded by the F4 cron (deleteExpired) cleanup at ≤15 min.
-    // The audit signal is the only honest observability for the
-    // dispatcher failure.
-    try {
-      await this.dispatcher(event);
-    } catch (error) {
-      this.auditSink({
-        kind: "AUTH_EVENT_DISPATCH_FAILURE",
-        event,
-        error,
-      });
-    }
+    // PR #3 (task 3.10): DO NOT swallow the dispatcher's rejection.
+    // The slice-3 F2 swallow was correct for the slice-3 architecture
+    // (the dispatcher was a pure pub/sub; the controller's
+    // forgot-password path did not depend on dispatch success). PR #3
+    // tightens the contract: the controller's mail-delivery subscriber
+    // MUST surface MailAdapter.send rejections so the HTTP response
+    // can map them to 502 (per forgot-password spec scenario "Gmail
+    // SMTP failure surfaces 502"). The row IS persisted, but the
+    // user never received the email — surfacing the 502 tells them
+    // to retry (a fresh `requestReset` call mints a new row + new
+    // email attempt). The auditSink still receives the failure
+    // signal via the dispatcher's `onError` callback (the controller
+    // wraps the throw as `MailDeliveryError` and the dispatcher's
+    // `onError` logs the raw cause first).
+    await this.dispatcher(event);
   }
 
   /**
