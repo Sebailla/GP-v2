@@ -91,8 +91,10 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 
 import { prisma } from "@core/database";
+import { InMemoryRateLimiter } from "@core/rate-limit";
 
 import { AuthModule } from "../src/modules/auth/auth.module.js";
+import { RATE_LIMITER_TOKEN } from "../src/shared/guards/rate-limit.guard.js";
 
 import { mintJwt } from "./helpers/mint-jwt.js";
 
@@ -112,7 +114,10 @@ describe("JwtAuthGuard session expiry (T3.7 #2 — integration)", () => {
     vi.resetAllMocks();
     moduleRef = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(RATE_LIMITER_TOKEN)
+      .useValue(new InMemoryRateLimiter())
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();

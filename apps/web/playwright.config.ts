@@ -48,6 +48,14 @@ const config: PlaywrightTestConfig = {
         locale: "es-ES",
       },
     },
+    {
+      name: "smoke",
+      use: {
+        browserName: "chromium",
+        locale: "en-US",
+        baseURL: process.env["SMOKE_WEB_URL"] ?? "http://localhost:3000",
+      },
+    },
   ],
   webServer: {
     command: "pnpm dev",

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { createInMemoryDispatcher } from "@core/events";
+import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 import { toDecimal } from "@shared-utils/decimal";
 import {
   CategoryService,
@@ -20,6 +21,7 @@ import type { DomainEvent } from "@core/events";
 import type { TransactionsEventDispatcher } from "@features/transactions/server/src/events.js";
 
 import { TransactionsController } from "./transactions.controller.js";
+import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-limit.guard.js";
 import { PrismaUnitOfWork } from "@features/transactions";
 
 /**
@@ -57,6 +59,18 @@ function createTransactionsEventDispatcher(): TransactionsEventDispatcher {
 
 @Module({
   providers: [
+    {
+      provide: RATE_LIMITER_TOKEN,
+      useFactory: (): RateLimiter => {
+        const url = process.env["UPSTASH_REDIS_REST_URL"];
+        const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
+        if (typeof url === "string" && typeof token === "string" && url.length > 0 && token.length > 0) {
+          return new UpstashRateLimiter(url, token);
+        }
+        return new InMemoryRateLimiter();
+      },
+    },
+    RateLimitGuard,
     {
       provide: FX_RATE_PROVIDER_TOKEN,
       useFactory: () => {

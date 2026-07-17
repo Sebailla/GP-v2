@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { envSchema, parseEnv, type Env } from "../env.schema";
+import { envSchema, parseEnv, productionEnvSchema, type Env } from "../env.schema";
 
 /**
  * TDD contract for @core/config:
@@ -22,17 +22,28 @@ const completeFixture: Env = {
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/gastos_reference",
   NEXTAUTH_URL: "http://localhost:3000",
   NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+  JWT_SECRET: "jwt-secret-at-least-thirty-two-characters-long",
+  COOKIE_SECRET: "cookie-secret-at-least-thirty-two-characters-long",
+  PUBLIC_WEB_URL: "http://localhost:3000",
+  PUBLIC_API_URL: "http://localhost:3001",
   API_URL: "http://localhost:3001",
   GOOGLE_CLIENT_ID: "google-client-id-stub",
   GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
   WEB_ORIGIN: "http://localhost:3000",
+  MAIL_DSN: "smtp://user:pass@smtp.gmail.com:587",
+  BACKUP_DSN: "s3://access:secret@bucket",
+  METRICS_TOKEN: "metrics-token-at-least-sixteen-chars",
+  STATUS_DETAIL_TOKEN: "status-detail-token-at-least-sixteen",
+  UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+  UPSTASH_REDIS_REST_TOKEN: "upstash-token-at-least-sixteen-chars",
+  LOG_LEVEL: "info",
   PORT: 3001,
-  NODE_ENV: "development",
+  NODE_ENV: "staging",
 };
 
 describe("envSchema", () => {
   describe("safeParse with empty input (RED)", () => {
-    const result = envSchema.safeParse({});
+    const result = productionEnvSchema.safeParse({});
 
     it("returns success=false", () => {
       expect(result.success).toBe(false);
@@ -112,6 +123,10 @@ describe("envSchema", () => {
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/gastos_reference",
       NEXTAUTH_URL: "http://localhost:3000",
       NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+      JWT_SECRET: "jwt-secret-at-least-thirty-two-characters-long",
+      COOKIE_SECRET: "cookie-secret-at-least-thirty-two-characters-long",
+      PUBLIC_WEB_URL: "http://localhost:3000",
+      PUBLIC_API_URL: "http://localhost:3001",
       API_URL: "http://localhost:3001",
       GOOGLE_CLIENT_ID: "google-client-id-stub",
       GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
@@ -139,10 +154,19 @@ describe("envSchema", () => {
       DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/gastos_reference",
       NEXTAUTH_URL: "http://localhost:3000",
       NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+      JWT_SECRET: "jwt-secret-at-least-thirty-two-characters-long",
+      COOKIE_SECRET: "cookie-secret-at-least-thirty-two-characters-long",
+      PUBLIC_WEB_URL: "http://localhost:3000",
+      PUBLIC_API_URL: "http://localhost:3001",
       API_URL: "http://localhost:3001",
       GOOGLE_CLIENT_ID: "google-client-id-stub",
       GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
       WEB_ORIGIN: "http://localhost:3000",
+      MAIL_DSN: "smtp://user:pass@smtp.gmail.com:587",
+      BACKUP_DSN: "s3://access:secret@bucket",
+      METRICS_TOKEN: "metrics-token-at-least-sixteen-chars",
+      UPSTASH_REDIS_REST_URL: "https://example.upstash.io",
+      UPSTASH_REDIS_REST_TOKEN: "upstash-token-at-least-sixteen-chars",
       NODE_ENV: "production",
     };
 
@@ -181,6 +205,25 @@ describe("envSchema", () => {
       }
     });
   });
+
+  describe("production profile (R-PF-1)", () => {
+    it("fails closed when JWT_SECRET is missing in production", () => {
+      const { JWT_SECRET: _ignored, ...rest } = completeFixture;
+      void _ignored;
+      const result = envSchema.safeParse({ ...rest, NODE_ENV: "production" });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts a complete production fixture", () => {
+      const result = envSchema.safeParse({ ...completeFixture, NODE_ENV: "production" });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects a JWT_SECRET shorter than 32 chars", () => {
+      const result = envSchema.safeParse({ ...completeFixture, JWT_SECRET: "short" });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe("parseEnv", () => {
@@ -188,7 +231,7 @@ describe("parseEnv", () => {
     const env = parseEnv(completeFixture);
     expect(env.DATABASE_URL).toBe(completeFixture.DATABASE_URL);
     expect(env.PORT).toBe(completeFixture.PORT);
-    expect(env.NODE_ENV).toBe("development");
+    expect(env.NODE_ENV).toBe("staging");
   });
 
   it("throws a ZodError when a required field is missing", () => {

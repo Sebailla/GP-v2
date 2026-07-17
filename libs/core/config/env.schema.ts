@@ -21,13 +21,17 @@ import { z } from "zod";
  * would parse `process.env` at import time and poison every test).
  */
 
-const NODE_ENV_VALUES = ["development", "test", "production"] as const;
+const NODE_ENV_VALUES = ["development", "test", "staging", "production"] as const;
 export type NodeEnv = (typeof NODE_ENV_VALUES)[number];
 
 export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   NEXTAUTH_URL: z.string().url(),
   NEXTAUTH_SECRET: z.string().min(32),
+  JWT_SECRET: z.string().min(32),
+  COOKIE_SECRET: z.string().min(32),
+  PUBLIC_WEB_URL: z.string().url(),
+  PUBLIC_API_URL: z.string().url(),
   // T4.8 (slice 4 batch 4c) — the web client needs the API base URL
   // to call POST /auth/login + POST /auth/register from the LoginForm /
   // SignUpForm. Required at the workspace boundary so a missing or
@@ -46,11 +50,47 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   WEB_ORIGIN: z.string().url(),
+  MAIL_DSN: z.string().url().optional(),
+  BACKUP_DSN: z.string().url().optional(),
+  METRICS_TOKEN: z.string().min(16).optional(),
+  STATUS_DETAIL_TOKEN: z.string().min(16).optional(),
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(16).optional(),
+  LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).optional(),
   PORT: z.coerce.number().int().positive().optional().default(3001),
   NODE_ENV: z.enum(NODE_ENV_VALUES),
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+/**
+ * Refine the schema to fail closed when NODE_ENV is staging or production
+ * and any of the production-only fields are missing. Development and test
+ * profiles accept missing optional fields so local dev keeps working.
+ */
+export const productionEnvSchema = envSchema.superRefine((value, ctx) => {
+  if (value.NODE_ENV !== "staging" && value.NODE_ENV !== "production") return;
+  const required: ReadonlyArray<keyof Env> = [
+    "JWT_SECRET",
+    "COOKIE_SECRET",
+    "PUBLIC_WEB_URL",
+    "PUBLIC_API_URL",
+    "MAIL_DSN",
+    "BACKUP_DSN",
+    "METRICS_TOKEN",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+  ];
+  for (const key of required) {
+    if (value[key] === undefined || value[key] === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [key],
+        message: `${key} is required when NODE_ENV is "${value.NODE_ENV}"`,
+      });
+    }
+  }
+});
 
 /**
  * Parse an arbitrary record against the env schema. Use this in tests
@@ -63,5 +103,5 @@ export type Env = z.infer<typeof envSchema>;
  *   const env = parseEnv({ ...process.env, PORT: "4242" });
  */
 export function parseEnv(source: Readonly<Record<string, unknown>>): Env {
-  return envSchema.parse(source);
+  return productionEnvSchema.parse(source);
 }

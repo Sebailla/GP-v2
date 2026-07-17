@@ -1,6 +1,9 @@
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "./modules/auth/auth.module.js";
+import { HealthModule } from "./modules/health/health.module.js";
+import { MailModule } from "./mail/mail.module.js";
+import { MetricsModule } from "./modules/metrics/metrics.module.js";
 import { TransactionsModule } from "./modules/transactions/transactions.module.js";
 
 /**
@@ -12,8 +15,12 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
  * the AuthModule (thin NestJS wrapper around @features/auth/server).
  * Slice 5 PR #3 (T5.11) wires the TransactionsModule (REST surface
  * for /transactions + /categories; see design §5.3).
+ *
+ * Module 1 (T1.4) — HealthModule wires /healthz, /readyz, /status
+ * (R-PF-4). T1.7 added MetricsModule to expose GET /metrics (R-PF-9).
+ * MailModule (T1.12) lands in its own task.
  */
 @Module({
-  imports: [AuthModule, TransactionsModule],
+  imports: [AuthModule, HealthModule, MailModule, MetricsModule, TransactionsModule],
 })
 export class AppModule {}

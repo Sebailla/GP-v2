@@ -275,3 +275,25 @@ model AuditLog {
   @@index([entityType, entityId])
   @@map("audit_logs")
 }
+
+// ---------------------------------------------------------------------------
+// BACKUP (slice — R-PF-7)
+//
+// Audit trail for the daily `pg_dump` job. One row per `runBackup`
+// invocation. The /status endpoint reads the most recent row to surface
+// `lastBackupAt` and `lastBackupStatus`.
+//
+// The `environment` column is REQUIRED because staging and production
+// share the same Postgres host; without it the /status endpoint on
+// production would happily report the staging backup timestamp.
+// ---------------------------------------------------------------------------
+
+model BackupRun {
+  id          String   @id @default(cuid())
+  performedAt DateTime @default(now())
+  status      String
+  bytes       Int?
+  storageKey  String?
+  message     String?
+  environment String
+}

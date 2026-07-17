@@ -92,8 +92,10 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 
 import { prisma } from "@core/database";
+import { InMemoryRateLimiter } from "@core/rate-limit";
 
 import { AuthModule } from "../src/modules/auth/auth.module.js";
+import { RATE_LIMITER_TOKEN } from "../src/shared/guards/rate-limit.guard.js";
 import { NEXTAUTH_SESSION_TOKEN_NAME } from "../src/lib/auth.constants.js";
 
 /**
@@ -112,7 +114,10 @@ describe("JwtAuthGuard (T3.3 — NextAuth v5 backed)", () => {
     vi.resetAllMocks();
     moduleRef = await Test.createTestingModule({
       imports: [AuthModule],
-    }).compile();
+    })
+      .overrideProvider(RATE_LIMITER_TOKEN)
+      .useValue(new InMemoryRateLimiter())
+      .compile();
 
     app = moduleRef.createNestApplication();
     await app.init();

@@ -13,10 +13,12 @@ import {
 
 import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
+import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 
 import { AuthController } from "./auth.controller.js";
 import { AuthCronService } from "./auth-cron.service.js";
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
+import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-limit.guard.js";
 
 /**
  * AuthModule (slice 3 batch 6 — T3.6 NestJS thin wrapper).
@@ -77,7 +79,19 @@ const dispatcher = createInMemoryDispatcher();
       provide: AuthCronService,
       useFactory: () => new AuthCronService(new PrismaPasswordResetTokenRepository(defaultPrisma)),
     },
+    {
+      provide: RATE_LIMITER_TOKEN,
+      useFactory: (): RateLimiter => {
+        const url = process.env["UPSTASH_REDIS_REST_URL"];
+        const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
+        if (typeof url === "string" && typeof token === "string" && url.length > 0 && token.length > 0) {
+          return new UpstashRateLimiter(url, token);
+        }
+        return new InMemoryRateLimiter();
+      },
+    },
     JwtAuthGuard,
+    RateLimitGuard,
   ],
   exports: [
     AuthService,

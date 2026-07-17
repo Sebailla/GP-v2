@@ -27,6 +27,8 @@ import {
 } from "@features/auth";
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
+import { RateLimit } from "../../shared/guards/rate-limit.decorator.js";
+import { RateLimitGuard } from "../../shared/guards/rate-limit.guard.js";
 
 /**
  * Map an AuthError code to the HTTP status the controller should
@@ -125,6 +127,7 @@ function validateOrThrow<T extends import("zod").ZodTypeAny>(
  * (see ADR 0008).
  */
 @Controller("/auth")
+@UseGuards(RateLimitGuard)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -134,6 +137,7 @@ export class AuthController {
   ) {}
 
   @Post("/login")
+  @RateLimit({ key: "auth:login", limit: 10, windowSeconds: 600 })
   @HttpCode(200)
   async login(
     @Body() raw: unknown,
@@ -151,6 +155,7 @@ export class AuthController {
   }
 
   @Post("/register")
+  @RateLimit({ key: "auth:register", limit: 5, windowSeconds: 3600 })
   @HttpCode(201)
   async register(
     @Body() raw: unknown,
@@ -168,6 +173,7 @@ export class AuthController {
   }
 
   @Post("/forgot-password")
+  @RateLimit({ key: "auth:forgot", limit: 3, windowSeconds: 3600 })
   @HttpCode(202)
   async forgotPassword(@Body() raw: unknown): Promise<void> {
     const body = validateOrThrow<typeof forgotPasswordSchema>(raw, forgotPasswordSchema);
@@ -175,6 +181,7 @@ export class AuthController {
   }
 
   @Post("/reset-password")
+  @RateLimit({ key: "auth:reset", limit: 10, windowSeconds: 3600 })
   @HttpCode(200)
   async resetPassword(@Body() raw: unknown): Promise<void> {
     return runOrThrowHttp(async () => {

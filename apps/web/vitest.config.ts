@@ -32,7 +32,12 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],
+    include: [
+      "__tests__/**/*.test.ts",
+      "__tests__/**/*.test.tsx",
+      "app/**/__tests__/**/*.test.ts",
+      "app/**/__tests__/**/*.test.tsx",
+    ],
     environment: "happy-dom",
     globals: false,
     clearMocks: true,

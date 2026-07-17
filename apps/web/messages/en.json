@@ -187,5 +187,23 @@
     "no": "No",
     "close": "Close",
     "retry": "Retry"
+  },
+  "status": {
+    "title": "System status",
+    "description": "Operational snapshot of the production foundation.",
+    "loading": "Loading status…",
+    "errorTitle": "Status unavailable",
+    "error": "We could not load the status. Details: {message}",
+    "retry": "Retry",
+    "notFoundTitle": "Status page not found",
+    "cardTitle": "Status details",
+    "environment": "Environment",
+    "commit": "API commit",
+    "lastBackup": "Last backup",
+    "never": "Never",
+    "uptime": "API uptime",
+    "publicApiUrl": "API URL",
+    "publicWebUrl": "Web URL",
+    "lastUpdate": "Snapshot taken at {ts}"
   }
 }
