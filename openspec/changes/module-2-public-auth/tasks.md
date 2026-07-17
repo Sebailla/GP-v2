@@ -42,12 +42,12 @@ Base `feat/public-authentication`. Verify `pnpm --filter web test SignInClient`.
 
 Base PR #1. Verify `pnpm --filter api test mail`.
 
-- [ ] 2.1 RED `env-refine.test.ts` 4 permutations: prod+no DSN+Gmail ok; prod+no DSN+Gmail missing → `ZodError`; dev+Gmail missing ok; `MAIL_DSN` → Gmail irrelevant.
-- [ ] 2.2 GREEN `env.schema.ts` add `GMAIL_USER`+`GMAIL_APP_PASSWORD`; `productionEnvSchema.superRefine` enforces both when `NODE_ENV==="production" && !MAIL_DSN`; add `.env.example` placeholders.
-- [ ] 2.3 RED `gmail-mail.adapter.test.ts`: `nodemailer.createTransport({service:"gmail"})`; envelope `from: no-reply@<PRODUCT_DOMAIN>`; SMTP rejection propagated.
-- [ ] 2.4 GREEN rewrite `gmail-mail.adapter.ts`; pino bracket `[email]` on error.
-- [ ] 2.5 RED `mail.module.test.ts` D3 precedence; GREEN `mail.module.ts`; keep `ConsoleMailAdapter`.
-- [ ] 2.6 `apps/api/package.json`: `nodemailer@^6.9.16` + `@types/nodemailer@^6.4.17` + `nodemailer-mock@^1.5.11`.
+- [x] 2.1 RED `env-refine.test.ts` 4 permutations: prod+no DSN+Gmail ok; prod+no DSN+Gmail missing → `ZodError`; dev+Gmail missing ok; `MAIL_DSN` → Gmail irrelevant.
+- [x] 2.2 GREEN `env.schema.ts` add `GMAIL_USER`+`GMAIL_APP_PASSWORD`; `productionEnvSchema.superRefine` enforces both when `NODE_ENV==="production" && !MAIL_DSN`; add `.env.example` placeholders.
+- [x] 2.3 RED `gmail-mail.adapter.test.ts`: `nodemailer.createTransport({service:"gmail"})`; envelope `from: no-reply@<PRODUCT_DOMAIN>`; SMTP rejection propagated.
+- [x] 2.4 GREEN rewrite `gmail-mail.adapter.ts`; pino bracket `[email]` on error.
+- [x] 2.5 RED `mail.module.test.ts` D3 precedence; GREEN `mail.module.ts`; keep `ConsoleMailAdapter`.
+- [x] 2.6 `apps/api/package.json`: `nodemailer@^6.9.16` + `@types/nodemailer@^6.4.17` + `nodemailer-mock@^1.5.11`.
 
 ## Phase 3 — Reset Flow End-to-End (PR #3)
 
