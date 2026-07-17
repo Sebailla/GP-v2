@@ -224,7 +224,11 @@ describe("SignInPage — slice 4 batch 4c (T4.8)", () => {
     expect(url).toBe("http://api.test/auth/login");
 
     await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/en");
+      // Module 2 PR #1 task 1.3: post-sign-in redirect targets
+      // '/{locale}/(app)' (the dashboard route group), not the
+      // bare '/{locale}' (the slice-4 batch 2 target). See
+      // proposal.md §Product decisions.
+      expect(mockReplace).toHaveBeenCalledWith("/en/(app)");
     });
   });
 

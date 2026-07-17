@@ -15,6 +15,8 @@
       "email": "Email",
       "password": "Password",
       "submit": "Sign in",
+      "google": "Continue with Google",
+      "dividerOr": "or",
       "error": {
         "invalidCredentials": "Invalid email or password."
       }

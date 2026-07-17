@@ -9,14 +9,16 @@
         "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
       }
     },
-    "signIn": {
-      "title": "Iniciar sesión",
-      "description": "Inicia sesión para acceder a tu cuenta.",
-      "email": "Correo electrónico",
-      "password": "Contraseña",
-      "submit": "Iniciar sesión",
+"signIn": {
+      "title": "Sign in",
+      "description": "Sign in to access your account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "google": "Continuar con Google",
+      "dividerOr": "o",
       "error": {
-        "invalidCredentials": "Correo electrónico o contraseña no válidos."
+        "invalidCredentials": "Credenciales no válidas."
       }
     },
     "signUp": {

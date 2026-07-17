@@ -8,6 +8,28 @@ afterEach(() => {
   cleanup();
 });
 
+// Module-scoped capture so the SignInClient and the test see the SAME
+// `vi.fn()` instance for `replace`. The setup.ts at `__tests__/setup.ts`
+// also mocks `next/navigation`, but its `useRouter()` returns a fresh
+// object on every call — so the test and the component would otherwise
+// hold different `replace` spies. Re-mocking here (with vi.mock factory
+// hoisting) shadows the global mock for THIS file only.
+const mockReplace = vi.fn();
+const mockPush = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    replace: mockReplace,
+    push: mockPush,
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+}));
+
 // Mock `next-intl` BEFORE importing the form. The mock returns a `t`
 // function that produces a deterministic key-shaped string
 // (`<scope>.<key>`) so the tests can assert on i18n key wiring without
@@ -20,7 +42,7 @@ vi.mock("next-intl", () => ({
 // { callbackUrl: ... })` call site without wiring a real NextAuth
 // provider. The mock keeps a record of every `signIn` invocation so
 // the locale-routing assertion can read the callback URL.
-const signInCalls: Array<{ provider: string; options?: Record<string, unknown> }> = [];
+const signInCalls: Array<{ provider: string; options: Record<string, unknown> | undefined }> = [];
 vi.mock("next-auth/react", () => ({
   signIn: vi.fn((provider: string, options?: Record<string, unknown>) => {
     signInCalls.push({ provider, options });
@@ -41,6 +63,8 @@ const originalCookieSetter = Object.getOwnPropertyDescriptor(Document.prototype,
 
 beforeEach(() => {
   mockFetch.mockReset();
+  mockReplace.mockReset();
+  mockPush.mockReset();
   signInCalls.length = 0;
   lastSetCookie = null;
   const originalGet = Object.getOwnPropertyDescriptor(Document.prototype, "cookie")?.get;
@@ -66,6 +90,9 @@ afterEach(() => {
   }
   // Clear any cookie that the test set.
   document.cookie = "authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+  // Clear Google env so a previous test's mutation doesn't leak.
+  delete process.env["GOOGLE_CLIENT_ID"];
+  delete process.env["GOOGLE_CLIENT_SECRET"];
 });
 
 // Component under test — imported AFTER the mocks above so the mocks win.
@@ -148,20 +175,14 @@ describe("SignInClient — module 2 public-auth (PR #1 task 1.1)", () => {
 
     await submitCredentials();
 
-    // Wait for the credentials form's success branch to fire.
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    // Read the router.replace target by querying the global
-    // `useRouter()` mock from `next/navigation` (the per-file
-    // setup.ts stub returns a full router shape). The redirect
-    // is `/en/(app)` per the product decision in proposal §Product
-    // decisions.
-    const { useRouter } = await import("next/navigation");
-    const router = useRouter();
+    // The wrapper calls router.replace with the locale-aware
+    // target per product decision.
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/en/(app)");
+      expect(mockReplace).toHaveBeenCalledWith("/en/(app)");
     });
   });
 
@@ -177,10 +198,8 @@ describe("SignInClient — module 2 public-auth (PR #1 task 1.1)", () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    const { useRouter } = await import("next/navigation");
-    const router = useRouter();
     await waitFor(() => {
-      expect(router.replace).toHaveBeenCalledWith("/es/(app)");
+      expect(mockReplace).toHaveBeenCalledWith("/es/(app)");
     });
   });
 
