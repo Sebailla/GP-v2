@@ -204,6 +204,87 @@ describe("PasswordResetService", () => {
     ).toThrow(TypeError);
   });
 
+  describe("requestReset (locale-aware — module-2 PR #3 task 3.1)", () => {
+    it("dispatches a `resetUrl` whose path begins with `/es/reset-password/` when the locale is `es`", async () => {
+      const userRepo = makeFakeUserRepo({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        hashedPassword: "$2a$10$old-hash",
+      });
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      // D2 + spec scenario "Reset URL embeds the active locale":
+      // `requestReset("alice@example.com", "es")` MUST dispatch an
+      // event whose payload includes a `resetUrl` whose path starts
+      // with `/es/reset-password/`. The raw token is included exactly
+      // once (in the path, after the locale prefix).
+      await service.requestReset("alice@example.com", "es");
+
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+      const event = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
+      expect(event.name).toBe("auth.password-reset.requested");
+      const payload = event.payload as {
+        userId: string;
+        token: string;
+        locale: string;
+        resetUrl: string;
+        requestedAt: Date;
+      };
+      expect(payload.locale).toBe("es");
+      expect(payload.resetUrl).toMatch(/^[^?#]*\/es\/reset-password\/[A-Za-z0-9_-]+$/);
+      // Raw token appears exactly once in the URL (after `/es/reset-password/`).
+      const pathTail = payload.resetUrl.split("/es/reset-password/")[1] ?? "";
+      expect(pathTail).toBe(payload.token);
+    });
+
+    it("dispatches a `resetUrl` whose path begins with `/en/reset-password/` when the locale is `en`", async () => {
+      const userRepo = makeFakeUserRepo({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        hashedPassword: "$2a$10$old-hash",
+      });
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      await service.requestReset("alice@example.com", "en");
+
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+      const event = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
+      const payload = event.payload as {
+        userId: string;
+        token: string;
+        locale: string;
+        resetUrl: string;
+        requestedAt: Date;
+      };
+      expect(payload.locale).toBe("en");
+      expect(payload.resetUrl).toMatch(/^[^?#]*\/en\/reset-password\/[A-Za-z0-9_-]+$/);
+    });
+
+    it("mints NOTHING (no row, no event) for an unknown email regardless of locale (no enumeration leak)", async () => {
+      const userRepo = makeFakeUserRepo(null);
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      await expect(service.requestReset("ghost@example.com", "es")).resolves.toBeUndefined();
+
+      expect(tokenRepo.create).not.toHaveBeenCalled();
+      expect(dispatcher).not.toHaveBeenCalled();
+    });
+  });
+
   describe("requestReset", () => {
     it("mints a token, persists a row, and dispatches auth.password-reset.requested for a known email", async () => {
       const userRepo = makeFakeUserRepo({

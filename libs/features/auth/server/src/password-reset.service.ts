@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
+import { env } from "@core/config";
 import bcrypt from "bcryptjs";
 import type { DomainEvent } from "@core/events";
 
@@ -190,8 +191,20 @@ export class PasswordResetService {
    * Idempotent envelope: an unknown email returns silently with no
    * side effect, mirroring the "if this email is registered, you will
    * receive instructions" UX in the auth spec.
+   *
+   * Module-2 PR #3 (task 3.1 + 3.2): the dispatched payload now
+   * carries the active `locale` and the locale-aware `resetUrl`
+   * (`${PUBLIC_WEB_URL}/{locale}/reset-password/{raw}` per design D2).
+   * The controller subscribes to the event and invokes the bound
+   * `MailAdapter.send` with the URL; the URL must be computed here
+   * (service layer) because the locale is part of the security
+   * contract — building it in the controller would split the URL
+   * shape across two layers and risk drift. The raw token is the
+   * SAME value as `payload.token`; appearing in both fields is
+   * intentional and not a duplication (the token in the URL is the
+   * one the user clicks; the field name keeps the contract explicit).
    */
-  async requestReset(email: string): Promise<void> {
+  async requestReset(email: string, locale: "en" | "es"): Promise<void> {
     // 1. Look up the user. Missing → silent return (no enumeration).
     const user = await this.userRepo.findByEmail(email);
     if (user === null) {
@@ -224,12 +237,20 @@ export class PasswordResetService {
     // 5. Dispatch the event. The raw token is in the payload — the
     //    dev mailbox (slice 4) consumes it. `occurredAt` is the
     //    envelope timestamp (drives ring-buffer ordering).
+    //
+    //    Module-2 PR #3: also embed `locale` and `resetUrl` so the
+    //    controller subscriber can call MailAdapter.send with the
+    //    locale-aware URL without re-deriving it. The URL path is
+    //    `/{locale}/reset-password/{rawToken}` per D2.
+    const resetUrl = `${env.PUBLIC_WEB_URL}/${locale}/reset-password/${rawToken}`;
     const event: DomainEvent = {
       name: "auth.password-reset.requested",
       userId: user.id,
       payload: {
         userId: user.id,
         token: rawToken,
+        locale,
+        resetUrl,
         requestedAt: new Date(),
       },
       occurredAt: new Date(),
