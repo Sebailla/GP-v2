@@ -51,6 +51,13 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   WEB_ORIGIN: z.string().url(),
   MAIL_DSN: z.string().url().optional(),
+  // D7 (module-2-public-auth) — Gmail env vars. Optional at the schema
+  // level so dev / test setups run without real Gmail credentials. The
+  // `productionEnvSchema.superRefine` below enforces both whenever
+  // NODE_ENV="production" AND MAIL_DSN is unset (D3 kill-switch wins
+  // when MAIL_DSN IS set, so Gmail is irrelevant in that branch).
+  GMAIL_USER: z.string().email().optional(),
+  GMAIL_APP_PASSWORD: z.string().min(16).optional(),
   BACKUP_DSN: z.string().url().optional(),
   METRICS_TOKEN: z.string().min(16).optional(),
   STATUS_DETAIL_TOKEN: z.string().min(16).optional(),
@@ -67,6 +74,13 @@ export type Env = z.infer<typeof envSchema>;
  * Refine the schema to fail closed when NODE_ENV is staging or production
  * and any of the production-only fields are missing. Development and test
  * profiles accept missing optional fields so local dev keeps working.
+ *
+ * D7 (module-2-public-auth) — `MAIL_DSN` is no longer unconditionally
+ * required in production. The mail adapter needs EITHER `MAIL_DSN`
+ * (kill-switch / explicit SMTP) OR `GMAIL_USER` + `GMAIL_APP_PASSWORD`
+ * (the Gmail service transport). The (Gmail env) branch is enforced
+ * ONLY when `MAIL_DSN` is unset, because D3's kill-switch takes
+ * priority when `MAIL_DSN` IS set.
  */
 export const productionEnvSchema = envSchema.superRefine((value, ctx) => {
   if (value.NODE_ENV !== "staging" && value.NODE_ENV !== "production") return;
@@ -75,7 +89,6 @@ export const productionEnvSchema = envSchema.superRefine((value, ctx) => {
     "COOKIE_SECRET",
     "PUBLIC_WEB_URL",
     "PUBLIC_API_URL",
-    "MAIL_DSN",
     "BACKUP_DSN",
     "METRICS_TOKEN",
     "UPSTASH_REDIS_REST_URL",
@@ -87,6 +100,28 @@ export const productionEnvSchema = envSchema.superRefine((value, ctx) => {
         code: z.ZodIssueCode.custom,
         path: [key],
         message: `${key} is required when NODE_ENV is "${value.NODE_ENV}"`,
+      });
+    }
+  }
+  // MAIL_DSN may be set OR Gmail env vars may be set. With neither,
+  // the API has no way to deliver a password-reset email — fail fast
+  // at boot instead of discovering this at the first `send()`.
+  const hasMailDsn = value.MAIL_DSN !== undefined && value.MAIL_DSN !== "";
+  const hasGmailUser = value.GMAIL_USER !== undefined && value.GMAIL_USER !== "";
+  const hasGmailPassword = value.GMAIL_APP_PASSWORD !== undefined && value.GMAIL_APP_PASSWORD !== "";
+  if (!hasMailDsn && (!hasGmailUser || !hasGmailPassword)) {
+    if (!hasGmailUser) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["GMAIL_USER"],
+        message: `GMAIL_USER is required when NODE_ENV is "${value.NODE_ENV}" and MAIL_DSN is unset`,
+      });
+    }
+    if (!hasGmailPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["GMAIL_APP_PASSWORD"],
+        message: `GMAIL_APP_PASSWORD is required when NODE_ENV is "${value.NODE_ENV}" and MAIL_DSN is unset`,
       });
     }
   }
