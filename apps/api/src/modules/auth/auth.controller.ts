@@ -7,7 +7,6 @@ import {
   HttpCode,
   HttpException,
   Inject,
-  Logger,
   OnModuleDestroy,
   Param,
   Post,
@@ -16,6 +15,8 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
+
+import { createLogger, type Logger } from "@core/logging";
 
 import {
   AuthService,
@@ -213,7 +214,27 @@ function validateOrThrow<T extends import("zod").ZodTypeAny>(
 @Controller("/auth")
 @UseGuards(RateLimitGuard)
 export class AuthController implements OnModuleDestroy {
-  private readonly logger = new Logger(AuthController.name);
+  // REJUDGE-1 (round-2 fix): wire the controller's logger through
+  // the shared pino factory from `@core/logging` so the global
+  // redact list (`libs/core/logging/src/redaction.ts:37-38`
+  // covers `email` and `*.email`) actually fires on the
+  // structured log entries this controller emits. Previously
+  // this field was `new Logger(AuthController.name)` from
+  // `@nestjs/common`, which routes through NestJS's
+  // `ConsoleLogger` and writes via `util.inspect` to
+  // `process.stderr.write` — pino's redact list has zero effect
+  // on that path because redaction is consulted only when
+  // serializing through pino. The structured-object form
+  // (round-1 commit `ff95fa1`) is a prerequisite, not a
+  // substitute, for redaction.
+  //
+  // The `Logger` type re-exported from `@core/logging` is the
+  // minimal pino surface (`error`, `info`, `warn`, etc.) — same
+  // shape `gmail-mail.adapter.ts:31-49` uses for the same reason.
+  private readonly logger: Logger = createLogger({
+    LOG_LEVEL: env.LOG_LEVEL,
+    NODE_ENV: env.NODE_ENV,
+  });
   private readonly mailSubscriptions: Array<() => void> = [];
 
   constructor(
