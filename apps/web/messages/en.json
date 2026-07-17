@@ -77,7 +77,8 @@
       "noTokensHint": "No password reset tokens have been dispatched yet.",
       "tokenLabel": "Reset token",
       "copyButton": "Copy token",
-      "copiedToClipboard": "Copied to clipboard"
+      "copiedToClipboard": "Copied to clipboard",
+      "resetUrlLabel": "Visit reset link"
     },
     "dashboard": {
       "welcome": "Welcome, {email}.",

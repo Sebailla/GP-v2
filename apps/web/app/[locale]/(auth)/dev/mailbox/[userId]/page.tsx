@@ -4,7 +4,8 @@ import { env } from "@core/config";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-import { DevMailbox, type DevMailboxEvent } from "@/components/auth/DevMailbox";
+import { DevMailbox } from "@/components/auth/DevMailbox";
+import { readDevMailboxEvents } from "@/app/api/dev/mailbox/route";
 
 /**
  * DevMailboxPage — slice 4 batch 4d (T4.12).
@@ -54,41 +55,15 @@ interface DevMailboxPageProps {
 export const dynamic = "force-dynamic";
 
 /**
- * DEV stub — replace with real API fetch in slice 4 follow-up.
- *
- * Maps userId → array of stubbed `auth.password-reset.requested`
- * events. Real implementation lands alongside the slice-5 events
- * full integration (T3.5 events.ts wiring + a new
- * `apps/api/modules/auth/dev-mailbox.controller.ts` that exposes the
- * `InMemoryDispatcher` ring buffer to the dev web client).
- *
- * Tokens are 64-char hex strings (matching `crypto.randomBytes(32)
- * .toString("hex")`); requestedAt is an ISO timestamp.
+ * Module-2 PR #3 (task 3.9): the dev mailbox now reads from a
+ * server-side in-memory ring buffer exposed by the
+ * `app/api/dev/mailbox/route.ts` route. The Playwright e2e
+ * (forgot-reset.spec.ts) seeds events by intercepting
+ * `POST /auth/forgot-password` and calling
+ * `recordDevMailboxEvent`. Real wiring against the API's
+ * `InMemoryDispatcher` lands in PR #5 alongside the auth
+ * runbook.
  */
-const DEV_STUB_EVENTS: Record<string, ReadonlyArray<DevMailboxEvent>> = {
-  "user-1": [
-    {
-      token: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-      requestedAt: "2026-07-06T20:15:00.000Z",
-    },
-    {
-      token: "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
-      requestedAt: "2026-07-06T20:18:00.000Z",
-    },
-    {
-      token: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-      requestedAt: "2026-07-06T20:25:00.000Z",
-    },
-  ],
-  "user-2": [
-    {
-      token: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
-      requestedAt: "2026-07-06T19:45:00.000Z",
-    },
-  ],
-  // "user-with-no-events" intentionally absent — the empty-state test
-  // asserts that an unknown userId renders the noTokensHint.
-};
 
 export default async function DevMailboxPage({
   params,
@@ -101,7 +76,7 @@ export default async function DevMailboxPage({
   const { locale: _locale, userId } = await params;
   const t = await getTranslations("auth.devMailbox");
 
-  const events = DEV_STUB_EVENTS[userId] ?? [];
+  const events = readDevMailboxEvents(userId);
 
   return (
     <main

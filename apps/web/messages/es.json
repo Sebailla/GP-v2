@@ -77,7 +77,8 @@
       "noTokensHint": "Aún no se ha despachado ningún token de restablecimiento de contraseña.",
       "tokenLabel": "Token de restablecimiento",
       "copyButton": "Copiar token",
-      "copiedToClipboard": "Copiado al portapapeles"
+      "copiedToClipboard": "Copiado al portapapeles",
+      "resetUrlLabel": "Visitar enlace de restablecimiento"
     },
     "dashboard": {
       "welcome": "Bienvenido/a, {email}.",

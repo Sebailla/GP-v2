@@ -49,6 +49,7 @@ Object.defineProperty(globalThis.navigator, "clipboard", {
 
 // Component under test — imported AFTER the mocks above so the mocks win.
 import DevMailboxPage from "../../app/[locale]/(auth)/dev/mailbox/[userId]/page";
+import { recordDevMailboxEvent } from "../../app/api/dev/mailbox/route";
 
 /**
  * TDD contract for
@@ -92,6 +93,36 @@ describe("DevMailboxPage — slice 4 batch 4d (T4.12)", () => {
     mockEnv.NODE_ENV = "test";
     mockWriteText.mockReset();
     mockWriteText.mockResolvedValue(undefined);
+
+    // Module-2 PR #3 (task 3.9): seed the dev mailbox ring buffer
+    // so the page renders the stub events for `user-1`. The
+    // previous module-level `DEV_STUB_EVENTS` constant is gone —
+    // the page now reads from the in-memory store exposed by the
+    // `app/api/dev/mailbox/route.ts` route handler.
+    recordDevMailboxEvent({
+      userId: "user-1",
+      token: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+      requestedAt: "2026-07-06T20:15:00.000Z",
+      resetUrl: "http://localhost:3000/en/reset-password/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+    });
+    recordDevMailboxEvent({
+      userId: "user-1",
+      token: "fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+      requestedAt: "2026-07-06T20:18:00.000Z",
+      resetUrl: "http://localhost:3000/en/reset-password/fedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+    });
+    recordDevMailboxEvent({
+      userId: "user-1",
+      token: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      requestedAt: "2026-07-06T20:25:00.000Z",
+      resetUrl: "http://localhost:3000/en/reset-password/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    });
+    recordDevMailboxEvent({
+      userId: "user-2",
+      token: "1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+      requestedAt: "2026-07-06T19:45:00.000Z",
+      resetUrl: "http://localhost:3000/en/reset-password/1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff",
+    });
   });
 
   afterEach(() => {

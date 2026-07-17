@@ -52,6 +52,13 @@ export interface DevMailboxEvent {
   token: string;
   /** ISO timestamp of when the event was dispatched. */
   requestedAt: string;
+  /**
+   * Module-2 PR #3 (task 3.9): the locale-aware reset URL. When
+   * present, the row renders a "Visit reset link" affordance in
+   * addition to the "Copy token" button — the Playwright e2e
+   * uses this URL to navigate directly to the reset-password form.
+   */
+  resetUrl?: string;
 }
 
 export interface DevMailboxProps {
@@ -91,6 +98,7 @@ export function DevMailbox({ events, className }: DevMailboxProps): React.JSX.El
           copyLabel={t("copyButton")}
           copiedLabel={t("copiedToClipboard")}
           tokenLabel={t("tokenLabel")}
+          resetUrlLabel={t("resetUrlLabel")}
         />
       ))}
     </ul>
@@ -103,6 +111,7 @@ interface DevMailboxRowProps {
   copyLabel: string;
   copiedLabel: string;
   tokenLabel: string;
+  resetUrlLabel: string;
 }
 
 function DevMailboxRow({
@@ -111,6 +120,7 @@ function DevMailboxRow({
   copyLabel,
   copiedLabel,
   tokenLabel,
+  resetUrlLabel,
 }: DevMailboxRowProps): React.JSX.Element {
   const [copied, setCopied] = React.useState(false);
   // Reset the "Copied" indicator after 2s so the user gets a clear
@@ -154,6 +164,20 @@ function DevMailboxRow({
           {event.token}
         </code>
       </div>
+      {/* Module-2 PR #3 (task 3.9): when the event carries a resetUrl,
+          render a "Visit reset link" affordance so the developer can
+          click through to the reset-password form without copying
+          the token. The Playwright e2e uses this anchor to drive
+          the full forgot → reset flow without manual intervention. */}
+      {event.resetUrl !== undefined ? (
+        <a
+          href={event.resetUrl}
+          className="text-ui-text-sm text-ui-accent underline-offset-4 hover:underline"
+          data-testid={`dev-mailbox-reset-url-${index}`}
+        >
+          {resetUrlLabel}
+        </a>
+      ) : null}
       {/* The "Copied" indicator surfaces here so screen readers
           announce it via the live region below. The button label
           also flips, so sighted users see it on the button itself. */}
