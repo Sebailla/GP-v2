@@ -68,13 +68,13 @@ Base PR #2. Verify `pnpm --filter api test forgot-password && pnpm --filter api 
 
 Base PR #3. Verify `pnpm --filter web e2e oauth-mock.spec.ts && pnpm --filter api test auth-link`.
 
-- [ ] 4.1 RED `auth-link.test.ts`: new user via Google creates `User`; existing email links `Account(provider:"google")`; no duplicate.
-- [ ] 4.2 GREEN edit `auth.config.ts`: register Google when creds present (no `pages.signIn` override; middleware does locale).
-- [ ] 4.3 RED `google-callback.e2e-spec.ts`: valid `code`+`state` → 200 + `authjs.session-token` + redirect `/{locale}/(app)`; `access_denied` → 401 + `pages.error`; malformed state → 401.
-- [ ] 4.4 GREEN wire `/api/auth/callback/google`; `next-auth/jwt#decode` try/catch; localized error copy.
-- [ ] 4.5 RED Playwright `oauth-mock.spec.ts`: `GOOGLE_E2E_MOCK=1` enables mock Credentials; button hidden when creds missing.
-- [ ] 4.6 GREEN `apps/web/auth.ts` `google-mock` Credentials (D4) gated by `GOOGLE_E2E_MOCK=1`; thread callback locale.
-- [ ] 4.7 **Routing RED** add to `google-callback.e2e-spec.ts`: forged/expired state → 401; foreign callback → 401.
+- [x] 4.1 RED `auth-link.test.ts`: new user via Google creates `User`; existing email links `Account(provider:"google")`; no duplicate.
+- [x] 4.2 GREEN edit `auth.config.ts`: register Google when creds present (no `pages.signIn` override; middleware does locale).
+- [x] 4.3 RED `google-callback.e2e-spec.ts`: valid `code`+`state` → 200 + `authjs.session-token` + redirect `/{locale}/(app)`; `access_denied` → 401 + `pages.error`; malformed state → 401.
+- [x] 4.4 GREEN wire `/api/auth/callback/google`; `next-auth/jwt#decode` try/catch; localized error copy.
+- [x] 4.5 RED Playwright `oauth-mock.spec.ts`: `GOOGLE_E2E_MOCK=1` enables mock Credentials; button hidden when creds missing.
+- [x] 4.6 GREEN `apps/web/auth.ts` `google-mock` Credentials (D4) gated by `GOOGLE_E2E_MOCK=1`; thread callback locale.
+- [x] 4.7 **Routing RED** add to `google-callback.e2e-spec.ts`: forged/expired state → 401; foreign callback → 401.
 
 ## Phase 5 — Vertical E2E + Docs + BDD (PR #5)
 

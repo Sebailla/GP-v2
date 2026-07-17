@@ -64,13 +64,13 @@ Base PR #2. Verificar `pnpm --filter api test forgot-password && pnpm --filter a
 
 Base PR #3. Verificar `pnpm --filter web e2e oauth-mock.spec.ts && pnpm --filter api test auth-link`.
 
-- [ ] 4.1 RED `auth-link.test.ts`: usuario nuevo vía Google crea `User`; email existente vincula `Account(provider:"google")`; sin duplicados.
-- [ ] 4.2 GREEN editar `auth.config.ts`: registrar Google cuando hay credenciales (sin override `pages.signIn`; el middleware hace el locale).
-- [ ] 4.3 RED `google-callback.e2e-spec.ts`: `code`+`state` válidos → 200 + `authjs.session-token` + redirect `/{locale}/(app)`; `access_denied` → 401 + `pages.error`; state malformado → 401.
-- [ ] 4.4 GREEN wire `/api/auth/callback/google`; try/catch en `next-auth/jwt#decode`; copy de error localizado.
-- [ ] 4.5 RED Playwright `oauth-mock.spec.ts`: `GOOGLE_E2E_MOCK=1` activa mock Credentials; botón oculto cuando faltan credenciales.
-- [ ] 4.6 GREEN `apps/web/auth.ts` Credentials `google-mock` (D4) gateado por `GOOGLE_E2E_MOCK=1`; propagar locale en callback.
-- [ ] 4.7 **Routing RED** añadir a `google-callback.e2e-spec.ts`: state forjado/expirado → 401; callback ajeno → 401.
+- [x] 4.1 RED `auth-link.test.ts`: usuario nuevo vía Google crea `User`; email existente vincula `Account(provider:"google")`; sin duplicados.
+- [x] 4.2 GREEN editar `auth.config.ts`: registrar Google cuando hay credenciales (sin override `pages.signIn`; el middleware hace el locale).
+- [x] 4.3 RED `google-callback.e2e-spec.ts`: `code`+`state` válidos → 200 + `authjs.session-token` + redirect `/{locale}/(app)`; `access_denied` → 401 + `pages.error`; state malformado → 401.
+- [x] 4.4 GREEN wire `/api/auth/callback/google`; try/catch en `next-auth/jwt#decode`; copy de error localizado.
+- [x] 4.5 RED Playwright `oauth-mock.spec.ts`: `GOOGLE_E2E_MOCK=1` activa mock Credentials; botón oculto cuando faltan credenciales.
+- [x] 4.6 GREEN `apps/web/auth.ts` Credentials `google-mock` (D4) gateado por `GOOGLE_E2E_MOCK=1`; propagar locale en callback.
+- [x] 4.7 **Routing RED** añadir a `google-callback.e2e-spec.ts`: state forjado/expirado → 401; callback ajeno → 401.
 
 ## Fase 5 — E2E Vertical + Docs + BDD (PR #5)
 
