@@ -53,16 +53,16 @@ Base PR #1. Verify `pnpm --filter api test mail`.
 
 Base PR #2. Verify `pnpm --filter api test forgot-password && pnpm --filter api test reset-password`.
 
-- [ ] 3.1 RED `password-reset.service.test.ts`: `requestReset(email, locale)` mints `/es/reset-password/<token>` + `/en/...`; unknown email mints nothing.
-- [ ] 3.2 GREEN modify `password-reset.service.ts` `requestReset(email, locale)`; raw token in event payload.
-- [ ] 3.3 RED `forgot-password.e2e-spec.ts`: `MailAdapter.send` once; locale URL; 4th call → 429.
-- [ ] 3.4 GREEN `auth.controller.ts` `forgotPassword` read `Accept-Language`; `.overrideProvider(MAIL_ADAPTER).useValue(InMemoryAdapter)` on e2e.
-- [ ] 3.5 RED `reset-password.e2e-spec.ts`: `Set-Cookie: authjs.session-token=...; HttpOnly; SameSite=Lax` + `{redirectTo:"/en/(app)"}`; expired/malformed → 400 generic.
-- [ ] 3.6 GREEN `resetPassword` controller `@Res({passthrough:true}) Response`, `consumeReset`, mint JWT via `next-auth/jwt#encode` (try/catch), `response.cookie(...)`, `{redirectTo}` under `@HttpCode(200)`.
-- [ ] 3.7 RED `reset-templates.test.ts`: `reset-password.json` localized `en|es`; GREEN `templates/reset-password.{json,ts}` (D6).
-- [ ] 3.8 RED Playwright `forgot-reset.spec.ts`: dev-mailbox fetches URL; `[locale]/(auth)/reset-password/[token]/page.tsx` 5-state form.
-- [ ] 3.9 GREEN `ResetPasswordClient.tsx` + `api/dev/mailbox/route.ts`; `ForgotPasswordClient.tsx` 5-state form.
-- [ ] 3.10 TRIANGULATE Gmail SMTP → 502; **Routing RED** add to `reset-password.e2e-spec.ts`: malformed/replayed/expired → 400 generic.
+- [x] 3.1 RED `password-reset.service.test.ts`: `requestReset(email, locale)` mints `/es/reset-password/<token>` + `/en/...`; unknown email mints nothing.
+- [x] 3.2 GREEN modify `password-reset.service.ts` `requestReset(email, locale)`; raw token in event payload.
+- [x] 3.3 RED `forgot-password.e2e-spec.ts`: `MailAdapter.send` once; locale URL; 4th call → 429.
+- [x] 3.4 GREEN `auth.controller.ts` `forgotPassword` read `Accept-Language`; `.overrideProvider(MAIL_ADAPTER).useValue(InMemoryAdapter)` on e2e.
+- [x] 3.5 RED `reset-password.e2e-spec.ts`: `Set-Cookie: authjs.session-token=...; HttpOnly; SameSite=Lax` + `{redirectTo:"/en/(app)"}`; expired/malformed → 400 generic.
+- [x] 3.6 GREEN `resetPassword` controller `@Res({passthrough:true}) Response`, `consumeReset`, mint JWT via `next-auth/jwt#encode` (try/catch), `response.cookie(...)`, `{redirectTo}` under `@HttpCode(200)`.
+- [x] 3.7 RED `reset-templates.test.ts`: `reset-password.json` localized `en|es`; GREEN `templates/reset-password.{json,ts}` (D6).
+- [x] 3.8 RED Playwright `forgot-reset.spec.ts`: dev-mailbox fetches URL; `[locale]/(auth)/reset-password/[token]/page.tsx` 5-state form.
+- [x] 3.9 GREEN `ResetPasswordClient.tsx` + `api/dev/mailbox/route.ts`; `ForgotPasswordClient.tsx` 5-state form.
+- [x] 3.10 TRIANGULATE Gmail SMTP → 502; **Routing RED** add to `reset-password.e2e-spec.ts`: malformed/replayed/expired → 400 generic.
 
 ## Phase 4 — Google OAuth Real Handshake (PR #4)
 
