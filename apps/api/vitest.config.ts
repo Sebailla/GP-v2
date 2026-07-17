@@ -24,24 +24,6 @@ import { defineConfig } from "vitest/config";
  * via `next-auth/jwt#encode`.
  */
 export default defineConfig({
-  // Module-2 PR #3 (task 3.4): the AuthController's constructor
-  // declares `@Inject(MAIL_ADAPTER) private readonly mailAdapter:
-  // MailAdapter` and `@Inject(AUTH_DISPATCHER) private readonly
-  // dispatcher: InMemoryDispatcher`. Both `MailAdapter` and
-  // `InMemoryDispatcher` are TYPE-only imports — the v8/TS
-  // emit must preserve `design:paramtypes` so NestJS's reflector
-  // can resolve the explicit injection tokens. Vite/esbuild's
-  // default decorator transform does NOT emit this metadata; we
-  // enable it explicitly here.
-  esbuild: {
-    tsconfigRaw: {
-      compilerOptions: {
-        experimentalDecorators: true,
-        emitDecoratorMetadata: true,
-        useDefineForClassFields: false,
-      },
-    },
-  },
   test: {
     include: [
       "test/**/*.spec.ts",
