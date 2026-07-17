@@ -53,6 +53,25 @@
       "revokeButton": "Revocar",
       "empty": "No se han encontrado sesiones activas."
     },
+    "error": {
+      "title": "Error de inicio de sesión",
+      "backToSignIn": "Volver a inicio de sesión",
+      "codes": {
+        "unknown": "Algo salió mal al iniciar sesión. Por favor, inténtalo de nuevo.",
+        "Configuration": "La autenticación está mal configurada. Por favor contacta al soporte.",
+        "AccessDenied": "Se denegó el acceso a este recurso. El enlace puede haber expirado o ser inválido.",
+        "Verification": "El enlace de verificación es inválido o ha expirado.",
+        "OAuthSignin": "No se pudo iniciar el flujo OAuth. Por favor inténtalo de nuevo.",
+        "OAuthCallback": "No se pudo completar el flujo OAuth. Por favor inténtalo de nuevo.",
+        "OAuthCreateAccount": "No se pudo crear tu cuenta mediante OAuth. Por favor inténtalo de nuevo.",
+        "EmailCreateAccount": "No se pudo crear tu cuenta mediante email. Por favor inténtalo de nuevo.",
+        "Callback": "La devolución de llamada de OAuth falló. Por favor inténtalo de nuevo.",
+        "OAuthAccountNotLinked": "Este email ya está vinculado a otro método de inicio de sesión.",
+        "EmailSignin": "No se pudo enviar el enlace de inicio de sesión por email. Por favor inténtalo de nuevo.",
+        "CredentialsSignin": "Email o contraseña no válidos.",
+        "SessionRequired": "Debes iniciar sesión para ver esta página."
+      }
+    },
     "devMailbox": {
       "title": "Buzón de desarrollo",
       "noTokensHint": "Aún no se ha despachado ningún token de restablecimiento de contraseña.",

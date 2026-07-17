@@ -31,6 +31,7 @@ Base `feat/public-authentication`. Verify `pnpm --filter web test SignInClient`.
 - [x] 1.1 RED `SignInClient.test.tsx`: locale routing + Google-button hide when creds missing.
 - [x] 1.2 GREEN `auth.ts` keep defaults (no `pages.signIn` override); `middleware.ts` missing-locale → `/en/sign-in`; authed → `/{locale}/(app)`.
 - [x] 1.3 GREEN `[locale]/(auth)/sign-in/page.tsx` + `SignInClient.tsx`: `next-intl`, 5 states, credentials form, `signIn("google",{callbackUrl:"/{locale}/(app)"})`.
+- [x] 1.4 TRIANGULATE `[locale]/(auth)/error/page.tsx`: foreign `callbackUrl` → `pages.error` localized.
 - [ ] 1.2 GREEN `auth.ts` keep defaults (no `pages.signIn` override); `middleware.ts` missing-locale → `/en/sign-in`; authed → `/{locale}/(app)`.
 - [ ] 1.3 GREEN `[locale]/(auth)/sign-in/page.tsx` + `SignInClient.tsx`: `next-intl`, 5 states, credentials form, `signIn("google",{callbackUrl:"/{locale}/(app)"})`.
 - [ ] 1.4 TRIANGULATE `[locale]/(auth)/error/page.tsx`: foreign `callbackUrl` → `pages.error` localized.
