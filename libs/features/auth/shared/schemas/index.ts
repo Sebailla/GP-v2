@@ -18,3 +18,16 @@ export { loginSchema, type LoginInput } from "./login.js";
 export { registerSchema, type RegisterInput } from "./register.js";
 export { resetPasswordSchema, type ResetPasswordInput } from "./reset-password.js";
 export { sessionListSchema, type SessionListResponse } from "./session-list.js";
+// M3 (module-3-superadmin) admin surface — `ListUsersQuerySchema`,
+// `ChangeRoleBodySchema`, `ListSessionsQuerySchema` per
+// `openspec/changes/module-3-superadmin/design.md` §5. Imported by the
+// NestJS AdminController (Phase 3) and the Next.js admin forms
+// (Phase 4) — single source of truth across the slice.
+export {
+  ListUsersQuerySchema,
+  type ListUsersQuery,
+  ChangeRoleBodySchema,
+  type ChangeRoleBody,
+  ListSessionsQuerySchema,
+  type ListSessionsQuery,
+} from "./admin.schemas.js";
