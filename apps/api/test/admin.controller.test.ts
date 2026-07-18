@@ -385,6 +385,31 @@ describe("AdminController (M3 task 3.1)", () => {
         .send({ role: "ADMIN" });
 
       expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ error: "USER_NOT_FOUND" });
+    });
+
+    it("returns 404 with code USER_NOT_FOUND regardless of error message copy", async () => {
+      const { UserNotFoundError } = await import("@features/auth");
+      vi.mocked(prisma.user.findUnique).mockRejectedValueOnce(
+        new UserNotFoundError("Target account is absent."),
+      );
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .post("/admin/users/missing/role")
+        .set("Authorization", `Bearer ${adminJwt}`)
+        .send({ role: "ADMIN" });
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({
+        error: "USER_NOT_FOUND",
+        message: "Target account is absent.",
+      });
     });
 
     // F2 fix (4R-driven correction): when RbacService throws

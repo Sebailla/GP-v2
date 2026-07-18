@@ -73,6 +73,17 @@ export class ValidationError extends Error {
  * branch on it without parsing the human message (same contract as
  * `AuthError.code` above).
  */
+export type UserNotFoundErrorCode = "USER_NOT_FOUND";
+
+export class UserNotFoundError extends Error {
+  public readonly code: UserNotFoundErrorCode = "USER_NOT_FOUND";
+
+  constructor(message?: string) {
+    super(message ?? "user not found");
+    this.name = "UserNotFoundError";
+  }
+}
+
 export type LastAdminErrorCode = "LAST_ADMIN_DEMOTE";
 
 export class LastAdminError extends Error {

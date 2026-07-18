@@ -65,7 +65,7 @@ import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
 import { insertAuditEvent } from "./audit.service.js";
-import { LastAdminError } from "./errors.js";
+import { LastAdminError, UserNotFoundError } from "./errors.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -268,7 +268,7 @@ export class RbacService {
   ): Promise<AdminUserRow> {
     const existing = await this.prisma.user.findUnique({ where: { id: userId } });
     if (existing === null) {
-      throw new Error(`User not found: ${userId}`);
+      throw new UserNotFoundError(`User not found: ${userId}`);
     }
     const fromRole = existing.role as Role;
 

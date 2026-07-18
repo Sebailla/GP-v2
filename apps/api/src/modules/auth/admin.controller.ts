@@ -24,6 +24,7 @@ import {
   SessionService,
   type CurrentUser,
   LastAdminError,
+  UserNotFoundError,
 } from "@features/auth";
 import {
   ChangeRoleBodySchema,
@@ -183,8 +184,8 @@ export class AdminController {
           message: error.message,
         });
       }
-      if (error instanceof Error && error.message.startsWith("User not found")) {
-        throw new NotFoundException({ error: "USER_NOT_FOUND", message: error.message });
+      if (error instanceof UserNotFoundError) {
+        throw new NotFoundException({ error: error.code, message: error.message });
       }
       throw error;
     }
