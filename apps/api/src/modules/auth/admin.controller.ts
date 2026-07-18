@@ -225,6 +225,26 @@ export class AdminController {
     const ipAddress = this.captureIp(request);
     const userAgentSafe = this.captureUserAgent(userAgent);
 
+    // F3 fix (4R-driven correction): detect self-revoke by reading
+    // the session row BEFORE the revoke, comparing its `userId` to
+    // the JWT-decoded `request.user.id`. The previous
+    // `remainingSessions.length === 0` post-revoke heuristic was
+    // wrong for admins with multiple concurrent sessions (revoking
+    // one leaves others active, the cookie stays, the admin stays
+    // logged in). `findById` is O(1) on the primary key and pins
+    // the self-revoke decision to the actual target row.
+    let isSelfRevoke = false;
+    try {
+      const sessionRow = await this.sessionService.findById(sessionId);
+      if (sessionRow !== null && sessionRow.userId === request.user.id) {
+        isSelfRevoke = true;
+      }
+    } catch {
+      // Defensive: a missing row produces `null` from `findById`.
+      // Any other read error propagates to the global NestJS
+      // exception filter.
+    }
+
     await this.sessionService.revoke(
       sessionId,
       request.user.id,
@@ -246,21 +266,11 @@ export class AdminController {
       "[admin] session revoked",
     );
 
-    // Self-revoke detection: when the admin deletes a session owned
-    // by themselves, emit Set-Cookie to clear the session cookie
-    // client-side. We detect self-revoke by asking the session list
-    // (the admin has at most a handful of active sessions, so the
-    // query is bounded) — if the admin's own session count is 0
-    // AFTER the revoke and the admin has at least one IP recorded,
-    // assume self-revoke and clear the cookie.
-    //
-    // The list query is cheap (it returns at most N rows where N is
-    // the admin's concurrent session count, bounded by the test
-    // harness). The redundant list call is intentional: it keeps the
-    // controller's flow side-effect-free and avoids racing the
-    // service's delete-with-audit pipeline.
-    const remainingSessions = await this.sessionService.list(request.user.id);
-    if (remainingSessions.length === 0) {
+    // Self-revoke detected via ownership match (NOT via
+    // post-revoke list count). Emit Set-Cookie ONLY when the
+    // revoked session's userId matches the requestor's userId,
+    // regardless of how many other sessions the admin has.
+    if (isSelfRevoke) {
       this.emitSessionCookieClear(res);
     }
   }

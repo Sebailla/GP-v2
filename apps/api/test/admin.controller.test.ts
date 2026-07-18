@@ -477,6 +477,9 @@ describe("AdminController (M3 task 3.1)", () => {
 
   describe("DELETE /admin/sessions/:sessionId", () => {
     it("returns 204 + emits audit row when revoking another user's session", async () => {
+      // F3 fix: `findById` is called BEFORE the revoke. The session
+      // row's userId is "u-target" (NOT the admin) → not a self-revoke,
+      // even though the admin has other active sessions.
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: "s-1",
         sessionToken: "tok-1",
@@ -485,16 +488,6 @@ describe("AdminController (M3 task 3.1)", () => {
       } as never);
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
       vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
-      // Admin has other sessions besides the one just revoked (so no
-      // self-revoke cookie clear fires). This is the "non-self" case.
-      vi.mocked(prisma.session.findMany).mockResolvedValue([
-        {
-          id: "s-admin-2",
-          sessionToken: "tok-admin-2",
-          userId: "admin-1",
-          expires: new Date(Date.now() + 60_000),
-        },
-      ] as never);
 
       const adminJwt = await mintToken({
         sub: "admin-1",
@@ -508,12 +501,14 @@ describe("AdminController (M3 task 3.1)", () => {
 
       expect(res.status).toBe(204);
       expect(prisma.adminAuditEvent.create).toHaveBeenCalledTimes(1);
-      // Self-revoke is NOT happening — admin-1 still has another session
-      // active. The Set-Cookie header must NOT appear.
+      // Self-revoke is NOT happening — the session row's userId does
+      // NOT match the JWT's userId. The Set-Cookie header must NOT
+      // appear. (F3 fix: this assertion is now driven by ownership,
+      // NOT by post-revoke list count.)
       expect(res.headers["set-cookie"]).toBeUndefined();
     });
 
-    it("returns 204 + Set-Cookie clearing the session when admin revokes own session (task 3.6)", async () => {
+    it("returns 204 + Set-Cookie clearing the session when admin revokes own session (F3)", async () => {
       const selfSessionId = "s-self";
       vi.mocked(prisma.session.findUnique).mockResolvedValue({
         id: selfSessionId,
@@ -523,8 +518,6 @@ describe("AdminController (M3 task 3.1)", () => {
       } as never);
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
       vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
-      // After revoke: no remaining sessions for the admin (self-revoke path).
-      vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
 
       const adminJwt = await mintToken({
         sub: "admin-1",
@@ -537,13 +530,74 @@ describe("AdminController (M3 task 3.1)", () => {
         .set("Authorization", `Bearer ${adminJwt}`);
 
       expect(res.status).toBe(204);
-      // Set-Cookie clears the cookie client-side. The pin is the exact
-      // shape: `authjs.session-token=; Path=/; Expires=...`
+      // F3: Set-Cookie fires because the row's userId === the JWT's
+      // userId (ownership match). The pin is the exact shape:
+      // `authjs.session-token=; Path=/; Expires=...`.
       const setCookie = res.headers["set-cookie"];
       const cookieHeader = Array.isArray(setCookie) ? setCookie.join(";") : String(setCookie);
       expect(cookieHeader).toMatch(/^authjs\.session-token=/);
       expect(cookieHeader).toContain("Path=/");
       expect(cookieHeader).toMatch(/Expires=/);
+    });
+
+    // F3 fix (4R-driven correction): the new ownership check must
+    // fire even when the admin has OTHER active sessions. Prior to
+    // this fix the post-revoke `remainingSessions.length === 0`
+    // heuristic would silently miss self-revoke for an admin with
+    // multiple concurrent sessions (the cookie stayed set; the
+    // admin stayed logged in on the other tabs).
+    it("clears cookie on self-revoke even when admin has other active sessions (F3)", async () => {
+      const selfSessionId = "s-self-A";
+      vi.mocked(prisma.session.findUnique).mockResolvedValue({
+        id: selfSessionId,
+        sessionToken: "tok-self-A",
+        userId: "admin-1",
+        expires: new Date(Date.now() + 60_000),
+      } as never);
+      vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .delete(`/admin/sessions/${selfSessionId}`)
+        .set("Authorization", `Bearer ${adminJwt}`);
+
+      expect(res.status).toBe(204);
+      // Ownership match wins even when the admin has other sessions.
+      // (We don't call list() anymore — the assertion is purely on
+      // the Set-Cookie header.)
+      const setCookie = res.headers["set-cookie"];
+      const cookieHeader = Array.isArray(setCookie) ? setCookie.join(";") : String(setCookie);
+      expect(cookieHeader).toMatch(/^authjs\.session-token=/);
+    });
+
+    it("does NOT clear cookie when admin revokes another user's session (F3)", async () => {
+      vi.mocked(prisma.session.findUnique).mockResolvedValue({
+        id: "s-other",
+        sessionToken: "tok-other",
+        userId: "u-target",
+        expires: new Date(Date.now() + 60_000),
+      } as never);
+      vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .delete("/admin/sessions/s-other")
+        .set("Authorization", `Bearer ${adminJwt}`);
+
+      expect(res.status).toBe(204);
+      expect(res.headers["set-cookie"]).toBeUndefined();
     });
   });
 

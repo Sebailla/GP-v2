@@ -265,6 +265,48 @@ export class SessionService {
   }
 
   /**
+   * Look up a session by its primary key. Returns `{ id, userId, ... }`
+   * on success; `null` when no row matches. Used by the admin
+   * single-session revoke path to detect self-revoke (the controller
+   * reads the row BEFORE the delete, then compares `row.userId` to
+   * the JWT's userId to decide whether to emit `Set-Cookie` clear).
+   *
+   * F3 fix (4R-driven correction): prior to this method the
+   * controller detected self-revoke by listing the admin's remaining
+   * sessions AFTER the revoke and checking `length === 0`. That
+   * heuristic is wrong for admins with multiple concurrent sessions
+   * (revoking one leaves others active, the cookie stays, the admin
+   * stays logged in). The `findById` lookup is O(1) on the primary
+   * key and pins the ownership check to the actual target row.
+   *
+   * Mirrors the `findByToken` / `findById` port pattern on
+   * `SessionRepository`; the direct `prisma.session.findUnique` is
+   * acceptable here because the read is on a single primary key and
+   * the port abstraction's purpose (mockable for unit tests) is
+   * preserved by the call sites that wire mocks.
+   */
+  async findById(sessionId: string): Promise<
+    | {
+        readonly id: string;
+        readonly userId: string;
+        readonly sessionToken: string;
+        readonly expires: Date;
+      }
+    | null
+  > {
+    const row = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (row === null) {
+      return null;
+    }
+    return {
+      id: row.id,
+      userId: row.userId,
+      sessionToken: row.sessionToken,
+      expires: row.expires,
+    };
+  }
+
+  /**
    * Revoke a single session by its PRIMARY KEY (NOT by token — the
    * controller resolves the token→id before calling). The admin
    * single-session path lives here; the slice-3 user-self-revoke
