@@ -312,9 +312,17 @@ describe("AdminController (M3 task 3.1)", () => {
         role: "USER",
         createdAt: new Date("2026-01-01T00:00:00Z"),
       } as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
+      vi.mocked(prisma.$transaction).mockImplementation((async (arg: unknown) => {
         if (typeof arg === "function") {
-          const tx = {
+          // Mock the subset of tx delegates the production code
+          // touches (RbacService.changeRole's transaction only uses
+          // `tx.user.update` + `tx.adminAuditEvent.create`). The full
+          // PrismaClient surface is irrelevant for unit tests.
+          type TxMock = {
+            user: { update: ReturnType<typeof vi.fn> };
+            adminAuditEvent: { create: ReturnType<typeof vi.fn> };
+          };
+          const tx: TxMock = {
             user: {
               update: vi.fn().mockResolvedValue({
                 id: "u-1",
@@ -325,10 +333,10 @@ describe("AdminController (M3 task 3.1)", () => {
             },
             adminAuditEvent: { create: vi.fn().mockResolvedValue({}) },
           };
-          return await arg(tx);
+          return await (arg as (tx: TxMock) => unknown)(tx);
         }
         return await arg;
-      });
+      }) as never);
       vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
 
       const adminJwt = await mintToken({
