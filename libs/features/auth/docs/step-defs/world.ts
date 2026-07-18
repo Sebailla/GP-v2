@@ -76,6 +76,10 @@ export interface AuthWorld {
         resourceKind: "session" | "transaction" | "user";
       }
     | undefined;
+  /** Last value the admin posted into the role-change form — pinned for assertions. */
+  attemptedRoleChange: { userId: string; role: "USER" | "ADMIN" } | undefined;
+  /** Last bulk-revoke call — pinned with the target userId so the assertion step can read back. */
+  attemptedBulkRevoke: { userId: string } | undefined;
 
   // --- then state (assertions populate these) ---
   sessionCreated: boolean | undefined;
@@ -94,6 +98,19 @@ export interface AuthWorld {
   formState: "empty" | "loading" | "error" | "success" | "validation-error" | undefined;
   /** Path the user is currently on — used by locale-routing assertions. */
   __currentPath: string | undefined;
+  /** Snapshot of the role-change response — the updated user row mirror. */
+  lastRoleChangeResponse:
+    | { id: string; email: string; role: string; createdAt: Date }
+    | undefined;
+  /** Audit rows the BDD world projects (per Phase 5 admin-flow scenario). */
+  __auditRows:
+    | ReadonlyArray<{
+        actorId: string;
+        targetId: string;
+        action: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+        metadata: Record<string, unknown>;
+      }>
+    | undefined;
 }
 
 /**
@@ -114,6 +131,8 @@ export function createAuthWorld(): AuthWorld {
     attemptedResetPassword: undefined,
     revokedSessionId: undefined,
     attemptedAdminAction: undefined,
+    attemptedRoleChange: undefined,
+    attemptedBulkRevoke: undefined,
     sessionCreated: undefined,
     lastDispatchedEvent: undefined,
     lastErrorMessage: undefined,
@@ -122,5 +141,7 @@ export function createAuthWorld(): AuthWorld {
     redirectedTo: undefined,
     formState: undefined,
     __currentPath: undefined,
+    lastRoleChangeResponse: undefined,
+    __auditRows: undefined,
   };
 }

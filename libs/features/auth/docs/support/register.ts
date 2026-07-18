@@ -56,6 +56,7 @@ import { Given, When, Then, setWorldConstructor } from "@cucumber/cucumber";
 import { stepDefinitions as authCommon } from "../step-defs/common.steps.js";
 import { stepDefinitions as authRealm } from "../step-defs/realm.steps.js";
 import { stepDefinitions as authFlow } from "../step-defs/auth-flow.steps.js";
+import { stepDefinitions as authAdmin } from "../step-defs/admin.steps.js";
 import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
 
 /**
@@ -64,8 +65,13 @@ import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
  * Phase 5 PR-5 task 5.1 added `auth-flow.steps.ts` for the vertical
  * end-to-end BDD scenario in `docs/auth-flow.feature` (sign-up →
  * login → forgot → dev-mailbox → reset → cookie → /[locale]/(app)).
+ *
+ * M3 (module-3-superadmin) Phase 5 PR-5 task 5.2 added
+ * `admin.steps.ts` for the admin vertical scenario in
+ * `docs/admin-flow.feature` (admin login → list users → change role
+ * → list sessions → revoke single → revoke all → non-admin redirect).
  */
-const ALL_BINDINGS = [...authCommon, ...authRealm, ...authFlow];
+const ALL_BINDINGS = [...authCommon, ...authRealm, ...authFlow, ...authAdmin];
 
 type StepFn = (world: unknown, ...args: ReadonlyArray<string>) => void | Promise<void>;
 
