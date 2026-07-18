@@ -155,9 +155,8 @@ model AdminAuditEvent {
   action    AdminAuditAction
   createdAt DateTime         @default(now())
   metadata  Json
-  // IP ≤ 45 chars = IPv6-mapped IPv4 max length. Captured at the
-  // controller boundary via `req.ip` (Express + trust proxy config).
-  ipAddress String?          @db.VarChar(45)
+  // HMAC-SHA256 digests are persisted as 64-character lowercase hex.
+  ipAddress String?          @db.VarChar(64)
   // UA ≤ 512 chars. Truncated to 512 chars at the controller boundary
   // before insert (per threat matrix §7 — IP + UA handling).
   userAgent String?          @db.VarChar(512)

@@ -12,7 +12,7 @@ CREATE TABLE "admin_audit_events" (
     "action" "AdminAuditAction" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "metadata" JSONB NOT NULL,
-    "ipAddress" VARCHAR(45),
+    "ipAddress" VARCHAR(64),
     "userAgent" VARCHAR(512),
 
     CONSTRAINT "admin_audit_events_pkey" PRIMARY KEY ("id")

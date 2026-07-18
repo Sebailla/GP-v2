@@ -63,11 +63,9 @@ describe("AdminAuditEvent + Session.metadata schema additions (M3 task 1.1)", ()
       );
     });
 
-    it("declares ipAddress column with length cap on AdminAuditEvent", () => {
-      // D2 + D3 in design.md — IP MUST be capped at 45 chars (IPv6-mapped
-      // IPv4 max). Pin the @db.VarChar length to prevent silent drift.
+    it("declares ipAddress column sized for a full HMAC-SHA256 hex digest", () => {
       expect(schema).toMatch(
-        /model\s+AdminAuditEvent\s+\{[\s\S]*?ipAddress\s+String\?[\s\S]*?@db\.VarChar\(45\)/,
+        /model\s+AdminAuditEvent\s+\{[\s\S]*?ipAddress\s+String\?[\s\S]*?@db\.VarChar\(64\)/,
       );
     });
 
@@ -159,9 +157,20 @@ describe("AdminAuditEvent + Session.metadata schema additions (M3 task 1.1)", ()
       expect(sql).toMatch(/"action"\s+"AdminAuditAction"\s+NOT NULL/);
       expect(sql).toMatch(/"createdAt"\s+TIMESTAMP.*DEFAULT CURRENT_TIMESTAMP/);
       expect(sql).toMatch(/"metadata"\s+JSONB\s+NOT NULL/);
-      expect(sql).toMatch(/"ipAddress"\s+VARCHAR\(45\)/);
+      expect(sql).toMatch(/"ipAddress"\s+VARCHAR\(64\)/);
       expect(sql).toMatch(/"userAgent"\s+VARCHAR\(512\)/);
       expect(sql).toMatch(/CREATE INDEX\s+"admin_audit_events_createdAt_idx"/);
+    });
+
+    it("contains a follow-up migration widening ipAddress to VARCHAR(64)", () => {
+      const entries = readdirSync(MIGRATIONS_DIR);
+      const folder = entries.find((name) => name.endsWith("_widen_admin_audit_ip_hash"));
+      expect(folder, `widening migration missing under ${MIGRATIONS_DIR}`).toBeDefined();
+      if (!folder) return;
+      const sql = readFileSync(resolve(MIGRATIONS_DIR, folder, "migration.sql"), "utf8");
+      expect(sql).toMatch(
+        /ALTER TABLE\s+"admin_audit_events"\s+ALTER COLUMN\s+"ipAddress"\s+TYPE VARCHAR\(64\)/,
+      );
     });
 
     it("the migration SQL adds the metadata JSONB column to the sessions table", () => {
