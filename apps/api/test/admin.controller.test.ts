@@ -116,17 +116,20 @@ const TEST_NEXTAUTH_SECRET = "test-secret-at-least-32-characters-long-for-hkdf";
 const VALID_USER_ID = "12345678-1234-1234-8234-123456789012";
 const SECOND_USER_ID = "87654321-4321-4321-8432-210987654321";
 
-const mintToken = async (claims: {
-  sub: string;
-  email: string;
-  role: "USER" | "ADMIN";
-  userId: string;
-}): Promise<string> =>
+const mintToken = async (
+  claims: {
+    sub: string;
+    email: string;
+    role: "USER" | "ADMIN";
+    userId: string;
+  },
+  options?: { maxAgeSeconds?: number },
+): Promise<string> =>
   encode({
     token: { ...claims, name: null, picture: null },
     secret: TEST_NEXTAUTH_SECRET,
     salt: NEXTAUTH_SESSION_TOKEN_NAME,
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: options?.maxAgeSeconds ?? 30 * 24 * 60 * 60,
   });
 
 // Task 3.7 — pino `[ip]` redaction. Mock `@core/logging` so the
@@ -577,6 +580,98 @@ describe("AdminController (M3 task 3.1)", () => {
       // Asserting on the captured JSON line ensures the field-level
       // redaction actually fires on the structured log object.
       expect(revokeLine).toContain('"ip":"[REDACTED]"');
+    });
+  });
+
+  describe("Routing threat matrix (M3 task 3.9)", () => {
+    // Design §7 — Routing row, Applicable. The cases below are the
+    // adversarial inputs the JwtAuthGuard must reject with 401 (or
+    // AdminGuard with 403 for non-admin) regardless of the target
+    // endpoint. We exercise the matrix against `/admin/users` as the
+    // simplest endpoint; the guard behavior is endpoint-independent
+    // so the assertions transfer to all 5 routes.
+
+    it("rejects a JWT minted with a foreign (different) secret → 401", async () => {
+      // A foreign JWT is one signed with a key the API does NOT own.
+      // NextAuth's HKDF-derived decryption key won't recover the
+      // payload, so `decode` returns null and JwtAuthGuard rejects.
+      // This is the canonical "forged JWT" surface — a token signed
+      // by an attacker-controlled key.
+      const foreignJwt = await encode({
+        token: {
+          sub: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+          userId: "admin-1",
+          name: null,
+          picture: null,
+        },
+        // 32+ char string, but NOT the test secret — simulates a
+        // foreign signer. `env.NEXTAUTH_SECRET` is the test secret
+        // at runtime; this different secret produces a JWT whose
+        // payload the guard cannot decrypt.
+        secret: "another-secret-at-least-32-chars-long-for-hkdf",
+        salt: NEXTAUTH_SESSION_TOKEN_NAME,
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      const res = await request(app.getHttpServer() as Server)
+        .get("/admin/users")
+        .set("Authorization", `Bearer ${foreignJwt}`);
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects an expired JWT (exp claim in the past) → 401", async () => {
+      // Negative `maxAge` produces a JWT whose `exp` claim sits in
+      // the past. NextAuth's clock-tolerance is 15s; we use -3600
+      // (1h) so the decoder rejects under any clock-skew tolerance.
+      const expiredJwt = await mintToken(
+        {
+          sub: "admin-1",
+          email: "admin@example.com",
+          role: "ADMIN",
+          userId: "admin-1",
+        },
+        { maxAgeSeconds: -3600 },
+      );
+
+      const res = await request(app.getHttpServer() as Server)
+        .get("/admin/users")
+        .set("Authorization", `Bearer ${expiredJwt}`);
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects a non-admin (USER role) bearer token → 403", async () => {
+      // The 5-endpoint parametric test above already covers the 403
+      // path on each route; this case is the explicit "non-admin
+      // → 403" pin from the threat matrix (design §7 Routing row,
+      // case: "non-admin token"). The role check lives in
+      // AdminGuard, which runs after JwtAuthGuard.
+      const userJwt = await mintToken({
+        sub: "u-user",
+        email: "alice@example.com",
+        role: "USER",
+        userId: "u-user",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .get("/admin/users")
+        .set("Authorization", `Bearer ${userJwt}`);
+      expect(res.status).toBe(403);
+    });
+
+    it("rejects a completely malformed bearer string → 401", async () => {
+      // Defense in depth: a non-JWT blob with the right prefix must
+      // not bypass the guard. The guard's `decode` rejects with
+      // 401 (per `pattern/nextauth-decode-try-catch`).
+      const res = await request(app.getHttpServer() as Server)
+        .get("/admin/users")
+        .set("Authorization", "Bearer this.is.not.a.jwe");
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects a missing Authorization header → 401", async () => {
+      const res = await request(app.getHttpServer() as Server).get("/admin/users");
+      expect(res.status).toBe(401);
     });
   });
 });
