@@ -1,3 +1,4 @@
+import { decode } from "next-auth/jwt";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -70,24 +71,37 @@ type AdminCookieSession = {
   readonly user: { readonly id: string; readonly email: string; readonly role: string };
 };
 
-function decodeAdminSession(raw: string | undefined): AdminCookieSession | null {
+type AdminJwtClaims = {
+  readonly userId?: unknown;
+  readonly sub?: unknown;
+  readonly email?: unknown;
+  readonly role?: unknown;
+};
+
+async function decodeAdminSession(raw: string | undefined): Promise<AdminCookieSession | null> {
   if (raw === undefined || raw === "") return null;
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(decodeURIComponent(raw)) as unknown;
+    const claims = (await decode({
+      token: decodeURIComponent(raw),
+      secret: process.env["NEXTAUTH_SECRET"] ?? process.env["JWT_SECRET"] ?? "",
+      salt: AUTH_SESSION_COOKIE,
+    })) as AdminJwtClaims | null;
+    if (claims === null) return null;
+    const id = typeof claims.userId === "string" ? claims.userId : claims.sub;
+    if (
+      typeof id !== "string" ||
+      typeof claims.email !== "string" ||
+      typeof claims.role !== "string"
+    ) {
+      return null;
+    }
+    return {
+      token: raw,
+      user: { id, email: claims.email, role: claims.role },
+    };
   } catch {
     return null;
   }
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const c = parsed as { token?: unknown; user?: unknown };
-  if (typeof c.token !== "string" || typeof c.user !== "object" || c.user === null) {
-    return null;
-  }
-  const u = c.user as { id?: unknown; email?: unknown; role?: unknown };
-  if (typeof u.id !== "string" || typeof u.email !== "string" || typeof u.role !== "string") {
-    return null;
-  }
-  return { token: c.token, user: { id: u.id, email: u.email, role: u.role } };
 }
 
 /**
@@ -137,7 +151,7 @@ function readCookieFromHeader(cookieHeader: string | null, name: string): string
  * unauthenticated / non-admin requests, or `null` to signal
  * "no guard action, continue with the normal middleware flow".
  */
-function adminGuard(request: NextRequest, pathname: string): NextResponse | null {
+async function adminGuard(request: NextRequest, pathname: string): Promise<NextResponse | null> {
   // The matcher filters by locale prefix so we extract the
   // locale from the first segment (defensive — middleware order
   // with next-intl's locale routing guarantees this).
@@ -154,7 +168,7 @@ function adminGuard(request: NextRequest, pathname: string): NextResponse | null
   // it explicitly via the header avoids any lazy-init races.
   const cookieHeader = request.headers.get("cookie");
   const raw = readCookieFromHeader(cookieHeader, AUTH_SESSION_COOKIE);
-  const session = decodeAdminSession(raw);
+  const session = await decodeAdminSession(raw);
   if (session === null) {
     // No session at all → kick to sign-in for the active locale.
     return NextResponse.redirect(new URL(`/${locale}/sign-in`, request.url));
@@ -173,16 +187,16 @@ function adminGuard(request: NextRequest, pathname: string): NextResponse | null
   return null;
 }
 
-export default function middleware(
+export default async function middleware(
   request: NextRequest,
   _event: { waitUntil?: (p: Promise<unknown>) => void } = {},
-): NextResponse {
+): Promise<NextResponse> {
   // 1. Admin guard (M3 Phase 4). Run BEFORE the intl middleware
   //    so the redirect's locale segment is the canonical one
   //    (the intl middleware may rewrite the pathname to a
   //    locale-prefixed form, but for `/[locale]/admin/*` requests
   //    the locale segment is already present).
-  const guard = adminGuard(request, request.nextUrl.pathname);
+  const guard = await adminGuard(request, request.nextUrl.pathname);
   if (guard !== null) {
     // Layer the security headers on the guard response too so a
     // 30x redirect still ships nosniff + frame-options.

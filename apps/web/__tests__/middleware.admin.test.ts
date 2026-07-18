@@ -1,3 +1,4 @@
+import { encode } from "next-auth/jwt";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import middleware, { config } from "../middleware";
@@ -38,18 +39,30 @@ import middleware, { config } from "../middleware";
  */
 
 const HOST = "http://localhost:3000";
+const TEST_NEXTAUTH_SECRET = "test-secret-at-least-32-characters-long-for-hkdf";
+const AUTH_SESSION_COOKIE = "authjs.session-token";
 
-function adminCookieValue(role: "USER" | "ADMIN" | "NONE"): string | undefined {
-  if (role === "NONE") return undefined;
-  const payload = JSON.stringify({
-    token: "session-token-stub",
-    user: {
-      id: "11111111-1111-1111-1111-111111111111",
+async function signedAdminCookieValue(role: "USER" | "ADMIN"): Promise<string> {
+  return encode({
+    token: {
+      sub: "11111111-1111-1111-1111-111111111111",
+      userId: "11111111-1111-1111-1111-111111111111",
       email: `${role.toLowerCase()}@example.com`,
       role,
     },
+    secret: TEST_NEXTAUTH_SECRET,
+    salt: AUTH_SESSION_COOKIE,
+    maxAge: 30 * 24 * 60 * 60,
   });
-  return encodeURIComponent(payload);
+}
+
+function unsignedAdminCookieValue(): string {
+  return encodeURIComponent(
+    JSON.stringify({
+      token: "any",
+      user: { id: "x", email: "x@x.com", role: "ADMIN" },
+    }),
+  );
 }
 
 async function callMiddleware(path: string, cookieValue: string | undefined): Promise<Response> {
@@ -101,12 +114,32 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     expect(locationPath(response)).toBe("/es/sign-in");
   });
 
+  it("rejects an unsigned JSON cookie claiming role=ADMIN (forgery attempt)", async () => {
+    const response = await callMiddleware(
+      "/en/admin/users",
+      unsignedAdminCookieValue(),
+    );
+
+    expect([301, 302, 303, 307, 308]).toContain(response.status);
+    expect(locationPath(response)).toBe("/en/sign-in");
+  });
+
+  it("rejects a cookie with a mismatched signature", async () => {
+    const signed = await signedAdminCookieValue("ADMIN");
+    const replacement = signed.at(-1) === "a" ? "b" : "a";
+    const tampered = `${signed.slice(0, -1)}${replacement}`;
+    const response = await callMiddleware("/en/admin/users", tampered);
+
+    expect([301, 302, 303, 307, 308]).toContain(response.status);
+    expect(locationPath(response)).toBe("/en/sign-in");
+  });
+
   it("redirects an authenticated non-admin on /en/admin/users to /en/(app) with denied flash", async () => {
     // Arrange: USER cookie.
     // Act
     const response = await callMiddleware(
       "/en/admin/users",
-      adminCookieValue("USER"),
+      await signedAdminCookieValue("USER"),
     );
 
     // Assert: redirect to /en/(app) with ?admin=denied flash
@@ -123,7 +156,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // Same as above for the es locale — proves locale preservation.
     const response = await callMiddleware(
       "/es/admin/users",
-      adminCookieValue("USER"),
+      await signedAdminCookieValue("USER"),
     );
     expect([301, 302, 303, 307, 308]).toContain(response.status);
     const url = new URL(String(response.headers.get("location")), HOST);
@@ -136,7 +169,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // Act
     const response = await callMiddleware(
       "/en/admin/users",
-      adminCookieValue("ADMIN"),
+      await signedAdminCookieValue("ADMIN"),
     );
 
     // Assert: 200 passthrough (the request continues to the page
@@ -149,7 +182,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // applies to BOTH the list page AND the dynamic detail page.
     const response = await callMiddleware(
       "/en/admin/users/11111111-1111-4111-8111-111111111111",
-      adminCookieValue("ADMIN"),
+      await signedAdminCookieValue("ADMIN"),
     );
     expect(response.status).toBe(200);
   });
@@ -160,7 +193,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // the rest of the (app) surface.
     const response = await callMiddleware(
       "/en/transactions",
-      adminCookieValue("USER"),
+      await signedAdminCookieValue("USER"),
     );
     expect(response.status).toBe(200);
   });

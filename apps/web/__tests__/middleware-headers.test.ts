@@ -46,7 +46,7 @@ vi.mock("../i18n", () => ({
 import middleware from "../middleware";
 
 describe("web middleware security headers (R-PF-3, T1.10)", () => {
-  it("adds X-Content-Type-Options, Referrer-Policy and X-Frame-Options headers", () => {
+  it("adds X-Content-Type-Options, Referrer-Policy and X-Frame-Options headers", async () => {
     // Mock NextRequest shape — the wrapper reads only what next-intl's
     // middleware would consume (nextUrl for locale detection). For this
     // test the intl mock returns undefined, so the wrapper builds a
@@ -56,7 +56,7 @@ describe("web middleware security headers (R-PF-3, T1.10)", () => {
       nextUrl: { pathname: "/en/status" },
     };
 
-    const response = middleware(req as never, {} as never) as Response;
+    const response = await middleware(req as never, {} as never);
 
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
