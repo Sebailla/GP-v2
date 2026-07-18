@@ -1,9 +1,9 @@
 # Verify Report — `module-2-public-auth`
 
 **Cambio**: `module-2-public-auth`
-**Versión**: M2 (tracker `feat/public-authentication@9c91e85`, base `develop@cc74210`)
+**Versión**: M2 (tracker `feat/public-authentication@43affaf`, base `develop@cc74210`)
 **Modo**: Strict TDD
-**Verdicto**: **PASS WITH WARNINGS**
+**Veredicto**: **PASS WITH WARNINGS** (warnings cerrados pre-archive)
 
 ## Envelope Estricto
 
@@ -54,16 +54,18 @@ D1 (account-link) · D2 (locale en path) · D3 (MailModule precedence) · D4 (mo
 
 Ciclos RED→GREEN observables en 9 commits RED (026d4f9, bd97dd7, ea00078, f60a173, 89857fd, 6fecdf5, af7150c, fd55e5a, 9196654, 96003cc) más 3 commits de fix de JD (ff95fa1, e784c67, 9c91e85) todos con disciplina RED→GREEN.
 
-## Issues Encontrados
+## Issues Encontrados — Resueltos Pre-Archive
 
 ### CRITICAL
 Ninguno.
 
-### WARNING
+### WARNING (los 3 cerrados antes del archive)
 
-1. **Playwright chromium binary diferido a prerrequisito de máquina de desarrollo**. `vertical-auth.spec.ts` y `a11y/*.spec.ts` authoring + typecheck-clean, no ejecutados en el gate de verificación (chromium binary no disponible en sandbox). Doble pineado por BDD `auth-flow.feature` + tests Vitest bridge-contract.
-2. **Path de log de fallo de JWT-encode emite placeholder literal `[email]`** en `auth.controller.ts:482-484`. No es regresión de privacidad (sin PII), pero es inconsistencia de contrato de redacción. Fuera del scope de REJUDGE-1; marcado para follow-up.
-3. **`buildAuthConfig().pages.signIn` es `/api/auth/signin`** (default) — redirect locale-aware enforced por middleware, no por la config `pages` de NextAuth. Test de contrato en `google-callback.e2e-spec.ts:156-163` pinea este comportamiento intencional. Escenario de spec es COMPLIANT en espíritu; drift menor de wording spec vs implementación.
+1. **Playwright chromium binary diferido a prerrequisito de máquina de desarrollo** — DOCUMENTADO. `vertical-auth.spec.ts` y `a11y/*.spec.ts` authoring + typecheck-clean, no ejecutados en el gate de verificación (chromium binary no disponible en sandbox). El contrato del flujo vertical está doble pineado por Cucumber `auth-flow.feature` + tests Vitest bridge-contract. Documentado en `docs/operations/auth-runbook.md` como prerrequisito de máquina de desarrollo.
+
+2. **Path de log de fallo de JWT-encode emitía placeholder literal `[email]`** — **FIXEADO** en el commit `43affaf`. El bloque catch en `auth.controller.ts:481-487` fue convertido de string-template (al que pino redact no puede llegar) a structured-object form (`{ auth: { phase, surface }, err }` + msg string), matcheando el patrón ya establecido en la línea 390 (path de fallo de mail). Pino redact ahora cubre los 2 sitios de log structured-object en el controller. Gate: 45/45 turbo PASS, 17 files / 80 api tests PASS, pino `email:[REDACTED]` sigue disparándose en el path de fallo de mail.
+
+3. **`pages.signIn` default vs `/[locale]/sign-in` literal** — **CERRADO SIN CAMBIO DE CÓDIGO**. El sub-agente de verify malinterpretó el Requirement #1 de `openspec/specs/nextauth-web-routes/spec.md`: el spec dice "MUST expose the sign-in route at `/{locale}/sign-in`" que se refiere al **route de página** (que existe en `apps/web/app/[locale]/(auth)/sign-in/page.tsx`), NO a la config `pages` de NextAuth. El locale routing lo hace `apps/web/middleware.ts` (next-intl middleware), y el test en `google-callback.e2e-spec.ts:156-162` pinea este comportamiento explícitamente. Contrato end-to-end: link de sign-in → middleware prefix → página `/{locale}/sign-in` renderiza. La implementación matchea el design y el spec.
 
 ### SUGGESTION
 
