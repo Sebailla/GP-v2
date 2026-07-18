@@ -2,14 +2,16 @@ import { Module } from "@nestjs/common";
 
 import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
+import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 
 import { RbacService, SessionService } from "@features/auth";
 
 import { AdminController } from "./admin.controller.js";
 import { AdminGuard } from "../../shared/guards/admin.guard.js";
+import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-limit.guard.js";
 
 /**
- * AdminModule — M3 (module-3-superadmin) task 3.8 GREEN.
+ * AdminModule — M3 (module-3-superadmin) task 3.8 GREEN + F5 fix.
  *
  * Per `openspec/changes/module-3-superadmin/design.md` §4 the module
  * wires the admin-side service primitives (`RbacService` +
@@ -26,6 +28,13 @@ import { AdminGuard } from "../../shared/guards/admin.guard.js";
  * already exports AdminGuard in case future slices need to apply
  * the guard to non-admin controllers (none today — AdminGuard is
  * strictly an `/admin/*` surface guard per D1).
+ *
+ * F5 fix (4R-driven correction): RateLimitGuard is registered as a
+ * provider so the `@UseGuards(JwtAuthGuard, AdminGuard,
+ * RateLimitGuard)` chain in `AdminController` resolves. The guard
+ * applies the per-actor (30 req / 60 s) bucket keyed on
+ * `req.user.id` (the `keyBy: "userId"` mode of
+ * `@RateLimit(ADMIN_RATE_LIMIT)`).
  *
  * `RbacService` is provided as a factory because the dispatcher is
  * taken as the 1st constructor argument (Pattern A — canonical
@@ -50,8 +59,20 @@ const dispatcher = createInMemoryDispatcher();
           dispatcher.dispatch,
         ),
     },
+    {
+      provide: RATE_LIMITER_TOKEN,
+      useFactory: (): RateLimiter => {
+        const url = process.env["UPSTASH_REDIS_REST_URL"];
+        const token = process.env["UPSTASH_REDIS_REST_TOKEN"];
+        if (typeof url === "string" && typeof token === "string" && url.length > 0 && token.length > 0) {
+          return new UpstashRateLimiter(url, token);
+        }
+        return new InMemoryRateLimiter();
+      },
+    },
     AdminGuard,
+    RateLimitGuard,
   ],
-  exports: [AdminGuard, RbacService, SessionService],
+  exports: [AdminGuard, RateLimitGuard, RATE_LIMITER_TOKEN, RbacService, SessionService],
 })
 export class AdminModule {}

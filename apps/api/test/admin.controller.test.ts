@@ -769,4 +769,36 @@ describe("AdminController (M3 task 3.1)", () => {
       expect(res.status).toBe(401);
     });
   });
+
+  // F5 fix (4R-driven correction): every /admin/* endpoint is
+  // rate-limited at 30 req / 60 s per admin actor. The bucket is
+  // keyed on `req.user.id` (NOT the IP) so operators behind a
+  // corporate NAT or load balancer are capped per identity, not
+  // per source IP.
+  describe("Rate-limit (F5 — 30 req / 60 s per admin actor)", () => {
+    it("rate-limits admin endpoints at 30 req / 60 s per actor", async () => {
+      vi.mocked(prisma.user.findMany).mockResolvedValue([] as never);
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+
+      // 30 requests must succeed (within the bucket).
+      for (let i = 0; i < 30; i++) {
+        const res = await request(app.getHttpServer() as Server)
+          .get("/admin/users")
+          .set("Authorization", `Bearer ${adminJwt}`);
+        expect(res.status).toBe(200);
+      }
+
+      // The 31st must be 429.
+      const blocked = await request(app.getHttpServer() as Server)
+        .get("/admin/users")
+        .set("Authorization", `Bearer ${adminJwt}`);
+      expect(blocked.status).toBe(429);
+    });
+  });
 });

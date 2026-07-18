@@ -33,8 +33,30 @@ import {
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
 import { AdminGuard } from "../../shared/guards/admin.guard.js";
+import { RateLimit } from "../../shared/guards/rate-limit.decorator.js";
+import { RateLimitGuard } from "../../shared/guards/rate-limit.guard.js";
 import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
+
+/**
+ * F5 fix (4R-driven correction): every `/admin/*` endpoint is
+ * rate-limited at 30 req / 60 s per admin actor. The bucket key
+ * uses ONLY `req.user.id` (keyBy: "userId") so operators behind a
+ * corporate NAT or load-balanced proxy are NOT capped by source
+ * IP — each admin identity gets its own bucket.
+ *
+ * The order of guards is `JwtAuthGuard, AdminGuard, RateLimitGuard`
+ * so the rate-limit guard sees a populated `req.user.id` AND the
+ * kill-switch / role check has already approved the caller. A
+ * failed auth still gets a 401 (not a 429) and the rate-limit
+ * bucket isn't incremented by anonymous traffic.
+ */
+const ADMIN_RATE_LIMIT = {
+  key: "admin:surface",
+  limit: 30,
+  windowSeconds: 60,
+  keyBy: "userId" as const,
+};
 
 /**
  * AdminController — M3 (module-3-superadmin) task 3.2 GREEN + 3.5 GREEN.
@@ -73,7 +95,7 @@ import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
  * service via `insertAuditEvent` (PR #2 task 2.5).
  */
 @Controller("/admin")
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(JwtAuthGuard, AdminGuard, RateLimitGuard)
 export class AdminController {
   private readonly logger: Logger = createLogger({
     LOG_LEVEL: env.LOG_LEVEL,
@@ -93,6 +115,7 @@ export class AdminController {
    * controller only does query parsing + response shaping.
    */
   @Get("/users")
+  @RateLimit(ADMIN_RATE_LIMIT)
   async listUsers(
     @Query(new ZodValidationPipe(ListUsersQuerySchema))
     query: { limit: number; offset: number },
@@ -126,6 +149,7 @@ export class AdminController {
    */
   @Post("/users/:userId/role")
   @HttpCode(200)
+  @RateLimit(ADMIN_RATE_LIMIT)
   async changeUserRole(
     @Param("userId") userId: string,
     @Body(new ZodValidationPipe(ChangeRoleBodySchema))
@@ -171,6 +195,7 @@ export class AdminController {
    * by expires (proxy for lastActiveAt per PR #2 deviation #1).
    */
   @Get("/sessions")
+  @RateLimit(ADMIN_RATE_LIMIT)
   async listSessions(
     @Query(new ZodValidationPipe(ListSessionsQuerySchema))
     query: { userId: string },
@@ -214,6 +239,7 @@ export class AdminController {
    */
   @Delete("/sessions/:sessionId")
   @HttpCode(204)
+  @RateLimit(ADMIN_RATE_LIMIT)
   async revokeSession(
     @Param("sessionId") sessionId: string,
     @Req() request: Request & { user: CurrentUser },
@@ -282,6 +308,7 @@ export class AdminController {
    */
   @Delete("/sessions/user/:userId")
   @HttpCode(204)
+  @RateLimit(ADMIN_RATE_LIMIT)
   async revokeAllUserSessions(
     @Param("userId") userId: string,
     @Req() request: Request & { user: CurrentUser },

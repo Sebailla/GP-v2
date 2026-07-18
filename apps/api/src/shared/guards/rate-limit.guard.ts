@@ -58,7 +58,22 @@ export class RateLimitGuard implements CanActivate {
     const userId = req.user?.id;
 
     const emailSegment = this.extractEmailSegment(rule, req.body);
-    const compositeKey = [rule.key, ip, userId, emailSegment]
+    // F5 fix (4R-driven correction): the per-actor bucket for
+    // /admin/* endpoints uses ONLY the userId. The previous IP-based
+    // bucket mis-attributed a single admin's traffic across multiple
+    // NAT'd devices, and conversely a NAT of N admins into one IP
+    // shared a single bucket. `keyBy: "userId"` collapses the key
+    // to the actor identity — operators behind a corporate NAT or
+    // load-balanced proxy now share the bucket PER IDENTITY, not per
+    // source IP.
+    const keyBy = rule.keyBy ?? "ip-and-user";
+    const segments: ReadonlyArray<string | undefined> =
+      keyBy === "userId"
+        ? [rule.key, userId, emailSegment]
+        : keyBy === "ip"
+          ? [rule.key, ip, emailSegment]
+          : [rule.key, ip, userId, emailSegment];
+    const compositeKey = segments
       .filter((segment) => segment !== undefined && segment !== null && segment !== "")
       .join(":");
 
