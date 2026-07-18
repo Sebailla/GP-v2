@@ -50,6 +50,41 @@ El sistema DEBE validar el parámetro de query `callbackUrl` en la superficie de
 - THEN la respuesta redirige a `pages.error` con un mensaje localizado
 - AND no se setea ninguna cookie
 
+### Requirement: Guardia de rutas admin
+
+Todas las rutas bajo `/[locale]/(app)/admin/*` DEBEN estar protegidas por `role=ADMIN`. Usuarios no-admin DEBEN ser redirigidos a `/{locale}/(app)` con un flash localizado ("Acceso denegado" / "Access denied"). La guardia corre server-side (render de página) y client-side (redirect de middleware).
+
+#### Scenario: Admin visita /admin/users
+
+- GIVEN un admin autenticado
+- WHEN visita `/{locale}/admin/users`
+- THEN se renderiza la página de admin users
+
+#### Scenario: Admin visita /admin/sessions
+
+- GIVEN un admin autenticado
+- WHEN visita `/{locale}/admin/sessions`
+- THEN se renderiza la página de admin sessions
+
+#### Scenario: No-admin redirigido
+
+- GIVEN un no-admin autenticado
+- WHEN visita `/{locale}/admin/users`
+- THEN se redirige a `/{locale}/(app)` con un flash localizado
+
+#### Scenario: Sin sesión redirigido
+
+- GIVEN sin sesión
+- WHEN visita `/{locale}/admin/users`
+- THEN se redirige a `/{locale}/sign-in`
+
+#### Scenario: Admin visita detalle dinámico
+
+- GIVEN un admin autenticado
+- WHEN visita `/{locale}/admin/users/{id}` para un usuario existente
+- THEN se renderiza la página de detalle
+
 ## Procedencia
 
-Introducido por: module-2-public-auth, 2026-07-17; comportamiento base de slice-3 / M1 T1.12.
+Introducido por: module-2-public-auth, 2026-07-17 (comportamiento base de slice-3 / M1 T1.12).
+Extendido por: module-3-superadmin, 2026-07-18 (guardia de rutas admin).

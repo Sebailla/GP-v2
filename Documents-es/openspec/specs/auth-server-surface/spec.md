@@ -56,6 +56,91 @@ La salida de `buildAuthConfig()` DEBE setear `pages.signIn` al factory conscient
 - THEN el array de providers NO contiene `Google`
 - AND el `LoginForm` NO DEBE renderizar el botón de Google
 
+### Requirement: Listado de sesiones por usuario
+
+`GET /admin/sessions?userId=<uuid>` retorna sesiones ordenadas DESC por `lastActiveAt` con `id`, `userId`, `createdAt`, `lastActiveAt`, `userAgent`, `ipAddress`. Guardia `role=ADMIN`.
+
+#### Scenario: Ordenado
+
+- GIVEN admin + 3 sesiones
+- WHEN se invoca
+- THEN retorna 200 DESC
+
+#### Scenario: Vacío
+
+- GIVEN admin + 0 sesiones
+- WHEN se invoca
+- THEN retorna 200 con `[]`
+
+#### Scenario: No-admin
+
+- GIVEN no-admin
+- WHEN se invoca
+- THEN retorna 403
+
+#### Scenario: Desconocido
+
+- GIVEN admin + userId desconocido
+- WHEN se invoca
+- THEN retorna 404
+
+### Requirement: Revocar una sesión
+
+`DELETE /admin/sessions/:sessionId` elimina la fila, dispara `auth.session.revoked`, inserta `AdminAuditEvent` con `action: "REVOKE_SESSION"`. Guardia `role=ADMIN`. Auto-revocación permitida.
+
+#### Scenario: Conocida
+
+- GIVEN admin + sesión existente
+- WHEN se invoca
+- THEN retorna 204, fila eliminada, audit
+
+#### Scenario: Desconocida
+
+- GIVEN admin + sessionId desconocido
+- WHEN se invoca
+- THEN retorna 404, sin audit
+
+#### Scenario: Auto
+
+- GIVEN admin revocando su propia sesión
+- WHEN se invoca
+- THEN retorna 204 con `Set-Cookie` limpiando el token
+
+#### Scenario: No-admin
+
+- GIVEN no-admin
+- WHEN se invoca
+- THEN retorna 403
+
+### Requirement: Revocar todas las sesiones de un usuario
+
+`DELETE /admin/sessions/user/:userId` elimina cada sesión e inserta `AdminAuditEvent` con `action: "REVOKE_ALL_SESSIONS"`. Guardia `role=ADMIN`.
+
+#### Scenario: 3 sesiones
+
+- GIVEN admin + 3 sesiones
+- WHEN se invoca
+- THEN retorna 204, 3 eliminadas, `revokedCount: 3`
+
+#### Scenario: 0 sesiones
+
+- GIVEN admin + 0 sesiones
+- WHEN se invoca
+- THEN retorna 204, `revokedCount: 0`
+
+#### Scenario: Auto-total
+
+- GIVEN admin revocando sus sesiones
+- WHEN se invoca
+- THEN retorna 204, cookie limpiada, audit
+
+#### Scenario: No-admin
+
+- GIVEN no-admin
+- WHEN se invoca
+- THEN retorna 403
+
 ## Procedencia
 
-Introducido por: module-2-public-auth, 2026-07-17; comportamiento base de slice-3 / M1 T1.12.
+Introducido por: module-2-public-auth, 2026-07-17 (línea base slice-3).
+Extendido por: module-3-superadmin, 2026-07-18 (gestión sesiones admin).

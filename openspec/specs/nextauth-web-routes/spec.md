@@ -50,6 +50,41 @@ The system MUST validate the `callbackUrl` query parameter on the sign-in surfac
 - THEN the response redirects to `pages.error` with a localized message
 - AND no cookie is set
 
+### Requirement: Admin Route Guard
+
+All routes under `/[locale]/(app)/admin/*` MUST be guarded by `role=ADMIN`. Non-admin users MUST be redirected to `/{locale}/(app)` with a localized flash message ("Acceso denegado" / "Access denied"). Guard runs server-side (page render) AND client-side (middleware redirect).
+
+#### Scenario: Admin visits /admin/users
+
+- GIVEN an authenticated admin
+- WHEN they visit `/{locale}/admin/users`
+- THEN the admin users page renders
+
+#### Scenario: Admin visits /admin/sessions
+
+- GIVEN an authenticated admin
+- WHEN they visit `/{locale}/admin/sessions`
+- THEN the admin sessions page renders
+
+#### Scenario: Non-admin redirected
+
+- GIVEN an authenticated non-admin
+- WHEN they visit `/{locale}/admin/users`
+- THEN they are redirected to `/{locale}/(app)` with a localized flash
+
+#### Scenario: Unauthenticated redirected
+
+- GIVEN no session
+- WHEN they visit `/{locale}/admin/users`
+- THEN they are redirected to `/{locale}/sign-in`
+
+#### Scenario: Admin visits dynamic detail
+
+- GIVEN an authenticated admin
+- WHEN they visit `/{locale}/admin/users/{id}` for an existing user
+- THEN the user detail page renders
+
 ## Provenance
 
-Introduced by: module-2-public-auth, 2026-07-17; baseline behavior from slice-3 / M1 T1.12.
+Introduced by: module-2-public-auth, 2026-07-17 (slice-3 / M1 T1.12 baseline).
+Extended by: module-3-superadmin, 2026-07-18 (admin route guard).
