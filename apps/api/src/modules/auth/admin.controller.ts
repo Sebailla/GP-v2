@@ -261,8 +261,13 @@ export class AdminController {
     // logged in). `findById` is O(1) on the primary key and pins
     // the self-revoke decision to the actual target row.
     const sessionRow = await this.sessionService.findById(sessionId);
-    const isSelfRevoke =
-      sessionRow !== null && sessionRow.userId === request.user.id;
+    if (sessionRow === null) {
+      throw new NotFoundException({
+        error: "SESSION_NOT_FOUND",
+        message: "invalid token",
+      });
+    }
+    const isSelfRevoke = sessionRow.userId === request.user.id;
 
     await this.sessionService.revoke(
       sessionId,

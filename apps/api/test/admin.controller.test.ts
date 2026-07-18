@@ -501,6 +501,25 @@ describe("AdminController (M3 task 3.1)", () => {
   });
 
   describe("DELETE /admin/sessions/:sessionId", () => {
+    it("returns 404 with SESSION_NOT_FOUND and no audit for an unknown session", async () => {
+      vi.mocked(prisma.session.findUnique).mockResolvedValueOnce(null);
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .delete("/admin/sessions/00000000-0000-4000-8000-000000000001")
+        .set("Authorization", `Bearer ${adminJwt}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body).toMatchObject({ error: "SESSION_NOT_FOUND" });
+      expect(prisma.session.delete).not.toHaveBeenCalled();
+      expect(prisma.adminAuditEvent.create).not.toHaveBeenCalled();
+    });
+
     it("surfaces a DB read error during self-revoke detection", async () => {
       vi.mocked(prisma.session.findUnique).mockRejectedValueOnce(
         new Error("database read failed"),
