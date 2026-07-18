@@ -64,14 +64,14 @@ Base PR #2. Verify `NODE_ENV=test pnpm --filter api exec vitest run src/modules/
 
 Base PR #3. Verify `NODE_ENV=test pnpm --filter web test`.
 
-- [ ] 4.1 RED `middleware.admin.test.ts`: non-admin visits `/en/admin/users` → redirect to `/en/(app)`; unauthenticated → redirect to `/en/sign-in`; admin → continues.
-- [ ] 4.2 GREEN extend `apps/web/middleware.ts` with `/admin/*` pre-check; redirect non-admin to `/{locale}/(app)` + flash.
-- [ ] 4.3 RED `admin.users.page.test.tsx` + `admin.sessions.page.test.tsx`: 5 form states per AGENTS.md §9 (loading, error, success, empty, validation-error); role change form validation; revoke buttons (single + all).
-- [ ] 4.4 GREEN create `/[locale]/(app)/admin/{users,sessions}/page.tsx` server components; create `/[locale]/(app)/admin/users/[userId]/page.tsx` user detail page.
-- [ ] 4.5 GREEN create `UsersTable`, `SessionsTable`, `AdminNav` client components with 5 form states.
-- [ ] 4.6 GREEN `apps/web/messages/{en,es}.json`: add `admin.*` keys (titles, sections, errors, success messages).
-- [ ] 4.7 RED axe-core: `apps/web/e2e/auth/admin.a11y.spec.ts` per-surface audit (users list, user detail, sessions list); assert 0 serious/critical.
-- [ ] 4.8 TRIANGULATE admin nav: empty state (no users) shows CTA + helpful copy; success state after role change shows localized confirmation.
+- [x] 4.1 RED `middleware.admin.test.ts`: non-admin visits `/en/admin/users` → redirect to `/en/(app)`; unauthenticated → redirect to `/en/sign-in`; admin → continues.
+- [x] 4.2 GREEN extend `apps/web/middleware.ts` with `/admin/*` pre-check; redirect non-admin to `/{locale}/(app)` + flash.
+- [x] 4.3 RED `admin.users.page.test.tsx` + `admin.sessions.page.test.tsx`: 5 form states per AGENTS.md §9 (loading, error, success, empty, validation-error); role change form validation; revoke buttons (single + all).
+- [x] 4.4 GREEN create `/[locale]/(app)/admin/{users,sessions}/page.tsx` server components; create `/[locale]/(app)/admin/users/[userId]/page.tsx` user detail page.
+- [x] 4.5 GREEN create `UsersTable`, `SessionsTable`, `AdminNav` client components with 5 form states.
+- [x] 4.6 GREEN `apps/web/messages/{en,es}.json`: add `admin.*` keys (titles, sections, errors, success messages).
+- [x] 4.7 RED axe-core: `apps/web/e2e/auth/admin.a11y.spec.ts` per-surface audit (users list, user detail, sessions list); assert 0 serious/critical.
+- [x] 4.8 TRIANGULATE admin nav: empty state (no users) shows CTA + helpful copy; success state after role change shows localized confirmation.
 
 ## Phase 5 — BDD + Runbook + E2E Vertical (PR #5)
 

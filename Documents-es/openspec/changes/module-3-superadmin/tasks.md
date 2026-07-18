@@ -64,14 +64,14 @@ Base PR #2. Verificar `NODE_ENV=test pnpm --filter api exec vitest run src/modul
 
 Base PR #3. Verificar `NODE_ENV=test pnpm --filter web test`.
 
-- [ ] 4.1 RED `middleware.admin.test.ts`: no-admin visita `/en/admin/users` → redirige a `/en/(app)`; no autenticado → redirige a `/en/sign-in`; admin → continúa.
-- [ ] 4.2 GREEN extender `apps/web/middleware.ts` con pre-check `/admin/*`; redirigir no-admin a `/{locale}/(app)` + flash.
-- [ ] 4.3 RED `admin.users.page.test.tsx` + `admin.sessions.page.test.tsx`: 5 estados de formulario según AGENTS.md §9 (loading, error, success, empty, validation-error); validación de formulario de cambio de rol; botones de revocación (individual + todas).
-- [ ] 4.4 GREEN crear `/[locale]/(app)/admin/{users,sessions}/page.tsx` server components; crear `/[locale]/(app)/admin/users/[userId]/page.tsx` página de detalle de usuario.
-- [ ] 4.5 GREEN crear client components `UsersTable`, `SessionsTable`, `AdminNav` con 5 estados de formulario.
-- [ ] 4.6 GREEN `apps/web/messages/{en,es}.json`: añadir claves `admin.*` (títulos, secciones, errores, mensajes de éxito).
-- [ ] 4.7 RED axe-core: `apps/web/e2e/auth/admin.a11y.spec.ts` auditoría por superficie (lista de usuarios, detalle de usuario, lista de sesiones); afirmar 0 serious/critical.
-- [ ] 4.8 TRIANGULATE nav admin: estado vacío (sin usuarios) muestra CTA + copy de ayuda; estado de éxito tras cambio de rol muestra confirmación localizada.
+- [x] 4.1 RED `middleware.admin.test.ts`: no-admin visita `/en/admin/users` → redirige a `/en/(app)`; no autenticado → redirige a `/en/sign-in`; admin → continúa.
+- [x] 4.2 GREEN extender `apps/web/middleware.ts` con pre-check `/admin/*`; redirigir no-admin a `/{locale}/(app)` + flash.
+- [x] 4.3 RED `admin.users.page.test.tsx` + `admin.sessions.page.test.tsx`: 5 estados de formulario según AGENTS.md §9 (loading, error, success, empty, validation-error); validación de formulario de cambio de rol; botones de revocación (individual + todas).
+- [x] 4.4 GREEN crear `/[locale]/(app)/admin/{users,sessions}/page.tsx` server components; crear `/[locale]/(app)/admin/users/[userId]/page.tsx` página de detalle de usuario.
+- [x] 4.5 GREEN crear client components `UsersTable`, `SessionsTable`, `AdminNav` con 5 estados de formulario.
+- [x] 4.6 GREEN `apps/web/messages/{en,es}.json`: añadir claves `admin.*` (títulos, secciones, errores, mensajes de éxito).
+- [x] 4.7 RED axe-core: `apps/web/e2e/auth/admin.a11y.spec.ts` auditoría por superficie (lista de usuarios, detalle de usuario, lista de sesiones); afirmar 0 serious/critical.
+- [x] 4.8 TRIANGULATE nav admin: estado vacío (sin usuarios) muestra CTA + copy de ayuda; estado de éxito tras cambio de rol muestra confirmación localizada.
 
 ## Fase 5 — BDD + Runbook + E2E Vertical (PR #5)
 
