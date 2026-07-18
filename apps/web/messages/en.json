@@ -232,6 +232,9 @@
     "flash": {
       "denied": "Access denied. This area is restricted to administrators."
     },
+    "errors": {
+      "lastAdmin": "This is the last remaining admin. Promote another user to ADMIN before demoting this one."
+    },
     "nav": {
       "users": "Users",
       "sessions": "Sessions",

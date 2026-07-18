@@ -232,6 +232,9 @@
     "flash": {
       "denied": "Acceso denegado. Esta sección está restringida a administradores."
     },
+    "errors": {
+      "lastAdmin": "Esta es la última cuenta de administrador. Promueve a otro usuario a ADMIN antes de degradar esta."
+    },
     "nav": {
       "users": "Usuarios",
       "sessions": "Sesiones",

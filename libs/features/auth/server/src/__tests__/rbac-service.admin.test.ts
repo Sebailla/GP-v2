@@ -43,6 +43,7 @@ vi.mock("@core/database", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
     adminAuditEvent: {
       create: vi.fn(),
@@ -232,6 +233,103 @@ describe("RbacService — admin extensions (M3 task 1.4 GREEN)", () => {
       );
       expect(prisma.adminAuditEvent.create).not.toHaveBeenCalled();
       expect(noopDispatcher).not.toHaveBeenCalled();
+    });
+
+    // F2 fix (4R-driven correction): last-admin safeguard.
+    // `changeRole` MUST refuse to demote the only remaining admin to
+    // USER — the system would become permanently admin-less (every
+    // admin demoted, no path back to ADMIN except direct SQL).
+    // The check runs OUTSIDE the transaction to avoid racing
+    // concurrent admin ops; the production code path uses a
+    // count-then-act pattern with a comment explaining the
+    // non-serializable-isolation caveat.
+    describe("last-admin safeguard (F2)", () => {
+      it("throws LastAdminError when demoting the only remaining admin", async () => {
+        const { RbacService } = await import("../rbac-service.js");
+        const { LastAdminError } = await import("../errors.js");
+        const onlyAdmin: UserRow = {
+          id: "admin-only",
+          email: "only@example.com",
+          role: "ADMIN",
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+        };
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(onlyAdmin as never);
+        // The count of admins is 1 → last-admin path triggers.
+        vi.mocked(prisma.user.count).mockResolvedValueOnce(1 as never);
+
+        const rbac = new RbacService(noopDispatcher, asPrismaStub());
+        // Demote yourself (the only admin) to USER → must throw.
+        await expect(
+          rbac.changeRole("admin-only", "USER", "admin-only"),
+        ).rejects.toBeInstanceOf(LastAdminError);
+
+        // No write, no audit, no event — the safeguard fires BEFORE
+        // the transaction.
+        expect(prisma.user.update).not.toHaveBeenCalled();
+        expect(prisma.adminAuditEvent.create).not.toHaveBeenCalled();
+        expect(noopDispatcher).not.toHaveBeenCalled();
+      });
+
+      it("does NOT throw when demoting one of multiple admins (count > 1)", async () => {
+        const { RbacService } = await import("../rbac-service.js");
+        const adminA: UserRow = {
+          id: "admin-a",
+          email: "a@example.com",
+          role: "ADMIN",
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+        };
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(adminA as never);
+        // The count of admins is 2 → safe to demote one.
+        vi.mocked(prisma.user.count).mockResolvedValueOnce(2 as never);
+        vi.mocked(prisma.user.update).mockResolvedValue({
+          ...adminA,
+          role: "USER",
+        } as never);
+        vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
+        vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
+          if (typeof arg === "function") {
+            return (arg as (tx: PrismaClient) => Promise<unknown>)(prisma as unknown as PrismaClient);
+          }
+          return undefined;
+        });
+
+        const rbac = new RbacService(noopDispatcher, asPrismaStub());
+        // Demote yourself — you're one of 2 admins → must succeed.
+        const result = await rbac.changeRole("admin-a", "USER", "admin-a");
+        expect(result.role).toBe("USER");
+        expect(prisma.user.update).toHaveBeenCalled();
+      });
+
+      it("does NOT throw when demoting a non-admin user (count check irrelevant)", async () => {
+        const { RbacService } = await import("../rbac-service.js");
+        const user: UserRow = {
+          id: "u-1",
+          email: "u1@example.com",
+          role: "USER",
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+        };
+        vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(user as never);
+        // The existing test for "admin count" must be 1 here (the
+        // lone admin is a different user) — but the safeguard only
+        // fires when the TARGET is ADMIN AND newRole is USER AND
+        // count is 1. Here the target is already USER, so the
+        // safeguard must NOT trigger even with count === 1.
+        vi.mocked(prisma.user.count).mockResolvedValueOnce(1 as never);
+        vi.mocked(prisma.user.update).mockResolvedValue({ ...user, role: "ADMIN" } as never);
+        vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
+        vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
+          if (typeof arg === "function") {
+            return (arg as (tx: PrismaClient) => Promise<unknown>)(prisma as unknown as PrismaClient);
+          }
+          return undefined;
+        });
+
+        const rbac = new RbacService(noopDispatcher, asPrismaStub());
+        // Promote a USER to ADMIN (not a demote-to-USER op) — no
+        // last-admin path applies.
+        const result = await rbac.changeRole("u-1", "ADMIN", "admin-1");
+        expect(result.role).toBe("ADMIN");
+      });
     });
   });
 

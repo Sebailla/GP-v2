@@ -69,6 +69,7 @@ vi.mock("@core/database", () => ({
       findMany: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
+      count: vi.fn(),
     },
     session: {
       findUnique: vi.fn(),
@@ -384,6 +385,38 @@ describe("AdminController (M3 task 3.1)", () => {
         .send({ role: "ADMIN" });
 
       expect(res.status).toBe(404);
+    });
+
+    // F2 fix (4R-driven correction): when RbacService throws
+    // LastAdminError the controller must surface it as 409 Conflict
+    // (NOT 500). The admin errors.lastAdmin i18n key supplies the
+    // operator-facing copy.
+    it("returns 409 when demoting the only remaining admin (last-admin safeguard)", async () => {
+      const onlyAdmin = {
+        id: "admin-only",
+        email: "only@example.com",
+        role: "ADMIN",
+        createdAt: new Date("2026-01-01T00:00:00Z"),
+      };
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(onlyAdmin as never);
+      // The safeguard queries `prisma.user.count({ where: { role: "ADMIN" } })`
+      // → returns 1 → LastAdminError.
+      vi.mocked(prisma.user.count).mockResolvedValueOnce(1 as never);
+
+      const adminJwt = await mintToken({
+        sub: "admin-only",
+        email: "only@example.com",
+        role: "ADMIN",
+        userId: "admin-only",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .post("/admin/users/admin-only/role")
+        .set("Authorization", `Bearer ${adminJwt}`)
+        .send({ role: "USER" });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toMatchObject({ error: "LAST_ADMIN_DEMOTE" });
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 

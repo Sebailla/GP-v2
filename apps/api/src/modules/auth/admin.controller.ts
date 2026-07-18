@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -22,6 +23,7 @@ import {
   RbacService,
   SessionService,
   type CurrentUser,
+  LastAdminError,
 } from "@features/auth";
 import {
   ChangeRoleBodySchema,
@@ -148,6 +150,15 @@ export class AdminController {
         createdAt: updated.createdAt,
       };
     } catch (error) {
+      // F2 fix (4R-driven correction): map LastAdminError → 409
+      // Conflict so the operator UI surfaces a meaningful error
+      // when they try to demote the only remaining admin.
+      if (error instanceof LastAdminError) {
+        throw new ConflictException({
+          error: error.code,
+          message: error.message,
+        });
+      }
       if (error instanceof Error && error.message.startsWith("User not found")) {
         throw new NotFoundException({ error: "USER_NOT_FOUND", message: error.message });
       }

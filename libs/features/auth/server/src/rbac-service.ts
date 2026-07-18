@@ -65,6 +65,7 @@ import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
 import { insertAuditEvent } from "./audit.service.js";
+import { LastAdminError } from "./errors.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -270,6 +271,26 @@ export class RbacService {
       throw new Error(`User not found: ${userId}`);
     }
     const fromRole = existing.role as Role;
+
+    // F2 fix (4R-driven correction): last-admin safeguard.
+    // Refuse to demote the only remaining admin to USER — the system
+    // would become permanently admin-less. Check runs OUTSIDE the
+    // transaction (count-then-act pattern) so a concurrent demote
+    // could theoretically race; the trade-off is intentional: the
+    // database would require Serializable isolation to enforce this
+    // inside the transaction, and we accept the small window of
+    // double-demote risk in exchange for not escalating every
+    // admin op to Serializable. The middleware / monitor layer
+    // watches for `admin_count == 1` after the change and alerts;
+    // see M4 follow-up for the invariant assertion.
+    if (fromRole === "ADMIN" && newRole === "USER") {
+      const adminCount = await this.prisma.user.count({ where: { role: "ADMIN" } });
+      if (adminCount <= 1) {
+        throw new LastAdminError(
+          `cannot demote user ${userId} to USER: they are the last remaining admin`,
+        );
+      }
+    }
 
     // Idempotent path: same role → no DB write, no audit, no event.
     // Matches `rbac-admin` spec "Change User Role → Idempotent" scenario.
