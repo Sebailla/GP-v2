@@ -64,6 +64,7 @@ import type { PrismaClient } from "@core/database";
 import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
+import { insertAuditEvent } from "./audit.service.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -286,13 +287,19 @@ export class RbacService {
         where: { id: userId },
         data: { role: newRole },
       });
-      await tx.adminAuditEvent.create({
-        data: {
-          actorId,
-          targetId: userId,
-          action: "CHANGE_ROLE",
-          metadata: { from: fromRole, to: newRole },
-        },
+      // Task 2.5 REFACTOR: audit insert extracted to
+      // `insertAuditEvent` so SessionService.revoke + revokeAll and any
+      // future admin op share the same primitive. The `tx` parameter
+      // (interactive-transaction client) participates in this
+      // transaction alongside `tx.user.update`, so the audit row and
+      // the role update still roll back together on a partial failure.
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: userId,
+        action: "CHANGE_ROLE",
+        metadata: { from: fromRole, to: newRole },
+        ipAddress: null,
+        userAgent: null,
       });
       return next;
     });

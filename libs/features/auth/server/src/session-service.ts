@@ -8,6 +8,7 @@ import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-se
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import type { AuthEventDispatcher } from "./events.js";
+import { insertAuditEvent } from "./audit.service.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -270,14 +271,18 @@ export class SessionService {
    * path stays on `revokeSession(token, userId)` and emits the
    * narrower slice-3 payload.
    *
-   * Idempotent: a missing row is a silent no-op (no event). The
-   * row is read BEFORE the delete so the event payload always
-   * carries the targetUserId — without the read, the dispatch would
-   * race the delete.
+   * Idempotent: a missing row is a silent no-op (no event, no
+   * audit row). The row is read BEFORE the delete so the event
+   * payload always carries the targetUserId — without the read, the
+   * dispatch would race the delete.
    *
    * IP + UA are recorded exactly as captured at the controller
    * boundary (per design D3); the service does not redact them.
    * Pino `[ip]` redaction is applied at the LOG layer, not here.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent` so the same primitive backs every admin op
+   * (RbacService.changeRole, SessionService.revoke/revokeAll).
    */
   async revoke(
     sessionId: string,
@@ -293,6 +298,20 @@ export class SessionService {
     }
     await this.prisma.session.delete({ where: { id: sessionId } });
     const targetUserId = row.userId;
+
+    // Task 2.5 REFACTOR: audit insert extracted to `insertAuditEvent`.
+    // Uses the canonical `@core/database` prisma client (no
+    // transaction — the session row has already been deleted, and the
+    // audit captures the action that just happened).
+    await insertAuditEvent(this.prisma, {
+      actorId,
+      targetId: sessionId,
+      action: "REVOKE_SESSION",
+      metadata: { targetUserId },
+      ipAddress,
+      userAgent,
+    });
+
     const event: DomainEvent = {
       name: "auth.session.revoked",
       userId: actorId,
@@ -315,10 +334,15 @@ export class SessionService {
    * payload) — the singleton event is the audit anchor, not N
    * per-session events (which would flood the trail).
    *
-   * Always emits, even when `count === 0` — the audit trail captures
-   * "admin tried, user had nothing". Per design §3.2 and the
-   * `auth-server-surface` spec's `Revoke All Sessions for User →
-   * 0 sessions → 204, revokedCount: 0` scenario.
+   * Always emits (event + audit row), even when `count === 0` —
+   * the audit trail captures "admin tried, user had nothing". Per
+   * design §3.2 and the `auth-server-surface` spec's `Revoke All
+   * Sessions for User → 0 sessions → 204, revokedCount: 0`
+   * scenario.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent`. Metadata carries `{ count, targetUserId }`
+   * so the bulk revoke is recoverable from a single audit row.
    */
   async revokeAll(
     userId: string,
@@ -329,6 +353,16 @@ export class SessionService {
     const result = await this.prisma.session.deleteMany({
       where: { userId },
     });
+
+    await insertAuditEvent(this.prisma, {
+      actorId,
+      targetId: userId,
+      action: "REVOKE_ALL_SESSIONS",
+      metadata: { count: result.count },
+      ipAddress,
+      userAgent,
+    });
+
     const event: DomainEvent = {
       name: "auth.session.revoked",
       userId: actorId,

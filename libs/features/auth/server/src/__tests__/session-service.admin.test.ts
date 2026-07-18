@@ -150,7 +150,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
   });
 
   describe("revoke (admin single-session)", () => {
-    it("deletes the session row by its primary key AND emits auth.session.revoked with the M3 widening payload", async () => {
+    it("deletes the session row by its primary key, inserts a REVOKE_SESSION audit row, AND emits auth.session.revoked with the M3 widening payload", async () => {
       const { SessionService } = await import("../session-service.js");
       const sessionRow: SessionRow = {
         id: "session-1",
@@ -162,6 +162,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       // BEFORE the delete (so the event still carries it).
       vi.mocked(prisma.session.findUnique).mockResolvedValue(sessionRow as never);
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const service = new SessionService(prisma, undefined, undefined, dispatcher);
@@ -172,7 +173,31 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       expect(prisma.session.delete).toHaveBeenCalledTimes(1);
       expect(prisma.session.delete).toHaveBeenCalledWith({ where: { id: "session-1" } });
 
-      // 2. emit exactly one auth.session.revoked with the widened payload.
+      // 2. audit row (task 2.5 — REVOKE_SESSION per
+      // `insertAuditEvent` primitive).
+      expect(prisma.adminAuditEvent.create).toHaveBeenCalledTimes(1);
+      const auditArg = (
+        vi.mocked(prisma.adminAuditEvent.create).mock.calls[0] as unknown as [
+          {
+            data: {
+              actorId: string;
+              targetId: string;
+              action: string;
+              metadata: Record<string, unknown>;
+              ipAddress: string | null;
+              userAgent: string | null;
+            };
+          },
+        ]
+      )[0];
+      expect(auditArg.data.actorId).toBe("admin-1");
+      expect(auditArg.data.targetId).toBe("session-1");
+      expect(auditArg.data.action).toBe("REVOKE_SESSION");
+      expect(auditArg.data.metadata).toEqual({ targetUserId: "target-user" });
+      expect(auditArg.data.ipAddress).toBe("203.0.113.5");
+      expect(auditArg.data.userAgent).toBe("Mozilla/5.0 AdminUA");
+
+      // 3. emit exactly one auth.session.revoked with the widened payload.
       expect(dispatcher).toHaveBeenCalledTimes(1);
       const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
       expect(event.name).toBe("auth.session.revoked");
@@ -203,6 +228,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       };
       vi.mocked(prisma.session.findUnique).mockResolvedValue(sessionRow as never);
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const service = new SessionService(prisma, undefined, undefined, dispatcher);
@@ -210,6 +236,14 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       await service.revoke("session-1", "admin-1", null, null);
 
       expect(prisma.session.delete).toHaveBeenCalledTimes(1);
+      expect(prisma.adminAuditEvent.create).toHaveBeenCalledTimes(1);
+      const auditArg = (
+        vi.mocked(prisma.adminAuditEvent.create).mock.calls[0] as unknown as [
+          { data: { ipAddress: unknown; userAgent: unknown } },
+        ]
+      )[0];
+      expect(auditArg.data.ipAddress).toBeNull();
+      expect(auditArg.data.userAgent).toBeNull();
       const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
       const payload = event.payload as { ipAddress: unknown; userAgent: unknown };
       expect(payload.ipAddress).toBeNull();
@@ -236,19 +270,15 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
   });
 
   describe("revokeAll (admin bulk revoke)", () => {
-    it("deletes every session for the user, returns the count, AND emits auth.session.revoked with `count` in the payload", async () => {
+    it("deletes every session for the user, returns the count, inserts a REVOKE_ALL_SESSIONS audit row, AND emits auth.session.revoked with `count` in the payload", async () => {
       const { SessionService } = await import("../session-service.js");
-      // The service enumerates sessions-to-revoke internally so the
-      // event carries per-session context (the controller layer can
-      // choose to emit a single event with `count` or N events — the
-      // GREEN design emits ONE event with `count=N`). Mock the
-      // findMany (3 rows) and deleteMany (count: 3).
       vi.mocked(prisma.session.findMany).mockResolvedValue([
         { id: "s1", sessionToken: "t1", userId: "target-user", expires: new Date() },
         { id: "s2", sessionToken: "t2", userId: "target-user", expires: new Date() },
         { id: "s3", sessionToken: "t3", userId: "target-user", expires: new Date() },
       ] as never);
       vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 3 });
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const service = new SessionService(prisma, undefined, undefined, dispatcher);
@@ -258,8 +288,17 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       expect(count).toBe(3);
       expect(prisma.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "target-user" } });
 
-      // One admin event covers the bulk action — the `count` payload
-      // field is the singleton event's anchor (per design.md §5).
+      // Audit row (task 2.5 — REVOKE_ALL_SESSIONS with count in metadata).
+      expect(prisma.adminAuditEvent.create).toHaveBeenCalledTimes(1);
+      const auditArg = (
+        vi.mocked(prisma.adminAuditEvent.create).mock.calls[0] as unknown as [
+          { data: { action: string; metadata: Record<string, unknown> } },
+        ]
+      )[0];
+      expect(auditArg.data.action).toBe("REVOKE_ALL_SESSIONS");
+      expect(auditArg.data.metadata).toEqual({ count: 3 });
+
+      // Event payload mirrors the audit count.
       expect(dispatcher).toHaveBeenCalledTimes(1);
       const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
       expect(event.name).toBe("auth.session.revoked");
@@ -280,10 +319,11 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       expect(payload.revokedAt).toBeInstanceOf(Date);
     });
 
-    it("emits auth.session.revoked with count=0 when the user has no sessions (audit ALWAYS emits)", async () => {
+    it("inserts a REVOKE_ALL_SESSIONS audit row with count=0 AND emits auth.session.revoked (audit ALWAYS emits, even on no-op)", async () => {
       const { SessionService } = await import("../session-service.js");
       vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
       vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 0 });
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const service = new SessionService(prisma, undefined, undefined, dispatcher);
@@ -291,6 +331,15 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       const count = await service.revokeAll("no-sessions-user", "admin-1", null, null);
 
       expect(count).toBe(0);
+      expect(prisma.adminAuditEvent.create).toHaveBeenCalledTimes(1);
+      const auditArg = (
+        vi.mocked(prisma.adminAuditEvent.create).mock.calls[0] as unknown as [
+          { data: { action: string; metadata: Record<string, unknown> } },
+        ]
+      )[0];
+      expect(auditArg.data.action).toBe("REVOKE_ALL_SESSIONS");
+      expect(auditArg.data.metadata).toEqual({ count: 0 });
+
       expect(dispatcher).toHaveBeenCalledTimes(1);
       const event = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
       const payload = event.payload as { count: number; targetUserId: string };
