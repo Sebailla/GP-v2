@@ -194,6 +194,9 @@ describe("AdminController (M3 task 3.1)", () => {
 
   beforeEach(async () => {
     vi.resetAllMocks();
+    vi.mocked(prisma.$transaction).mockImplementation((async (callback: unknown) => {
+      return (callback as (tx: typeof prisma) => Promise<unknown>)(prisma);
+    }) as never);
     moduleRef = await Test.createTestingModule({
       imports: [AuthModule, AdminModule],
     })

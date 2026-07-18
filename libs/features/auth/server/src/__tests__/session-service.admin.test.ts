@@ -87,6 +87,9 @@ function asPrismaStub(): PrismaClient {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(async (callback: never) => {
+    return (callback as (tx: typeof prisma) => Promise<unknown>)(prisma);
+  });
 });
 
 describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
@@ -150,6 +153,29 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
   });
 
   describe("revoke (admin single-session)", () => {
+    it("rolls back the session delete when the audit insert fails", async () => {
+      const { SessionService } = await import("../session-service.js");
+      const sessionRow: SessionRow = {
+        id: "session-atomic",
+        sessionToken: "token-atomic",
+        userId: "target-user",
+        expires: new Date(Date.now() + 60_000),
+      };
+      vi.mocked(prisma.session.findUnique).mockResolvedValue(sessionRow as never);
+      vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
+      vi.mocked(prisma.adminAuditEvent.create).mockRejectedValue(
+        new Error("audit insert failed"),
+      );
+
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
+      await expect(
+        service.revoke("session-atomic", "admin-1", "203.0.113.5", "ua"),
+      ).rejects.toThrow("audit insert failed");
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(noopDispatcher).not.toHaveBeenCalled();
+    });
+
     it("deletes the session row by its primary key, inserts a REVOKE_SESSION audit row, AND emits auth.session.revoked with the M3 widening payload", async () => {
       const { SessionService } = await import("../session-service.js");
       const sessionRow: SessionRow = {
@@ -275,6 +301,17 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
   });
 
   describe("revokeAll (admin bulk revoke)", () => {
+    it("runs revoke-all delete and audit insert in one transaction", async () => {
+      const { SessionService } = await import("../session-service.js");
+      vi.mocked(prisma.session.deleteMany).mockResolvedValue({ count: 2 });
+      vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({} as never);
+
+      const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
+      await service.revokeAll("target-user", "admin-1", null, null);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
     it("deletes every session for the user, returns the count, inserts a REVOKE_ALL_SESSIONS audit row, AND emits auth.session.revoked with `count` in the payload", async () => {
       const { SessionService } = await import("../session-service.js");
       vi.mocked(prisma.session.findMany).mockResolvedValue([

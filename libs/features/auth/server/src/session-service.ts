@@ -338,20 +338,17 @@ export class SessionService {
     if (row === null) {
       return;
     }
-    await this.prisma.session.delete({ where: { id: sessionId } });
     const targetUserId = row.userId;
-
-    // Task 2.5 REFACTOR: audit insert extracted to `insertAuditEvent`.
-    // Uses the canonical `@core/database` prisma client (no
-    // transaction — the session row has already been deleted, and the
-    // audit captures the action that just happened).
-    await insertAuditEvent(this.prisma, {
-      actorId,
-      targetId: sessionId,
-      action: "REVOKE_SESSION",
-      metadata: { targetUserId },
-      ipAddress,
-      userAgent,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.session.delete({ where: { id: sessionId } });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: sessionId,
+        action: "REVOKE_SESSION",
+        metadata: { targetUserId },
+        ipAddress,
+        userAgent,
+      });
     });
 
     const event: DomainEvent = {
@@ -392,17 +389,19 @@ export class SessionService {
     ipAddress: string | null,
     userAgent: string | null,
   ): Promise<number> {
-    const result = await this.prisma.session.deleteMany({
-      where: { userId },
-    });
-
-    await insertAuditEvent(this.prisma, {
-      actorId,
-      targetId: userId,
-      action: "REVOKE_ALL_SESSIONS",
-      metadata: { count: result.count },
-      ipAddress,
-      userAgent,
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.session.deleteMany({
+        where: { userId },
+      });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: userId,
+        action: "REVOKE_ALL_SESSIONS",
+        metadata: { count: deleted.count },
+        ipAddress,
+        userAgent,
+      });
+      return deleted;
     });
 
     const event: DomainEvent = {

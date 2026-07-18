@@ -90,6 +90,7 @@ function locationPath(response: Response): string {
 describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
   beforeEach(() => {
     vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("NEXTAUTH_SECRET", TEST_NEXTAUTH_SECRET);
   });
 
   afterEach(() => {
