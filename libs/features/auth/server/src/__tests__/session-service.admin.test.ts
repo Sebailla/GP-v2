@@ -194,7 +194,12 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       expect(auditArg.data.targetId).toBe("session-1");
       expect(auditArg.data.action).toBe("REVOKE_SESSION");
       expect(auditArg.data.metadata).toEqual({ targetUserId: "target-user" });
-      expect(auditArg.data.ipAddress).toBe("203.0.113.5");
+      // F4 fix (4R-driven correction): the audit row stores the
+      // HMAC-SHA256 hash of the IP, NOT the raw IP. The event
+      // payload (observability) keeps the raw IP — only the DB
+      // column is hashed.
+      const { hashIpForAudit } = await import("../audit.service.js");
+      expect(auditArg.data.ipAddress).toBe(hashIpForAudit("203.0.113.5"));
       expect(auditArg.data.userAgent).toBe("Mozilla/5.0 AdminUA");
 
       // 3. emit exactly one auth.session.revoked with the widened payload.

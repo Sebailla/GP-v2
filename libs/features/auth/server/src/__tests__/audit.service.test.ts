@@ -119,7 +119,10 @@ describe("insertAuditEvent (audit.service.ts — task 2.5 REFACTOR)", () => {
     ])[0];
     expect(arg.data.action).toBe("REVOKE_SESSION");
     expect(arg.data.metadata).toEqual({ targetUserId: "u-target" });
-    expect(arg.data.ipAddress).toBe("203.0.113.5");
+    // F4 fix (4R-driven correction): the audit row stores the
+    // HMAC-SHA256 hash of the IP, NOT the raw IP.
+    const { hashIpForAudit } = await import("../audit.service.js");
+    expect(arg.data.ipAddress).toBe(hashIpForAudit("203.0.113.5"));
     expect(arg.data.userAgent).toBe("Mozilla/5.0 AdminUA");
   });
 
@@ -217,6 +220,60 @@ describe("insertAuditEvent (audit.service.ts — task 2.5 REFACTOR)", () => {
       from: "ADMIN",
       to: "USER",
       note: "operator downgraded themselves",
+    });
+  });
+
+  // F4 fix (4R-driven correction): IP is HMAC-SHA256 hashed with
+  // env.JWT_SECRET before persistence. The column stores the digest,
+  // NOT the raw IP, mitigating PII risk on the audit trail.
+  describe("F4 — IP HMAC hashing", () => {
+    it("hashes ipAddress before insert (HMAC-SHA256 with JWT_SECRET)", async () => {
+      const { insertAuditEvent, hashIpForAudit } = await import("../audit.service.js");
+      const client = makeAuditClient();
+      vi.mocked(client.adminAuditEvent.create).mockResolvedValue({} as never);
+
+      const rawIp = "192.168.1.1";
+      const expectedHash = hashIpForAudit(rawIp);
+      // Sanity: the digest is NOT the raw IP (the column gets the
+      // hashed value, not the PII).
+      expect(expectedHash).not.toBe(rawIp);
+      // Determinism: re-derive from the same IP + same secret → same hash.
+      expect(hashIpForAudit(rawIp)).toBe(expectedHash);
+
+      await insertAuditEvent(client, {
+        actorId: "admin-1",
+        targetId: "u1",
+        action: "REVOKE_SESSION",
+        metadata: { targetUserId: "u-target" },
+        ipAddress: rawIp,
+        userAgent: "ua",
+      });
+
+      const arg = (vi.mocked(client.adminAuditEvent.create).mock.calls[0] as unknown as [
+        { data: { ipAddress: string | null } },
+      ])[0];
+      expect(arg.data.ipAddress).toBe(expectedHash);
+      expect(arg.data.ipAddress).not.toBe(rawIp);
+    });
+
+    it("preserves null ipAddress (no hashing applied to absence)", async () => {
+      const { insertAuditEvent } = await import("../audit.service.js");
+      const client = makeAuditClient();
+      vi.mocked(client.adminAuditEvent.create).mockResolvedValue({} as never);
+
+      await insertAuditEvent(client, {
+        actorId: "admin-1",
+        targetId: "u1",
+        action: "CHANGE_ROLE",
+        metadata: { from: "USER", to: "ADMIN" },
+        ipAddress: null,
+        userAgent: null,
+      });
+
+      const arg = (vi.mocked(client.adminAuditEvent.create).mock.calls[0] as unknown as [
+        { data: { ipAddress: string | null } },
+      ])[0];
+      expect(arg.data.ipAddress).toBeNull();
     });
   });
 });

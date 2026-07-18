@@ -1,5 +1,8 @@
+import { createHmac } from "node:crypto";
+
 import { prisma as defaultPrisma } from "@core/database";
 import type { Prisma, PrismaClient } from "@core/database";
+import { env } from "@core/config";
 
 /**
  * `insertAuditEvent` — the single audit-row insertion primitive for
@@ -91,6 +94,17 @@ export type AuditClient = Pick<PrismaClient, "adminAuditEvent">;
  * one-delegate wrapper that enforces the column set + the action
  * enum).
  *
+ * F4 fix (4R-driven correction): IP is hashed with HMAC-SHA256 before
+ * persistence to mitigate PII risk; the raw IP is captured only in
+ * logs (already redacted via pino `[ip]` redact path). The same IP
+ * + same secret always produces the same hash, so forensic queries
+ * can re-derive by re-hashing the suspected IP with the same secret.
+ * The secret is `env.JWT_SECRET` — reused, NOT a new env var — to
+ * keep the env contract surface small. A dedicated `AUDIT_IP_HMAC_SECRET`
+ * would be marginally safer (key separation) but is out of scope for
+ * the reference repo; the JWT secret is already 32+ chars and
+ * operator-only.
+ *
  * @param client Either a `$transaction(tx => ...)` tx or the top-
  *   level `@core/database` prisma client. Both expose the
  *   `adminAuditEvent.create` delegate.
@@ -118,10 +132,31 @@ export async function insertAuditEvent(
       targetId: input.targetId,
       action: input.action,
       metadata: input.metadata,
-      ipAddress: input.ipAddress,
+      ipAddress: hashIpForAudit(input.ipAddress),
       userAgent: input.userAgent,
     },
   });
+}
+
+/**
+ * HMAC-SHA256 the supplied IP for forensic-friendly PII protection.
+ *
+ * - `null` (no IP captured) → returns `null` (column is nullable).
+ * - Otherwise returns the hex digest of `HMAC-SHA256(secret, ip)`.
+ *
+ * Determinism is the property that makes forensic queries work:
+ * "show me every audit row for IP 1.2.3.4" becomes
+ * `WHERE ipAddress = hashIpForAudit('1.2.3.4')` — the same secret
+ * regenerates the same digest, so the DB column is searchable as
+ * if it were the raw IP (without storing it raw).
+ *
+ * The function is exported separately so the test suite can pin
+ * the determinism contract (same input + same secret → same output)
+ * without dragging the full insertAuditEvent machinery.
+ */
+export function hashIpForAudit(ipAddress: string | null): string | null {
+  if (ipAddress === null) return null;
+  return createHmac("sha256", env.JWT_SECRET).update(ipAddress).digest("hex");
 }
 
 /**
