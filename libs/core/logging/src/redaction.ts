@@ -42,4 +42,16 @@ export const redactedPaths: ReadonlyArray<string> = [
   "*.reportingAmount",
   "notes",
   "*.notes",
+  // M3 (module-3-superadmin — PR #3 task 3.7): IP address fields must
+  // be redacted at the log boundary so a captured pino line never
+  // leaks the actor's network identity. The audit row stores the IP
+  // (forensic value, M4 retention), but operational logs do not need
+  // it — `[REDACTED]` is enough to confirm "this admin path was hit"
+  // without exposing the IP to log aggregation (Datadog, Sentry, etc.).
+  // Per `pattern/pino-bracket-notation-redaction`: top-level `ip` and
+  // any nested `*.ip` (e.g., a future `headers.ip` shape) — pino's
+  // fast-redact accepts both literal and wildcard forms for the `ip`
+  // key without hyphen issues.
+  "ip",
+  "*.ip",
 ];

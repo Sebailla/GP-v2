@@ -18,6 +18,7 @@ import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core
 import { MailModule } from "../../mail/mail.module.js";
 import { AUTH_DISPATCHER } from "./auth.dispatcher.js";
 import { AuthController } from "./auth.controller.js";
+import { AdminModule } from "./admin.module.js";
 import { AuthCronService } from "./auth-cron.service.js";
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
 import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-limit.guard.js";
@@ -60,7 +61,7 @@ const dispatcher = createInMemoryDispatcher();
  */
 
 @Module({
-  imports: [MailModule],
+  imports: [MailModule, AdminModule],
   controllers: [AuthController],
   providers: [
     {
