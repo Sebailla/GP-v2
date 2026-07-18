@@ -260,17 +260,9 @@ export class AdminController {
     // one leaves others active, the cookie stays, the admin stays
     // logged in). `findById` is O(1) on the primary key and pins
     // the self-revoke decision to the actual target row.
-    let isSelfRevoke = false;
-    try {
-      const sessionRow = await this.sessionService.findById(sessionId);
-      if (sessionRow !== null && sessionRow.userId === request.user.id) {
-        isSelfRevoke = true;
-      }
-    } catch {
-      // Defensive: a missing row produces `null` from `findById`.
-      // Any other read error propagates to the global NestJS
-      // exception filter.
-    }
+    const sessionRow = await this.sessionService.findById(sessionId);
+    const isSelfRevoke =
+      sessionRow !== null && sessionRow.userId === request.user.id;
 
     await this.sessionService.revoke(
       sessionId,

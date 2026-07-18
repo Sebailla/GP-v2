@@ -501,6 +501,26 @@ describe("AdminController (M3 task 3.1)", () => {
   });
 
   describe("DELETE /admin/sessions/:sessionId", () => {
+    it("surfaces a DB read error during self-revoke detection", async () => {
+      vi.mocked(prisma.session.findUnique).mockRejectedValueOnce(
+        new Error("database read failed"),
+      );
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .delete("/admin/sessions/s-self")
+        .set("Authorization", `Bearer ${adminJwt}`);
+
+      expect(res.status).toBe(500);
+      expect(prisma.session.delete).not.toHaveBeenCalled();
+      expect(prisma.adminAuditEvent.create).not.toHaveBeenCalled();
+    });
+
     it("returns 204 + emits audit row when revoking another user's session", async () => {
       // F3 fix: `findById` is called BEFORE the revoke. The session
       // row's userId is "u-target" (NOT the admin) → not a self-revoke,
