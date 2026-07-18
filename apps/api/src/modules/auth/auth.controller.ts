@@ -479,9 +479,14 @@ export class AuthController implements OnModuleDestroy {
         });
       } catch (jwtError) {
         this.logger.error(
-          `[auth] JWT encode failed after password reset for [email]: ${
-            jwtError instanceof Error ? jwtError.message : String(jwtError)
-          }`,
+          {
+            auth: { phase: "jwt-encode-after-reset", surface: "reset-password" },
+            err:
+              jwtError instanceof Error
+                ? jwtError.message
+                : String(jwtError),
+          },
+          "[auth] JWT encode failed after password reset",
         );
         throw new HttpException(
           { error: "JWT_ENCODE_FAILED", message: "could not establish session" },
