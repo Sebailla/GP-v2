@@ -79,10 +79,21 @@ function apiBase(): string {
   return raw.replace(/\/$/, "");
 }
 
+function readSessionToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = "authjs.session-token=";
+  const cookie = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(prefix));
+  return cookie === undefined ? null : decodeURIComponent(cookie.slice(prefix.length));
+}
+
 function authHeader(): Record<string, string> {
-  // The cookie is sent via credentials: "include". No bearer
-  // token needed — the cookie IS the auth.
-  return { "Content-Type": "application/json" };
+  const token = readSessionToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token === null ? {} : { Authorization: `Bearer ${token}` }),
+  };
 }
 
 async function parseErrorBody(response: Response): Promise<{ code: string; message: string }> {
