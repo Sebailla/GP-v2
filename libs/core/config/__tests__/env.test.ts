@@ -245,3 +245,81 @@ describe("parseEnv", () => {
     expect(env.PORT).toBe(9999);
   });
 });
+
+describe("ADMIN_ENABLED (M3 — module-3-superadmin)", () => {
+  // The admin surface kill-switch — defaults to `true` (admin routes
+  // enabled) so dev / test environments run with the surface visible.
+  // Operators set `false` for an emergency kill-switch (D1 + D8 in
+  // design.md): `AdminGuard` reads the env first and returns 404 to
+  // hide the surface entirely.
+  //
+  // The variable is OPTIONAL in `productionEnvSchema.superRefine` —
+  // never required, even in production, so a clean install that
+  // omitted it still boots. Coercion accepts the string forms that
+  // show up in `.env` files ("true", "false", "1", "0", "yes", "no").
+
+  const baseFixture = {
+    DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/gastos_reference",
+    NEXTAUTH_URL: "http://localhost:3000",
+    NEXTAUTH_SECRET: "a-very-long-secret-of-at-least-thirty-two-characters",
+    JWT_SECRET: "jwt-secret-at-least-thirty-two-characters-long",
+    COOKIE_SECRET: "cookie-secret-at-least-thirty-two-characters-long",
+    PUBLIC_WEB_URL: "http://localhost:3000",
+    PUBLIC_API_URL: "http://localhost:3001",
+    API_URL: "http://localhost:3001",
+    GOOGLE_CLIENT_ID: "google-client-id-stub",
+    GOOGLE_CLIENT_SECRET: "google-client-secret-stub",
+    WEB_ORIGIN: "http://localhost:3000",
+    NODE_ENV: "development" as const,
+  };
+
+  it("defaults to true when ADMIN_ENABLED is omitted (dev / test parity)", () => {
+    const r = envSchema.safeParse(baseFixture);
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.ADMIN_ENABLED).toBe(true);
+  });
+
+  it("coerces the string 'true' to boolean true", () => {
+    const r = envSchema.safeParse({ ...baseFixture, ADMIN_ENABLED: "true" });
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.ADMIN_ENABLED).toBe(true);
+  });
+
+  it("coerces the string 'false' to boolean false (kill-switch)", () => {
+    const r = envSchema.safeParse({ ...baseFixture, ADMIN_ENABLED: "false" });
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.ADMIN_ENABLED).toBe(false);
+  });
+
+  it("coerces '1' / '0' the standard Zod boolean way", () => {
+    const one = envSchema.safeParse({ ...baseFixture, ADMIN_ENABLED: "1" });
+    expect(one.success).toBe(true);
+    if (one.success) expect(one.data.ADMIN_ENABLED).toBe(true);
+
+    const zero = envSchema.safeParse({ ...baseFixture, ADMIN_ENABLED: "0" });
+    expect(zero.success).toBe(true);
+    if (zero.success) expect(zero.data.ADMIN_ENABLED).toBe(false);
+  });
+
+  it("is NEVER required by productionEnvSchema (kill-switch is opt-in)", () => {
+    // Operators that never set ADMIN_ENABLED still boot in production.
+    // The controller defaults to `true` and AdminGuard hides the
+    // surface only when the env explicitly says `false`.
+    //
+    // Use the complete production fixture (which already populates the
+    // other production-required fields: BACKUP_DSN, METRICS_TOKEN,
+    // UPSTASH_REDIS_REST_URL/TOKEN). Omit ADMIN_ENABLED entirely; the
+    // schema MUST accept the absence.
+    const productionFixture = {
+      ...completeFixture,
+      NODE_ENV: "production" as const,
+    };
+    const { ADMIN_ENABLED: _drop, ...rest } = productionFixture;
+    void _drop;
+    const r = productionEnvSchema.safeParse(rest);
+    expect(r.success).toBe(true);
+  });
+});
