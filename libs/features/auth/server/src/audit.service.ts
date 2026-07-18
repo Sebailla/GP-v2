@@ -1,5 +1,5 @@
 import { prisma as defaultPrisma } from "@core/database";
-import type { PrismaClient } from "@core/database";
+import type { Prisma, PrismaClient } from "@core/database";
 
 /**
  * `insertAuditEvent` — the single audit-row insertion primitive for
@@ -24,13 +24,12 @@ import type { PrismaClient } from "@core/database";
  * `prisma` client — the caller chooses based on whether it pairs
  * the insert with a co-write in the same transaction.
  *
- * The "pure" part of the function is the `metadata` mapping (input
- * transformation); the side-effect (the actual `create`) is wrapped
- * in a single delegate call. Tests of the audit row shape pass
- * either a tx or a top-level client; tests of the metadata mapping
- * assert on the returned shape without any DB call (the function
- * returns the inserted row when given a stub that captures the
- * `create` argument, mirroring the rbac admin test pattern).
+ * The "pure" part of the function is the `metadata` shape mapping
+ * (`Prisma.InputJsonValue` is the source-of-truth type, not
+ * `Readonly<Record>` — Prisma's JSON column accepts scalars +
+ * arrays + plain objects, NOT arbitrary unknown values). The
+ * side-effect (the actual `create`) is wrapped in a single
+ * delegate call.
  *
  * Pino `[ip]` redaction (per `pattern/pino-bracket-notation-redaction`)
  * is applied at the LOG layer, not here. The IP is stored as
@@ -53,8 +52,11 @@ export type AdminAuditAction = "CHANGE_ROLE" | "REVOKE_SESSION" | "REVOKE_ALL_SE
 /**
  * The audit-row input shape — what callers MUST supply. The
  * function fills in `id` (Prisma-generated cuid), `createdAt`
- * (Prisma `default(now())`), and serializes `metadata` to a plain
- * JSON-compatible object.
+ * (Prisma `default(now())`), and serializes `metadata` to the
+ * Prisma `InputJsonValue` shape. `Prisma.InputJsonValue` is the
+ * canonical JSON-accepting type from the generated client; callers
+ * pass plain object literals and TypeScript accepts them
+ * structurally.
  */
 export interface AuditEventInput {
   /** id of the admin who initiated the action. */
@@ -63,8 +65,8 @@ export interface AuditEventInput {
   readonly targetId: string;
   /** the closed enum member — CHANGE_ROLE | REVOKE_SESSION | REVOKE_ALL_SESSIONS. */
   readonly action: AdminAuditAction;
-  /** arbitrary metadata (e.g., `{ from, to }` for CHANGE_ROLE; `{ count }` for REVOKE_ALL_SESSIONS). */
-  readonly metadata: Readonly<Record<string, unknown>>;
+  /** arbitrary JSON-compatible metadata (e.g., `{ from, to }` for CHANGE_ROLE; `{ count }` for REVOKE_ALL_SESSIONS). */
+  readonly metadata: Prisma.InputJsonValue;
   /** controller-captured `req.ip` (≤45 chars per schema), or null when unavailable. */
   readonly ipAddress: string | null;
   /** controller-captured `req.headers['user-agent']` (≤512 chars per schema), or null when unavailable. */
@@ -97,17 +99,25 @@ export type AuditClient = Pick<PrismaClient, "adminAuditEvent">;
  * Returns the inserted row, mirroring Prisma's `create` return
  * shape (so callers can chain `.id` reads if they need to, e.g.,
  * to correlate the audit row id with a downstream dispatch).
+ *
+ * The return type is annotated explicitly as `Promise<unknown>` to
+ * keep the function portable across the @core/database consumer
+ * typechain (the inferred type from `adminAuditEvent.create` pulls
+ * in Prisma's internal `JsonValue` which fails downstream
+ * typecheck in apps/api). Callers that need the typed row should
+ * import the `AdminAuditEvent` model type directly from
+ * `@core/database`.
  */
 export async function insertAuditEvent(
   client: AuditClient | PrismaClient,
   input: AuditEventInput,
-) {
+): Promise<unknown> {
   return client.adminAuditEvent.create({
     data: {
       actorId: input.actorId,
       targetId: input.targetId,
       action: input.action,
-      metadata: input.metadata as Record<string, unknown>,
+      metadata: input.metadata,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
     },
@@ -121,3 +131,4 @@ export async function insertAuditEvent(
  * client is the canonical client for production code paths.
  */
 export { defaultPrisma };
+

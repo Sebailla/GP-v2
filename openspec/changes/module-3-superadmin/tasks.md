@@ -40,11 +40,11 @@ Base `feat/superadmin`. Verify `pnpm --filter @core/database test`.
 
 Base PR #1. Verify `pnpm --filter @features/auth test`.
 
-- [ ] 2.1 RED `session-service.admin.test.ts`: `list(userId)` returns array sorted `lastActiveAt DESC`; `revoke(sessionId)` deletes row + emits `auth.session.revoked` event with payload `{actorId, targetUserId, sessionId, ipAddress, userAgent}`; `revokeAll(userId)` deletes all + emits event with `count` in metadata.
-- [ ] 2.2 GREEN extend `SessionService` with `list`, `revoke`, `revokeAll`; emit `auth.session.revoked` event on each.
-- [ ] 2.3 RED `auth.events.test.ts`: assert `auth.session.revoked` event type registered in `AUTH_EVENTS` union.
-- [ ] 2.4 GREEN add `auth.session.revoked` + `auth.role.changed` types to `libs/features/auth/server/src/auth.events.ts`.
-- [ ] 2.5 REFACTOR extract `insertAuditEvent` pure fn to `libs/features/auth/server/src/audit.service.ts` (called by RbacService.changeRole + SessionService.revoke).
+- [x] 2.1 RED `session-service.admin.test.ts`: `list(userId)` returns array sorted `lastActiveAt DESC`; `revoke(sessionId)` deletes row + emits `auth.session.revoked` event with payload `{actorId, targetUserId, sessionId, ipAddress, userAgent}`; `revokeAll(userId)` deletes all + emits event with `count` in metadata.
+- [x] 2.2 GREEN extend `SessionService` with `list`, `revoke`, `revokeAll`; emit `auth.session.revoked` event on each.
+- [x] 2.3 RED `auth.events.test.ts`: assert `auth.session.revoked` event type registered in `AUTH_EVENTS` union.
+- [x] 2.4 GREEN add `auth.session.revoked` + `auth.role.changed` types to `libs/features/auth/server/src/auth.events.ts`.
+- [x] 2.5 REFACTOR extract `insertAuditEvent` pure fn to `libs/features/auth/server/src/audit.service.ts` (called by RbacService.changeRole + SessionService.revoke).
 
 ## Phase 3 — AdminController + Guards (PR #3)
 
