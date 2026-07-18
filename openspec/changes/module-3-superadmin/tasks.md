@@ -77,11 +77,11 @@ Base PR #3. Verify `NODE_ENV=test pnpm --filter web test`.
 
 Base PR #4. Verify `NODE_ENV=test pnpm turbo run bdd e2e && pnpm lint:fixtures`.
 
-- [ ] 5.1 RED Cucumber `admin-flow.feature`: admin login → list users → change role → list sessions → revoke single → revoke all → non-admin redirect.
-- [ ] 5.2 GREEN step-defs `libs/features/auth/docs/step-defs/admin.steps.ts` covering all 7 scenarios.
-- [ ] 5.3 RED Playwright `admin.spec.ts` same vertical scenario for `en` + `es` projects.
-- [ ] 5.4 GREEN `apps/web/e2e/auth/admin.spec.ts`; `page.route()` mocks the 5 admin endpoints.
-- [ ] 5.5 RED draft `docs/operations/admin-runbook.md`: admin onboarding, role assignment procedure, emergency revoke, audit query examples, retention (deferred to M4).
-- [ ] 5.6 GREEN runbook complete; verified against staging.
-- [ ] 5.7 ES mirror `Documents-es/docs/operations/admin-runbook.md`; verify 0 CJK across all M3 docs.
-- [ ] 5.8 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
+- [x] 5.1 RED Cucumber `admin-flow.feature`: admin login → list users → change role → list sessions → revoke single → revoke all → non-admin redirect.
+- [x] 5.2 GREEN step-defs `libs/features/auth/docs/step-defs/admin.steps.ts` covering all 7 scenarios.
+- [x] 5.3 RED Playwright `admin.spec.ts` same vertical scenario for `en` + `es` projects.
+- [x] 5.4 GREEN `apps/web/e2e/auth/admin.spec.ts`; `page.route()` mocks the 5 admin endpoints.
+- [x] 5.5 RED draft `docs/operations/admin-runbook.md`: admin onboarding, role assignment procedure, emergency revoke, audit query examples, retention (deferred to M4).
+- [x] 5.6 GREEN runbook complete; verified against staging.
+- [x] 5.7 ES mirror `Documents-es/docs/operations/admin-runbook.md`; verify 0 CJK across all M3 docs.
+- [x] 5.8 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.

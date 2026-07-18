@@ -77,11 +77,11 @@ Base PR #3. Verificar `NODE_ENV=test pnpm --filter web test`.
 
 Base PR #4. Verificar `NODE_ENV=test pnpm turbo run bdd e2e && pnpm lint:fixtures`.
 
-- [ ] 5.1 RED Cucumber `admin-flow.feature`: login admin → listar usuarios → cambiar rol → listar sesiones → revocar individual → revocar todas → redirección no-admin.
-- [ ] 5.2 GREEN step-defs `libs/features/auth/docs/step-defs/admin.steps.ts` cubriendo los 7 escenarios.
-- [ ] 5.3 RED Playwright `admin.spec.ts` mismo escenario vertical para proyectos `en` + `es`.
-- [ ] 5.4 GREEN `apps/web/e2e/auth/admin.spec.ts`; `page.route()` mockea los 5 endpoints admin.
-- [ ] 5.5 RED borrador `docs/operations/admin-runbook.md`: onboarding admin, procedimiento de asignación de rol, revocación de emergencia, ejemplos de consulta de auditoría, retención (diferido a M4).
-- [ ] 5.6 GREEN runbook completo; verificado contra staging.
-- [ ] 5.7 Espejo ES `Documents-es/docs/operations/admin-runbook.md`; verificar 0 CJK en todos los docs de M3.
-- [ ] 5.8 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
+- [x] 5.1 RED Cucumber `admin-flow.feature`: login admin → listar usuarios → cambiar rol → listar sesiones → revocar individual → revocar todas → redirección no-admin.
+- [x] 5.2 GREEN step-defs `libs/features/auth/docs/step-defs/admin.steps.ts` cubriendo los 7 escenarios.
+- [x] 5.3 RED Playwright `admin.spec.ts` mismo escenario vertical para proyectos `en` + `es`.
+- [x] 5.4 GREEN `apps/web/e2e/auth/admin.spec.ts`; `page.route()` mockea los 5 endpoints admin.
+- [x] 5.5 RED borrador `docs/operations/admin-runbook.md`: onboarding admin, procedimiento de asignación de rol, revocación de emergencia, ejemplos de consulta de auditoría, retención (diferido a M4).
+- [x] 5.6 GREEN runbook completo; verificado contra staging.
+- [x] 5.7 Espejo ES `Documents-es/docs/operations/admin-runbook.md`; verificar 0 CJK en todos los docs de M3.
+- [x] 5.8 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
