@@ -227,5 +227,75 @@
     "publicApiUrl": "URL de la API",
     "publicWebUrl": "URL del Web",
     "lastUpdate": "Instantánea tomada el {ts}"
+  },
+  "admin": {
+    "flash": {
+      "denied": "Acceso denegado. Esta sección está restringida a administradores."
+    },
+    "nav": {
+      "users": "Usuarios",
+      "sessions": "Sesiones",
+      "back": "Volver a la aplicación"
+    },
+    "users": {
+      "title": "Gestión de usuarios",
+      "description": "Revisa los usuarios registrados y ajusta sus roles.",
+      "loading": "Cargando usuarios…",
+      "empty": "Aún no hay usuarios.",
+      "emptyHelp": "Cuando se creen cuentas nuevas aparecerán aquí para asignar roles.",
+      "error": "No pudimos cargar los usuarios. {message}",
+      "retry": "Reintentar",
+      "columns": {
+        "email": "Correo",
+        "role": "Rol",
+        "createdAt": "Creado",
+        "actions": "Acciones"
+      },
+      "view": "Abrir",
+      "roleChange": {
+        "label": "Cambiar rol",
+        "submit": "Guardar rol",
+        "submitting": "Guardando…",
+        "success": "Rol actualizado.",
+        "validationError": "Selecciona un rol válido (USER o ADMIN)."
+      }
+    },
+    "userDetail": {
+      "title": "Detalle del usuario",
+      "backToList": "Volver a usuarios",
+      "loading": "Cargando usuario…",
+      "notFound": "Usuario no encontrado.",
+      "roleLabel": "Rol actual",
+      "metadataTitle": "Metadatos de la cuenta",
+      "createdAt": "Cuenta creada",
+      "updatedAt": "Última actualización",
+      "error": "No pudimos cargar el usuario. {message}",
+      "retry": "Reintentar"
+    },
+    "sessions": {
+      "title": "Gestión de sesiones",
+      "description": "Revisa las sesiones activas de cualquier usuario y revócalas si es necesario.",
+      "userIdLabel": "ID de usuario",
+      "userIdPlaceholder": "Pega un ID de usuario para listar sesiones",
+      "load": "Listar sesiones",
+      "loading": "Cargando sesiones…",
+      "empty": "No hay sesiones activas para este usuario.",
+      "error": "No pudimos cargar las sesiones. {message}",
+      "retry": "Reintentar",
+      "revokeAll": "Revocar todas las sesiones",
+      "revokeAllConfirm": "¿Revocar todas las sesiones de este usuario? Se cerrará la sesión en todos los dispositivos.",
+      "revokeAllSuccess": "Todas las sesiones fueron revocadas.",
+      "revokeSuccess": "Sesión revocada.",
+      "validationError": "Ingresa un ID de usuario válido para listar sesiones.",
+      "columns": {
+        "id": "ID de sesión",
+        "createdAt": "Creada",
+        "lastActiveAt": "Última actividad",
+        "userAgent": "User agent",
+        "ipAddress": "Dirección IP",
+        "actions": "Acciones"
+      },
+      "revoke": "Revocar"
+    }
   }
 }

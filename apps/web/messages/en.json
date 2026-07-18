@@ -227,5 +227,75 @@
     "publicApiUrl": "API URL",
     "publicWebUrl": "Web URL",
     "lastUpdate": "Snapshot taken at {ts}"
+  },
+  "admin": {
+    "flash": {
+      "denied": "Access denied. This area is restricted to administrators."
+    },
+    "nav": {
+      "users": "Users",
+      "sessions": "Sessions",
+      "back": "Back to app"
+    },
+    "users": {
+      "title": "User management",
+      "description": "Review registered users and adjust their roles.",
+      "loading": "Loading users…",
+      "empty": "No users yet.",
+      "emptyHelp": "When new accounts are created they will appear here for role assignment.",
+      "error": "We could not load the users. {message}",
+      "retry": "Retry",
+      "columns": {
+        "email": "Email",
+        "role": "Role",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "view": "Open",
+      "roleChange": {
+        "label": "Change role",
+        "submit": "Save role",
+        "submitting": "Saving…",
+        "success": "Role updated.",
+        "validationError": "Pick a valid role (USER or ADMIN)."
+      }
+    },
+    "userDetail": {
+      "title": "User detail",
+      "backToList": "Back to users",
+      "loading": "Loading user…",
+      "notFound": "User not found.",
+      "roleLabel": "Current role",
+      "metadataTitle": "Account metadata",
+      "createdAt": "Account created",
+      "updatedAt": "Last update",
+      "error": "We could not load the user. {message}",
+      "retry": "Retry"
+    },
+    "sessions": {
+      "title": "Session management",
+      "description": "Review active sessions for any user and revoke them if needed.",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "Paste a user ID to list sessions",
+      "load": "List sessions",
+      "loading": "Loading sessions…",
+      "empty": "No active sessions for this user.",
+      "error": "We could not load the sessions. {message}",
+      "retry": "Retry",
+      "revokeAll": "Revoke all sessions",
+      "revokeAllConfirm": "Revoke every session for this user? They will be signed out everywhere.",
+      "revokeAllSuccess": "All sessions revoked.",
+      "revokeSuccess": "Session revoked.",
+      "validationError": "Enter a valid user ID to list sessions.",
+      "columns": {
+        "id": "Session ID",
+        "createdAt": "Created",
+        "lastActiveAt": "Last active",
+        "userAgent": "User agent",
+        "ipAddress": "IP address",
+        "actions": "Actions"
+      },
+      "revoke": "Revoke"
+    }
   }
 }
