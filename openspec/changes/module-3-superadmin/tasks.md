@@ -50,15 +50,15 @@ Base PR #1. Verify `pnpm --filter @features/auth test`.
 
 Base PR #2. Verify `NODE_ENV=test pnpm --filter api exec vitest run src/modules/auth/__tests__/admin*.test.ts && pnpm --filter api exec vitest run test/admin.e2e-spec.ts`.
 
-- [ ] 3.1 RED `admin.controller.test.ts` (NestJS testing module): 5 endpoints × happy + edge + error + 403 non-admin + 401 unauthenticated.
-- [ ] 3.2 GREEN `apps/api/src/modules/auth/admin.controller.ts` with 5 endpoints (GET /admin/users, POST /admin/users/:userId/role, GET /admin/sessions, DELETE /admin/sessions/:sessionId, DELETE /admin/sessions/user/:userId).
-- [ ] 3.3 RED `admin.guard.spec.ts`: assert 403 when `req.user.role !== 'ADMIN'`; assert 401 when no token.
-- [ ] 3.4 GREEN create `AdminGuard` in `apps/api/src/shared/guards/admin.guard.ts`; reads `req.user.role` from JwtAuthGuard.
-- [ ] 3.5 GREEN apply `@UseGuards(JwtAuthGuard, AdminGuard)` to all 5 endpoints.
-- [ ] 3.6 RED self-revoke sets cookie: e2e asserts `Set-Cookie: authjs.session-token=; Path=/; Expires=...` on `DELETE /admin/sessions/<own-session-id>`.
-- [ ] 3.7 RED pino `[ip]` redaction: `admin.controller.test.ts` forces a revoke, asserts captured pino line emits `ip: [REDACTED]` (per `pattern/pino-bracket-notation-redaction`).
-- [ ] 3.8 GREEN wire `AdminModule` in `auth.module.ts`; if `ADMIN_ENABLED=false`, controller throws `NotFoundException` for all routes (kill-switch per design).
-- [ ] 3.9 **Routing RED** add to admin e2e: foreign callbackUrl → 401; expired JWT → 401; non-admin → 403.
+- [x] 3.1 RED `admin.controller.test.ts` (NestJS testing module): 5 endpoints × happy + edge + error + 403 non-admin + 401 unauthenticated.
+- [x] 3.2 GREEN `apps/api/src/modules/auth/admin.controller.ts` with 5 endpoints (GET /admin/users, POST /admin/users/:userId/role, GET /admin/sessions, DELETE /admin/sessions/:sessionId, DELETE /admin/sessions/user/:userId).
+- [x] 3.3 RED `admin.guard.spec.ts`: assert 403 when `req.user.role !== 'ADMIN'`; assert 401 when no token.
+- [x] 3.4 GREEN create `AdminGuard` in `apps/api/src/shared/guards/admin.guard.ts`; reads `req.user.role` from JwtAuthGuard.
+- [x] 3.5 GREEN apply `@UseGuards(JwtAuthGuard, AdminGuard)` to all 5 endpoints.
+- [x] 3.6 RED self-revoke sets cookie: e2e asserts `Set-Cookie: authjs.session-token=; Path=/; Expires=...` on `DELETE /admin/sessions/<own-session-id>`.
+- [x] 3.7 RED pino `[ip]` redaction: `admin.controller.test.ts` forces a revoke, asserts captured pino line emits `ip: [REDACTED]` (per `pattern/pino-bracket-notation-redaction`).
+- [x] 3.8 GREEN wire `AdminModule` in `auth.module.ts`; if `ADMIN_ENABLED=false`, controller throws `NotFoundException` for all routes (kill-switch per design).
+- [x] 3.9 **Routing RED** add to admin e2e: foreign callbackUrl → 401; expired JWT → 401; non-admin → 403.
 
 ## Phase 4 — Web UI + Middleware Guard (PR #4)
 
