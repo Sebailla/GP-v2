@@ -34,6 +34,11 @@ export default defineConfig({
       // `**/*.test.ts` so any future src-side unit test (e.g.
       // `src/auth/__tests__/*`) is picked up automatically.
       "src/**/*.test.ts",
+      // M3 (module-3-superadmin — PR #3 task 3.3): guard unit tests
+      // alongside production code use the `*.spec.ts` suffix (matching
+      // the `test/*.spec.ts` e2e convention). Widening the glob so the
+      // AdminGuard test is picked up automatically without renaming.
+      "src/**/*.spec.ts",
     ],
     environment: "node",
     globals: false,
