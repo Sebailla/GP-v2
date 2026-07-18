@@ -85,6 +85,13 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  // M3 (module-3-superadmin) — nullable JSON column. The `?` is
+  // non-negotiable: every session row predates this column and must
+  // remain readable. The column is admin-side metadata (e.g. last
+  // seen device label, sign-in surface) and never influences the
+  // auth path. See `openspec/changes/module-3-superadmin/design.md`
+  // §4 for the migration story + §5 for the data shape contract.
+  metadata     Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -118,6 +125,45 @@ model PasswordResetToken {
   @@index([userId, consumedAt])
   @@index([expiresAt, consumedAt])
   @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// M3 ADMIN AUDIT (module-3-superadmin — D2)
+//
+// Append-only audit log for every admin operation (CHANGE_ROLE,
+// REVOKE_SESSION, REVOKE_ALL_SESSIONS). The IP and UA are captured at
+// the controller boundary (D3) so the service layer stays HTTP-agnostic.
+// Retention is deferred to M4 (D7) — the @@index([createdAt]) keeps the
+// eventual purge query off a seq-scan path.
+//
+// Pino `[ip]` redaction (per `pattern/pino-bracket-notation-redaction`)
+// is applied at the LOG layer, not here. This table is the row-of-record
+// — the IP is stored as captured, but log lines carrying it must be
+// redacted by pino's bracket-notation redaction paths.
+// ---------------------------------------------------------------------------
+
+enum AdminAuditAction {
+  REVOKE_SESSION
+  REVOKE_ALL_SESSIONS
+  CHANGE_ROLE
+}
+
+model AdminAuditEvent {
+  id        String           @id @default(cuid())
+  actorId   String
+  targetId  String
+  action    AdminAuditAction
+  createdAt DateTime         @default(now())
+  metadata  Json
+  // IP ≤ 45 chars = IPv6-mapped IPv4 max length. Captured at the
+  // controller boundary via `req.ip` (Express + trust proxy config).
+  ipAddress String?          @db.VarChar(45)
+  // UA ≤ 512 chars. Truncated to 512 chars at the controller boundary
+  // before insert (per threat matrix §7 — IP + UA handling).
+  userAgent String?          @db.VarChar(512)
+
+  @@index([createdAt])
+  @@map("admin_audit_events")
 }
 
 // ---------------------------------------------------------------------------
