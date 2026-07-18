@@ -5,6 +5,7 @@ import {
   authPasswordResetCompletedPayload,
   authPasswordResetRequestedPayload,
   authRbacDeniedPayload,
+  authRoleChangedPayload,
   authSessionRevokedPayload,
   transactionsCreatedPayload,
   transactionsFxStalePayload,
@@ -15,9 +16,10 @@ import {
 } from "../types";
 
 /**
- * TDD contract for the events type catalog (T2.3 — 9 events).
+ * TDD contract for the events type catalog (T2.3 — 9 events, extended
+ * to 10 by module-3-superadmin for the `auth.role.changed` admin event).
  *
- *  - RED:    EVENT_NAMES contains all 9 expected names; each per-event
+ *  - RED:    EVENT_NAMES contains all 10 expected names; each per-event
  *            Zod schema rejects a malformed payload.
  *  - GREEN:  each schema accepts a well-formed payload of its type.
  *  - TRIANGULATE: validatePayload surfaces a descriptive error on
@@ -30,6 +32,7 @@ const ALL_NAMES = [
   "auth.password-reset.completed",
   "auth.session.revoked",
   "auth.rbac.denied",
+  "auth.role.changed",
   "transactions.created",
   "transactions.updated",
   "transactions.soft-deleted",
@@ -38,8 +41,8 @@ const ALL_NAMES = [
 ] as const;
 
 describe("EVENT_NAMES", () => {
-  it("contains exactly the 9 expected domain event names", () => {
-    expect(EVENT_NAMES).toHaveLength(9);
+  it("contains exactly the 10 expected domain event names", () => {
+    expect(EVENT_NAMES).toHaveLength(10);
     for (const name of ALL_NAMES) {
       expect(EVENT_NAMES).toContain(name);
     }
@@ -166,6 +169,37 @@ describe("auth.rbac.denied", () => {
       at: new Date(),
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("auth.role.changed (M3 — module-3-superadmin)", () => {
+  it("accepts a well-formed payload", () => {
+    const result = authRoleChangedPayload.safeParse({
+      actorId: "admin-1",
+      targetUserId: "u1",
+      fromRole: "USER",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a role outside the closed USER|ADMIN enum", () => {
+    const result = authRoleChangedPayload.safeParse({
+      actorId: "admin-1",
+      targetUserId: "u1",
+      fromRole: "GOD",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing actorId", () => {
+    const result = authRoleChangedPayload.safeParse({
+      targetUserId: "u1",
+      fromRole: "USER",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(false);
   });
 });
 
