@@ -15,6 +15,8 @@
       "email": "Email",
       "password": "Password",
       "submit": "Sign in",
+      "google": "Continue with Google",
+      "dividerOr": "or",
       "error": {
         "invalidCredentials": "Invalid email or password."
       }
@@ -51,12 +53,32 @@
       "revokeButton": "Revoke",
       "empty": "No active sessions found."
     },
+    "error": {
+      "title": "Sign-in error",
+      "backToSignIn": "Back to sign-in",
+      "codes": {
+        "unknown": "Something went wrong while signing you in. Please try again.",
+        "Configuration": "Authentication is misconfigured. Please contact support.",
+        "AccessDenied": "Access to this resource was denied. The link may have expired or be invalid.",
+        "Verification": "The verification link is invalid or has expired.",
+        "OAuthSignin": "Could not start the OAuth flow. Please try again.",
+        "OAuthCallback": "Could not complete the OAuth flow. Please try again.",
+        "OAuthCreateAccount": "Could not create your account via OAuth. Please try again.",
+        "EmailCreateAccount": "Could not create your account via email. Please try again.",
+        "Callback": "The OAuth callback failed. Please try again.",
+        "OAuthAccountNotLinked": "This email is already linked to another sign-in method.",
+        "EmailSignin": "Could not send the email sign-in link. Please try again.",
+        "CredentialsSignin": "Invalid email or password.",
+        "SessionRequired": "You must be signed in to view this page."
+      }
+    },
     "devMailbox": {
       "title": "Dev mailbox",
       "noTokensHint": "No password reset tokens have been dispatched yet.",
       "tokenLabel": "Reset token",
       "copyButton": "Copy token",
-      "copiedToClipboard": "Copied to clipboard"
+      "copiedToClipboard": "Copied to clipboard",
+      "resetUrlLabel": "Visit reset link"
     },
     "dashboard": {
       "welcome": "Welcome, {email}.",

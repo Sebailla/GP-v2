@@ -55,12 +55,17 @@ import { Given, When, Then, setWorldConstructor } from "@cucumber/cucumber";
 
 import { stepDefinitions as authCommon } from "../step-defs/common.steps.js";
 import { stepDefinitions as authRealm } from "../step-defs/realm.steps.js";
+import { stepDefinitions as authFlow } from "../step-defs/auth-flow.steps.js";
 import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
 
 /**
  * Single source of truth for the auth slice's step bindings.
+ *
+ * Phase 5 PR-5 task 5.1 added `auth-flow.steps.ts` for the vertical
+ * end-to-end BDD scenario in `docs/auth-flow.feature` (sign-up →
+ * login → forgot → dev-mailbox → reset → cookie → /[locale]/(app)).
  */
-const ALL_BINDINGS = [...authCommon, ...authRealm];
+const ALL_BINDINGS = [...authCommon, ...authRealm, ...authFlow];
 
 type StepFn = (world: unknown, ...args: ReadonlyArray<string>) => void | Promise<void>;
 

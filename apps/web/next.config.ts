@@ -35,6 +35,19 @@ import type { NextConfig } from "next";
 // canonical cwd here.
 const i18nRequestAbsolute = path.resolve(__dirname, "i18n/request.ts");
 
+// Module 2 (PR #1, task 1.5 REFACTOR): the next-intl alias map is
+// shared between the Webpack and the Turbopack branches so a future
+// edit to the alias set cannot accidentally drift between the two
+// resolver pipelines. Both branches carry the same
+// `next-intl/config → <absolute path>` mapping; the Webpack side
+// goes under `config.resolve.alias` and the Turbopack side goes
+// under `config.turbo.resolveAlias` (Next.js 16 split the two
+// resolvers — `experimental.turbo.resolveAlias` is no longer
+// honored; the alias belongs at top-level `config.turbo`).
+const nextIntlConfigAlias: Record<string, string> = {
+  "next-intl/config": i18nRequestAbsolute,
+};
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -60,7 +73,7 @@ const nextConfig: NextConfig = {
     // a no-op; we set it explicitly here for Webpack.
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string> | undefined),
-      "next-intl/config": i18nRequestAbsolute,
+      ...nextIntlConfigAlias,
     };
     return config;
   },
@@ -74,9 +87,7 @@ const nextConfig: NextConfig = {
 const useTurbo = process.env["TURBOPACK"] !== undefined || process.env["NEXT_BUILDER"] === "turbopack";
 if (useTurbo) {
   (nextConfig as unknown as { turbo?: unknown }).turbo = {
-    resolveAlias: {
-      "next-intl/config": i18nRequestAbsolute,
-    },
+    resolveAlias: { ...nextIntlConfigAlias },
   };
 }
 

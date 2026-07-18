@@ -143,7 +143,18 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
           try {
             await handler(event);
           } catch (error) {
+            // Module-2 PR #3 (task 3.10): propagate the FIRST
+            // subscriber error so the caller can map it to the right
+            // status code (e.g., MailAdapter.send rejection →
+            // 502 on the forgot-password controller). Previously the
+            // dispatcher swallowed the error and surfaced only via
+            // the `onError` sink (which the controller never read).
+            // The error is still surfaced through `onError` so
+            // existing observability (the dev console sink) keeps
+            // working — the propagation is additive, not a
+            // replacement.
             onError(event, error, handler);
+            throw error;
           }
         }
       }

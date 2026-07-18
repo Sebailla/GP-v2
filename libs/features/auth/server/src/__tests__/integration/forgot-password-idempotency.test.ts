@@ -105,7 +105,7 @@ describe("PasswordResetService requestReset — idempotency + no enumeration lea
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
       // Act — known email.
-      const result = await service.requestReset("alice@example.com");
+      const result = await service.requestReset("alice@example.com", "en");
 
       // Assert — the public contract: void return for ALL paths.
       expect(result).toBeUndefined();
@@ -157,7 +157,7 @@ describe("PasswordResetService requestReset — idempotency + no enumeration lea
         asPrismaStub(prismaStub),
       );
 
-      await service.requestReset("alice@example.com");
+      await service.requestReset("alice@example.com", "en");
 
       // The request path is single-write (tokenRepo.create) — no tx
       // is needed. The transactional contract is consumeReset-only
@@ -176,7 +176,7 @@ describe("PasswordResetService requestReset — idempotency + no enumeration lea
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
       // Act — unknown email.
-      const result = await service.requestReset("ghost@example.com");
+      const result = await service.requestReset("ghost@example.com", "es");
 
       // Assert — the public contract: void return (parallels the
       // known-email path so the controller's 202 response is
@@ -202,7 +202,7 @@ describe("PasswordResetService requestReset — idempotency + no enumeration lea
       const { PasswordResetService } = await import("../../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("ghost@example.com");
+      await service.requestReset("ghost@example.com", "es");
 
       // bcrypt.hash is the most expensive operation on the known-email
       // path (consumeReset uses it; requestReset never does). Even
@@ -245,8 +245,8 @@ describe("PasswordResetService requestReset — idempotency + no enumeration lea
 
       // Both promises resolve (no rejection) and both resolve to
       // undefined (no shape difference between the two paths).
-      const knownResult = await knownService.requestReset("alice@example.com");
-      const unknownResult = await unknownService.requestReset("ghost@example.com");
+      const knownResult = await knownService.requestReset("alice@example.com", "en");
+      const unknownResult = await unknownService.requestReset("ghost@example.com", "es");
 
       expect(knownResult).toBeUndefined();
       expect(unknownResult).toBeUndefined();

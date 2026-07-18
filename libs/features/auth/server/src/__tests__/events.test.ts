@@ -118,7 +118,7 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
       dispatcher,
     );
 
-    await service.requestReset("alice@example.com");
+    await service.requestReset("alice@example.com", "en");
 
     expect(tokenRepo.create).toHaveBeenCalledTimes(1);
     const createdArg = (
@@ -137,10 +137,16 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
     expect(event.userId).toBe("user-1");
     const payload = event.payload as {
       userId: string;
+      to: string;
       token: string;
+      locale: string;
+      resetUrl: string;
       requestedAt: Date;
     };
     expect(payload.userId).toBe("user-1");
+    expect(payload.to).toBe("alice@example.com");
+    expect(payload.locale).toBe("en");
+    expect(payload.resetUrl).toMatch(/\/en\/reset-password\//);
     expect(payload.token.length).toBeGreaterThanOrEqual(MIN_TOKEN_LENGTH);
     // The dispatched raw token must sha256 to the persisted hash.
     expect(sha256(payload.token)).toBe(persistedHash);
@@ -159,7 +165,7 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
       dispatcher,
     );
 
-    await service.requestReset("ghost@example.com");
+    await service.requestReset("ghost@example.com", "es");
 
     expect(tokenRepo.create).not.toHaveBeenCalled();
     expect(dispatcher).not.toHaveBeenCalled();
@@ -192,7 +198,7 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
     );
 
     // First: requestReset fires `requested` (1 dispatch).
-    await service.requestReset("alice@example.com");
+    await service.requestReset("alice@example.com", "en");
     expect(dispatcher).toHaveBeenCalledTimes(1);
 
     // Then: consumeReset fires `completed` (2 dispatches total).
@@ -245,7 +251,7 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
     );
 
     // First: requestReset fires `requested` (1 dispatch).
-    await service.requestReset("alice@example.com");
+    await service.requestReset("alice@example.com", "es");
     expect(dispatcher).toHaveBeenCalledTimes(1);
     const firstEvent = (dispatcher.mock.calls[0] as unknown as [DomainEvent])[0];
     expect(firstEvent.name).toBe("auth.password-reset.requested");
@@ -288,7 +294,7 @@ describe("PasswordResetService → auth.password-reset.requested/completed", () 
       auditSink,
     );
 
-    await service.requestReset("alice@example.com");
+    await service.requestReset("alice@example.com", "en");
 
     const replayed = ringDispatcher.replay("u1");
     expect(replayed).toHaveLength(1);

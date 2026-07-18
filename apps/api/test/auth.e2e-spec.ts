@@ -251,7 +251,7 @@ describe("AuthController (e2e)", () => {
         .expect(400);
     });
 
-    it("returns 401 for an unknown reset token (generic error copy)", async () => {
+    it("returns 400 for an unknown reset token (generic error copy — PR #3 Routing threat matrix)", async () => {
       vi.mocked(prisma.passwordResetToken.findUnique).mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
@@ -261,7 +261,11 @@ describe("AuthController (e2e)", () => {
           newPassword: "NewP@ss123",
         });
 
-      expect(res.status).toBe(401);
+      // Module-2 PR #3 task 3.10: the spec scenarios for reset
+      // tokens (expired / malformed / replayed) all collapse to
+      // 400 with generic copy. 401 would imply an authentication
+      // failure shape — wrong for a stateful body-bearing flow.
+      expect(res.status).toBe(400);
       // Generic copy — no "not found" / "expired" / "consumed" wording.
       // The actual message will be pinned in the GREEN commit.
     });

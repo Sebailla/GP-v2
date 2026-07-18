@@ -46,12 +46,18 @@ export default async function SignInPage({ params }: SignInPageProps): Promise<R
   const { locale } = await params;
 
   // Redirect-if-already-authenticated: an already-authed visitor
-  // who lands on the sign-in page is bounced to the landing. The
-  // cookie is read via the slice 4 batch 2 helper; absent /
-  // malformed cookies return null, which means "not authenticated".
+  // who lands on the sign-in page is bounced to the (app) route
+  // group (the post-sign-in dashboard) instead of the bare
+  // landing. Module 2 (`module-2-public-auth`, PR #1, task 1.2)
+  // updates the target from `/${locale}` to `/${locale}/(app)` per
+  // `openspec/changes/module-2-public-auth/proposal.md` §Product
+  // decisions ("Redirect post sign-in: /[locale]/(app)
+  // (dashboard)"). The cookie is read via the slice 4 batch 2
+  // helper; absent / malformed cookies return null, which means
+  // "not authenticated".
   const session = await getSession();
   if (session !== null) {
-    redirect(`/${locale}`);
+    redirect(`/${locale}/(app)`);
   }
 
   const t = await getTranslations("auth.signIn");

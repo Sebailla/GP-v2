@@ -15,6 +15,8 @@ import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
 import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 
+import { MailModule } from "../../mail/mail.module.js";
+import { AUTH_DISPATCHER } from "./auth.dispatcher.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthCronService } from "./auth-cron.service.js";
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
@@ -43,7 +45,22 @@ import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-lim
  */
 const dispatcher = createInMemoryDispatcher();
 
+/**
+ * Module-2 PR #3 (task 3.4): expose the dispatcher as a DI provider so
+ * the AuthController can subscribe to `auth.password-reset.requested`
+ * and forward each event to the bound MailAdapter. This closes the
+ * loop between the domain event and the email delivery — without this
+ * subscriber, `MailAdapter.send` is never invoked from the public
+ * surface (the slice-3 path was event-only with the dev mailbox as
+ * the only subscriber; PR #3 makes the production Gmail path the
+ * primary delivery channel).
+ *
+ * The dispatcher is module-scoped (not request-scoped) so subscribers
+ * registered once at boot persist for the lifetime of the process.
+ */
+
 @Module({
+  imports: [MailModule],
   controllers: [AuthController],
   providers: [
     {
@@ -89,6 +106,16 @@ const dispatcher = createInMemoryDispatcher();
         }
         return new InMemoryRateLimiter();
       },
+    },
+    {
+      // Module-2 PR #3 (task 3.4): expose the in-memory dispatcher
+      // so the AuthController can subscribe to password-reset events
+      // and forward to MailAdapter. The factory returns the SAME
+      // dispatcher instance used by the PasswordResetService provider
+      // above (no separate copies — subscribers must see every
+      // dispatch the service emits).
+      provide: AUTH_DISPATCHER,
+      useFactory: () => dispatcher,
     },
     JwtAuthGuard,
     RateLimitGuard,

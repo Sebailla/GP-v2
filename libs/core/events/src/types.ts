@@ -47,10 +47,25 @@ export type EventName = (typeof EVENT_NAMES)[number];
 // ----- auth.password-reset.requested -------------------------------------
 export const authPasswordResetRequestedPayload = z.object({
   userId: z.string().min(1),
+  // Module-2 PR #3 (task 3.4): the recipient email — copied from the
+  // user record the service already loaded. The controller subscriber
+  // uses this to call MailAdapter.send without a second DB hit.
+  to: z.string().email(),
   // Raw token is dev-only (slice 4 dev mailbox). The reference repo
   // never persists it; production deployments should remove this
   // field or replace it with a magic-link slug.
   token: z.string().min(32),
+  // Module-2 PR #3 (task 3.2): the active request locale is carried
+  // in the payload so the controller subscriber can build a
+  // locale-aware reset URL without re-deriving it from headers.
+  // Closed enum mirrors the `next-intl` routing locales shipped in
+  // apps/web.
+  locale: z.enum(["en", "es"]),
+  // Module-2 PR #3: full reset URL the user will click. Shape:
+  // `${PUBLIC_WEB_URL}/{locale}/reset-password/{rawToken}` per D2.
+  // The controller passes this URL to MailAdapter.send verbatim; the
+  // URL is the source of truth for the rendered email body.
+  resetUrl: z.string().url(),
   requestedAt: isoDate,
 });
 export type AuthPasswordResetRequestedPayload = z.infer<typeof authPasswordResetRequestedPayload>;

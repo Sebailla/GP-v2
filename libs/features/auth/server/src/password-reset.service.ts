@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { prisma as defaultPrisma } from "@core/database";
 import type { PrismaClient } from "@core/database";
+import { env } from "@core/config";
 import bcrypt from "bcryptjs";
 import type { DomainEvent } from "@core/events";
 
@@ -71,6 +72,29 @@ export type { AuthErrorCode } from "./errors.js";
  *     64 hex chars of the sha256 digest. The raw token never reaches
  *     the database.
  */
+
+/**
+ * Module-2 PR #3 (task 3.6): the result of a successful `consumeReset`
+ * call. The controller needs the user identity to mint the NextAuth
+ * session JWT via `next-auth/jwt#encode` (D5 — passthrough cookie).
+ *
+ * Returning the identity from the service keeps the controller free
+ * of a second DB round-trip; the password-update transaction has
+ * already loaded the `userId`, and a single `userRepo.findById` after
+ * the tx returns the canonical record.
+ *
+ * The return type is widened from `Promise<void>` (slice-3 contract)
+ * to `Promise<PasswordResetResult>` (PR #3 contract). Slice-3 callers
+ * that `await service.consumeReset(...)` without asserting on the
+ * result continue to pass — they simply discard the new return value.
+ * Any downstream caller that typed the result as `void` must update
+ * its annotation.
+ */
+export interface PasswordResetResult {
+  readonly userId: string;
+  readonly email: string;
+  readonly role: string;
+}
 
 /** Token TTL for a fresh reset (1h per design §4.1). */
 export const TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -190,8 +214,20 @@ export class PasswordResetService {
    * Idempotent envelope: an unknown email returns silently with no
    * side effect, mirroring the "if this email is registered, you will
    * receive instructions" UX in the auth spec.
+   *
+   * Module-2 PR #3 (task 3.1 + 3.2): the dispatched payload now
+   * carries the active `locale` and the locale-aware `resetUrl`
+   * (`${PUBLIC_WEB_URL}/{locale}/reset-password/{raw}` per design D2).
+   * The controller subscribes to the event and invokes the bound
+   * `MailAdapter.send` with the URL; the URL must be computed here
+   * (service layer) because the locale is part of the security
+   * contract — building it in the controller would split the URL
+   * shape across two layers and risk drift. The raw token is the
+   * SAME value as `payload.token`; appearing in both fields is
+   * intentional and not a duplication (the token in the URL is the
+   * one the user clicks; the field name keeps the contract explicit).
    */
-  async requestReset(email: string): Promise<void> {
+  async requestReset(email: string, locale: "en" | "es"): Promise<void> {
     // 1. Look up the user. Missing → silent return (no enumeration).
     const user = await this.userRepo.findByEmail(email);
     if (user === null) {
@@ -224,35 +260,41 @@ export class PasswordResetService {
     // 5. Dispatch the event. The raw token is in the payload — the
     //    dev mailbox (slice 4) consumes it. `occurredAt` is the
     //    envelope timestamp (drives ring-buffer ordering).
+    //
+    //    Module-2 PR #3: also embed `locale`, `resetUrl`, and `to`
+    //    (the recipient's email) so the controller subscriber can
+    //    call MailAdapter.send with the locale-aware URL AND the
+    //    recipient address without re-deriving it. The URL path is
+    //    `/{locale}/reset-password/{rawToken}` per D2.
+    const resetUrl = `${env.PUBLIC_WEB_URL}/${locale}/reset-password/${rawToken}`;
     const event: DomainEvent = {
       name: "auth.password-reset.requested",
       userId: user.id,
       payload: {
         userId: user.id,
+        to: user.email,
         token: rawToken,
+        locale,
+        resetUrl,
         requestedAt: new Date(),
       },
       occurredAt: new Date(),
     };
-    // 4R follow-up (slice 3 batch 5 R3 WARNING #2): wrap the dispatch
-    // in try/catch + auditSink — same pattern as `consumeReset` (F2
-    // fix). If the dispatcher rejects (email adapter down, mailbox
-    // full, etc.), the row is already persisted but the caller
-    // would otherwise see a 500. Swallowing the rejection is safe
-    // here: (a) the user can retry with a fresh `requestReset` call
-    // that mints a NEW token + new row; (b) the orphan row is
-    // bounded by the F4 cron (deleteExpired) cleanup at ≤15 min.
-    // The audit signal is the only honest observability for the
-    // dispatcher failure.
-    try {
-      await this.dispatcher(event);
-    } catch (error) {
-      this.auditSink({
-        kind: "AUTH_EVENT_DISPATCH_FAILURE",
-        event,
-        error,
-      });
-    }
+    // PR #3 (task 3.10): DO NOT swallow the dispatcher's rejection.
+    // The slice-3 F2 swallow was correct for the slice-3 architecture
+    // (the dispatcher was a pure pub/sub; the controller's
+    // forgot-password path did not depend on dispatch success). PR #3
+    // tightens the contract: the controller's mail-delivery subscriber
+    // MUST surface MailAdapter.send rejections so the HTTP response
+    // can map them to 502 (per forgot-password spec scenario "Gmail
+    // SMTP failure surfaces 502"). The row IS persisted, but the
+    // user never received the email — surfacing the 502 tells them
+    // to retry (a fresh `requestReset` call mints a new row + new
+    // email attempt). The auditSink still receives the failure
+    // signal via the dispatcher's `onError` callback (the controller
+    // wraps the throw as `MailDeliveryError` and the dispatcher's
+    // `onError` logs the raw cause first).
+    await this.dispatcher(event);
   }
 
   /**
@@ -277,7 +319,7 @@ export class PasswordResetService {
    *  7. markConsumed(tokenHash, now) — single-use guarantee.
    *  8. dispatch the completed event.
    */
-  async consumeReset(rawToken: string, newPassword: string): Promise<void> {
+  async consumeReset(rawToken: string, newPassword: string): Promise<PasswordResetResult> {
     // 1. Hash the raw token first. The hash is the lookup key; the
     //    raw token never reaches the port.
     const tokenHash = sha256Hex(rawToken);
@@ -353,5 +395,26 @@ export class PasswordResetService {
       // Swallow: the transaction committed; the audit signal is the
       // observability surface; the caller resolves normally.
     }
+
+    // 9. PR #3 (task 3.6): return the user identity so the controller
+    //    can mint the NextAuth session JWT via `next-auth/jwt#encode`
+    //    (D5 — passthrough cookie). We re-query the user via the
+    //    repository (one extra round-trip is acceptable; the password
+    //    change is the expensive operation, not the read).
+    const user = await this.userRepo.findById(row.userId);
+    if (user === null) {
+      // Defensive — the row references a userId, so this branch is
+      // unreachable in practice. Surface as 500 (the user is missing
+      // from the DB but the password HAS been reset; the operator
+      // needs to investigate the orphan row).
+      throw new Error(
+        `consumeReset: user ${row.userId} not found after password update`,
+      );
+    }
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    };
   }
 }
