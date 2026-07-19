@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Catalog of the 9 domain events for gastos-personales-reference,
+ * Catalog of the 10 domain events for gastos-personales-reference,
  * per design §4.7 (auth) + §5.9 (transactions).
  *
  * Each event has:
@@ -24,6 +24,7 @@ export const AUTH_PASSWORD_RESET_REQUESTED = "auth.password-reset.requested" as 
 export const AUTH_PASSWORD_RESET_COMPLETED = "auth.password-reset.completed" as const;
 export const AUTH_SESSION_REVOKED = "auth.session.revoked" as const;
 export const AUTH_RBAC_DENIED = "auth.rbac.denied" as const;
+export const AUTH_ROLE_CHANGED = "auth.role.changed" as const;
 export const TRANSACTIONS_CREATED = "transactions.created" as const;
 export const TRANSACTIONS_UPDATED = "transactions.updated" as const;
 export const TRANSACTIONS_SOFT_DELETED = "transactions.soft-deleted" as const;
@@ -35,6 +36,7 @@ export const EVENT_NAMES = [
   AUTH_PASSWORD_RESET_COMPLETED,
   AUTH_SESSION_REVOKED,
   AUTH_RBAC_DENIED,
+  AUTH_ROLE_CHANGED,
   TRANSACTIONS_CREATED,
   TRANSACTIONS_UPDATED,
   TRANSACTIONS_SOFT_DELETED,
@@ -93,6 +95,20 @@ export const authRbacDeniedPayload = z.object({
   at: isoDate,
 });
 export type AuthRbacDeniedPayload = z.infer<typeof authRbacDeniedPayload>;
+
+// ----- auth.role.changed -------------------------------------------------
+// M3 (module-3-superadmin): emitted by `RbacService.changeRole` after
+// a successful role transition. The payload mirrors the `from` / `to`
+// audit metadata but lives in the event so subscribers (observability
+// sinks, dev mailbox) can correlate role transitions without joining
+// the audit table.
+export const authRoleChangedPayload = z.object({
+  actorId: z.string().min(1),
+  targetUserId: z.string().min(1),
+  fromRole: z.enum(["USER", "ADMIN"]),
+  toRole: z.enum(["USER", "ADMIN"]),
+});
+export type AuthRoleChangedPayload = z.infer<typeof authRoleChangedPayload>;
 
 // ----- transactions.created ---------------------------------------------
 export const transactionsCreatedPayload = z.object({

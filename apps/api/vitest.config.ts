@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import path from "node:path";
 
 /**
  * Vitest config for apps/api (slice 3 batch 6 — T3.6 NestJS wrapper).
@@ -22,8 +23,27 @@ import { defineConfig } from "vitest/config";
  * is `vi.mock`ed in each test file (no real DB connection), and
  * tests mint NextAuth JWTs with the same `NEXTAUTH_SECRET` literal
  * via `next-auth/jwt#encode`.
+ *
+ * M3 (module-3-superadmin — PR #3 task 3.2): the `resolve.alias`
+ * block maps `@features/auth/shared/schemas` to the canonical
+ * shared schemas barrel (mirrors the apps/web vitest config). The
+ * `@features/auth` package.json `exports` field exposes only `.`,
+ * so without this alias the API e2e cannot import the admin
+ * schemas from the controller (the imports resolve at vitest's
+ * module layer, not via the apps/api tsconfig paths).
  */
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: /^@features\/auth\/shared\/schemas$/,
+        replacement: path.resolve(
+          __dirname,
+          "../../libs/features/auth/shared/schemas/index.ts",
+        ),
+      },
+    ],
+  },
   test: {
     include: [
       "test/**/*.spec.ts",
@@ -34,6 +54,11 @@ export default defineConfig({
       // `**/*.test.ts` so any future src-side unit test (e.g.
       // `src/auth/__tests__/*`) is picked up automatically.
       "src/**/*.test.ts",
+      // M3 (module-3-superadmin — PR #3 task 3.3): guard unit tests
+      // alongside production code use the `*.spec.ts` suffix (matching
+      // the `test/*.spec.ts` e2e convention). Widening the glob so the
+      // AdminGuard test is picked up automatically without renaming.
+      "src/**/*.spec.ts",
     ],
     environment: "node",
     globals: false,

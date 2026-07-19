@@ -38,8 +38,12 @@ export type {
   PasswordResetTokenRepository,
 } from "./domain/interfaces/password-reset-token.repository.js";
 export type { SessionRecord, SessionRepository } from "./domain/interfaces/session.repository.js";
-export { AuthError, ValidationError } from "./errors.js";
-export type { AuthErrorCode } from "./errors.js";
+export { AuthError, ValidationError, LastAdminError, UserNotFoundError } from "./errors.js";
+export type {
+  AuthErrorCode,
+  LastAdminErrorCode,
+  UserNotFoundErrorCode,
+} from "./errors.js";
 // F2 audit sink — the slice's console.error sink for dispatcher
 // failures (default; production swaps for pino/Sentry).
 export { defaultAuditSink } from "./password-reset.service.js";

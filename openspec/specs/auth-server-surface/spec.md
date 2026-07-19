@@ -56,6 +56,91 @@ The `buildAuthConfig()` output MUST set `pages.signIn` to the locale-aware facto
 - THEN the providers array does NOT contain `Google`
 - AND the `LoginForm` MUST NOT render the Google button
 
+### Requirement: Session List by User
+
+`GET /admin/sessions?userId=<uuid>` returns sessions sorted DESC by `lastActiveAt` (`id`, `userId`, `createdAt`, `lastActiveAt`, `userAgent`, `ipAddress`). `role=ADMIN` guard.
+
+#### Scenario: Sorted
+
+- GIVEN admin + 3 sessions
+- WHEN called
+- THEN 200 sorted DESC
+
+#### Scenario: Empty
+
+- GIVEN admin + no sessions
+- WHEN called
+- THEN 200 with `[]`
+
+#### Scenario: Forbidden role
+
+- GIVEN non-admin
+- WHEN called
+- THEN 403
+
+#### Scenario: Unknown
+
+- GIVEN admin + unknown userId
+- WHEN called
+- THEN 404
+
+### Requirement: Revoke Single Session
+
+`DELETE /admin/sessions/:sessionId` deletes the row, dispatches `auth.session.revoked`, inserts `AdminAuditEvent` (`action: "REVOKE_SESSION"`). `role=ADMIN` guard.
+
+#### Scenario: Known
+
+- GIVEN admin + existing session
+- WHEN called
+- THEN 204, row deleted, audit
+
+#### Scenario: Unknown
+
+- GIVEN admin + unknown sessionId
+- WHEN called
+- THEN 404, no audit
+
+#### Scenario: Self
+
+- GIVEN admin revoking own session
+- WHEN called
+- THEN 204 with `Set-Cookie` clearing the token
+
+#### Scenario: Forbidden role
+
+- GIVEN non-admin
+- WHEN called
+- THEN 403
+
+### Requirement: Revoke All Sessions for User
+
+`DELETE /admin/sessions/user/:userId` deletes every session, inserts `AdminAuditEvent` (`action: "REVOKE_ALL_SESSIONS"`). `role=ADMIN` guard.
+
+#### Scenario: 3 sessions
+
+- GIVEN admin + 3 sessions
+- WHEN called
+- THEN 204, 3 deleted, `revokedCount: 3`
+
+#### Scenario: 0 sessions
+
+- GIVEN admin + 0 sessions
+- WHEN called
+- THEN 204, `revokedCount: 0`
+
+#### Scenario: Self
+
+- GIVEN admin revoking own sessions
+- WHEN called
+- THEN 204, cookie cleared, audit
+
+#### Scenario: Forbidden role
+
+- GIVEN non-admin
+- WHEN called
+- THEN 403
+
 ## Provenance
 
-Introduced by: module-2-public-auth, 2026-07-17; baseline behavior from slice-3 / M1 T1.12.
+Introduced by: module-2-public-auth, 2026-07-17 (slice-3 baseline).
+Extended by: module-3-superadmin, 2026-07-18 (admin session mgmt).

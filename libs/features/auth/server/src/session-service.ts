@@ -8,6 +8,7 @@ import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-se
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import type { AuthEventDispatcher } from "./events.js";
+import { insertAuditEvent } from "./audit.service.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -198,6 +199,226 @@ export class SessionService {
     const result = await this.prisma.session.deleteMany({
       where: { userId },
     });
+    return result.count;
+  }
+
+  // ---------------------------------------------------------------------------
+  // M3 ADMIN SURFACE (module-3-superadmin — task 2.2 GREEN)
+  //
+  // Per `openspec/changes/module-3-superadmin/design.md` §4
+  // (SessionService rows) and the spec's "Session List by User" /
+  // "Revoke Single Session" / "Revoke All Sessions for User"
+  // requirements. These three methods are the server-side primitives
+  // behind the NestJS AdminController (PR #3). They pair the data
+  // path (Prisma) with the audit path (`auth.session.revoked` event)
+  // so the controller stays HTTP-agnostic.
+  //
+  // The payload widening from the slice-3 `{ userId, sessionId,
+  // revokedAt }` to the M3 `{ actorId, targetUserId, sessionId,
+  // ipAddress, userAgent, revokedAt, count? }` matches design D3 +
+  // §3.2. The TS view of the widening lives at
+  // `auth.events.ts` (`AuthSessionRevokedPayload`); the dispatcher
+  // casts to that type at the receiving end.
+  //
+  // Idempotency:
+  //   - `revoke` reads the row first so it can emit the event AFTER
+  //     the delete; a missing row is a silent no-op (no event).
+  //   - `revokeAll` always emits one event (even with `count=0`) so
+  //     the audit trail captures every admin attempt, including
+  //     "nothing to revoke" cases.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * List every session owned by the user, sorted DESC by the
+   * `lastActiveAt` proxy. Per spec "Session List by User", this is
+   * the read path behind `GET /admin/sessions?userId=...`.
+   *
+   * Deviation (PR #2 known follow-up, M4 scope): the Session model
+   * has no `lastActiveAt` column yet. The GREEN implementation sorts
+   * on `expires DESC` — the closest available proxy. When the M4
+   * last-active column lands, this query swaps to that column; the
+   * public contract (sorted DESC, same projection shape) does not
+   * change. The TS return shape intentionally mirrors the existing
+   * `listActiveSessions` projection (`SessionRecord[]`) so the
+   * controller layer can project to the spec's response shape
+   * (id / userId / createdAt / lastActiveAt / userAgent / ipAddress)
+   * without re-receiving the row from Prisma.
+   */
+  async list(userId: string): Promise<
+    ReadonlyArray<{
+      readonly id: string;
+      readonly sessionToken: string;
+      readonly userId: string;
+      readonly expires: Date;
+    }>
+  > {
+    const rows = await this.prisma.session.findMany({
+      where: { userId },
+      orderBy: { expires: "desc" },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      sessionToken: row.sessionToken,
+      userId: row.userId,
+      expires: row.expires,
+    }));
+  }
+
+  /**
+   * Look up a session by its primary key. Returns `{ id, userId, ... }`
+   * on success; `null` when no row matches. Used by the admin
+   * single-session revoke path to detect self-revoke (the controller
+   * reads the row BEFORE the delete, then compares `row.userId` to
+   * the JWT's userId to decide whether to emit `Set-Cookie` clear).
+   *
+   * F3 fix (4R-driven correction): prior to this method the
+   * controller detected self-revoke by listing the admin's remaining
+   * sessions AFTER the revoke and checking `length === 0`. That
+   * heuristic is wrong for admins with multiple concurrent sessions
+   * (revoking one leaves others active, the cookie stays, the admin
+   * stays logged in). The `findById` lookup is O(1) on the primary
+   * key and pins the ownership check to the actual target row.
+   *
+   * Mirrors the `findByToken` / `findById` port pattern on
+   * `SessionRepository`; the direct `prisma.session.findUnique` is
+   * acceptable here because the read is on a single primary key and
+   * the port abstraction's purpose (mockable for unit tests) is
+   * preserved by the call sites that wire mocks.
+   */
+  async findById(sessionId: string): Promise<
+    | {
+        readonly id: string;
+        readonly userId: string;
+        readonly sessionToken: string;
+        readonly expires: Date;
+      }
+    | null
+  > {
+    const row = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (row === null) {
+      return null;
+    }
+    return {
+      id: row.id,
+      userId: row.userId,
+      sessionToken: row.sessionToken,
+      expires: row.expires,
+    };
+  }
+
+  /**
+   * Revoke a single session by its PRIMARY KEY (NOT by token — the
+   * controller resolves the token→id before calling). The admin
+   * single-session path lives here; the slice-3 user-self-revoke
+   * path stays on `revokeSession(token, userId)` and emits the
+   * narrower slice-3 payload.
+   *
+   * Idempotent: a missing row is a silent no-op (no event, no
+   * audit row). The row is read BEFORE the delete so the event
+   * payload always carries the targetUserId — without the read, the
+   * dispatch would race the delete.
+   *
+   * IP + UA are recorded exactly as captured at the controller
+   * boundary (per design D3); the service does not redact them.
+   * Pino `[ip]` redaction is applied at the LOG layer, not here.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent` so the same primitive backs every admin op
+   * (RbacService.changeRole, SessionService.revoke/revokeAll).
+   */
+  async revoke(
+    sessionId: string,
+    actorId: string,
+    ipAddress: string | null,
+    userAgent: string | null,
+  ): Promise<void> {
+    const row = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+    if (row === null) {
+      return;
+    }
+    const targetUserId = row.userId;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.session.delete({ where: { id: sessionId } });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: sessionId,
+        action: "REVOKE_SESSION",
+        metadata: { targetUserId },
+        ipAddress,
+        userAgent,
+      });
+    });
+
+    const event: DomainEvent = {
+      name: "auth.session.revoked",
+      userId: actorId,
+      payload: {
+        actorId,
+        targetUserId,
+        sessionId,
+        ipAddress,
+        userAgent,
+        revokedAt: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    await this.dispatcher(event);
+  }
+
+  /**
+   * Revoke every session owned by the user. Returns the count. Emits
+   * ONE admin event (`auth.session.revoked` with `count` in the
+   * payload) — the singleton event is the audit anchor, not N
+   * per-session events (which would flood the trail).
+   *
+   * Always emits (event + audit row), even when `count === 0` —
+   * the audit trail captures "admin tried, user had nothing". Per
+   * design §3.2 and the `auth-server-surface` spec's `Revoke All
+   * Sessions for User → 0 sessions → 204, revokedCount: 0`
+   * scenario.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent`. Metadata carries `{ count, targetUserId }`
+   * so the bulk revoke is recoverable from a single audit row.
+   */
+  async revokeAll(
+    userId: string,
+    actorId: string,
+    ipAddress: string | null,
+    userAgent: string | null,
+  ): Promise<number> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.session.deleteMany({
+        where: { userId },
+      });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: userId,
+        action: "REVOKE_ALL_SESSIONS",
+        metadata: { count: deleted.count },
+        ipAddress,
+        userAgent,
+      });
+      return deleted;
+    });
+
+    const event: DomainEvent = {
+      name: "auth.session.revoked",
+      userId: actorId,
+      payload: {
+        actorId,
+        targetUserId: userId,
+        sessionId: "bulk",
+        ipAddress,
+        userAgent,
+        count: result.count,
+        revokedAt: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    await this.dispatcher(event);
     return result.count;
   }
 

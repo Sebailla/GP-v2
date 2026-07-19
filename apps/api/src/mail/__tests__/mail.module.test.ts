@@ -44,6 +44,10 @@ const baseEnv: Env = {
   UPSTASH_REDIS_REST_TOKEN: "upstash-token-at-least-16-chars",
   LOG_LEVEL: "info",
   PORT: 3001,
+  // M3 (module-3-superadmin) — admin surface kill-switch. Default `true`
+  // keeps the existing dev / test behavior; the controller reads this
+  // and 404s every admin route when it flips to `false`.
+  ADMIN_ENABLED: true,
   NODE_ENV: "development",
 };
 

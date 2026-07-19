@@ -60,3 +60,38 @@ export class ValidationError extends Error {
     this.issues = issues;
   }
 }
+
+/**
+ * F2 fix (4R-driven correction): thrown by `RbacService.changeRole`
+ * when the operation would demote the LAST remaining admin to USER.
+ * Without this safeguard the system can become permanently
+ * admin-less (every admin demoted, no path back to ADMIN except
+ * direct SQL). The controller maps this error to HTTP 409 Conflict
+ * with the localized `admin.errors.lastAdmin` copy.
+ *
+ * Code is a stable machine-readable string so the controller can
+ * branch on it without parsing the human message (same contract as
+ * `AuthError.code` above).
+ */
+export type UserNotFoundErrorCode = "USER_NOT_FOUND";
+
+export class UserNotFoundError extends Error {
+  public readonly code: UserNotFoundErrorCode = "USER_NOT_FOUND";
+
+  constructor(message?: string) {
+    super(message ?? "user not found");
+    this.name = "UserNotFoundError";
+  }
+}
+
+export type LastAdminErrorCode = "LAST_ADMIN_DEMOTE";
+
+export class LastAdminError extends Error {
+  public readonly code: LastAdminErrorCode;
+
+  constructor(message?: string) {
+    super(message ?? "cannot demote the last remaining admin");
+    this.name = "LastAdminError";
+    this.code = "LAST_ADMIN_DEMOTE";
+  }
+}

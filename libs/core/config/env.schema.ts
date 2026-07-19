@@ -65,6 +65,33 @@ export const envSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().min(16).optional(),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).optional(),
   PORT: z.coerce.number().int().positive().optional().default(3001),
+  // M3 (module-3-superadmin) — admin surface kill-switch. Default is
+  // `true` so dev / test environments run with the admin routes
+  // enabled; operators flip to `false` for an emergency kill-switch
+  // (per design D1 + D8 — `AdminGuard` reads this env first and
+  // returns 404 to hide the surface entirely). Coerced from the
+  // common `.env` string forms ("true" | "false" | "1" | "0" | "yes"
+  // | "no" — case-insensitive) to a boolean. Note: Zod's
+  // `z.coerce.boolean()` evaluates `Boolean(input)`, which treats
+  // ANY non-empty string as `true` — that primitive is unsafe for
+  // env parsing. We use the explicit `transform` form below.
+  // OPTIONAL in `productionEnvSchema.superRefine` — never required,
+  // even in production, so the absence of the variable does not
+  // break a clean install.
+  ADMIN_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((value, ctx) => {
+      if (typeof value === "boolean") return value;
+      const normalized = value.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(normalized)) return true;
+      if (["false", "0", "no", "off"].includes(normalized)) return false;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `ADMIN_ENABLED must be a boolean (true/false); received "${value}"`,
+      });
+      return z.NEVER;
+    })
+    .default(true),
   NODE_ENV: z.enum(NODE_ENV_VALUES),
 });
 
