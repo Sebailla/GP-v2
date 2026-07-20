@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 
-import { prisma as defaultPrisma } from "@core/database";
-import type { Prisma, PrismaClient } from "@core/database";
+import { prisma as defaultPrisma, Prisma } from "@core/database";
+import type { PrismaClient } from "@core/database";
 import { env } from "@core/config";
 
 /**
@@ -199,10 +199,16 @@ export { defaultPrisma };
  * `deleteMany` (adminAuditEvent) — a single model delegate. The
  * `Pick` keeps the surface narrow so adapters / test doubles don't
  * have to stub the full client.
+ *
+ * F4 fix: `$queryRaw` + `$executeRaw` are also needed — the count
+ * + purge routes run via `$queryRaw` / `$executeRaw` so the cutoff
+ * is computed against the DB clock (see `countOlderThan` /
+ * `purgeOlderThan`). Both are tagged-template methods on the
+ * top-level `PrismaClient` (not on a model delegate).
  */
 export type AuditServiceClient = Pick<
   PrismaClient,
-  "adminAuditEvent"
+  "adminAuditEvent" | "$queryRaw" | "$executeRaw"
 >;
 
 /**
@@ -318,53 +324,63 @@ export class AuditService {
    * Count the rows older than `days` (D4). Used by the dry-run path
    * of `POST /admin/audit/purge` and by the audit-retention cron.
    *
-   * The cut-off is exclusive (`lt`): rows where `createdAt < now -
-   * days * 86_400_000` are matched. The 86_400_000 magic number is
-   * the canonical `MS_PER_DAY` (24 * 60 * 60 * 1000) — extracted
-   * to a named constant below for clarity.
+   * F4 fix (4R-driven correction): the count runs against the DB
+   * clock via `$queryRaw` (`SELECT COUNT(*) FROM "AdminAuditEvent"
+   * WHERE "createdAt" < now() - interval '<days> days'`). The
+   * prior implementation evaluated `Date.now() - days * 86_400_000`
+   * on the API server — clock drift between the API and the DB
+   * produced ambiguous "rows older than X days" semantics. The
+   * DB-clock fix delegates `now()` to Postgres so the count and
+   * the cutoff are evaluated against the same clock.
    *
    * Returns 0 when no rows match (idempotent — running the count
    * twice yields the same number).
+   *
+   * Prisma 7's typed `where.createdAt.lt` filter accepts only
+   * `Date | string | FieldRef` — `Prisma.raw` is rejected at the
+   * type layer. We therefore drop into `$queryRaw` for the count,
+   * which preserves the typed `adminAuditEvent` model delegate
+   * for every other read/write path (the `findMany` audit listing
+   * stays on the typed surface).
    */
   async countOlderThan(days: number): Promise<number> {
-    const cutoff = olderThanCutoff(days);
-    return this.prisma.adminAuditEvent.count({
-      where: { createdAt: { lt: cutoff } },
-    });
+    const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint AS count
+      FROM "AdminAuditEvent"
+      WHERE "createdAt" < now() - (${days} || ' days')::interval
+    `;
+    // Postgres' `COUNT(*)` returns `bigint` (numeric); cast to
+    // Number for the typed public API contract (the integer is
+    // bounded by the audit table size — well under 2^53).
+    return Number(rows[0]?.count ?? 0);
   }
 
   /**
    * Delete every row older than `days` atomically (D4). The single
-   * `deleteMany` call is the atomicity boundary — Postgres' MVCC
-   * guarantees readers see all-or-none of the deletion, satisfying
-   * the audit-log-ui spec's "Atomic deletion" scenario.
+   * `$executeRaw` DELETE call is the atomicity boundary — Postgres'
+   * MVCC guarantees readers see all-or-none of the deletion,
+   * satisfying the audit-log-ui spec's "Atomic deletion" scenario.
    *
    * Idempotent on a second call: after the first call the matched
-   * count is zero and `deleteMany` returns `{ count: 0 }`. The
-   * caller's `deleted` field lands at 0 — no error, no event.
+   * count is zero and `$executeRaw` returns 0. The caller's
+   * `deleted` field lands at 0 — no error, no event.
    *
    * Returns the count of deleted rows. The retention cron logs
-   * `purged N rows` when `N > 0`; the controller surfaces `{ matched,
-   * deleted }` to the operator.
+   * `purged N rows` when `N > 0`; the controller surfaces
+   * `{ matched, deleted }` to the operator.
+   *
+   * F4 fix (4R-driven correction): the cutoff is computed inside
+   * Postgres via `now() - (${days} || ' days')::interval`. Same
+   * rationale as `countOlderThan` — no clock-drift ambiguity. The
+   * `days` parameter is bound as a Postgres parameter (NOT a raw
+   * string interpolation) so the SQL is safe from injection even
+   * if a caller forwards an untrusted value.
    */
   async purgeOlderThan(days: number): Promise<number> {
-    const cutoff = olderThanCutoff(days);
-    const result = await this.prisma.adminAuditEvent.deleteMany({
-      where: { createdAt: { lt: cutoff } },
-    });
-    return result.count;
+    return this.prisma.$executeRaw`
+      DELETE FROM "AdminAuditEvent"
+      WHERE "createdAt" < now() - (${days} || ' days')::interval
+    `;
   }
-}
-
-/**
- * Cut-off helper — computes `now - days * MS_PER_DAY`. Centralized
- * so `countOlderThan` and `purgeOlderThan` agree on the boundary
- * (a divergent cut-off would produce a count/delete mismatch on the
- * dry-run → real-purge path).
- */
-const MS_PER_DAY = 86_400_000;
-
-function olderThanCutoff(days: number): Date {
-  return new Date(Date.now() - days * MS_PER_DAY);
 }
 

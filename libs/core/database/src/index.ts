@@ -31,11 +31,23 @@ export {
 } from "./generated/internal/prismaNamespace.js";
 export type { Decimal as PrismaDecimal } from "./generated/internal/prismaNamespace.js";
 
-// Re-export the namespace as a type-only surface so adapters can write
-// `import { Prisma } from "@core/database"; Prisma.CategoryWhereInput` etc.
-// without reaching into the generated internal paths.
-import type * as PrismaNamespace from "./generated/internal/prismaNamespace.js";
-export type { PrismaNamespace as Prisma };
+// Re-export the Prisma namespace. Adapters can write
+//   `import { Prisma } from "@core/database"; Prisma.CategoryWhereInput`
+// (type — Prisma.CategoryWhereInput is a type-only symbol) AND
+//   `Prisma.raw("now() - interval '1 day'")` (runtime — for clock-
+//    drift-safe date arithmetic on the DB clock, see F4 fix in
+//    `libs/features/auth/server/src/audit.service.ts`)
+// without reaching into the generated internal paths. The
+// `no-prisma-outside-core` ESLint rule pins the canonical import
+// path to `@core/database` — both type and runtime imports flow
+// through this single boundary.
+//
+// The `Prisma` symbol is constructed in `generated/client.ts` as a
+// namespace alias over `./internal/prismaNamespace` and re-exported
+// from there (line 42). Re-exporting it here gives consumers a single
+// canonical import path that covers both `Prisma.X` value calls and
+// `Prisma.X` type references.
+export { Prisma } from "./generated/client.js";
 
 // Shared Prisma error-code guards (PR #2 4R review fix). Every Prisma-backed
 // adapter in the workspace reaches for these to translate P2002 / P2025 into
