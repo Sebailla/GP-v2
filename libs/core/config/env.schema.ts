@@ -92,6 +92,36 @@ export const envSchema = z.object({
       return z.NEVER;
     })
     .default(true),
+  // M4 (module-4-privacy) — audit retention window. Default 90 days;
+  // `0` is the kill-switch (no automatic purge). Coerced from the
+  // string form env loaders deliver (`"90"`, `"30"`, `"0"`); `min(0)`
+  // rejects negatives at boot. See `openspec/changes/module-4-privacy/
+  // design.md` §2 D8 + `openspec/specs/audit-log-ui/spec.md`
+  // "Audit Retention Environment Variable". OPTIONAL — the schema
+  // default keeps dev / test environments runnable without an
+  // explicit value.
+  AUDIT_RETENTION_DAYS: z.coerce.number().int().min(0).default(90),
+  // M4 (module-4-privacy) — opt-in gate for the `audit-retention.cron`
+  // job (D2). Default `false` keeps the cron off in dev / test so
+  // the schedule does not interfere with the test harness.
+  // `z.coerce.boolean` evaluates `Boolean(input)`, which treats ANY
+  // non-empty string as `true` — the explicit `transform` form below
+  // mirrors the ADMIN_ENABLED coercion and accepts the common env
+  // string forms (true|false|1|0|yes|no|on|off, case-insensitive).
+  AUDIT_RETENTION_ENABLED: z
+    .union([z.boolean(), z.string()])
+    .transform((value, ctx) => {
+      if (typeof value === "boolean") return value;
+      const normalized = value.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(normalized)) return true;
+      if (["false", "0", "no", "off"].includes(normalized)) return false;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `AUDIT_RETENTION_ENABLED must be a boolean (true/false); received "${value}"`,
+      });
+      return z.NEVER;
+    })
+    .default(false),
   NODE_ENV: z.enum(NODE_ENV_VALUES),
 });
 

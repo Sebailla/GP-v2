@@ -48,6 +48,12 @@ const baseEnv: Env = {
   // keeps the existing dev / test behavior; the controller reads this
   // and 404s every admin route when it flips to `false`.
   ADMIN_ENABLED: true,
+  // M4 (module-4-privacy) — audit retention env (D8). Default 90 /
+  // false keeps the cron off in dev / test. The mail module does not
+  // read these; the literal is here for shape parity with the env
+  // contract.
+  AUDIT_RETENTION_DAYS: 90,
+  AUDIT_RETENTION_ENABLED: false,
   NODE_ENV: "development",
 };
 

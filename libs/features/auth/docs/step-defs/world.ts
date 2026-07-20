@@ -80,6 +80,18 @@ export interface AuthWorld {
   attemptedRoleChange: { userId: string; role: "USER" | "ADMIN" } | undefined;
   /** Last bulk-revoke call — pinned with the target userId so the assertion step can read back. */
   attemptedBulkRevoke: { userId: string } | undefined;
+  /** Last audit-list query the admin submitted — per Phase 4 audit-flow scenario. */
+  attemptedAuditList:
+    | {
+        actorId?: string;
+        targetId?: string;
+        action?: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+        since?: string;
+        until?: string;
+      }
+    | undefined;
+  /** Last audit-purge call — per Phase 4 audit-flow scenario. */
+  attemptedPurge: { dryRun: boolean; olderThanDays: number } | undefined;
 
   // --- then state (assertions populate these) ---
   sessionCreated: boolean | undefined;
@@ -111,6 +123,40 @@ export interface AuthWorld {
         metadata: Record<string, unknown>;
       }>
     | undefined;
+  /**
+   * Snapshot of the audit-list response — the spec-literal 8-field
+   * projection per `audit-log-ui` "List Audit Events" (Phase 4).
+   */
+  lastAuditListing:
+    | ReadonlyArray<{
+        id: string;
+        actorId: string;
+        targetId: string;
+        action: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+        createdAt: string;
+        metadata: unknown;
+        ipAddress: string | null;
+        userAgent: string | null;
+      }>
+    | undefined;
+  /** Audit rows after the actorId filter applies (Phase 4). */
+  lastAuditFilterResult:
+    | ReadonlyArray<{
+        id: string;
+        actorId: string;
+        targetId: string;
+        action: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+        createdAt: string;
+        metadata: unknown;
+        ipAddress: string | null;
+        userAgent: string | null;
+      }>
+    | undefined;
+  /** Last purge response — dry-run uses `wouldDelete`, real uses `deleted`. */
+  lastAuditPurge:
+    | { matched: number; wouldDelete: number }
+    | { matched: number; deleted: number }
+    | undefined;
 }
 
 /**
@@ -133,6 +179,8 @@ export function createAuthWorld(): AuthWorld {
     attemptedAdminAction: undefined,
     attemptedRoleChange: undefined,
     attemptedBulkRevoke: undefined,
+    attemptedAuditList: undefined,
+    attemptedPurge: undefined,
     sessionCreated: undefined,
     lastDispatchedEvent: undefined,
     lastErrorMessage: undefined,
@@ -143,5 +191,8 @@ export function createAuthWorld(): AuthWorld {
     __currentPath: undefined,
     lastRoleChangeResponse: undefined,
     __auditRows: undefined,
+    lastAuditListing: undefined,
+    lastAuditFilterResult: undefined,
+    lastAuditPurge: undefined,
   };
 }

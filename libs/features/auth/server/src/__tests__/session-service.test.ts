@@ -48,8 +48,16 @@ vi.mock("@core/database", () => ({
   prisma: {
     session: {
       findUnique: vi.fn(),
+      // M4 (module-4-privacy — task 1.6): getCurrentUser now performs
+      // a coalesce UPDATE on `Session.lastActiveAt` per design D1.
+      // The mock must expose `session.update` so the production code
+      // can call it without throwing.
+      update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
+      // F3 fix: the circuit-breaker check routes through
+      // SessionRepository.listActive → prisma.session.findMany.
+      findMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -74,6 +82,10 @@ const noopDispatcher = vi.fn<AuthEventDispatcher>();
 describe("SessionService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // F3 fix: default `findMany` (used by the circuit breaker check)
+    // to an empty list so the breaker stays un-tripped for tests that
+    // exercise the coalesce-write path.
+    vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
   });
 
   describe("getCurrentUser", () => {

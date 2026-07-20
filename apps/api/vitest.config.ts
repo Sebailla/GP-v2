@@ -44,6 +44,13 @@ export default defineConfig({
       },
     ],
   },
+  // M4 (module-4-privacy) — the audit-retention cron (`@Cron(...)`)
+// class lives in `apps/api/src/modules/auth/audit-retention.schedule.ts`
+// (where the apps/api tsconfig's `experimentalDecorators: true` lets
+// Vite SSR transform the decorator cleanly) — not in
+// `libs/features/auth/` (whose tsconfig lacks the flag). No vitest
+// config override is needed because the cron class lives in a path
+// where the decorator is parseable.
   test: {
     include: [
       "test/**/*.spec.ts",

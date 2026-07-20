@@ -299,6 +299,69 @@
         "actions": "Actions"
       },
       "revoke": "Revoke"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Review admin actions and run retention purge.",
+      "loading": "Loading audit events…",
+      "empty": "No audit events match the current filters.",
+      "emptyHelp": "Audit events are recorded when an admin revokes sessions or changes roles. Adjust filters or wait for new activity.",
+      "error": "We could not load the audit events. {message}",
+      "retry": "Retry",
+      "filterApplied": "Filters applied.",
+      "validationError": "Enter valid filter values.",
+      "filters": {
+        "title": "Filters",
+        "actorIdLabel": "Actor ID",
+        "actorIdPlaceholder": "Filter by actor (UUID)",
+        "targetIdLabel": "Target ID",
+        "targetIdPlaceholder": "Filter by target (UUID)",
+        "actionLabel": "Action",
+        "actionAll": "All actions",
+        "sinceLabel": "Since",
+        "untilLabel": "Until",
+        "apply": "Apply filters",
+        "reset": "Reset filters",
+        "validationError": "Enter at least one filter value (actor, target, action, or date range)."
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {page} of {total}",
+        "first": "First",
+        "last": "Last"
+      },
+      "columns": {
+        "createdAt": "When",
+        "action": "Action",
+        "actorId": "Actor",
+        "targetId": "Target",
+        "ipAddress": "IP (hash, first 8 chars)",
+        "userAgent": "User agent",
+        "metadata": "Metadata"
+      },
+      "retention": {
+        "title": "Retention purge",
+        "description": "Preview how many rows match a given age threshold, then run a real purge.",
+        "olderThanDaysLabel": "Older than (days)",
+        "olderThanDaysPlaceholder": "e.g. 90",
+        "validationError": "Enter a positive integer for the age threshold (in days).",
+        "dryRun": "Dry-run purge",
+        "dryRunning": "Running dry-run…",
+        "dryRunResult": "Dry-run: {matched} row(s) would be deleted.",
+        "dryRunResultZero": "Dry-run: no rows match this threshold.",
+        "purge": "Purge now",
+        "purging": "Purging…",
+        "purgeConfirm": "Delete {matched} audit event(s) older than {days} day(s)? This action cannot be undone.",
+        "purgeResult": "Purged {deleted} row(s).",
+        "purgeResultZero": "Purge committed — no rows matched.",
+        "error": "Retention action failed. {message}"
+      },
+      "actions": {
+        "REVOKE_SESSION": "Revoke session",
+        "REVOKE_ALL_SESSIONS": "Revoke all sessions",
+        "CHANGE_ROLE": "Change role"
+      }
     }
   }
 }

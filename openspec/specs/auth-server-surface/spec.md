@@ -140,7 +140,75 @@ The `buildAuthConfig()` output MUST set `pages.signIn` to the locale-aware facto
 - WHEN called
 - THEN 403
 
+### Requirement: Session LastActiveAt Update
+
+The system MUST update `Session.lastActiveAt` to the current timestamp on each successful `validateSession(sessionToken)` invocation where the existing `lastActiveAt` is NULL OR was last written more than 60 seconds ago. The update MUST be coalesced (one write per session per 60s window) to bound write amplification on the session-validation hot path. The system MUST use this `lastActiveAt` field for ordering admin session lists (`GET /admin/sessions?userId=<uuid>`) — the previous proxy `expires DESC` is deprecated.
+
+#### Scenario: Update on stale lastActiveAt
+
+- GIVEN a session with `lastActiveAt` older than 60 seconds
+- WHEN `validateSession(sessionToken)` succeeds
+- THEN `lastActiveAt` is written to the current timestamp
+- AND no other session fields change
+
+#### Scenario: Coalesce within 60s window
+
+- GIVEN a session with `lastActiveAt` set 10 seconds ago
+- WHEN `validateSession` succeeds a second time
+- THEN no write to `lastActiveAt` occurs
+- AND the response is identical to the first call
+
+#### Scenario: Self-validation by admin
+
+- GIVEN an admin whose own session has `lastActiveAt` older than 60 seconds
+- WHEN `validateSession` succeeds on that session
+- THEN the coalesce + write behavior applies identically
+
+#### Scenario: Skip when lastActiveAt is fresh
+
+- GIVEN a session with `lastActiveAt` set 5 seconds ago
+- WHEN `validateSession` succeeds
+- THEN no write to `lastActiveAt` occurs
+
+#### Scenario: Admin list ordered by lastActiveAt DESC
+
+- GIVEN an admin and a user with multiple sessions (some with `lastActiveAt`, some without)
+- WHEN the admin calls `GET /admin/sessions?userId=<uuid>`
+- THEN the array is sorted DESC by `lastActiveAt`
+- AND sessions with `lastActiveAt IS NULL` sort last
+
+### Requirement: Session List Projection
+
+The `GET /admin/sessions?userId=<uuid>` response MUST return each session as a JSON object with the following fields: `id` (string UUID), `userId` (string UUID), `createdAt` (ISO 8601 timestamp), `lastActiveAt` (ISO 8601 timestamp OR null), `userAgent` (string, max 512 chars OR null), `ipAddress` (string, max 64 chars HMAC hash OR null). The previous projection `{ id, userId, sessionToken, expires }` is deprecated — the controller no longer exposes `sessionToken` to admin clients, and the response uses the spec-literal shape.
+
+#### Scenario: Spec-literal projection
+
+- GIVEN an admin and a user with active sessions
+- WHEN the admin calls `GET /admin/sessions?userId=<uuid>`
+- THEN 200 is returned with an array of objects containing exactly the 6 spec-literal fields
+- AND `sessionToken` is NOT present in any object
+
+#### Scenario: Empty list
+
+- GIVEN an admin and a user with no sessions
+- WHEN the admin calls `GET /admin/sessions?userId=<uuid>`
+- THEN 200 is returned with `[]`
+
+#### Scenario: User-agent truncated to 512 chars
+
+- GIVEN a session with a `userAgent` longer than 512 characters
+- WHEN the admin lists sessions
+- THEN the response's `userAgent` is truncated to 512 characters
+
+#### Scenario: IP rendered as HMAC hex
+
+- GIVEN a session with a captured `ipAddress`
+- WHEN the admin lists sessions
+- THEN the response's `ipAddress` is the 64-char lowercase HMAC-SHA256 hex digest
+- AND the raw IP is NOT present in the response
+
 ## Provenance
 
 Introduced by: module-2-public-auth, 2026-07-17 (slice-3 baseline).
 Extended by: module-3-superadmin, 2026-07-18 (admin session mgmt).
+Extended by: module-4-privacy, 2026-07-19 (2 NEW requirements: Session LastActiveAt Update + Session List Projection).

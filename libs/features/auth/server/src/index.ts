@@ -28,6 +28,29 @@ export { RbacService } from "./rbac-service.js";
 export type { Action, Actor, Resource, ResourceKind, Role } from "./rbac-service.js";
 export { PasswordResetService } from "./password-reset.service.js";
 export type { PasswordResetResult } from "./password-reset.service.js";
+// M4 (module-4-privacy) — audit-slice read/write primitives
+// (per design D3 + D4). The AuditService is the single seam for the
+// audit endpoints (GET /admin/audit, POST /admin/audit/purge) AND
+// the audit-retention cron (task 2.10 GREEN). Re-exported here so
+// the NestJS AdminModule + AdminController can construct / mock it
+// without reaching into the slice's internal layout.
+export {
+  AuditService,
+  type AuditServiceClient,
+  type AuditEventRow,
+  type FindManyFilters,
+} from "./audit.service.js";
+export { insertAuditEvent, hashIpForAudit, type AdminAuditAction } from "./audit.service.js";
+// M4 (module-4-privacy) — audit-retention cron handler (D2).
+// The handler logic is decorator-free so the auth slice can unit-
+// test it directly (Vite SSR + libs tsconfig don't enable
+// `experimentalDecorators`). The cron schedule that calls the
+// handler lives in `apps/api/src/modules/auth/audit-retention.schedule.ts`
+// where the `@nestjs/schedule#Cron` decorator lives (the apps/api
+// tsconfig enables `experimentalDecorators`). The admin module
+// registers the schedule behind the `AUDIT_RETENTION_ENABLED`
+// env gate; the handler itself is a no-op when the gate is false.
+export { purgeExpiredAuditEvents } from "./audit-retention.cron.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";

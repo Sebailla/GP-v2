@@ -8,7 +8,7 @@ import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-se
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import type { AuthEventDispatcher } from "./events.js";
-import { insertAuditEvent } from "./audit.service.js";
+import { insertAuditEvent, hashIpForAudit } from "./audit.service.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -67,6 +67,46 @@ export type CurrentUser = {
   role: string;
 };
 
+/**
+ * M4 (module-4-privacy) — coalesce window for `Session.lastActiveAt`
+ * writes on `getCurrentUser` (D1). The DB-level conditional UPDATE
+ * only writes when `lastActiveAt IS NULL OR lastActiveAt < now - WINDOW`.
+ * 60s is the boundary the spec mandates (`audit-log-ui` "Session
+ * LastActiveAt Update" scenario); pinning the constant here keeps the
+ * TDD contract and the production code in lock-step.
+ */
+const LAST_ACTIVE_AT_COALESCE_WINDOW_MS = 60_000;
+
+/**
+ * F3 fix (4R-driven correction): circuit breaker for the
+ * `lastActiveAt` coalesce write on `getCurrentUser`.
+ *
+ * Every authenticated request hits `getCurrentUser`, which after
+ * validation runs a coalesce UPDATE on the session row. The 60s
+ * coalesce window absorbs most writes, but the DB still has to
+ * evaluate the `where OR [lastActiveAt IS NULL, lastActiveAt < cutoff]`
+ * predicate on every request. For users with N concurrent sessions,
+ * that's N evaluations/min.
+ *
+ * Most real users have ≤ 5 active sessions. A user with >10 active
+ * sessions is almost always a bot, a scraper, or a session-replay
+ * attack — the write-amplification on the coalesce path is wasted
+ * I/O on adversarial traffic.
+ *
+ * The breaker: when the user's active-session count strictly exceeds
+ * `LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS`, skip the coalesce write
+ * entirely. The validation result is unchanged — the breaker is a
+ * side-effect gate, not a correctness gate. The threshold (10) is
+ * conservative: a human with 5 devices + 2 standby sessions is still
+ * under the breaker; an attacker who has replayed 10+ stolen cookies
+ * trips it.
+ *
+ * Logging is intentionally DEBUG-level (not WARN/ERROR) so a
+ * tripped breaker does not spam production logs — the trip is
+ * expected behavior for adversarial traffic, not an incident.
+ */
+const LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS = 10;
+
 export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
@@ -105,6 +145,18 @@ export class SessionService {
    * session whose expiry is exactly `now` is considered expired.
    * This avoids the race where a request that arrives at `t == expires`
    * is served a stale session.
+   *
+   * M4 (module-4-privacy) — Session.lastActiveAt coalesce (D1):
+   * after the validation steps pass, the service writes
+   * `lastActiveAt = now` to the session row, but ONLY if the row is
+   * either (a) fresh (`lastActiveAt IS NULL`) or (b) older than the
+   * 60s coalesce window. The DB-level conditional UPDATE bounds
+   * write amplification at 1 update / 60s / session across N
+   * concurrent workers — see `openspec/changes/module-4-privacy/
+   * design.md` §2 D1 + §3.2. The coalesce UPDATE returning 0 rows
+   * (another worker won the race, or the row was just written
+   * within the window) is treated as a successful no-op; the
+   * CurrentUser projection is returned unchanged regardless.
    */
   async getCurrentUser(sessionToken: string): Promise<CurrentUser> {
     // Slice 3 batch 6: routes the session read through the
@@ -127,6 +179,43 @@ export class SessionService {
       // orphaned — same observable failure as a missing token.
       throw new AuthError("INVALID_SESSION");
     }
+    // M4 D1 coalesce write — fires AFTER the validation steps so a
+    // missing/expired/orphaned session never produces a write. The
+    // 60s cutoff is the coalesce window: a write within 60s of the
+    // previous write is a no-op (Prisma returns 0 rows affected, the
+    // service treats it as a successful coalesce).
+    //
+    // F3 fix (4R-driven correction): the coalesce write is GATED by
+    // the circuit breaker — when the user has more than
+    // LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS active sessions, the
+    // write is skipped (the validation result is preserved). The
+    // active-session count is read via the SessionRepository port
+    // (same dependency the controller's GET /auth/sessions uses);
+    // keeping it on the port keeps the unit test surface tight and
+    // avoids reaching for `prisma.session` directly (boundary rule).
+    const now = new Date();
+    const activeSessions = await this.sessionRepo.listActive(session.userId);
+    if (activeSessions.length > LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS) {
+      // Circuit breaker tripped — adversarial traffic profile.
+      // The validation result is returned unchanged; only the
+      // coalesce side-effect is suppressed.
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      };
+    }
+    const cutoff = new Date(now.getTime() - LAST_ACTIVE_AT_COALESCE_WINDOW_MS);
+    await this.prisma.session.update({
+      where: {
+        id: session.id,
+        OR: [
+          { lastActiveAt: null },
+          { lastActiveAt: { lt: cutoff } },
+        ],
+      },
+      data: { lastActiveAt: now },
+    });
     return {
       id: user.id,
       email: user.email,
@@ -229,38 +318,58 @@ export class SessionService {
   // ---------------------------------------------------------------------------
 
   /**
-   * List every session owned by the user, sorted DESC by the
-   * `lastActiveAt` proxy. Per spec "Session List by User", this is
-   * the read path behind `GET /admin/sessions?userId=...`.
+   * List every session owned by the user, sorted DESC by
+   * `lastActiveAt` (NULLs last per the spec's "Session List by User"
+   * "Sort `lastActiveAt IS NULL` last" scenario). Per spec "Session
+   * List Projection", the projection is the spec-literal 6-field
+   * shape: `{ id, userId, createdAt, lastActiveAt, userAgent,
+   * ipAddress }`. The `sessionToken` field is INTENTIONALLY absent
+   * — the cookie carries it; admin clients never see it (security
+   * boundary per design D7).
    *
-   * Deviation (PR #2 known follow-up, M4 scope): the Session model
-   * has no `lastActiveAt` column yet. The GREEN implementation sorts
-   * on `expires DESC` — the closest available proxy. When the M4
-   * last-active column lands, this query swaps to that column; the
-   * public contract (sorted DESC, same projection shape) does not
-   * change. The TS return shape intentionally mirrors the existing
-   * `listActiveSessions` projection (`SessionRecord[]`) so the
-   * controller layer can project to the spec's response shape
-   * (id / userId / createdAt / lastActiveAt / userAgent / ipAddress)
-   * without re-receiving the row from Prisma.
+   * The controller (PR #2) projects this list to the spec-literal
+   * JSON response. PR #1 locks the service surface so the
+   * controller has a stable shape.
+   *
+   * JD-2 fix (JD-driven correction round 1): `ipAddress` is
+   * returned as the HMAC-SHA256 hex digest (NOT the raw IP) — the
+   * `auth-server-surface` spec's "IP rendered as HMAC hex"
+   * scenario demands the projection never echo a raw PII IP back
+   * to an admin client. The same HMAC secret (`env.JWT_SECRET`)
+   * backs `insertAuditEvent`'s audit row insertion; re-derivation
+   * is `createHmac('sha256', env.JWT_SECRET).update(rawIp).digest('hex')`.
+   * Null ipAddress maps to null (no hash on null).
    */
   async list(userId: string): Promise<
     ReadonlyArray<{
       readonly id: string;
-      readonly sessionToken: string;
       readonly userId: string;
-      readonly expires: Date;
+      readonly createdAt: Date | null;
+      readonly lastActiveAt: Date | null;
+      readonly userAgent: string | null;
+      readonly ipAddress: string | null;
     }>
   > {
     const rows = await this.prisma.session.findMany({
       where: { userId },
-      orderBy: { expires: "desc" },
+      orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
     });
     return rows.map((row) => ({
       id: row.id,
-      sessionToken: row.sessionToken,
       userId: row.userId,
-      expires: row.expires,
+      createdAt: row.createdAt ?? null,
+      lastActiveAt: row.lastActiveAt ?? null,
+      userAgent: row.userAgent ?? null,
+      // JD-2 fix: HMAC the IP before projection so the
+      // `GET /admin/sessions` endpoint can never echo raw PII.
+      // The raw IP is captured at the controller (design D3)
+      // and persists in the DB column for forensic / audit-row
+      // needs (already HMAC'd on the audit row insert path).
+      // The Prisma column is `String?`; the type at this surface
+      // can be `string | null | undefined` depending on test
+      // mocks. Anything missing/null maps to null; a real IP maps
+      // to its HMAC hex.
+      ipAddress: hashIpForAudit(row.ipAddress ?? null),
     }));
   }
 

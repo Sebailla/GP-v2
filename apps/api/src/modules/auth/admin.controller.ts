@@ -22,14 +22,17 @@ import { env } from "@core/config";
 import {
   RbacService,
   SessionService,
+  AuditService,
   type CurrentUser,
   LastAdminError,
   UserNotFoundError,
 } from "@features/auth";
 import {
   ChangeRoleBodySchema,
+  ListAuditQuerySchema,
   ListSessionsQuerySchema,
   ListUsersQuerySchema,
+  PurgeAuditBodySchema,
 } from "@features/auth/shared/schemas";
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
@@ -106,6 +109,7 @@ export class AdminController {
   constructor(
     private readonly rbacService: RbacService,
     private readonly sessionService: SessionService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -204,16 +208,26 @@ export class AdminController {
     ReadonlyArray<{
       readonly id: string;
       readonly userId: string;
-      readonly sessionToken: string;
-      readonly expires: Date;
+      readonly createdAt: Date | null;
+      readonly lastActiveAt: Date | null;
+      readonly userAgent: string | null;
+      readonly ipAddress: string | null;
     }>
   > {
+    // M4 (module-4-privacy) — the controller projection is the
+    // spec-literal 6-field shape per design D7 + the
+    // auth-server-surface spec's "Session List Projection"
+    // requirement. `sessionToken` is INTENTIONALLY absent: the cookie
+    // carries it; admin clients never see it. The service's `list()`
+    // returns the same shape so the controller is a pass-through.
     const rows = await this.sessionService.list(query.userId);
     return rows.map((row) => ({
       id: row.id,
       userId: row.userId,
-      sessionToken: row.sessionToken,
-      expires: row.expires,
+      createdAt: row.createdAt,
+      lastActiveAt: row.lastActiveAt,
+      userAgent: row.userAgent,
+      ipAddress: row.ipAddress,
     }));
   }
 
@@ -339,6 +353,153 @@ export class AdminController {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // M4 AUDIT SURFACE (module-4-privacy — task 2.8 GREEN)
+  //
+  // Per `openspec/changes/module-4-privacy/design.md` §2 D3 + D4 +
+  // `openspec/specs/audit-log-ui/spec.md` the controller exposes two
+  // new endpoints under `/admin/audit`:
+  //
+  //   GET  /admin/audit  — filtered, paginated read of `AdminAuditEvent`
+  //                        rows sorted DESC by `createdAt`. Filters:
+  //                        actorId / targetId / action / since / until;
+  //                        pagination via limit (≤ 200, default 50) +
+  //                        offset (default 0). The query is parsed by
+  //                        `ListAuditQuerySchema` (ZodValidationPipe);
+  //                        invalid filters surface as 400 before any
+  //                        AuditService call.
+  //
+  //   POST /admin/audit/purge — dual-mode retention purge. Body:
+  //                              `{ dryRun: bool, olderThanDays: int ≥ 1 }`.
+  //                              dry-run routes to `countOlderThan`
+  //                              (returns `{ matched, wouldDelete }`).
+  //                              Real purge routes to `purgeOlderThan`
+  //                              (returns `{ matched, deleted }`).
+  //                              Single endpoint per D4 — both modes
+  //                              share the same auth / rate-limit
+  //                              envelope and the same ADMIN_RATE_LIMIT
+  //                              bucket.
+  //
+  // Both endpoints are guarded by the same JwtAuthGuard + AdminGuard +
+  // RateLimitGuard chain as the M3 endpoints (no new guard surface).
+  // ---------------------------------------------------------------------------
+
+  /**
+   * GET /admin/audit — list `AdminAuditEvent` rows with optional
+   * filters. Returns the spec-literal 8-field projection per the
+   * `audit-log-ui` spec "List Audit Events" requirement; the
+   * controller is a pass-through (no reshaping — the service emits
+   * the canonical shape).
+   *
+   * IP redaction (D6 + threat matrix §7 PII row): the
+   * `ipAddress` column on `AdminAuditEvent` already stores the
+   * HMAC-SHA256 hex digest (per `hashIpForAudit` in
+   * `audit.service.ts`, M3 task 2.5 REFACTOR). The raw IP never
+   * lands in the response — even for admins. Pino `[ip]` redaction
+   * (per `pattern/pino-bracket-notation-redaction`) is applied at
+   * the LOG layer for any future `logger.info` call carrying the
+   * admin actor's IP for forensic purposes.
+   */
+  @Get("/audit")
+  @RateLimit(ADMIN_RATE_LIMIT)
+  async listAuditEvents(
+    @Query(new ZodValidationPipe(ListAuditQuerySchema))
+    query: {
+      actorId?: string;
+      targetId?: string;
+      action?: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+      since?: Date;
+      until?: Date;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<
+    ReadonlyArray<{
+      readonly id: string;
+      readonly actorId: string;
+      readonly targetId: string;
+      readonly action: "REVOKE_SESSION" | "REVOKE_ALL_SESSIONS" | "CHANGE_ROLE";
+      readonly createdAt: Date;
+      readonly metadata: unknown;
+      readonly ipAddress: string | null;
+      readonly userAgent: string | null;
+    }>
+  > {
+    const rows = await this.auditService.findMany({
+      actorId: query.actorId,
+      targetId: query.targetId,
+      action: query.action,
+      since: query.since,
+      until: query.until,
+      limit: query.limit,
+      offset: query.offset,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      actorId: row.actorId,
+      targetId: row.targetId,
+      action: row.action,
+      createdAt: row.createdAt,
+      metadata: row.metadata,
+      ipAddress: row.ipAddress,
+      userAgent: row.userAgent,
+    }));
+  }
+
+  /**
+   * POST /admin/audit/purge — dual-mode retention purge (D4).
+   *
+   *   dryRun=true  → { matched, wouldDelete }  (no rows deleted)
+   *   dryRun=false → { matched, deleted }      (atomic deleteMany)
+   *
+   * Both modes call `AuditService` — the controller's job is
+   * dispatch + response-shape, NOT the data path. `countOlderThan`
+   * and `purgeOlderThan` are the two methods the spec pins (per
+   * `audit-log-ui` "Purge Audit Events (Dry-run)" + "Purge Audit
+   * Events (Real)" requirements).
+   *
+   * Idempotency (spec): a second `purgeOlderThan` with the same
+   * `olderThanDays` returns 0 deleted. The atomicity property is
+   * a single `deleteMany` call regardless of match count (Postgres
+   * MVCC all-or-none to readers — per spec's "Atomic deletion"
+   * scenario).
+   */
+  @Post("/audit/purge")
+  @HttpCode(200)
+  @RateLimit(ADMIN_RATE_LIMIT)
+  async purgeAuditEvents(
+    @Body(new ZodValidationPipe(PurgeAuditBodySchema))
+    body: { dryRun: boolean; olderThanDays: number },
+    @Req() request: Request & { user: CurrentUser },
+  ): Promise<{ matched: number; wouldDelete: number } | { matched: number; deleted: number }> {
+    if (body.dryRun) {
+      const matched = await this.auditService.countOlderThan(body.olderThanDays);
+      // Pino `[ip]` redaction: the admin actor's IP carries through
+      // to the log line so an operator can correlate the purge with
+      // the actor's session, but the pino redact path substitutes
+      // `[REDACTED]` for the raw IP at serialization time.
+      this.logger.info(
+        {
+          admin: { action: "AUDIT_PURGE_DRY_RUN", olderThanDays: body.olderThanDays, matched },
+          ip: request.ip ?? "[REDACTED]",
+          user: { id: request.user.id },
+        },
+        "[admin] audit purge dry-run",
+      );
+      return { matched, wouldDelete: matched };
+    }
+    const deleted = await this.auditService.purgeOlderThan(body.olderThanDays);
+    this.logger.info(
+      {
+        admin: { action: "AUDIT_PURGE", olderThanDays: body.olderThanDays, deleted },
+        ip: request.ip ?? "[REDACTED]",
+        user: { id: request.user.id },
+      },
+      "[admin] audit purge committed",
+    );
+    return { matched: deleted, deleted };
+  }
+
   /**
    * Capture `req.ip` (respects Express `trust proxy` config).
    * Returns `null` when the IP is unavailable — the audit row
@@ -392,4 +553,5 @@ export class AdminController {
 const _ServiceAnchor: ReadonlyArray<unknown> = [
   RbacService,
   SessionService,
+  AuditService,
 ] as const;

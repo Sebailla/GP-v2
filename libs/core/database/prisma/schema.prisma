@@ -85,6 +85,15 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  // M4 (module-4-privacy) — session creation timestamp. Required
+  // for the spec-literal 6-field list projection (per design D7 +
+  // the auth-server-surface spec's "Session List Projection"
+  // requirement). Nullable so the column is additive: every
+  // pre-M4 session row has NULL and stays readable. The schema
+  // `default(now())` populates the column on every NEW session
+  // insert going forward; pre-existing rows are NULL until
+  // PR #2 wires a backfill (the spec accepts the NULL).
+  createdAt    DateTime? @default(now())
   // M3 (module-3-superadmin) — nullable JSON column. The `?` is
   // non-negotiable: every session row predates this column and must
   // remain readable. The column is admin-side metadata (e.g. last
@@ -92,9 +101,30 @@ model Session {
   // auth path. See `openspec/changes/module-3-superadmin/design.md`
   // §4 for the migration story + §5 for the data shape contract.
   metadata     Json?
+  // M4 (module-4-privacy) — last-active timestamp. Nullable so the
+  // column is additive (no backfill required): every session row
+  // predates the column and the coalesce-write pattern in
+  // `SessionService.getCurrentUser` (per design D1) treats
+  // `lastActiveAt IS NULL` as "never seen yet, write now". The
+  // `@@index` below keeps the `list()` ORDER BY `lastActiveAt DESC`
+  // and the coalesce UPDATE off a seq-scan path. See
+  // `openspec/changes/module-4-privacy/design.md` §2 (D1) + §2 (D7).
+  lastActiveAt DateTime?
+  // M4 (module-4-privacy) — UA + IP captured at the controller
+  // boundary (per design D7 + the auth-server-surface spec's "Session
+  // List Projection" requirement). Same shape as the audit log
+  // columns: UA ≤ 512 chars, IP ≤ 45 chars (IPv6-mapped IPv4 max
+  // length). Both nullable so the columns are additive — every
+  // pre-M4 session row has NULL for both. The IP stored here is the
+  // RAW IP; HMAC conversion for admin responses happens at the
+  // controller projection boundary (per `pattern/pino-bracket-notation-
+  // redaction`, log lines carrying it are redacted at the LOG layer).
+  userAgent  String? @db.VarChar(512)
+  ipAddress  String? @db.VarChar(45)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([lastActiveAt])
   @@map("sessions")
 }
 

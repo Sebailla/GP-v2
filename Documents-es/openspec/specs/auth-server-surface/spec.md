@@ -140,7 +140,75 @@ La salida de `buildAuthConfig()` DEBE setear `pages.signIn` al factory conscient
 - WHEN se invoca
 - THEN retorna 403
 
+### Requirement: Actualización de lastActiveAt de la sesión
+
+El sistema DEBE actualizar `Session.lastActiveAt` al timestamp actual en cada invocación exitosa de `validateSession(sessionToken)` cuando el `lastActiveAt` existente es NULL O fue escrito por última vez hace más de 60 segundos. La actualización DEBE estar coalescida (una escritura por sesión por ventana de 60s) para acotar la amplificación de escrituras en el hot path de validación de sesión. El sistema DEBE usar este campo `lastActiveAt` para ordenar los listados de sesiones de admin (`GET /admin/sessions?userId=<uuid>`) — el proxy anterior `expires DESC` está deprecado.
+
+#### Scenario: Actualización con lastActiveAt obsoleto
+
+- GIVEN una sesión con `lastActiveAt` con más de 60 segundos de antigüedad
+- WHEN `validateSession(sessionToken)` tiene éxito
+- THEN `lastActiveAt` se escribe con el timestamp actual
+- AND ningún otro campo de la sesión cambia
+
+#### Scenario: Coalesce dentro de la ventana de 60s
+
+- GIVEN una sesión con `lastActiveAt` seteado hace 10 segundos
+- WHEN `validateSession` tiene éxito una segunda vez
+- THEN no ocurre ninguna escritura sobre `lastActiveAt`
+- AND la respuesta es idéntica a la primera llamada
+
+#### Scenario: Auto-validación por admin
+
+- GIVEN un admin cuya propia sesión tiene `lastActiveAt` con más de 60 segundos de antigüedad
+- WHEN `validateSession` tiene éxito sobre esa sesión
+- THEN el comportamiento de coalesce + escritura aplica idénticamente
+
+#### Scenario: Skip cuando lastActiveAt es reciente
+
+- GIVEN una sesión con `lastActiveAt` seteado hace 5 segundos
+- WHEN `validateSession` tiene éxito
+- THEN no ocurre ninguna escritura sobre `lastActiveAt`
+
+#### Scenario: Listado admin ordenado por lastActiveAt DESC
+
+- GIVEN un admin y un usuario con múltiples sesiones (algunas con `lastActiveAt`, otras sin)
+- WHEN el admin invoca `GET /admin/sessions?userId=<uuid>`
+- THEN el array se ordena DESC por `lastActiveAt`
+- AND las sesiones con `lastActiveAt IS NULL` se ordenan al final
+
+### Requirement: Proyección del listado de sesiones
+
+La respuesta de `GET /admin/sessions?userId=<uuid>` DEBE retornar cada sesión como objeto JSON con los siguientes campos: `id` (string UUID), `userId` (string UUID), `createdAt` (timestamp ISO 8601), `lastActiveAt` (timestamp ISO 8601 OR null), `userAgent` (string, máximo 512 chars OR null), `ipAddress` (string, máximo 64 chars HMAC hash OR null). La proyección previa `{ id, userId, sessionToken, expires }` está deprecada — el controller ya no expone `sessionToken` a clientes admin, y la respuesta usa la forma literal de la spec.
+
+#### Scenario: Proyección literal de la spec
+
+- GIVEN un admin y un usuario con sesiones activas
+- WHEN el admin invoca `GET /admin/sessions?userId=<uuid>`
+- THEN retorna 200 con un array de objetos conteniendo exactamente los 6 campos literales de la spec
+- AND `sessionToken` NO está presente en ningún objeto
+
+#### Scenario: Listado vacío
+
+- GIVEN un admin y un usuario sin sesiones
+- WHEN el admin invoca `GET /admin/sessions?userId=<uuid>`
+- THEN retorna 200 con `[]`
+
+#### Scenario: User-agent truncado a 512 chars
+
+- GIVEN una sesión con `userAgent` de más de 512 caracteres
+- WHEN el admin lista las sesiones
+- THEN el `userAgent` de la respuesta se trunca a 512 caracteres
+
+#### Scenario: IP renderizada como hex HMAC
+
+- GIVEN una sesión con `ipAddress` capturado
+- WHEN el admin lista las sesiones
+- THEN el `ipAddress` de la respuesta es el digest hex HMAC-SHA256 de 64 chars en minúsculas
+- AND la IP raw NO está presente en la respuesta
+
 ## Procedencia
 
 Introducido por: module-2-public-auth, 2026-07-17 (línea base slice-3).
 Extendido por: module-3-superadmin, 2026-07-18 (gestión sesiones admin).
+Extendido por: module-4-privacy, 2026-07-19 (2 NUEVOS requisitos: Actualización de lastActiveAt de la sesión + Proyección del listado de sesiones).

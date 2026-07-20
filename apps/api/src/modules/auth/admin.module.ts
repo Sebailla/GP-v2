@@ -2,11 +2,13 @@ import { Module } from "@nestjs/common";
 
 import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
+import { env } from "@core/config";
 import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 
-import { RbacService, SessionService } from "@features/auth";
+import { RbacService, SessionService, AuditService } from "@features/auth";
 
 import { AdminController } from "./admin.controller.js";
+import { AuditRetentionSchedule } from "./audit-retention.schedule.js";
 import { AdminGuard } from "../../shared/guards/admin.guard.js";
 import { RateLimitGuard, RATE_LIMITER_TOKEN } from "../../shared/guards/rate-limit.guard.js";
 
@@ -60,6 +62,30 @@ const dispatcher = createInMemoryDispatcher();
         ),
     },
     {
+      // M4 (module-4-privacy) — AuditService is the read/write
+      // primitive layer for `AdminAuditEvent` (D3 + D4). Wired as a
+      // factory because the service's constructor takes an optional
+      // prisma-shaped dependency (defaulting to the workspace
+      // singleton — see `audit.service.ts`).
+      provide: AuditService,
+      useFactory: () => new AuditService(defaultPrisma),
+    },
+    {
+      // M4 (module-4-privacy) — AuditRetentionSchedule (D2). The cron
+      // class lives in apps/api (not libs) because the @Cron
+      // decorator needs the apps/api tsconfig's
+      // `experimentalDecorators: true` flag for the Vite SSR test
+      // transform. The handler is a no-op when
+      // `AUDIT_RETENTION_ENABLED=false` (the dev/test default), so
+      // registering the provider unconditionally keeps the DI
+      // container clean and lets the integration test exercise the
+      // handler through NestJS DI.
+      provide: AuditRetentionSchedule,
+      useFactory: (auditService: AuditService) =>
+        new AuditRetentionSchedule(auditService),
+      inject: [AuditService],
+    },
+    {
       provide: RATE_LIMITER_TOKEN,
       useFactory: (): RateLimiter => {
         const url = process.env["UPSTASH_REDIS_REST_URL"];
@@ -73,6 +99,26 @@ const dispatcher = createInMemoryDispatcher();
     AdminGuard,
     RateLimitGuard,
   ],
-  exports: [AdminGuard, RateLimitGuard, RATE_LIMITER_TOKEN, RbacService, SessionService],
+  // M4 (module-4-privacy) — AuditRetentionSchedule is exported so its
+  // registration can be inspected by the integration test
+  // (test/audit-retention.cron.test.ts). The actual cron schedule
+  // still gates on `env.AUDIT_RETENTION_ENABLED` at runtime — the
+  // cron is registered but the handler is a no-op when disabled.
+  exports: [
+    AdminGuard,
+    RateLimitGuard,
+    RATE_LIMITER_TOKEN,
+    RbacService,
+    SessionService,
+    AuditService,
+    AuditRetentionSchedule,
+  ],
 })
 export class AdminModule {}
+
+// Note: `env.AUDIT_RETENTION_ENABLED` is read at module construction
+// time by the cron handler — the provider registration above is
+// unconditional so the cron class is always resolvable, but the
+// handler is a no-op when the env gate is false. Operators flip the
+// env var to enable the schedule; in dev/test it stays false.
+void env;
