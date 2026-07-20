@@ -8,7 +8,7 @@ Defines the admin audit-log surface: filtered, paginated reads of `AdminAuditEve
 
 ### Requirement: List Audit Events
 
-The system MUST expose `GET /admin/audit` returning a JSON array of `AdminAuditEvent` rows sorted by `createdAt DESC`. Each row includes `id`, `actorId`, `targetId`, `action` (3 enum values), `createdAt`, `metadata`, `ipAddress` (HMAC-SHA256 hex OR null), `userAgent` (≤ 512 chars OR null). Filters: `actorId`, `targetId`, `action`, `since`, `until`, `limit` (default 50, max 200), `offset` (default 0). Guarded by `role=ADMIN`.
+The system MUST expose `GET /admin/audit` returning a JSON array of `AdminAuditEvent` rows sorted by `createdAt DESC`. Each row includes `id`, `actorId`, `targetId`, `action` (3 enum values), `createdAt`, `metadata`, `ipAddress` (HMAC-SHA256 hex OR null), `userAgent` (≤ 512 chars OR null). Filters: `actorId`, `targetId`, `action`, `since`, `until`, `limit` (default 50, server-side capped at 200 via silent clamp), `offset` (default 0). Guarded by `role=ADMIN`. Values of `?limit > 200` are accepted by Zod but the controller clamps the effective row count to 200 rather than rejecting with 400; `?limit < 1` remains a Zod-level 400 rejection.
 
 #### Scenario: Default sorted DESC
 
@@ -64,11 +64,35 @@ The system MUST expose `GET /admin/audit` returning a JSON array of `AdminAuditE
 - WHEN `GET /admin/audit` (no `?offset=`) runs
 - THEN 200 returns starting from offset 0
 
-#### Scenario: Max limit clamped
+#### Scenario: Valid limit in range
+
+- GIVEN 100 rows
+- WHEN `?limit=100` runs
+- THEN 200 returns 100 rows
+
+#### Scenario: Silent clamp at 200 (bound)
 
 - GIVEN an admin
 - WHEN `?limit=500` runs
-- THEN effective limit is 200
+- THEN 200 returns at most 200 rows (NOT 400)
+
+#### Scenario: Silent clamp at 200 (above bound)
+
+- GIVEN an admin
+- WHEN `?limit=1000` runs
+- THEN 200 returns at most 200 rows
+
+#### Scenario: Invalid limit zero
+
+- GIVEN an admin
+- WHEN `?limit=0` runs
+- THEN 400 returns a Zod error
+
+#### Scenario: Invalid limit non-integer
+
+- GIVEN an admin
+- WHEN `?limit=abc` runs
+- THEN 400 returns a Zod error
 
 ### Requirement: Purge Audit Events (Dry-run)
 
@@ -169,3 +193,4 @@ The system MUST read `AUDIT_RETENTION_DAYS` from the env contract. Default `90`.
 ## Provenance
 
 Introduced by: module-4-privacy, 2026-07-19. Foundation: module-3-superadmin, 2026-07-18 (`AdminAuditEvent` table + `insertAuditEvent` + `hashIpForAudit`).
+Extended by: module-5-production-hardening, 2026-07-20 (1 modified requirement: List Audit Events max-limit clamp behavior — silent clamp at 200 instead of Zod 400 rejection).

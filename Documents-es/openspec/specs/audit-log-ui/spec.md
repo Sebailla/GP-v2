@@ -8,7 +8,7 @@ Define la superficie del log de auditoría de admin: lecturas filtradas y pagina
 
 ### Requirement: Listar eventos de auditoría
 
-El sistema DEBE exponer `GET /admin/audit` retornando un array JSON de filas `AdminAuditEvent` ordenadas por `createdAt DESC`. Cada fila incluye `id`, `actorId`, `targetId`, `action` (3 valores enum), `createdAt`, `metadata`, `ipAddress` (hex HMAC-SHA256 OR null), `userAgent` (≤ 512 chars OR null). Filtros: `actorId`, `targetId`, `action`, `since`, `until`, `limit` (default 50, max 200), `offset` (default 0). Protegido por `role=ADMIN`.
+El sistema DEBE exponer `GET /admin/audit` retornando un array JSON de filas `AdminAuditEvent` ordenadas por `createdAt DESC`. Cada fila incluye `id`, `actorId`, `targetId`, `action` (3 valores enum), `createdAt`, `metadata`, `ipAddress` (hex HMAC-SHA256 OR null), `userAgent` (≤ 512 chars OR null). Filtros: `actorId`, `targetId`, `action`, `since`, `until`, `limit` (default 50, tope del lado servidor en 200 vía clamp silencioso), `offset` (default 0). Protegido por `role=ADMIN`. Valores de `?limit > 200` son aceptados por Zod pero el controller clampea el conteo efectivo de filas a 200 en lugar de rechazar con 400; `?limit < 1` se mantiene como rechazo 400 por Zod.
 
 #### Scenario: Default ordenado DESC
 
@@ -64,11 +64,35 @@ El sistema DEBE exponer `GET /admin/audit` retornando un array JSON de filas `Ad
 - WHEN corre `GET /admin/audit` (sin `?offset=`)
 - THEN retorna 200 desde offset 0
 
-#### Scenario: Max limit clampeado
+#### Scenario: Límite válido en rango
+
+- GIVEN 100 filas
+- WHEN corre `?limit=100`
+- THEN retorna 200 con 100 filas
+
+#### Scenario: Clamp silencioso en 200 (borde)
 
 - GIVEN un admin
 - WHEN corre `?limit=500`
-- THEN el límite efectivo es 200
+- THEN retorna 200 con a lo sumo 200 filas (NO 400)
+
+#### Scenario: Clamp silencioso en 200 (sobre el borde)
+
+- GIVEN un admin
+- WHEN corre `?limit=1000`
+- THEN retorna 200 con a lo sumo 200 filas
+
+#### Scenario: Límite cero inválido
+
+- GIVEN un admin
+- WHEN corre `?limit=0`
+- THEN retorna 400 con error de Zod
+
+#### Scenario: Límite no-entero inválido
+
+- GIVEN un admin
+- WHEN corre `?limit=abc`
+- THEN retorna 400 con error de Zod
 
 ### Requirement: Purgar eventos de auditoría (Dry-run)
 
@@ -169,3 +193,4 @@ El sistema DEBE leer `AUDIT_RETENTION_DAYS` del contrato de env. Default `90`. `
 ## Procedencia
 
 Introducido por: module-4-privacy, 2026-07-19. Fundación: module-3-superadmin, 2026-07-18 (tabla `AdminAuditEvent` + `insertAuditEvent` + `hashIpForAudit`).
+Extendido por: module-5-production-hardening, 2026-07-20 (1 requisito modificado: Listar eventos de auditoría — comportamiento de clamp del max-limit; clamp silencioso en 200 en lugar de rechazo Zod 400).

@@ -36,7 +36,7 @@ Define las operaciones de rol admin expuestas por la API: listar usuarios, cambi
 
 ### Requirement: Cambiar rol de usuario
 
-`POST /admin/users/:userId/role` con body `{ role: "USER" | "ADMIN" }` DEBE actualizar el rol e insertar `AdminAuditEvent` con `action: "CHANGE_ROLE"`, `metadata: { from: <oldRole>, to: <newRole> }`. Auto-demotion permitida. Guardia `role=ADMIN`.
+`POST /admin/users/:userId/role` con body `{ role: "USER" | "ADMIN" }` DEBE actualizar el rol e insertar `AdminAuditEvent` con `action: "CHANGE_ROLE"`, `metadata: { from: <oldRole>, to: <newRole> }`. Auto-demotion permitida. Guardia `role=ADMIN`. La operación `changeRole` DEBE estar envuelta en un `$transaction` de Prisma corriendo al nivel de aislamiento `Serializable` (o transacción `SERIALIZABLE` a nivel de base de datos). El invariante del último admin (rechazar demoteo del único admin restante) DEBE re-verificarse DENTRO de la transacción, no antes, para que dos demoteos concurrentes no puedan pasar ambos el chequeo de conteo. Si la transacción falla con un error de serialización (Postgres SQLSTATE `40001`), el sistema DEBE reintentar hasta 3 veces con backoff exponencial. Tras 3 reintentos, el sistema DEBE retornar 503 Service Unavailable con un cuerpo de error localizado.
 
 #### Scenario: Promover
 
@@ -56,6 +56,12 @@ Define las operaciones de rol admin expuestas por la API: listar usuarios, cambi
 - WHEN admin setea su propio rol a `USER`
 - THEN retorna 200, rol actualizado, audit
 
+#### Scenario: Salvaguardia del último admin
+
+- GIVEN solo 1 admin en el sistema
+- WHEN cualquier caller intenta degradar a ese admin
+- THEN retorna 409 con `LastAdminError` y no ocurre cambio de rol
+
 #### Scenario: Rol inválido
 
 - GIVEN admin
@@ -73,6 +79,26 @@ Define las operaciones de rol admin expuestas por la API: listar usuarios, cambi
 - GIVEN admin + userId desconocido
 - WHEN se invoca
 - THEN retorna 404, sin audit
+
+#### Scenario: Demoteos concurrentes — exactamente uno tiene éxito
+
+- GIVEN 2 admins intentan degradarse mutuamente en simultáneo
+- WHEN ambas llamadas `POST /admin/users/:userId/role` se ejecutan en paralelo
+- THEN exactamente un demoteo tiene éxito (200 + fila de audit)
+- AND el otro retorna 409 (o 503 por reintentos agotados) sin estado parcial
+
+#### Scenario: Reintento exitoso ante error transitorio de serialización
+
+- GIVEN un SQLSTATE `40001` transitorio inyectado solo en el primer intento
+- WHEN corre `changeRole`
+- THEN la operación reintenta y tiene éxito en el 2.º intento (200 + fila de audit)
+
+#### Scenario: Reintentos agotados → 503
+
+- GIVEN 3 errores consecutivos SQLSTATE `40001` de serialización
+- WHEN corre `changeRole`
+- THEN retorna 503 con un cuerpo de error localizado `serialization_failed`
+- AND no persiste estado parcial
 
 ### Requirement: Almacenamiento de Admin Audit Event
 
@@ -111,3 +137,4 @@ Cada operación admin DEBE persistirse en `AdminAuditEvent` con `actorId` (UUID)
 ## Procedencia
 
 Introducido por: module-3-superadmin, 2026-07-18.
+Extendido por: module-5-production-hardening, 2026-07-20 (1 requisito modificado: Cambiar rol de usuario — restricción Serializable F2 con reintentos ante Postgres SQLSTATE 40001).

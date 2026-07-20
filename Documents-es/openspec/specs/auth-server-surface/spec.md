@@ -207,8 +207,105 @@ La respuesta de `GET /admin/sessions?userId=<uuid>` DEBE retornar cada sesión c
 - THEN el `ipAddress` de la respuesta es el digest hex HMAC-SHA256 de 64 chars en minúsculas
 - AND la IP raw NO está presente en la respuesta
 
+### Requirement: Factor de costo BCRYPT (override de producción)
+
+El sistema DEBE soportar la variable de entorno `BCRYPT_COST_FACTOR_OVERRIDE` (entero positivo ≥ 4, por defecto sin setear). Cuando no esté seteada, el sistema DEBE usar `BCRYPT_COST_FACTOR = 12` (según el contrato de diseño del repo de referencia productionizado). Cuando esté seteada, el sistema DEBE validar el override como entero positivo ≥ 4 mediante Zod y usarlo directamente. El override NO DEBE aceptar valores por debajo de 4 (piso defensivo). La secuencia de arranque DEBE verificar que el override está cableado mediante un test de startup.
+
+#### Scenario: Costo de producción por defecto
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE` sin setear
+- WHEN el sistema arranca
+- THEN el factor de costo bcrypt usado para hashes nuevos es 12
+
+#### Scenario: Override explícito 14
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=14`
+- WHEN el sistema arranca
+- THEN el factor de costo bcrypt usado para hashes nuevos es 14
+
+#### Scenario: Override cero inválido
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=0`
+- WHEN el sistema arranca
+- THEN la validación de env falla con un error de Zod apto para 400
+
+#### Scenario: Override negativo inválido
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=-1`
+- WHEN el sistema arranca
+- THEN la validación de env falla con un error de Zod
+
+#### Scenario: Override no-entero inválido
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=abc`
+- WHEN el sistema arranca
+- THEN la validación de env falla con un error de Zod
+
+#### Scenario: Override por debajo del piso
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=3`
+- WHEN el sistema arranca
+- THEN la validación de env falla con un error de Zod (piso defensivo)
+
+### Requirement: Métricas de observabilidad para operaciones de auth
+
+El sistema DEBE emitir los siguientes contadores compatibles con Prometheus al endpoint existente `GET /metrics` (según M1 R-PF-9):
+
+- `auth_login_success_total` (counter, label `email_domain`) — incrementado en cada login exitoso.
+- `auth_login_failure_total` (counter, labels `reason`, `email_domain`) — incrementado en cada login fallido con `reason` en `{invalid_credentials, rate_limited, account_locked, unknown}`.
+- `auth_password_reset_requested_total` (counter) — incrementado en cada request de password reset.
+- `auth_password_reset_completed_total` (counter) — incrementado en cada reset exitoso.
+- `auth_admin_operation_total` (counter, labels `operation`, `actor_role`) — incrementado en cada operación admin; `operation` en `{list_users, change_role, list_sessions, revoke_session, revoke_all_sessions, list_audit, purge_audit_dry_run, purge_audit_real}`; `actor_role` en `{ADMIN}`.
+- `auth_session_validations_total` (counter) — incrementado en cada validación de sesión exitosa.
+- `auth_session_validations_failed_total` (counter) — incrementado en cada validación de sesión fallida.
+
+Todas las labels de métricas DEBEN redactar datos sensibles: sin emails, sin userIds, sin IPs. La label `email_domain` lleva solo la parte del dominio registrado (por ejemplo, `gmail.com` desde `alice@gmail.com`).
+
+#### Scenario: Counter de login exitoso se incrementa
+
+- GIVEN un admin con email en dominio registrado `example.com`
+- WHEN el admin completa un login exitoso
+- THEN `auth_login_success_total{email_domain="example.com"}` se incrementa en 1
+
+#### Scenario: Counter de login fallido se incrementa
+
+- GIVEN un caller con email en dominio registrado `example.com`
+- WHEN el caller envía credenciales incorrectas
+- THEN `auth_login_failure_total{reason="invalid_credentials", email_domain="example.com"}` se incrementa en 1
+
+#### Scenario: Counter de operación admin se incrementa
+
+- GIVEN un admin
+- WHEN el admin lista usuarios vía `GET /admin/users`
+- THEN `auth_admin_operation_total{operation="list_users", actor_role="ADMIN"}` se incrementa en 1
+
+#### Scenario: Counter de purge dry-run se incrementa
+
+- GIVEN un admin
+- WHEN el admin postea `{ dryRun: true, olderThanDays: 90 }` a `POST /admin/audit/purge`
+- THEN `auth_admin_operation_total{operation="purge_audit_dry_run", actor_role="ADMIN"}` se incrementa en 1
+
+#### Scenario: Counter de validación de sesión se incrementa
+
+- GIVEN un usuario con una sesión válida
+- WHEN el usuario carga el dashboard y `validateSession` tiene éxito
+- THEN `auth_session_validations_total` se incrementa en 1
+
+#### Scenario: Privacidad — sin email en valores de label
+
+- GIVEN un admin completa un login exitoso con email `alice@example.com`
+- WHEN un scraper de métricas lee `GET /metrics`
+- THEN ningún valor de label contiene `@`
+
+#### Scenario: Privacidad — sin label de IP expuesta
+
+- GIVEN cualquier operación de auth
+- WHEN un scraper de métricas lee `GET /metrics`
+- THEN ninguna métrica lleva una label `ip_address`
+
 ## Procedencia
 
 Introducido por: module-2-public-auth, 2026-07-17 (línea base slice-3).
 Extendido por: module-3-superadmin, 2026-07-18 (gestión sesiones admin).
 Extendido por: module-4-privacy, 2026-07-19 (2 NUEVOS requisitos: Actualización de lastActiveAt de la sesión + Proyección del listado de sesiones).
+Extendido por: module-5-production-hardening, 2026-07-20 (2 NUEVOS requisitos: Factor de costo BCRYPT (Override de producción) + Métricas de observabilidad para operaciones de auth).
