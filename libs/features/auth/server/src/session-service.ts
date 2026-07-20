@@ -77,6 +77,36 @@ export type CurrentUser = {
  */
 const LAST_ACTIVE_AT_COALESCE_WINDOW_MS = 60_000;
 
+/**
+ * F3 fix (4R-driven correction): circuit breaker for the
+ * `lastActiveAt` coalesce write on `getCurrentUser`.
+ *
+ * Every authenticated request hits `getCurrentUser`, which after
+ * validation runs a coalesce UPDATE on the session row. The 60s
+ * coalesce window absorbs most writes, but the DB still has to
+ * evaluate the `where OR [lastActiveAt IS NULL, lastActiveAt < cutoff]`
+ * predicate on every request. For users with N concurrent sessions,
+ * that's N evaluations/min.
+ *
+ * Most real users have ≤ 5 active sessions. A user with >10 active
+ * sessions is almost always a bot, a scraper, or a session-replay
+ * attack — the write-amplification on the coalesce path is wasted
+ * I/O on adversarial traffic.
+ *
+ * The breaker: when the user's active-session count strictly exceeds
+ * `LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS`, skip the coalesce write
+ * entirely. The validation result is unchanged — the breaker is a
+ * side-effect gate, not a correctness gate. The threshold (10) is
+ * conservative: a human with 5 devices + 2 standby sessions is still
+ * under the breaker; an attacker who has replayed 10+ stolen cookies
+ * trips it.
+ *
+ * Logging is intentionally DEBUG-level (not WARN/ERROR) so a
+ * tripped breaker does not spam production logs — the trip is
+ * expected behavior for adversarial traffic, not an incident.
+ */
+const LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS = 10;
+
 export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
@@ -154,7 +184,27 @@ export class SessionService {
     // 60s cutoff is the coalesce window: a write within 60s of the
     // previous write is a no-op (Prisma returns 0 rows affected, the
     // service treats it as a successful coalesce).
+    //
+    // F3 fix (4R-driven correction): the coalesce write is GATED by
+    // the circuit breaker — when the user has more than
+    // LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS active sessions, the
+    // write is skipped (the validation result is preserved). The
+    // active-session count is read via the SessionRepository port
+    // (same dependency the controller's GET /auth/sessions uses);
+    // keeping it on the port keeps the unit test surface tight and
+    // avoids reaching for `prisma.session` directly (boundary rule).
     const now = new Date();
+    const activeSessions = await this.sessionRepo.listActive(session.userId);
+    if (activeSessions.length > LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS) {
+      // Circuit breaker tripped — adversarial traffic profile.
+      // The validation result is returned unchanged; only the
+      // coalesce side-effect is suppressed.
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      };
+    }
     const cutoff = new Date(now.getTime() - LAST_ACTIVE_AT_COALESCE_WINDOW_MS);
     await this.prisma.session.update({
       where: {

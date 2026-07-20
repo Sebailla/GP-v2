@@ -55,6 +55,9 @@ vi.mock("@core/database", () => ({
       update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
+      // F3 fix: the circuit-breaker check routes through
+      // SessionRepository.listActive → prisma.session.findMany.
+      findMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -79,6 +82,10 @@ const noopDispatcher = vi.fn<AuthEventDispatcher>();
 describe("SessionService", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    // F3 fix: default `findMany` (used by the circuit breaker check)
+    // to an empty list so the breaker stays un-tripped for tests that
+    // exercise the coalesce-write path.
+    vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
   });
 
   describe("getCurrentUser", () => {

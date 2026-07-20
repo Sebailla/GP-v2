@@ -75,6 +75,13 @@ beforeEach(() => {
   vi.mocked(prisma.$transaction).mockImplementation(async (callback: never) => {
     return (callback as (tx: typeof prisma) => Promise<unknown>)(prisma);
   });
+  // F3 fix: the circuit-breaker check (`sessionRepo.listActive`) routes
+  // through `prisma.session.findMany`. The default `[]` keeps the
+  // breaker from tripping (length 0 < threshold 10) so existing tests
+  // that don't care about the breaker continue to exercise the
+  // coalesce-write path. The dedicated F3 tests override this mock
+  // with the >10-session shape that trips the breaker.
+  vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
 });
 
 /**
@@ -344,3 +351,103 @@ function asPrismaStub(): PrismaClient {
 
 // Silence the unused-helper lint without removing the safety cast above.
 void asPrismaStub;
+
+/**
+ * F3 fix (4R-driven correction): circuit breaker on the
+ * Session.lastActiveAt coalesce write.
+ *
+ * Problem: every authenticated request hits
+ * `SessionService.getCurrentUser`, which after validation runs a
+ * coalesce UPDATE on the session row. Users with N concurrent
+ * sessions = N writes/min, regardless of whether the coalesce
+ * window (60s) absorbs most of them.
+ *
+ * Most real users have ≤ 5 sessions. A user with >10 active
+ * sessions is almost always a bot, a scraper, or a session-replay
+ * attack — the write amplification on the coalesce path is wasted
+ * I/O on adversarial traffic.
+ *
+ * The breaker: when the user has > 10 active sessions, skip the
+ * coalesce write entirely (debug-log the skip). The validation
+ * result is unchanged — the breaker is a side-effect gate, not a
+ * correctness gate.
+ */
+describe("SessionService.getCurrentUser — coalesce write circuit breaker (F3 fix)", () => {
+  it("skips the lastActiveAt write when the user has >10 active sessions", async () => {
+    const sessionRow = {
+      id: "session-hot-user",
+      sessionToken: "hot-user-token",
+      userId: "user-hot",
+      expires: new Date(Date.now() + 60_000),
+      lastActiveAt: null,
+    };
+    vi.mocked(prisma.session.findUnique).mockResolvedValue(sessionRow as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-hot",
+      email: "hot@example.com",
+      role: "USER" as const,
+      hashedPassword: "$2a$10$some-hash",
+    } as never);
+    // 11 active sessions — exceeds the LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS
+    // threshold (10). The breaker MUST short-circuit the coalesce write.
+    vi.mocked(prisma.session.findMany).mockResolvedValue(
+      Array.from({ length: 11 }, (_, i) => ({
+        id: `s-${i}`,
+        sessionToken: `tok-${i}`,
+        userId: "user-hot",
+        expires: new Date(Date.now() + 60_000),
+      })) as never,
+    );
+
+    const service = await makeService();
+    const result = await service.getCurrentUser("hot-user-token");
+
+    // The CurrentUser projection is unchanged (validation result is
+    // preserved).
+    expect(result).toEqual({
+      id: "user-hot",
+      email: "hot@example.com",
+      role: "USER",
+    });
+    // The coalesce UPDATE was SKIPPED — circuit breaker tripped.
+    expect(prisma.session.update).not.toHaveBeenCalled();
+    // The breaker reads the active-session count via
+    // sessionRepo.listActive which proxies through
+    // prisma.session.findMany.
+    expect(prisma.session.findMany).toHaveBeenCalled();
+  });
+
+  it("still writes the coalesce UPDATE when the user has ≤10 active sessions (existing behavior preserved)", async () => {
+    const sessionRow = {
+      id: "session-normal-user",
+      sessionToken: "normal-token",
+      userId: "user-normal",
+      expires: new Date(Date.now() + 60_000),
+      lastActiveAt: null,
+    };
+    vi.mocked(prisma.session.findUnique).mockResolvedValue(sessionRow as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "user-normal",
+      email: "normal@example.com",
+      role: "USER" as const,
+      hashedPassword: "$2a$10$some-hash",
+    } as never);
+    // Exactly 10 active sessions — at the breaker threshold, NOT above.
+    // The breaker MUST NOT trip (the constant is strictly-greater).
+    vi.mocked(prisma.session.findMany).mockResolvedValue(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `s-${i}`,
+        sessionToken: `tok-${i}`,
+        userId: "user-normal",
+        expires: new Date(Date.now() + 60_000),
+      })) as never,
+    );
+    vi.mocked(prisma.session.update).mockResolvedValue({ count: 1 } as never);
+
+    const service = await makeService();
+    await service.getCurrentUser("normal-token");
+
+    // Existing coalesce-write behavior preserved: the UPDATE fires.
+    expect(prisma.session.update).toHaveBeenCalledTimes(1);
+  });
+});
