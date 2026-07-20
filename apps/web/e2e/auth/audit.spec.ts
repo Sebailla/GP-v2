@@ -255,7 +255,11 @@ for (const locale of TEST_LOCALES) {
         .getByRole("button", { name: /dry ?run|vista previa|dry-run/i })
         .first()
         .click();
-      await expect(page.getByTestId("purge-dry-run-success")).toBeVisible({
+      // JD-5 fix: the dry-run success banner uses the canonical
+      // `data-testid="retention-dry-run-result"` (matches the
+      // AuditRetentionButton component + the unit tests in
+      // `audit-retention-button.test.tsx`).
+      await expect(page.getByTestId("retention-dry-run-result")).toBeVisible({
         timeout: 5_000,
       });
 
@@ -274,7 +278,9 @@ for (const locale of TEST_LOCALES) {
         .getByRole("button", { name: /confirm|confirmar|purge|purgar/i })
         .last()
         .click();
-      await expect(page.getByTestId("purge-real-success")).toBeVisible({
+      // JD-5 fix: the real-purge success banner uses the
+      // canonical `data-testid="retention-purge-result"`.
+      await expect(page.getByTestId("retention-purge-result")).toBeVisible({
         timeout: 5_000,
       });
 

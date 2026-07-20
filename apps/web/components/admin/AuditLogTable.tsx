@@ -186,7 +186,11 @@ export function AuditLogTable({
         </TableHeader>
         <TableBody>
           {state.events.map((event) => (
-            <TableRow key={event.id} data-event-id={event.id}>
+            <TableRow
+              key={event.id}
+              data-event-id={event.id}
+              data-testid="audit-table-row"
+            >
               <TableCell>
                 {new Date(event.createdAt).toLocaleString()}
               </TableCell>
