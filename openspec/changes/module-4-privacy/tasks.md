@@ -49,8 +49,8 @@ Base `feat/privacy`. Verify `pnpm --filter @core/database test && pnpm --filter 
 
 Base PR #1. Verify `NODE_ENV=test pnpm --filter api test && pnpm --filter @features/auth test`.
 
-- [ ] 2.1 RED `audit.schemas.test.ts` (boundary): ListAuditQuerySchema (actorId/targetId/action/since/until/limit/offset; max limit 200); PurgeAuditBodySchema (dryRun + olderThanDays ≥ 1).
-- [ ] 2.2 GREEN create `libs/features/auth/shared/schemas/audit.schemas.ts`; export from index.
+- [x] 2.1 RED `audit.schemas.test.ts` (boundary): ListAuditQuerySchema (actorId/targetId/action/since/until/limit/offset; max limit 200); PurgeAuditBodySchema (dryRun + olderThanDays ≥ 1).
+- [x] 2.2 GREEN create `libs/features/auth/shared/schemas/audit.schemas.ts`; export from index.
 - [ ] 2.3 RED `audit-service.find-many.test.ts`: 8 filter combinations (actorId, targetId, action, since, until, all, none, multi); pagination; Zod coercion.
 - [ ] 2.4 GREEN extend `AuditService.findMany({ actorId?, targetId?, action?, since?, until?, limit?, offset? })` (D3); assert dynamic `where` build.
 - [ ] 2.5 RED `audit-service.purge.test.ts`: countOlderThan returns matched count; purgeOlderThan deletes matching rows; idempotent on second call; deleteMany is atomic (single call regardless of count).
