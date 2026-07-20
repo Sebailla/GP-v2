@@ -29,6 +29,9 @@ describe("bcrypt cost contract", () => {
     const hash = await bcrypt.hash("correct horse battery staple", resolveBcryptCost());
 
     expect(bcryptCostFromHash(hash)).toBe(12);
+    // This CPU-bound budget is asserted by the focused test command. Turbo
+    // intentionally runs packages concurrently, so wall-clock timing there
+    // includes cross-package CPU contention and is not a valid hash benchmark.
     expect(performance.now() - startedAt).toBeLessThan(500);
   });
 
