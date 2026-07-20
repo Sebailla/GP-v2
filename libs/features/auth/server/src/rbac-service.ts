@@ -140,6 +140,8 @@ export interface AdminUserRow {
   readonly createdAt: Date;
 }
 
+type TransactionClient = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
+
 const SERIALIZATION_RETRY_DELAYS_MS = [50, 100] as const;
 const SERIALIZATION_ERROR_CODES = new Set(["40001", "P2034"]);
 
@@ -282,7 +284,7 @@ export class RbacService {
    * observability layer can correlate role transitions without joining
    * the audit table.
    */
-  private async runSerializable<T>(work: (tx: PrismaClient) => Promise<T>): Promise<T> {
+  private async runSerializable<T>(work: (tx: TransactionClient) => Promise<T>): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
       try {
         return await this.prisma.$transaction(work, { isolationLevel: "Serializable" });
