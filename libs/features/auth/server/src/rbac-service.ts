@@ -65,7 +65,11 @@ import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
 import { insertAuditEvent } from "./audit.service.js";
-import { LastAdminError, UserNotFoundError } from "./errors.js";
+import {
+  LastAdminError,
+  SerializationFailedError,
+  UserNotFoundError,
+} from "./errors.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -284,8 +288,11 @@ export class RbacService {
         return await this.prisma.$transaction(work, { isolationLevel: "Serializable" });
       } catch (error) {
         const retryDelay = SERIALIZATION_RETRY_DELAYS_MS[attempt];
-        if (!isSerializationError(error) || retryDelay === undefined) {
+        if (!isSerializationError(error)) {
           throw error;
+        }
+        if (retryDelay === undefined) {
+          throw new SerializationFailedError();
         }
         await delay(retryDelay);
       }

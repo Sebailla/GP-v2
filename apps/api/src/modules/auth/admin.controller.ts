@@ -12,6 +12,7 @@ import {
   Query,
   Req,
   Res,
+  ServiceUnavailableException,
   UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
@@ -25,6 +26,7 @@ import {
   AuditService,
   type CurrentUser,
   LastAdminError,
+  SerializationFailedError,
   UserNotFoundError,
 } from "@features/auth";
 import {
@@ -184,6 +186,12 @@ export class AdminController {
       // when they try to demote the only remaining admin.
       if (error instanceof LastAdminError) {
         throw new ConflictException({
+          error: error.code,
+          message: error.message,
+        });
+      }
+      if (error instanceof SerializationFailedError) {
+        throw new ServiceUnavailableException({
           error: error.code,
           message: error.message,
         });
