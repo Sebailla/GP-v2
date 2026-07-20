@@ -182,3 +182,38 @@ describe("AuditFilterBar — pagination controls", () => {
     ).toBeDisabled();
   });
 });
+
+describe("AuditFilterBar — validation error surfaces the i18n key (JD-4 fix)", () => {
+  // JD-4 fix (JD-driven correction round 1): the validation-error
+  // branch in AuditFilterBar rendered the i18n KEY as the user-
+  // facing text ("admin.audit.validationError" instead of the
+  // resolved label "Enter valid filter values."). The fix is to
+  // call `t('validationError')` so next-intl resolves the key to
+  // the localized label. RED: assert the validation-error alert
+  // does NOT contain the literal string `'admin.audit.validationError'`.
+  it("validation-error alert shows the translated label, not the i18n KEY", async () => {
+    const user = userEvent.setup();
+    const onApply = vi.fn();
+    render(<AuditFilterBar {...baseProps} onApply={onApply} />);
+
+    // Click Apply with all filters empty — triggers the
+    // validation-error branch.
+    await user.click(
+      screen.getByRole("button", { name: "admin.audit.filters.apply" }),
+    );
+
+    const alert = screen.getByTestId("audit-filter-validation");
+    expect(alert).toBeInTheDocument();
+    // The element's text MUST NOT be the raw i18n key
+    // ('admin.audit.validationError') — the prior bug rendered
+    // the key as user-facing text.
+    expect(alert.textContent).not.toBe("admin.audit.validationError");
+    // The mock next-intl returns `${scope}.${key}`; with the fix
+    // the scope is `admin.audit.filters` (the bar's namespace)
+    // and the key is `validationError`.
+    expect(alert.textContent).toBe("admin.audit.filters.validationError");
+    // And the onApply callback MUST NOT have been called (empty
+    // submission is rejected; the operator gets the error label).
+    expect(onApply).not.toHaveBeenCalled();
+  });
+});

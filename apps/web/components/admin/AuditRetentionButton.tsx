@@ -192,7 +192,7 @@ export function AuditRetentionButton() {
           data-testid="retention-validation-error"
           style={{ color: "#b91c1c", fontSize: "0.875rem" }}
         >
-          admin.audit.validationError
+          {t("validationError")}
         </p>
       ) : null}
 

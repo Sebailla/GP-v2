@@ -321,7 +321,8 @@
         "sinceLabel": "Since",
         "untilLabel": "Until",
         "apply": "Apply filters",
-        "reset": "Reset filters"
+        "reset": "Reset filters",
+        "validationError": "Enter at least one filter value (actor, target, action, or date range)."
       },
       "pagination": {
         "previous": "Previous",
@@ -344,6 +345,7 @@
         "description": "Preview how many rows match a given age threshold, then run a real purge.",
         "olderThanDaysLabel": "Older than (days)",
         "olderThanDaysPlaceholder": "e.g. 90",
+        "validationError": "Enter a positive integer for the age threshold (in days).",
         "dryRun": "Dry-run purge",
         "dryRunning": "Running dry-run…",
         "dryRunResult": "Dry-run: {matched} row(s) would be deleted.",

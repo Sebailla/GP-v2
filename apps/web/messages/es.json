@@ -321,7 +321,8 @@
         "sinceLabel": "Desde",
         "untilLabel": "Hasta",
         "apply": "Aplicar filtros",
-        "reset": "Reiniciar filtros"
+        "reset": "Reiniciar filtros",
+        "validationError": "Ingresá al menos un valor de filtro (actor, objetivo, acción o rango de fechas)."
       },
       "pagination": {
         "previous": "Anterior",
@@ -344,6 +345,7 @@
         "description": "Previsualizá cuántas filas coinciden con un umbral de antigüedad y luego ejecutá la purga real.",
         "olderThanDaysLabel": "Más antiguo que (días)",
         "olderThanDaysPlaceholder": "p. ej. 90",
+        "validationError": "Ingresá un entero positivo para el umbral de antigüedad (en días).",
         "dryRun": "Purga de prueba",
         "dryRunning": "Ejecutando purga de prueba…",
         "dryRunResult": "Prueba: {matched} fila(s) serían eliminadas.",

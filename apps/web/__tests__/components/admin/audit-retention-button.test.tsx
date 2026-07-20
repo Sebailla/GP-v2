@@ -247,3 +247,32 @@ describe("AuditRetentionButton — purge confirm dialog", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("AuditRetentionButton — validation error surfaces the i18n key (JD-4 fix)", () => {
+  // JD-4 fix (JD-driven correction round 1): the validation-error
+  // branch in AuditRetentionButton rendered the i18n KEY as
+  // user-facing text ("admin.audit.validationError" instead of the
+  // resolved label). RED: assert the validation-error alert does
+  // NOT contain the literal string `'admin.audit.validationError'`.
+  it("validation-error alert shows the translated label, not the i18n KEY", async () => {
+    const user = userEvent.setup();
+    render(<AuditRetentionButton />);
+    // Clear the pre-filled 90 so the input is empty.
+    await user.clear(
+      screen.getByLabelText("admin.audit.retention.olderThanDaysLabel"),
+    );
+    // Click dry-run with empty input — triggers the validation
+    // branch via parseOlderThanDays rejecting the empty string.
+    await user.click(
+      screen.getByRole("button", { name: "admin.audit.retention.dryRun" }),
+    );
+
+    const alert = screen.getByTestId("retention-validation-error");
+    expect(alert).toBeInTheDocument();
+    expect(alert.textContent).not.toBe("admin.audit.validationError");
+    // The mock next-intl returns `${scope}.${key}`; with the fix
+    // the scope is `admin.audit.retention` (the button's
+    // namespace) and the key is `validationError`.
+    expect(alert.textContent).toBe("admin.audit.retention.validationError");
+  });
+});
