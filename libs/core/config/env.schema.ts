@@ -101,6 +101,11 @@ export const envSchema = z.object({
   // default keeps dev / test environments runnable without an
   // explicit value.
   AUDIT_RETENTION_DAYS: z.coerce.number().int().min(0).default(90),
+  // M5 (module-5-production-hardening) — production defaults to the
+  // canonical bcrypt cost while tests may opt into a lower validated
+  // value. The defensive floor prevents accidentally disabling the
+  // work factor; unset consumers fall back to BCRYPT_COST_FACTOR (12).
+  BCRYPT_COST_FACTOR_OVERRIDE: z.coerce.number().int().min(4).optional(),
   // M4 (module-4-privacy) — opt-in gate for the `audit-retention.cron`
   // job (D2). Default `false` keeps the cron off in dev / test so
   // the schedule does not interfere with the test harness.
