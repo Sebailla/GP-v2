@@ -34,12 +34,12 @@ Verify `NODE_ENV=test pnpm --filter @core/config test && pnpm --filter @features
 
 Verify `NODE_ENV=test pnpm --filter @features/auth test && pnpm --filter api test`.
 
-- [ ] 2.1 RED `apps/api/test/rbac-serializable.test.ts`: concurrent demote on last 2 admins → one 200, other 409 `LastAdminError`.
-- [ ] 2.2 RED `apps/api/test/rbac-serializable-retry.test.ts`: transient 40001 on 1st → retry on 2nd.
-- [ ] 2.3 RED `apps/api/test/rbac-serializable-exhausted.test.ts`: 3×40001 → 503 + localized `serialization_failed`.
-- [ ] 2.4 GREEN `libs/features/auth/server/src/rbac-service.ts`: `prisma.$transaction(w, { isolationLevel: Serializable })`; re-check admins INSIDE tx; retry 40001/P2034 50ms×2^attempt, max 3.
-- [ ] 2.5 RED `apps/api/test/rbac-serializable-concurrency.test.ts`: `Promise.all`; one wins.
-- [ ] 2.6 GREEN map `P2034`→409/503; i18n keys in `apps/web/messages/{en,es}.json`.
+- [x] 2.1 RED `apps/api/test/rbac-serializable.test.ts`: concurrent demote on last 2 admins → one 200, other 409 `LastAdminError`.
+- [x] 2.2 RED `apps/api/test/rbac-serializable-retry.test.ts`: transient 40001 on 1st → retry on 2nd.
+- [x] 2.3 RED `apps/api/test/rbac-serializable-exhausted.test.ts`: 3×40001 → 503 + localized `serialization_failed`.
+- [x] 2.4 GREEN `libs/features/auth/server/src/rbac-service.ts`: `prisma.$transaction(w, { isolationLevel: Serializable })`; re-check admins INSIDE tx; retry 40001/P2034 50ms×2^attempt, max 3.
+- [x] 2.5 RED `apps/api/test/rbac-serializable-concurrency.test.ts`: `Promise.all`; one wins.
+- [x] 2.6 GREEN map `P2034`→409/503; i18n keys in `apps/web/messages/{en,es}.json`.
 
 ### Phase 3 — Breaker Perf (PR #3)
 

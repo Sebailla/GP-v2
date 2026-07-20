@@ -323,11 +323,22 @@ describe("AdminController (M3 task 3.1)", () => {
           // `tx.user.update` + `tx.adminAuditEvent.create`). The full
           // PrismaClient surface is irrelevant for unit tests.
           type TxMock = {
-            user: { update: ReturnType<typeof vi.fn> };
+            user: {
+              findUnique: ReturnType<typeof vi.fn>;
+              count: ReturnType<typeof vi.fn>;
+              update: ReturnType<typeof vi.fn>;
+            };
             adminAuditEvent: { create: ReturnType<typeof vi.fn> };
           };
           const tx: TxMock = {
             user: {
+              findUnique: vi.fn().mockResolvedValue({
+                id: "u-1",
+                email: "alice@example.com",
+                role: "USER",
+                createdAt: new Date("2026-01-01T00:00:00Z"),
+              }),
+              count: vi.fn().mockResolvedValue(2),
               update: vi.fn().mockResolvedValue({
                 id: "u-1",
                 email: "alice@example.com",

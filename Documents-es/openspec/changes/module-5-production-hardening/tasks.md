@@ -34,12 +34,12 @@ Verificar `NODE_ENV=test pnpm --filter @core/config test && pnpm --filter @featu
 
 Verificar `NODE_ENV=test pnpm --filter @features/auth test && pnpm --filter api test`.
 
-- [ ] 2.1 RED `apps/api/test/rbac-serializable.test.ts`: carrera sobre últimos 2 admins → una 200, otra 409 `LastAdminError`.
-- [ ] 2.2 RED `apps/api/test/rbac-serializable-retry.test.ts`: 40001 transitorio en 1ª → reintento en 2ª.
-- [ ] 2.3 RED `apps/api/test/rbac-serializable-exhausted.test.ts`: 3×40001 → 503 + cuerpo localizado `serialization_failed`.
-- [ ] 2.4 GREEN `libs/features/auth/server/src/rbac-service.ts`: `prisma.$transaction(w, { isolationLevel: Serializable })`; revalidar admins DENTRO de tx; reintentar 40001/P2034 50ms×2^intento, máximo 3.
-- [ ] 2.5 RED `apps/api/test/rbac-serializable-concurrency.test.ts`: `Promise.all`; una gana.
-- [ ] 2.6 GREEN mapear `P2034`→409/503; i18n en `apps/web/messages/{en,es}.json`.
+- [x] 2.1 RED `apps/api/test/rbac-serializable.test.ts`: carrera sobre últimos 2 admins → una 200, otra 409 `LastAdminError`.
+- [x] 2.2 RED `apps/api/test/rbac-serializable-retry.test.ts`: 40001 transitorio en 1ª → reintento en 2ª.
+- [x] 2.3 RED `apps/api/test/rbac-serializable-exhausted.test.ts`: 3×40001 → 503 + cuerpo localizado `serialization_failed`.
+- [x] 2.4 GREEN `libs/features/auth/server/src/rbac-service.ts`: `prisma.$transaction(w, { isolationLevel: Serializable })`; revalidar admins DENTRO de tx; reintentar 40001/P2034 50ms×2^intento, máximo 3.
+- [x] 2.5 RED `apps/api/test/rbac-serializable-concurrency.test.ts`: `Promise.all`; una gana.
+- [x] 2.6 GREEN mapear `P2034`→409/503; i18n en `apps/web/messages/{en,es}.json`.
 
 ### Fase 3 — Rendimiento del disyuntor (PR #3)
 
