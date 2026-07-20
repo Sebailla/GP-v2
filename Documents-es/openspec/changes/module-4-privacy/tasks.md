@@ -51,10 +51,10 @@ Base PR #1. Verificar `NODE_ENV=test pnpm --filter api test && pnpm --filter @fe
 
 - [x] 2.1 RED `audit.schemas.test.ts` (boundary): ListAuditQuerySchema (actorId/targetId/action/since/until/limit/offset; max limit 200); PurgeAuditBodySchema (dryRun + olderThanDays ≥ 1).
 - [x] 2.2 GREEN crear `libs/features/auth/shared/schemas/audit.schemas.ts`; exportar desde index.
-- [ ] 2.3 RED `audit-service.find-many.test.ts`: 8 combinaciones de filtros (actorId, targetId, action, since, until, all, none, multi); paginación; coerción Zod.
-- [ ] 2.4 GREEN extender `AuditService.findMany({ actorId?, targetId?, action?, since?, until?, limit?, offset? })` (D3); asertar construcción dinámica de `where`.
-- [ ] 2.5 RED `audit-service.purge.test.ts`: countOlderThan devuelve cuenta coincidente; purgeOlderThan elimina filas coincidentes; idempotente en segunda llamada; deleteMany es atómico (una sola llamada sin importar el conteo).
-- [ ] 2.6 GREEN extender `AuditService` con `countOlderThan(days)` + `purgeOlderThan(days)` (D4).
+- [x] 2.3 RED `audit-service.find-many.test.ts`: 8 combinaciones de filtros (actorId, targetId, action, since, until, all, none, multi); paginación; coerción Zod.
+- [x] 2.4 GREEN extender `AuditService.findMany({ actorId?, targetId?, action?, since?, until?, limit?, offset? })` (D3); asertar construcción dinámica de `where`.
+- [x] 2.5 RED `audit-service.purge.test.ts`: countOlderThan devuelve cuenta coincidente; purgeOlderThan elimina filas coincidentes; idempotente en segunda llamada; deleteMany es atómico (una sola llamada sin importar el conteo).
+- [x] 2.6 GREEN extender `AuditService` con `countOlderThan(days)` + `purgeOlderThan(days)` (D4).
 - [ ] 2.7 RED `audit.controller.test.ts` (NestJS e2e): GET /admin/audit 4 endpoints × happy + edge + error + 403; POST /admin/audit/purge dry-run + real + idempotente + 403.
 - [ ] 2.8 GREEN extender `AdminController` con GET /admin/audit + POST /admin/audit/purge (D4 modo dual); actualizar proyección revokeSession a spec-literal (D7).
 - [ ] 2.9 RED `audit-retention.cron.test.ts`: cuando `AUDIT_RETENTION_ENABLED=true` el cron llama `auditService.purgeOlderThan(days)`; cuando false, no-op; lee variable de entorno `AUDIT_RETENTION_DAYS`.
