@@ -299,6 +299,67 @@
         "actions": "Acciones"
       },
       "revoke": "Revocar"
+    },
+    "audit": {
+      "title": "Registro de auditoría",
+      "description": "Revisá las acciones administrativas y ejecutá la purga de retención.",
+      "loading": "Cargando eventos de auditoría…",
+      "empty": "Ningún evento de auditoría coincide con los filtros actuales.",
+      "emptyHelp": "Los eventos se registran cuando un admin revoca sesiones o cambia roles. Ajustá los filtros o esperá nueva actividad.",
+      "error": "No pudimos cargar los eventos de auditoría. {message}",
+      "retry": "Reintentar",
+      "filterApplied": "Filtros aplicados.",
+      "validationError": "Ingresá valores de filtro válidos.",
+      "filters": {
+        "title": "Filtros",
+        "actorIdLabel": "ID del actor",
+        "actorIdPlaceholder": "Filtrar por actor (UUID)",
+        "targetIdLabel": "ID del objetivo",
+        "targetIdPlaceholder": "Filtrar por objetivo (UUID)",
+        "actionLabel": "Acción",
+        "actionAll": "Todas las acciones",
+        "sinceLabel": "Desde",
+        "untilLabel": "Hasta",
+        "apply": "Aplicar filtros",
+        "reset": "Reiniciar filtros"
+      },
+      "pagination": {
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "page": "Página {page} de {total}",
+        "first": "Primera",
+        "last": "Última"
+      },
+      "columns": {
+        "createdAt": "Cuándo",
+        "action": "Acción",
+        "actorId": "Actor",
+        "targetId": "Objetivo",
+        "ipAddress": "IP (HMAC)",
+        "userAgent": "User agent",
+        "metadata": "Metadatos"
+      },
+      "retention": {
+        "title": "Purga de retención",
+        "description": "Previsualizá cuántas filas coinciden con un umbral de antigüedad y luego ejecutá la purga real.",
+        "olderThanDaysLabel": "Más antiguo que (días)",
+        "olderThanDaysPlaceholder": "p. ej. 90",
+        "dryRun": "Purga de prueba",
+        "dryRunning": "Ejecutando purga de prueba…",
+        "dryRunResult": "Prueba: {matched} fila(s) serían eliminadas.",
+        "dryRunResultZero": "Prueba: ninguna fila coincide con este umbral.",
+        "purge": "Purgar ahora",
+        "purging": "Purgando…",
+        "purgeConfirm": "¿Eliminar {matched} evento(s) de auditoría con más de {days} día(s)? Esta acción no se puede deshacer.",
+        "purgeResult": "Se purgaron {deleted} fila(s).",
+        "purgeResultZero": "Purga confirmada — ninguna fila coincidió.",
+        "error": "La acción de retención falló. {message}"
+      },
+      "actions": {
+        "REVOKE_SESSION": "Revocar sesión",
+        "REVOKE_ALL_SESSIONS": "Revocar todas las sesiones",
+        "CHANGE_ROLE": "Cambiar rol"
+      }
     }
   }
 }
