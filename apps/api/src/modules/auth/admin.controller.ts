@@ -474,7 +474,15 @@ export class AdminController {
       action: query.action,
       since: query.since,
       until: query.until,
-      limit: query.limit,
+      // M5 D6 + task 5.2 GREEN: silently clamp the effective row
+      // count to 200 (the operator-facing contract from
+      // `openspec/specs/audit-log-ui/spec.md` "Silent clamp at 200"
+      // scenario). The Zod ceiling is 500 (so a UI that asks for the
+      // max page size parses), but the controller pins the row count
+      // at 200 so a misconfigured UI can never inflate the read
+      // beyond the documented cap. Boundary: values ≤ 200 pass through
+      // verbatim; values 201..500 are clamped to 200.
+      limit: Math.min(query.limit, 200),
       offset: query.offset,
     });
     // M5 D5 — increment on every successful list_audit call (even

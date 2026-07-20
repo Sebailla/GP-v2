@@ -72,11 +72,15 @@ export const ListAuditQuerySchema = z.object({
   // contract is "ISO 8601 in → Date out".
   since: z.coerce.date().optional(),
   until: z.coerce.date().optional(),
-  // Spec literal: limit default 50, ceiling 200. Zod's `.max(200)`
-  // rejects oversize values rather than silently clamping so the
-  // operator sees the bad input as a 400 (per task 2.11's
-  // triangulation — `?limit=999` → 400, not silently clamped to 200).
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  // Spec literal: limit default 50. Zod ceiling is 500 (M5 D6 +
+  // task 5.2 GREEN — raised from 200 → 500 so operators can request
+  // a full page; the controller still silently clamps the effective
+  // row count to 200 per the spec's "Silent clamp at 200 (above
+  // bound)" scenario). The clamp lives at the HTTP boundary so the
+  // canonical implementation rejects only truly out-of-range values
+  // (> 500) with a 400 — the operator sees bad input as 400; the
+  // mid-range clamp is silent per design.
+  limit: z.coerce.number().int().min(1).max(500).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
 
