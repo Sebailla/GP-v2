@@ -17,6 +17,7 @@ import {
   ApiError,
   listAdminAuditEvents,
   type AdminAuditEventResponse,
+  type ListAuditQuery,
 } from "@/lib/audit-api";
 
 /**
@@ -90,7 +91,25 @@ export function formatIpHashForDisplay(
   return `${ipAddress.slice(0, 8)}...`;
 }
 
-export function AuditLogTable() {
+/**
+ * `AuditLogTable` props (JD-3 fix). The audit page
+ * (`/admin/audit/page.tsx`) parses URL searchParams server-side
+ * and forwards them as `filters` + `offset` + `limit` props. The
+ * default fallbacks (no filters, offset 0, limit 50) preserve the
+ * pre-correction behavior so unit tests that render
+ * `<AuditLogTable />` without props stay green.
+ */
+export interface AuditLogTableProps {
+  readonly filters?: Partial<ListAuditQuery> | undefined;
+  readonly offset?: number | undefined;
+  readonly limit?: number | undefined;
+}
+
+export function AuditLogTable({
+  filters,
+  offset = 0,
+  limit = 50,
+}: AuditLogTableProps = {}) {
   const t = useTranslations("admin.audit");
 
   const [state, setState] = React.useState<State>({ kind: "loading" });
@@ -98,7 +117,11 @@ export function AuditLogTable() {
   const fetchEvents = React.useCallback(async () => {
     setState({ kind: "loading" });
     try {
-      const events = await listAdminAuditEvents({ limit: 50, offset: 0 });
+      const events = await listAdminAuditEvents({
+        ...(filters ?? {}),
+        offset,
+        limit,
+      });
       setState({ kind: "success", events });
     } catch (err) {
       setState({
@@ -111,7 +134,7 @@ export function AuditLogTable() {
               : "unknown",
       });
     }
-  }, []);
+  }, [filters, offset, limit]);
 
   React.useEffect(() => {
     void fetchEvents();

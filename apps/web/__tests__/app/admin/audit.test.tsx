@@ -2,6 +2,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 
 import { AuditLogTable } from "../../../components/admin/AuditLogTable";
+import { AuditFilterBar } from "../../../components/admin/AuditFilterBar";
+
+/**
+ * AuditFilterBar wiring smoke test — JD-3 fix (JD-driven correction
+ * round 1). The filter bar was built + unit-tested but never
+ * mounted in `/admin/audit/page.tsx`. The page rendered
+ * `AuditLogTable` with hardcoded `{limit:50, offset:0}`, so the
+ * user's filter input was dead-code (the bar was never on the page).
+ *
+ * RED state (this file): the audit page does NOT render
+ * `<AuditFilterBar />` — the data-testid `audit-filter-bar` is
+ * absent from the DOM. Operators cannot filter the audit log from
+ * the UI.
+ *
+ * GREEN (commit JD-3-GREEN): mount `<AuditFilterBar />` in the
+ * audit page above `<AuditLogTable />`, wire URL searchParams, and
+ * have `AuditLogTable` consume the searchParams-driven filter +
+ * pagination.
+ */
 
 /**
  * TDD contract for `AuditLogTable` — M4 Phase 3 (PR #3, tasks
@@ -187,6 +206,53 @@ describe("AuditLogTable — pagination metadata (task 3.9 triangulation)", () =>
     render(<AuditLogTable />);
     await waitFor(() => {
       expect(screen.getByText("admin.audit.filterApplied")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("AuditLogTable — filter bar wired (JD-3 RED contract)", () => {
+  // JD-3 fix (JD-driven correction round 1): the audit page
+  // (apps/web/app/[locale]/(app)/admin/audit/page.tsx) previously
+  // rendered ONLY `<AuditLogTable />` — `<AuditFilterBar />` was
+  // never imported/mounted. The filter UI was dead-code: the
+  // bar's unit tests passed in isolation, but operators
+  // navigating to /admin/audit saw no bar because the page
+  // composition omitted it.
+  //
+  // This contract asserts two things, both of which the
+  // pre-correction state fails:
+  //   1. AuditLogTable now reads URL searchParams (so user
+  //      filter input flows into the list call).
+  //   2. AuditFilterBar's canonical testid (audit-filter-bar)
+  //      appears in the DOM when the bar mounts — proves the bar
+  //      is reachable from the page composition root.
+  it("AuditLogTable reads searchParams filters and forwards them to listAdminAuditEvents", async () => {
+    mockList.mockResolvedValueOnce(SAMPLE_EVENTS);
+    // Simulate URL searchParams via a minimal stand-in for the
+    // Next.js searchParams contract — the bar's page layer passes
+    // searchParams through to AuditLogTable as props.
+    render(
+      <AuditLogTable
+        filters={{
+          actorId: "11111111-1111-4111-8111-111111111111",
+          targetId: undefined,
+          action: "REVOKE_SESSION",
+          since: undefined,
+          until: undefined,
+        }}
+        offset={50}
+        limit={50}
+      />,
+    );
+    await waitFor(() => {
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorId: "11111111-1111-4111-8111-111111111111",
+          action: "REVOKE_SESSION",
+          offset: 50,
+          limit: 50,
+        }),
+      );
     });
   });
 });

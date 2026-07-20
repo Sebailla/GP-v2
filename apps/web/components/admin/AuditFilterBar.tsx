@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,17 @@ export interface AuditFilterBarProps {
   readonly initialLimit: number;
   readonly pageSize: number;
   readonly totalPages: number;
-  readonly onApply: (values: AuditFilterValues) => void;
-  readonly onReset: () => void;
-  readonly onPageChange: (pagination: { offset: number; limit: number }) => void;
+  /**
+   * `onApply` / `onReset` / `onPageChange` callbacks — JD-3 fix:
+   * when omitted, the bar uses Next.js `useRouter` + `usePathname`
+   * to push URL searchParams directly (so the page-level server
+   * component re-reads them on the next render). When supplied, the
+   * caller owns the navigation (used by tests that don't render
+   * inside a Next.js app router).
+   */
+  readonly onApply?: ((values: AuditFilterValues) => void) | undefined;
+  readonly onReset?: (() => void) | undefined;
+  readonly onPageChange?: ((pagination: { offset: number; limit: number }) => void) | undefined;
 }
 
 const ACTION_OPTIONS = [
@@ -90,12 +99,35 @@ export function AuditFilterBar({
   const t = useTranslations("admin.audit.filters");
   const tPagination = useTranslations("admin.audit.pagination");
 
+  // JD-3 fix: when the caller doesn't supply onApply/onReset/
+  // onPageChange (the production path), the bar owns the URL
+  // navigation via Next.js client hooks. Tests render the bar
+  // outside a router, so they always supply the callbacks.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [actorId, setActorId] = React.useState<string>(initialFilters.actorId);
   const [targetId, setTargetId] = React.useState<string>(initialFilters.targetId);
   const [action, setAction] = React.useState<string>(initialFilters.action);
   const [since, setSince] = React.useState<string>(initialFilters.since);
   const [until, setUntil] = React.useState<string>(initialFilters.until);
   const [validationError, setValidationError] = React.useState<boolean>(false);
+
+  /**
+   * Build a URLSearchParams from the current Next.js router state,
+   * apply the supplied mutator, and replace the URL (preserves
+   * back-button history cleanliness — `replace` not `push`).
+   */
+  const pushSearchParams = React.useCallback(
+    (mutate: (params: URLSearchParams) => void): void => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      mutate(params);
+      const query = params.toString();
+      router.replace(query === "" ? pathname : `${pathname}?${query}`);
+    },
+    [router, pathname, searchParams],
+  );
 
   const handleApply = React.useCallback(() => {
     const trimmed = {
@@ -116,8 +148,24 @@ export function AuditFilterBar({
       return;
     }
     setValidationError(false);
-    onApply(trimmed);
-  }, [actorId, targetId, action, since, until, onApply]);
+    if (onApply !== undefined) {
+      onApply(trimmed);
+      return;
+    }
+    pushSearchParams((params) => {
+      params.delete("offset");
+      if (trimmed.actorId !== "") params.set("actorId", trimmed.actorId);
+      else params.delete("actorId");
+      if (trimmed.targetId !== "") params.set("targetId", trimmed.targetId);
+      else params.delete("targetId");
+      if (trimmed.action !== "") params.set("action", trimmed.action);
+      else params.delete("action");
+      if (trimmed.since !== "") params.set("since", trimmed.since);
+      else params.delete("since");
+      if (trimmed.until !== "") params.set("until", trimmed.until);
+      else params.delete("until");
+    });
+  }, [actorId, targetId, action, since, until, onApply, pushSearchParams]);
 
   const handleReset = React.useCallback(() => {
     setActorId("");
@@ -126,16 +174,42 @@ export function AuditFilterBar({
     setSince("");
     setUntil("");
     setValidationError(false);
-    onReset();
-  }, [onReset]);
+    if (onReset !== undefined) {
+      onReset();
+      return;
+    }
+    pushSearchParams((params) => {
+      params.delete("actorId");
+      params.delete("targetId");
+      params.delete("action");
+      params.delete("since");
+      params.delete("until");
+      params.delete("offset");
+    });
+  }, [onReset, pushSearchParams]);
 
   const handleNext = React.useCallback(() => {
-    onPageChange({ offset: initialOffset + pageSize, limit: initialLimit });
-  }, [initialOffset, pageSize, initialLimit, onPageChange]);
+    const nextOffset = initialOffset + pageSize;
+    if (onPageChange !== undefined) {
+      onPageChange({ offset: nextOffset, limit: initialLimit });
+      return;
+    }
+    pushSearchParams((params) => {
+      params.set("offset", String(nextOffset));
+    });
+  }, [initialOffset, pageSize, initialLimit, onPageChange, pushSearchParams]);
 
   const handlePrevious = React.useCallback(() => {
-    onPageChange({ offset: Math.max(0, initialOffset - pageSize), limit: initialLimit });
-  }, [initialOffset, pageSize, initialLimit, onPageChange]);
+    const prevOffset = Math.max(0, initialOffset - pageSize);
+    if (onPageChange !== undefined) {
+      onPageChange({ offset: prevOffset, limit: initialLimit });
+      return;
+    }
+    pushSearchParams((params) => {
+      if (prevOffset === 0) params.delete("offset");
+      else params.set("offset", String(prevOffset));
+    });
+  }, [initialOffset, pageSize, initialLimit, onPageChange, pushSearchParams]);
 
   // 0-indexed page; with pageSize=50 the 3 pages are offsets 0, 50, 100.
   const currentPage = Math.floor(initialOffset / pageSize) + 1;
