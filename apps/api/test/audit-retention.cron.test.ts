@@ -160,20 +160,37 @@ describe("AuditRetentionSchedule (M4 task 2.9 RED, design D2)", () => {
       expect(auditService.purgeOlderThan).toHaveBeenCalledWith(30);
     });
 
-    it("treats AUDIT_RETENTION_DAYS=0 (kill-switch) as enabled with 0 days", async () => {
-      // Per design D2: the 0-days case is the cron-side kill-switch.
-      // The handler forwards `0` verbatim to `purgeOlderThan(0)` which
-      // matches every row older than 0 days (i.e., everything).
-      // Operator who wants "no automatic retention" should set
-      // AUDIT_RETENTION_ENABLED=false instead — the handler documents
-      // this behavior in its file header.
+    it("does NOT purge when AUDIT_RETENTION_DAYS is 0 (kill-switch, days<=0 no-op)", async () => {
+      // F2 fix (4R-driven correction): prior to this fix the cron
+      // forwarded days=0 verbatim to purgeOlderThan(0) — which matches
+      // EVERY row older than 0 days (i.e., the entire audit table).
+      // Setting AUDIT_RETENTION_DAYS=0 must therefore be a no-op
+      // kill-switch (the operator's only signal that the default
+      // 90-day retention will not silently become "delete everything").
+      // Operator who wants "no automatic retention" can either:
+      //   (a) set AUDIT_RETENTION_ENABLED=false (the existing path)
+      //   (b) set AUDIT_RETENTION_DAYS=0 (new no-op kill-switch)
       envRef.AUDIT_RETENTION_ENABLED = true;
       envRef.AUDIT_RETENTION_DAYS = 0;
       const auditService = { purgeOlderThan: vi.fn().mockResolvedValue(0) };
 
       await purgeExpiredAuditEvents(auditService as never, { log: loggerLogMock });
 
-      expect(auditService.purgeOlderThan).toHaveBeenCalledWith(0);
+      expect(auditService.purgeOlderThan).not.toHaveBeenCalled();
+    });
+
+    it("does NOT purge when AUDIT_RETENTION_DAYS is negative (defensive guard)", async () => {
+      // F2 fix (4R-driven correction): a misconfigured
+      // AUDIT_RETENTION_DAYS=-1 would also match everything (and the
+      // resulting negative cutoff would be pre-1970). Coerce any
+      // non-positive value to a no-op.
+      envRef.AUDIT_RETENTION_ENABLED = true;
+      envRef.AUDIT_RETENTION_DAYS = -1;
+      const auditService = { purgeOlderThan: vi.fn().mockResolvedValue(0) };
+
+      await purgeExpiredAuditEvents(auditService as never, { log: loggerLogMock });
+
+      expect(auditService.purgeOlderThan).not.toHaveBeenCalled();
     });
 
     it("defaults to AUDIT_RETENTION_DAYS=90 + AUDIT_RETENTION_ENABLED=false when env is empty", async () => {
