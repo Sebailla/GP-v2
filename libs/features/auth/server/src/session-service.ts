@@ -268,38 +268,40 @@ export class SessionService {
   // ---------------------------------------------------------------------------
 
   /**
-   * List every session owned by the user, sorted DESC by the
-   * `lastActiveAt` proxy. Per spec "Session List by User", this is
-   * the read path behind `GET /admin/sessions?userId=...`.
+   * List every session owned by the user, sorted DESC by
+   * `lastActiveAt` (NULLs last per the spec's "Session List by User"
+   * "Sort `lastActiveAt IS NULL` last" scenario). Per spec "Session
+   * List Projection", the projection is the spec-literal 6-field
+   * shape: `{ id, userId, createdAt, lastActiveAt, userAgent,
+   * ipAddress }`. The `sessionToken` field is INTENTIONALLY absent
+   * — the cookie carries it; admin clients never see it (security
+   * boundary per design D7).
    *
-   * Deviation (PR #2 known follow-up, M4 scope): the Session model
-   * has no `lastActiveAt` column yet. The GREEN implementation sorts
-   * on `expires DESC` — the closest available proxy. When the M4
-   * last-active column lands, this query swaps to that column; the
-   * public contract (sorted DESC, same projection shape) does not
-   * change. The TS return shape intentionally mirrors the existing
-   * `listActiveSessions` projection (`SessionRecord[]`) so the
-   * controller layer can project to the spec's response shape
-   * (id / userId / createdAt / lastActiveAt / userAgent / ipAddress)
-   * without re-receiving the row from Prisma.
+   * The controller (PR #2) projects this list to the spec-literal
+   * JSON response. PR #1 locks the service surface so the
+   * controller has a stable shape.
    */
   async list(userId: string): Promise<
     ReadonlyArray<{
       readonly id: string;
-      readonly sessionToken: string;
       readonly userId: string;
-      readonly expires: Date;
+      readonly createdAt: Date | null;
+      readonly lastActiveAt: Date | null;
+      readonly userAgent: string | null;
+      readonly ipAddress: string | null;
     }>
   > {
     const rows = await this.prisma.session.findMany({
       where: { userId },
-      orderBy: { expires: "desc" },
+      orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
     });
     return rows.map((row) => ({
       id: row.id,
-      sessionToken: row.sessionToken,
       userId: row.userId,
-      expires: row.expires,
+      createdAt: row.createdAt ?? null,
+      lastActiveAt: row.lastActiveAt ?? null,
+      userAgent: row.userAgent ?? null,
+      ipAddress: row.ipAddress ?? null,
     }));
   }
 

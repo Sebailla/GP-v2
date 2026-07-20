@@ -204,16 +204,26 @@ export class AdminController {
     ReadonlyArray<{
       readonly id: string;
       readonly userId: string;
-      readonly sessionToken: string;
-      readonly expires: Date;
+      readonly createdAt: Date | null;
+      readonly lastActiveAt: Date | null;
+      readonly userAgent: string | null;
+      readonly ipAddress: string | null;
     }>
   > {
+    // M4 (module-4-privacy) — the controller projection is the
+    // spec-literal 6-field shape per design D7 + the
+    // auth-server-surface spec's "Session List Projection"
+    // requirement. `sessionToken` is INTENTIONALLY absent: the cookie
+    // carries it; admin clients never see it. The service's `list()`
+    // returns the same shape so the controller is a pass-through.
     const rows = await this.sessionService.list(query.userId);
     return rows.map((row) => ({
       id: row.id,
       userId: row.userId,
-      sessionToken: row.sessionToken,
-      expires: row.expires,
+      createdAt: row.createdAt,
+      lastActiveAt: row.lastActiveAt,
+      userAgent: row.userAgent,
+      ipAddress: row.ipAddress,
     }));
   }
 

@@ -6,19 +6,21 @@ import type { AuthEventDispatcher } from "../events.js";
 
 /**
  * TDD contract for the M3 superadmin extensions to `SessionService`
- * (module-3-superadmin — task 2.1 RED).
+ * (module-3-superadmin — task 2.1 RED), now updated for the M4
+ * 6-field spec-literal projection (module-4-privacy — task 1.8).
  *
  * Per `openspec/changes/module-3-superadmin/design.md` §4
- * (`session-service.ts` rows) and the new "Session List by User" /
- * "Revoke Single Session" / "Revoke All Sessions for User" requirements
- * in `openspec/specs/auth-server-surface/spec.md`, SessionService gains
- * three admin-side operations:
+ * (`session-service.ts` rows) and the M4 `auth-server-surface` spec's
+ * "Session List by User" / "Revoke Single Session" / "Revoke All
+ * Sessions for User" requirements, SessionService exposes three
+ * admin-side operations:
  *
  *   - `list(userId)` — returns every session owned by the user sorted
- *     DESC by `lastActiveAt`. The reference repo uses the closest
- *     available proxy (Session.expires DESC — see Deviation #1 in
- *     apply-progress) until the M3 follow-up adds a `lastActiveAt`
- *     column; this is the GREEN behavior the test pins.
+ *     DESC by `lastActiveAt` (NULLs last). The M4 projection is the
+ *     spec-literal 6-field shape: `{ id, userId, createdAt,
+ *     lastActiveAt, userAgent, ipAddress }`. `sessionToken` is NOT
+ *     present. Detailed projection contract: see
+ *     `session-service.list-projection.test.ts`.
  *   - `revoke(sessionId, actorId, ipAddress, userAgent)` — deletes the
  *     session row by its primary key and emits `auth.session.revoked`
  *     with the M3 widening payload:
@@ -39,11 +41,10 @@ import type { AuthEventDispatcher } from "../events.js";
  * admin test pattern); the dispatcher is a `vi.fn()` so we assert
  * the exact event payload without a real ring buffer.
  *
- * RED state (this file): none of `list`, `revoke`, `revokeAll` exist
- * on SessionService yet. The dynamic imports inside each `it` block
- * pull the real module — calling a missing method throws
- * `TypeError: service.<method> is not a function`. Every test fails
- * for the expected "feature missing" reason.
+ * The M3 RED state (this file before M4): none of `list`, `revoke`,
+ * `revokeAll` existed on SessionService. M4 task 1.8 keeps the M3
+ * event/dispatch contract intact and updates the `list` projection
+ * assertions to the spec-literal shape.
  */
 
 vi.mock("@core/database", () => ({
@@ -94,34 +95,72 @@ beforeEach(() => {
 
 describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
   describe("list", () => {
-    it("queries sessions for the user with `orderBy: expires DESC` and projects the rows", async () => {
+    // M4 task 1.8: `list` projects the spec-literal 6-field shape
+    // (id, userId, createdAt, lastActiveAt, userAgent, ipAddress)
+    // ordered by `lastActiveAt DESC NULLS LAST`. sessionToken is
+    // intentionally absent. Detailed contract:
+    // `session-service.list-projection.test.ts`.
+    it("queries sessions for the user with `orderBy: lastActiveAt DESC NULLS LAST` and projects the 6-field shape", async () => {
       const { SessionService } = await import("../session-service.js");
       const rows: SessionRow[] = [
-        { id: "s-new", sessionToken: "t-new", userId: "u1", expires: new Date("2026-07-03T00:00:00Z") },
-        { id: "s-mid", sessionToken: "t-mid", userId: "u1", expires: new Date("2026-07-02T00:00:00Z") },
-        { id: "s-old", sessionToken: "t-old", userId: "u1", expires: new Date("2026-07-01T00:00:00Z") },
+        {
+          id: "s-new",
+          sessionToken: "t-new",
+          userId: "u1",
+          expires: new Date("2026-07-03T00:00:00Z"),
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+          lastActiveAt: new Date("2026-07-18T10:00:00Z"),
+          userAgent: "Mozilla/5.0",
+          ipAddress: "203.0.113.1",
+        },
+        {
+          id: "s-mid",
+          sessionToken: "t-mid",
+          userId: "u1",
+          expires: new Date("2026-07-02T00:00:00Z"),
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+          lastActiveAt: new Date("2026-07-17T10:00:00Z"),
+          userAgent: "Mozilla/5.0",
+          ipAddress: "203.0.113.2",
+        },
+        {
+          id: "s-old",
+          sessionToken: "t-old",
+          userId: "u1",
+          expires: new Date("2026-07-01T00:00:00Z"),
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+          lastActiveAt: null,
+          userAgent: null,
+          ipAddress: null,
+        },
       ];
       vi.mocked(prisma.session.findMany).mockResolvedValue(rows as never);
 
       const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
       const out = await service.list("u1");
 
-      // The SQL contract: WHERE userId = u1, ORDER BY expires DESC.
+      // The SQL contract: WHERE userId = u1, ORDER BY lastActiveAt DESC NULLS LAST.
       // Prisma is responsible for the actual sort; the test mocks the
       // return value already sorted so the projection assertion holds.
       expect(prisma.session.findMany).toHaveBeenCalledWith({
         where: { userId: "u1" },
-        orderBy: { expires: "desc" },
+        orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
       });
-      // The projection: row shape returned unchanged to the caller.
+      // The 6-field spec-literal projection (M4): no `sessionToken`,
+      // no `expires`, includes `createdAt` / `lastActiveAt` /
+      // `userAgent` / `ipAddress`.
       expect(out).toHaveLength(3);
       expect(out.map((s) => s.id)).toEqual(["s-new", "s-mid", "s-old"]);
       expect(out[0]).toEqual({
         id: "s-new",
-        sessionToken: "t-new",
         userId: "u1",
-        expires: new Date("2026-07-03T00:00:00Z"),
+        createdAt: new Date("2026-07-01T00:00:00Z"),
+        lastActiveAt: new Date("2026-07-18T10:00:00Z"),
+        userAgent: "Mozilla/5.0",
+        ipAddress: "203.0.113.1",
       });
+      // sessionToken MUST NOT appear in the response.
+      expect(out[0]).not.toHaveProperty("sessionToken");
       expect(noopDispatcher).not.toHaveBeenCalled();
     });
 
@@ -135,7 +174,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       expect(out).toEqual([]);
       expect(prisma.session.findMany).toHaveBeenCalledWith({
         where: { userId: "ghost-user" },
-        orderBy: { expires: "desc" },
+        orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
       });
     });
 
