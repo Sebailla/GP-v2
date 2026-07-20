@@ -92,9 +92,19 @@ model Session {
   // auth path. See `openspec/changes/module-3-superadmin/design.md`
   // §4 for the migration story + §5 for the data shape contract.
   metadata     Json?
+  // M4 (module-4-privacy) — last-active timestamp. Nullable so the
+  // column is additive (no backfill required): every session row
+  // predates the column and the coalesce-write pattern in
+  // `SessionService.getCurrentUser` (per design D1) treats
+  // `lastActiveAt IS NULL` as "never seen yet, write now". The
+  // `@@index` below keeps the `list()` ORDER BY `lastActiveAt DESC`
+  // and the coalesce UPDATE off a seq-scan path. See
+  // `openspec/changes/module-4-privacy/design.md` §2 (D1) + §2 (D7).
+  lastActiveAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([lastActiveAt])
   @@map("sessions")
 }
 
