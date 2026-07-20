@@ -43,6 +43,10 @@ import { RateLimit } from "../../shared/guards/rate-limit.decorator.js";
 import { RateLimitGuard } from "../../shared/guards/rate-limit.guard.js";
 import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
 import { ZodValidationPipe } from "../../shared/pipes/zod-validation.pipe.js";
+import {
+  authAdminOperationTotal,
+  type AuthAdminOperation,
+} from "../metrics/registry.js";
 
 /**
  * F5 fix (4R-driven correction): every `/admin/*` endpoint is
@@ -138,6 +142,14 @@ export class AdminController {
       limit: query.limit,
       offset: query.offset,
     });
+    // M5 D5 — increment `auth_admin_operation_total` for every
+    // successful list_users call. `actor_role` is closed to `ADMIN`
+    // because the JwtAuthGuard + AdminGuard chain has already
+    // rejected every other role at this point. A thrown error from
+    // `listUsers` short-circuits the increment (the controller's
+    // outer try/catch is the error boundary; we increment BEFORE
+    // returning the response so success paths count).
+    authAdminOperationTotal.inc({ operation: "list_users", actor_role: "ADMIN" });
     return rows.map((row) => ({
       id: row.id,
       email: row.email,
@@ -152,7 +164,7 @@ export class AdminController {
    *
    * Translates `RbacService.changeRole` "User not found" error into
    * 404. The service's idempotent path (same role → no DB write,
-   * no audit, no event) is preserved.
+   // no audit, no event) is preserved.
    */
   @Post("/users/:userId/role")
   @HttpCode(200)
@@ -174,6 +186,13 @@ export class AdminController {
         body.role,
         request.user.id,
       );
+      // M5 D5 — increment on success. Idempotent same-role calls
+      // also count as `change_role` (the spec's "Idempotent"
+      // scenario for Change User Role returns 200 with no audit
+      // row, but the operation still happened from the operator's
+      // perspective — the metric surfaces operator activity,
+      // not audit events).
+      authAdminOperationTotal.inc({ operation: "change_role", actor_role: "ADMIN" });
       return {
         id: updated.id,
         email: updated.email,
@@ -229,6 +248,7 @@ export class AdminController {
     // carries it; admin clients never see it. The service's `list()`
     // returns the same shape so the controller is a pass-through.
     const rows = await this.sessionService.list(query.userId);
+    authAdminOperationTotal.inc({ operation: "list_sessions", actor_role: "ADMIN" });
     return rows.map((row) => ({
       id: row.id,
       userId: row.userId,
@@ -298,6 +318,13 @@ export class AdminController {
       userAgentSafe,
     );
 
+    // M5 D5 — increment on every successful revoke (the session
+    // was deleted + an audit row was inserted by `SessionService.revoke`).
+    authAdminOperationTotal.inc({
+      operation: "revoke_session",
+      actor_role: "ADMIN",
+    });
+
     // Pino `[ip]` redaction (per `pattern/pino-bracket-notation-redaction`):
     // the structured-object form `{ ip: req.ip, userAgent, action, ... }`
     // is the contract pino's redact path fires on. The literal `ip` key
@@ -344,6 +371,14 @@ export class AdminController {
       ipAddress,
       userAgentSafe,
     );
+
+    // M5 D5 — increment on every successful revoke-all (the count
+    // may be 0; the operator's intent still counts as an admin
+    // operation from a metrics perspective).
+    authAdminOperationTotal.inc({
+      operation: "revoke_all_sessions",
+      actor_role: "ADMIN",
+    });
 
     this.logger.info(
       {
@@ -442,6 +477,10 @@ export class AdminController {
       limit: query.limit,
       offset: query.offset,
     });
+    // M5 D5 — increment on every successful list_audit call (even
+    // when the result set is empty; the operator's intent to read
+    // is the operation).
+    authAdminOperationTotal.inc({ operation: "list_audit", actor_role: "ADMIN" });
     return rows.map((row) => ({
       id: row.id,
       actorId: row.actorId,
@@ -482,6 +521,12 @@ export class AdminController {
   ): Promise<{ matched: number; wouldDelete: number } | { matched: number; deleted: number }> {
     if (body.dryRun) {
       const matched = await this.auditService.countOlderThan(body.olderThanDays);
+      // M5 D5 — increment the dry-run counter (separate label from
+      // the real purge counter so operators can chart the ratio).
+      authAdminOperationTotal.inc({
+        operation: "purge_audit_dry_run",
+        actor_role: "ADMIN",
+      });
       // Pino `[ip]` redaction: the admin actor's IP carries through
       // to the log line so an operator can correlate the purge with
       // the actor's session, but the pino redact path substitutes
@@ -497,6 +542,13 @@ export class AdminController {
       return { matched, wouldDelete: matched };
     }
     const deleted = await this.auditService.purgeOlderThan(body.olderThanDays);
+    // M5 D5 — increment the real-purge counter (idempotent second
+    // calls still count as operator activity; the metric captures
+    // operator intent, not audit event volume).
+    authAdminOperationTotal.inc({
+      operation: "purge_audit_real",
+      actor_role: "ADMIN",
+    });
     this.logger.info(
       {
         admin: { action: "AUDIT_PURGE", olderThanDays: body.olderThanDays, deleted },

@@ -59,6 +59,15 @@ import {
   lookupEmailForUserId,
 } from "../../mail/templates/reset-password.js";
 import { AUTH_DISPATCHER } from "./auth.dispatcher.js";
+import {
+  authLoginSuccessTotal,
+  authLoginFailureTotal,
+  authPasswordResetRequestedTotal,
+  authPasswordResetCompletedTotal,
+  authSessionValidationsTotal,
+  authSessionValidationsFailedTotal,
+  deriveEmailDomain,
+} from "../metrics/registry.js";
 
 /**
  * Module-2 PR #3 (task 3.4): resolve the active request locale from
@@ -121,6 +130,30 @@ function authErrorToHttpStatus(error: AuthError | ValidationError): number {
       return 409;
     default:
       return 500;
+  }
+}
+
+/**
+ * M5 D5 — map an `AuthError` to the closed `reason` enum on
+ * `auth_login_failure_total`. The function is the spec-literal
+ * mapping (per the `auth-server-surface` "Observability Metrics for
+ * Auth Operations" requirement) and is intentionally narrow: every
+ * unmapped code falls back to `"unknown"` so the counter never
+ * carries an out-of-spec label.
+ *
+ * The `USER_NOT_FOUND` / `INVALID_CREDENTIALS` codes collapse to
+ * `invalid_credentials` — operators MUST NOT be able to distinguish
+ * "user does not exist" from "wrong password" via the metric label
+ * (parallels the spec's no-enumeration-leak contract on the HTTP
+ * status code).
+ */
+function classifyLoginFailureReason(error: AuthError): "invalid_credentials" | "unknown" {
+  switch (error.code) {
+    case "USER_NOT_FOUND":
+    case "INVALID_CREDENTIALS":
+      return "invalid_credentials";
+    default:
+      return "unknown";
   }
 }
 
@@ -320,16 +353,49 @@ export class AuthController implements OnModuleDestroy {
   async login(
     @Body() raw: unknown,
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
-    return runOrThrowHttp(async () => {
-      const body = validateOrThrow<typeof loginSchema>(raw, loginSchema);
-      const result = await this.authService.login(body.email, body.password);
-      return {
-        id: result.id,
-        email: result.email,
-        role: result.role,
-        sessionToken: result.sessionToken,
-      };
-    });
+    // Capture the email in the outer scope so the catch block can
+    // derive the safe `email_domain` label for the failure counter
+    // (per `pattern/pino-bracket-notation-redaction` — raw email
+    // never lands on a metric label). On validation failure the
+    // schema rejects before we ever reach `body.email`, so the
+    // counter records `email_domain: "unknown"` for the validation
+    // path (per the spec's `reason: "unknown"` enum).
+    let outerEmail: string | undefined;
+    try {
+      const result = await runOrThrowHttp(async () => {
+        const body = validateOrThrow<typeof loginSchema>(raw, loginSchema);
+        outerEmail = body.email;
+        const authResult = await this.authService.login(body.email, body.password);
+        return {
+          id: authResult.id,
+          email: authResult.email,
+          role: authResult.role,
+          sessionToken: authResult.sessionToken,
+        };
+      });
+      // M5 D5 — success counter increments AFTER the auth call
+      // returns (so a thrown error routes through the catch below
+      // and we never double-count). Domain is derived from the
+      // parsed email; never the raw address.
+      authLoginSuccessTotal.inc({
+        email_domain: deriveEmailDomain(outerEmail) ?? "unknown",
+      });
+      return result;
+    } catch (error) {
+      // M5 D5 (auth observability counters) — increment the failure
+      // counter on every login failure, classified by reason + safe
+      // domain. The reason enum is the spec's closed set; raw email
+      // and IP NEVER appear on a metric label.
+      const safeDomain = deriveEmailDomain(outerEmail) ?? "unknown";
+      const reason =
+        error instanceof ValidationError
+          ? "unknown"
+          : error instanceof AuthError
+            ? classifyLoginFailureReason(error)
+            : "unknown";
+      authLoginFailureTotal.inc({ reason, email_domain: safeDomain });
+      throw error;
+    }
   }
 
   @Post("/register")
@@ -374,6 +440,13 @@ export class AuthController implements OnModuleDestroy {
       // MailDeliveryError → 502 (task 3.10 + forgot-password
       // spec scenario "Gmail SMTP failure surfaces 502").
       await this.passwordResetService.requestReset(body.email, locale);
+      // M5 D5 — increment `auth_password_reset_requested_total` for
+      // every successful forgot-password dispatch (the service
+      // mints a token regardless of whether the email exists, so
+      // an unknown-email request still counts as "requested" —
+      // the spec intentionally does not leak account existence
+      // through the metric).
+      authPasswordResetRequestedTotal.inc();
     } catch (error) {
       if (error instanceof MailDeliveryError) {
         // Pino structured-object redaction (R-PF-5). The global
@@ -525,6 +598,12 @@ export class AuthController implements OnModuleDestroy {
       // the request header because the same browser session is
       // making the POST after clicking the email link.
       const locale = resolveLocaleFromAcceptLanguage(acceptLanguage);
+      // M5 D5 — increment `auth_password_reset_completed_total`
+      // AFTER `consumeReset` succeeded (the token row was deleted
+      // and the new password is persisted). A thrown error from
+      // `consumeReset` jumps to the catch and never reaches this
+      // line, so the counter only fires on the success path.
+      authPasswordResetCompletedTotal.inc();
       return { redirectTo: `/${locale}/(app)` };
     } catch (error) {
       if (error instanceof ValidationError) {

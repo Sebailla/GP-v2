@@ -12,6 +12,10 @@ import { env } from "@core/config";
 import type { CurrentUser } from "@features/auth";
 
 import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
+import {
+  authSessionValidationsTotal,
+  authSessionValidationsFailedTotal,
+} from "../../modules/metrics/registry.js";
 
 /**
  * Real NextAuth v5 JWT auth guard — T3.3 (slice 3 batch 7).
@@ -66,11 +70,19 @@ export class JwtAuthGuard implements CanActivate {
 
     const header = request.headers.authorization;
     if (typeof header !== "string" || !header.startsWith("Bearer ")) {
+      // M5 D5 — increment the failed-validation counter on every
+      // guard rejection (missing / malformed / expired / wrong-secret
+      // / forged tokens all share the same generic 401 response;
+      // the metric also collapses them into a single bucket so
+      // operators see aggregate failure volume without distinguishing
+      // modes).
+      authSessionValidationsFailedTotal.inc();
       throw new UnauthorizedException("missing or malformed bearer token");
     }
 
     const token = header.slice("Bearer ".length).trim();
     if (token === "") {
+      authSessionValidationsFailedTotal.inc();
       throw new UnauthorizedException("missing bearer token");
     }
 
@@ -94,11 +106,26 @@ export class JwtAuthGuard implements CanActivate {
       // to avoid leaking which side failed (parallels D-AUTH-1 from
       // the auth spec: no enumeration leak across the credential
       // failure modes).
+      authSessionValidationsFailedTotal.inc();
       throw new UnauthorizedException("invalid bearer token");
     }
 
-    const user = toCurrentUser(claims);
-    (request as { user?: CurrentUser }).user = user;
+    try {
+      const user = toCurrentUser(claims);
+      (request as { user?: CurrentUser }).user = user;
+    } catch (error) {
+      // toCurrentUser throws on a structurally invalid JWT (no `sub`).
+      // Surface as a failed validation; the public 401 copy stays
+      // generic so the caller cannot distinguish failure modes.
+      authSessionValidationsFailedTotal.inc();
+      throw error;
+    }
+
+    // M5 D5 — increment the success counter on every accepted
+    // session validation. The counter is unlabelled (PII contract);
+    // operators can correlate via the JWT issuance pattern or by
+    // joining with the access logs that carry the request id.
+    authSessionValidationsTotal.inc();
     return true;
   }
 }
