@@ -136,6 +136,23 @@ export interface AdminUserRow {
   readonly createdAt: Date;
 }
 
+const SERIALIZATION_RETRY_DELAYS_MS = [50, 100] as const;
+const SERIALIZATION_ERROR_CODES = new Set(["40001", "P2034"]);
+
+function isSerializationError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    SERIALIZATION_ERROR_CODES.has(error.code)
+  );
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 export class RbacService {
   private readonly dispatcher: AuthEventDispatcher;
   private readonly prisma: PrismaClient;
@@ -261,12 +278,26 @@ export class RbacService {
    * observability layer can correlate role transitions without joining
    * the audit table.
    */
+  private async runSerializable<T>(work: (tx: PrismaClient) => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(work, { isolationLevel: "Serializable" });
+      } catch (error) {
+        const retryDelay = SERIALIZATION_RETRY_DELAYS_MS[attempt];
+        if (!isSerializationError(error) || retryDelay === undefined) {
+          throw error;
+        }
+        await delay(retryDelay);
+      }
+    }
+  }
+
   async changeRole(
     userId: string,
     newRole: Role,
     actorId: string,
   ): Promise<AdminUserRow> {
-    const result = await this.prisma.$transaction(
+    const result = await this.runSerializable(
       async (tx) => {
         const existing = await tx.user.findUnique({ where: { id: userId } });
         if (existing === null) {
@@ -301,7 +332,6 @@ export class RbacService {
         });
         return { updated, fromRole, changed: true as const };
       },
-      { isolationLevel: "Serializable" },
     );
 
     if (result.changed) {
