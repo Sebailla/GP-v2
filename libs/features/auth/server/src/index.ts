@@ -41,6 +41,16 @@ export {
   type FindManyFilters,
 } from "./audit.service.js";
 export { insertAuditEvent, hashIpForAudit, type AdminAuditAction } from "./audit.service.js";
+// M4 (module-4-privacy) — audit-retention cron handler (D2).
+// The handler logic is decorator-free so the auth slice can unit-
+// test it directly (Vite SSR + libs tsconfig don't enable
+// `experimentalDecorators`). The cron schedule that calls the
+// handler lives in `apps/api/src/modules/auth/audit-retention.schedule.ts`
+// where the `@nestjs/schedule#Cron` decorator lives (the apps/api
+// tsconfig enables `experimentalDecorators`). The admin module
+// registers the schedule behind the `AUDIT_RETENTION_ENABLED`
+// env gate; the handler itself is a no-op when the gate is false.
+export { purgeExpiredAuditEvents } from "./audit-retention.cron.js";
 export type { AuthEventDispatcher } from "./events.js";
 export { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 export { PrismaPasswordResetTokenRepository } from "./infrastructure/repositories/prisma-password-reset-token.repository.js";
