@@ -102,6 +102,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
     // `session-service.list-projection.test.ts`.
     it("queries sessions for the user with `orderBy: lastActiveAt DESC NULLS LAST` and projects the 6-field shape", async () => {
       const { SessionService } = await import("../session-service.js");
+      const { hashIpForAudit } = await import("../audit.service.js");
       const rows: SessionRow[] = [
         {
           id: "s-new",
@@ -148,7 +149,10 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
       });
       // The 6-field spec-literal projection (M4): no `sessionToken`,
       // no `expires`, includes `createdAt` / `lastActiveAt` /
-      // `userAgent` / `ipAddress`.
+      // `userAgent` / `ipAddress`. JD-2 fix: `ipAddress` is the
+      // HMAC-SHA256 hex (NOT the raw IP) — the raw IP is captured
+      // at the controller boundary and persists in the DB column,
+      // but the service projection must never echo raw PII.
       expect(out).toHaveLength(3);
       expect(out.map((s) => s.id)).toEqual(["s-new", "s-mid", "s-old"]);
       expect(out[0]).toEqual({
@@ -157,7 +161,7 @@ describe("SessionService — admin extensions (M3 task 2.2 GREEN)", () => {
         createdAt: new Date("2026-07-01T00:00:00Z"),
         lastActiveAt: new Date("2026-07-18T10:00:00Z"),
         userAgent: "Mozilla/5.0",
-        ipAddress: "203.0.113.1",
+        ipAddress: hashIpForAudit("203.0.113.1"),
       });
       // sessionToken MUST NOT appear in the response.
       expect(out[0]).not.toHaveProperty("sessionToken");

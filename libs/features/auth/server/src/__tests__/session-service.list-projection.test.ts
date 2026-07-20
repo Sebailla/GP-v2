@@ -203,6 +203,92 @@ describe("SessionService.list — 6-field spec-literal projection (M4 task 1.7)"
       expect(dispatcher).not.toHaveBeenCalled();
     });
   });
+
+  describe("PII projection (JD-2 fix — ipAddress HMAC hex in projection)", () => {
+    // Per `libs/features/auth/docs/auth-server-surface/spec.md:182` +
+    // "IP rendered as HMAC hex" scenario (lines 203-208):
+    //   `SessionService.list(userId)` MUST return the HMAC-SHA256
+    //   hex digest of `ipAddress` (NOT the raw IP) so the
+    //   `GET /admin/sessions` endpoint can never echo a raw PII IP
+    //   back to an admin client. The raw IP is still recorded in
+    //   the DB column (the controller truncates to 45 chars at the
+    //   boundary); the service is responsible for the PII→digest
+    //   transformation before projection.
+    //
+    // The HMAC secret is `env.JWT_SECRET` (`hashIpForAudit` in
+    // `audit.service.ts`) — the same primitive used by the audit
+    // row inserts in `insertAuditEvent`. The test seeds `process.env`
+    // with a known secret via `vitest.setup.ts` and computes the
+    // expected HMAC hex inline so we never depend on the actual env
+    // value at test time.
+
+    it("returns the HMAC-SHA256 hex of ipAddress (never the raw IP)", async () => {
+      const { SessionService } = await import("../session-service.js");
+      const { hashIpForAudit } = await import("../audit.service.js");
+      const rawIp = "203.0.113.1";
+      const expectedHex = hashIpForAudit(rawIp);
+      // Preconditions on the hash primitive itself — defense-in-depth
+      // so the test fails loudly if `hashIpForAudit` ever changes.
+      expect(expectedHex).toHaveLength(64);
+      expect(expectedHex).toMatch(/^[a-f0-9]{64}$/);
+
+      const rows: SessionRow[] = [
+        {
+          id: "s-1",
+          sessionToken: "t",
+          userId: "u1",
+          expires: new Date("2030-01-01T00:00:00Z"),
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+          lastActiveAt: new Date("2026-07-18T10:00:00Z"),
+          userAgent: "Mozilla/5.0",
+          ipAddress: rawIp,
+        },
+      ];
+      vi.mocked(prisma.session.findMany).mockResolvedValue(rows as never);
+
+      const service = new SessionService(
+        prisma,
+        undefined,
+        undefined,
+        noopDispatcher,
+      );
+      const out = await service.list("u1");
+
+      expect(out).toHaveLength(1);
+      // The projection MUST contain the HMAC hex, NOT the raw IP.
+      expect(out[0]?.ipAddress).toBe(expectedHex);
+      // Defensive: the raw IP MUST NOT appear anywhere in the
+      // projected object.
+      expect(out[0]?.ipAddress).not.toBe(rawIp);
+    });
+
+    it("returns null for ipAddress when the row's column is null (no hash on null)", async () => {
+      const { SessionService } = await import("../session-service.js");
+      const rows: SessionRow[] = [
+        {
+          id: "s-null",
+          sessionToken: "t",
+          userId: "u1",
+          expires: new Date("2030-01-01T00:00:00Z"),
+          createdAt: new Date("2026-07-01T00:00:00Z"),
+          lastActiveAt: new Date("2026-07-18T10:00:00Z"),
+          userAgent: null,
+          ipAddress: null,
+        },
+      ];
+      vi.mocked(prisma.session.findMany).mockResolvedValue(rows as never);
+
+      const service = new SessionService(
+        prisma,
+        undefined,
+        undefined,
+        noopDispatcher,
+      );
+      const out = await service.list("u1");
+
+      expect(out[0]?.ipAddress).toBeNull();
+    });
+  });
 });
 
 // Silence the unused-helper lint without removing the Prisma widening

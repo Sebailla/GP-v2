@@ -8,7 +8,7 @@ import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-se
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import type { AuthEventDispatcher } from "./events.js";
-import { insertAuditEvent } from "./audit.service.js";
+import { insertAuditEvent, hashIpForAudit } from "./audit.service.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -330,6 +330,15 @@ export class SessionService {
    * The controller (PR #2) projects this list to the spec-literal
    * JSON response. PR #1 locks the service surface so the
    * controller has a stable shape.
+   *
+   * JD-2 fix (JD-driven correction round 1): `ipAddress` is
+   * returned as the HMAC-SHA256 hex digest (NOT the raw IP) — the
+   * `auth-server-surface` spec's "IP rendered as HMAC hex"
+   * scenario demands the projection never echo a raw PII IP back
+   * to an admin client. The same HMAC secret (`env.JWT_SECRET`)
+   * backs `insertAuditEvent`'s audit row insertion; re-derivation
+   * is `createHmac('sha256', env.JWT_SECRET).update(rawIp).digest('hex')`.
+   * Null ipAddress maps to null (no hash on null).
    */
   async list(userId: string): Promise<
     ReadonlyArray<{
@@ -351,7 +360,16 @@ export class SessionService {
       createdAt: row.createdAt ?? null,
       lastActiveAt: row.lastActiveAt ?? null,
       userAgent: row.userAgent ?? null,
-      ipAddress: row.ipAddress ?? null,
+      // JD-2 fix: HMAC the IP before projection so the
+      // `GET /admin/sessions` endpoint can never echo raw PII.
+      // The raw IP is captured at the controller (design D3)
+      // and persists in the DB column for forensic / audit-row
+      // needs (already HMAC'd on the audit row insert path).
+      // The Prisma column is `String?`; the type at this surface
+      // can be `string | null | undefined` depending on test
+      // mocks. Anything missing/null maps to null; a real IP maps
+      // to its HMAC hex.
+      ipAddress: hashIpForAudit(row.ipAddress ?? null),
     }));
   }
 
