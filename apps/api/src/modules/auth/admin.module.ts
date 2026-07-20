@@ -4,7 +4,7 @@ import { createInMemoryDispatcher } from "@core/events";
 import { prisma as defaultPrisma } from "@core/database";
 import { InMemoryRateLimiter, UpstashRateLimiter, type RateLimiter } from "@core/rate-limit";
 
-import { RbacService, SessionService } from "@features/auth";
+import { RbacService, SessionService, AuditService } from "@features/auth";
 
 import { AdminController } from "./admin.controller.js";
 import { AdminGuard } from "../../shared/guards/admin.guard.js";
@@ -60,6 +60,15 @@ const dispatcher = createInMemoryDispatcher();
         ),
     },
     {
+      // M4 (module-4-privacy) — AuditService is the read/write
+      // primitive layer for `AdminAuditEvent` (D3 + D4). Wired as a
+      // factory because the service's constructor takes an optional
+      // prisma-shaped dependency (defaulting to the workspace
+      // singleton — see `audit.service.ts`).
+      provide: AuditService,
+      useFactory: () => new AuditService(defaultPrisma),
+    },
+    {
       provide: RATE_LIMITER_TOKEN,
       useFactory: (): RateLimiter => {
         const url = process.env["UPSTASH_REDIS_REST_URL"];
@@ -73,6 +82,6 @@ const dispatcher = createInMemoryDispatcher();
     AdminGuard,
     RateLimitGuard,
   ],
-  exports: [AdminGuard, RateLimitGuard, RATE_LIMITER_TOKEN, RbacService, SessionService],
+  exports: [AdminGuard, RateLimitGuard, RATE_LIMITER_TOKEN, RbacService, SessionService, AuditService],
 })
 export class AdminModule {}
