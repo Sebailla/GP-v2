@@ -335,7 +335,7 @@
         "action": "Action",
         "actorId": "Actor",
         "targetId": "Target",
-        "ipAddress": "IP (HMAC)",
+        "ipAddress": "IP (hash, first 8 chars)",
         "userAgent": "User agent",
         "metadata": "Metadata"
       },

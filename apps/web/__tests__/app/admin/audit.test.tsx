@@ -120,19 +120,42 @@ describe("AuditLogTable — 5 form states (admin.audit)", () => {
     expect(screen.getByText("REVOKE_SESSION")).toBeInTheDocument();
   });
 
-  it("renders the HMAC ipAddress (64 hex chars) in the IP column", async () => {
+  it("truncates the HMAC ipAddress display to first 8 chars + '...' (admin UX)", async () => {
+    // F1 fix (4R-driven correction): the full 64-char HMAC hex is
+    // useless to look at in the table and confirms IP storage
+    // existence. Display only the first 8 chars + "..." with the
+    // FULL value on the `title` attribute for forensic re-derivation.
     mockList.mockResolvedValueOnce(SAMPLE_EVENTS);
     render(<AuditLogTable />);
     await waitFor(() => {
       expect(document.querySelector('[data-event-id="evt-1"]')).toBeInTheDocument();
     });
-    // The HMAC-SHA256 hex digest is rendered verbatim — 64 chars.
-    // The first event's ipAddress is the canonical hex.
+    // The 64-char hash MUST NOT appear verbatim — only the truncated
+    // form `abcd1234...` (8 chars + ellipsis).
     expect(
-      screen.getByText(
+      screen.getByText("abcd1234..."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
         "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
+  });
+
+  it("exposes the full HMAC via the title attribute for forensic re-derivation", async () => {
+    // The `title` attribute carries the FULL hash so an admin can
+    // hover to copy it for forensic queries (re-derive in SQL via
+    // `hmac(env.JWT_SECRET, suspected_ip)`).
+    mockList.mockResolvedValueOnce(SAMPLE_EVENTS);
+    render(<AuditLogTable />);
+    await waitFor(() => {
+      expect(document.querySelector('[data-event-id="evt-1"]')).toBeInTheDocument();
+    });
+    const truncatedCell = screen.getByText("abcd1234...");
+    expect(truncatedCell).toHaveAttribute(
+      "title",
+      "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
+    );
   });
 
   it("renders null ipAddress as an em-dash placeholder", async () => {
