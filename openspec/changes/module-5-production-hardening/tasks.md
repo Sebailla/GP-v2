@@ -45,12 +45,12 @@ Verify `NODE_ENV=test pnpm --filter @features/auth test && pnpm --filter api tes
 
 Verify `NODE_ENV=test pnpm --filter @features/auth test`.
 
-- [ ] 3.1 RED `apps/api/test/session-service.breaker.test.ts`: warm cache <60s; miss triggers `listActive`.
-- [ ] 3.2 GREEN `libs/features/auth/server/src/session-service.ts`: `Map<userId,{count,ts}>` TTL 60s = `LAST_ACTIVE_AT_COALESCE_WINDOW_MS`.
-- [ ] 3.3 RED `apps/api/test/session-service.breaker-perf.test.ts`: 100 sequential `getCurrentUser` warm → spy=0 `listActive`.
-- [ ] 3.4 GREEN TTL eviction; test asserts hit then miss.
-- [ ] 3.5 RED `apps/api/test/session-service.breaker-race.test.ts`: concurrent `getCurrentUser` no stampede (single-flight).
-- [ ] 3.6 GREEN if no single-flight, doc bounded stampede in JSDoc.
+- [x] 3.1 RED `apps/api/test/session-service.breaker.test.ts`: warm cache <60s; miss triggers `listActive`.
+- [x] 3.2 GREEN `libs/features/auth/server/src/session-service.ts`: `Map<userId,{count,ts}>` TTL 60s = `LAST_ACTIVE_AT_COALESCE_WINDOW_MS`.
+- [x] 3.3 RED `apps/api/test/session-service.breaker-perf.test.ts`: 100 sequential `getCurrentUser` warm → spy=0 `listActive`.
+- [x] 3.4 GREEN TTL eviction; test asserts hit then miss.
+- [x] 3.5 RED `apps/api/test/session-service.breaker-race.test.ts`: concurrent `getCurrentUser` no stampede (single-flight).
+- [x] 3.6 GREEN if no single-flight, doc bounded stampede in JSDoc.
 
 ### Phase 4 — Coverage + Metrics (PR #4)
 

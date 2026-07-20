@@ -45,12 +45,12 @@ Verificar `NODE_ENV=test pnpm --filter @features/auth test && pnpm --filter api 
 
 Verificar `NODE_ENV=test pnpm --filter @features/auth test`.
 
-- [ ] 3.1 RED `apps/api/test/session-service.breaker.test.ts`: caché caliente <60s; miss dispara `listActive`.
-- [ ] 3.2 GREEN `libs/features/auth/server/src/session-service.ts`: `Map<userId,{count,ts}>` TTL 60s = `LAST_ACTIVE_AT_COALESCE_WINDOW_MS`.
-- [ ] 3.3 RED `apps/api/test/session-service.breaker-perf.test.ts`: 100 secuenciales `getCurrentUser` con caché caliente → spy=0 `listActive`.
-- [ ] 3.4 GREEN evicción por TTL; prueba afirma acierto y luego miss.
-- [ ] 3.5 RED `apps/api/test/session-service.breaker-race.test.ts`: concurrentes `getCurrentUser` sin estampida (single-flight).
-- [ ] 3.6 GREEN si no hay single-flight, documentar estampida acotada en JSDoc.
+- [x] 3.1 RED `apps/api/test/session-service.breaker.test.ts`: caché caliente <60s; miss dispara `listActive`.
+- [x] 3.2 GREEN `libs/features/auth/server/src/session-service.ts`: `Map<userId,{count,ts}>` TTL 60s = `LAST_ACTIVE_AT_COALESCE_WINDOW_MS`.
+- [x] 3.3 RED `apps/api/test/session-service.breaker-perf.test.ts`: 100 secuenciales `getCurrentUser` con caché caliente → spy=0 `listActive`.
+- [x] 3.4 GREEN evicción por TTL; prueba afirma acierto y luego miss.
+- [x] 3.5 RED `apps/api/test/session-service.breaker-race.test.ts`: concurrentes `getCurrentUser` sin estampida (single-flight).
+- [x] 3.6 GREEN si no hay single-flight, documentar estampida acotada en JSDoc.
 
 ### Fase 4 — Cobertura + Métricas (PR #4)
 
