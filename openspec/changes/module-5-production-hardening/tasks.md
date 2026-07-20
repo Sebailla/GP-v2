@@ -69,13 +69,13 @@ Verify `NODE_ENV=test pnpm turbo run test && pnpm turbo run build lint typecheck
 
 Verify `NODE_ENV=test pnpm turbo run build lint typecheck test bdd && pnpm lint:fixtures && NODE_ENV=test pnpm turbo run test --coverage`.
 
-- [ ] 5.1 RED `libs/shared/schemas/__tests__/audit.schemas.test.ts`: `?limit=500` accepted (Zod max=500); controller clamps 200.
-- [ ] 5.2 GREEN `libs/features/auth/shared/schemas/audit.schemas.ts`: `.max(200)`→`.max(500)`; `admin.controller.ts:listAuditEvents` adds `Math.min(parsed.limit, 200)` in `take`.
-- [ ] 5.3 RED `apps/api/test/runbook-paths.test.ts`: runbook refs `audit-retention.cron.ts`; grep matches `AuditRetentionSchedule`.
-- [ ] 5.4 GREEN `docs/operations/audit-retention-runbook.md`+`Documents-es/...`: paths (159, 396); grep (281).
-- [ ] 5.5 RED `apps/web/__tests__/audit-log-table-i18n.test.ts`: header "IP (HMAC, first 8 chars)" / "IP (HMAC, primeros 8 caracteres)".
-- [ ] 5.6 GREEN `apps/web/messages/{en,es}.json`: rename header; update `AuditLogTable.tsx` if direct ref.
-- [ ] 5.7 RED `apps/api/test/coverage-final.test.ts`: ≥60% per package; CI fails if dropped.
-- [ ] 5.8 GREEN `coverage.disabled=false` enforced; `.env.example` documents escape.
-- [ ] 5.9 ES mirror; verify 0 CJK.
-- [ ] 5.10 Final gate: `pnpm turbo run build lint typecheck test bdd` + `pnpm lint:fixtures` + `pnpm turbo run test --coverage` exit 0.
+- [x] 5.1 RED `libs/shared/schemas/__tests__/audit.schemas.test.ts`: `?limit=500` accepted (Zod max=500); controller clamps 200.
+- [x] 5.2 GREEN `libs/features/auth/shared/schemas/audit.schemas.ts`: `.max(200)`→`.max(500)`; `admin.controller.ts:listAuditEvents` adds `Math.min(parsed.limit, 200)` in `take`.
+- [x] 5.3 RED `apps/api/test/runbook-paths.test.ts`: runbook refs `audit-retention.cron.ts`; grep matches `AuditRetentionSchedule`.
+- [x] 5.4 GREEN `docs/operations/audit-retention-runbook.md`+`Documents-es/...`: paths (159, 396); grep (281).
+- [x] 5.5 RED `apps/web/__tests__/audit-log-table-i18n.test.ts`: header "IP (HMAC, first 8 chars)" / "IP (HMAC, primeros 8 caracteres)".
+- [x] 5.6 GREEN `apps/web/messages/{en,es}.json`: rename header; update `AuditLogTable.tsx` if direct ref.
+- [x] 5.7 RED `apps/api/test/coverage-final.test.ts`: ≥60% per package; CI fails if dropped.
+- [x] 5.8 GREEN `coverage.disabled=false` enforced; `.env.example` documents escape.
+- [x] 5.9 ES mirror; verify 0 CJK.
+- [x] 5.10 Final gate: `pnpm turbo run build lint typecheck test bdd` + `pnpm lint:fixtures` + `pnpm turbo run test --coverage` exit 0.
