@@ -165,11 +165,11 @@ migración separada, NO a través de este endpoint.
 | `AUDIT_RETENTION_ENABLED` | `false` | `bool` | Si el cron de las 03:00 corre |
 
 El cron en sí vive en
-`libs/features/auth/server/src/audit-retention.handler.ts` (el
-handler sin decoradores) + `apps/api/src/modules/auth/audit-retention.cron.ts`
-(el decorador `@Cron('0 3 * * *')`). El handler se registra en
-`AdminModule` SOLO cuando `AUDIT_RETENTION_ENABLED=true` (M4 PR #2
-task 2.10 GREEN).
+`libs/features/auth/server/src/audit-retention.cron.ts` (el handler
+sin decoradores) + `apps/api/src/modules/auth/audit-retention.schedule.ts`
+(la clase `AuditRetentionSchedule` con el decorador
+`@Cron('0 3 * * *')`). El handler se registra en `AdminModule` SOLO
+cuando `AUDIT_RETENTION_ENABLED=true` (M4 PR #2 task 2.10 GREEN).
 
 **`AUDIT_RETENTION_DAYS=0` es un KILL-SWITCH, no "purgar todo
 ahora."** Setear el valor a 0 significa que el cron computa el
@@ -279,22 +279,27 @@ la retención.
 
 ## 6. El cron de retención
 
-El cron es el decorador `@Cron('0 3 * * *')` sobre
-`apps/api/src/modules/auth/audit-retention.cron.ts` y se registra
+El cron es el decorador `@Cron('0 3 * * *')` sobre la clase
+`AuditRetentionSchedule` en
+`apps/api/src/modules/auth/audit-retention.schedule.ts` y se registra
 solo cuando `AUDIT_RETENTION_ENABLED=true`. El slot de las 03:00 UTC
 mantiene las operaciones de retención fuera de las ventanas de
 turno del operador en NA + EU. El handler está intencionalmente
-separado en un `audit-retention.handler.ts` sin decoradores en la
-librería del feature auth + un shell con decoradores en `apps/api/`
-para mantener el requerimiento de `experimentalDecorators` aislado
-al tsconfig de la API (según la deviation `D-M4-4`).
+separado en un `audit-retention.cron.ts` sin decoradores en la
+librería del feature auth + un shell con la clase
+`AuditRetentionSchedule` en `apps/api/` para mantener el requerimiento
+de `experimentalDecorators` aislado al tsconfig de la API (según la
+deviation `D-M4-4`).
 
 Para verificar que el cron está cableado en producción:
 
 ```bash
-# Después del deploy, revisar los logs de la API por la línea [audit-retention]
-flyctl logs --app gastos-api | grep "audit-retention"
-# → {"level":"info","time":"...","msg":"[audit-retention] handler invoked"}
+# Después del deploy, revisar los logs de la API por el nombre de
+# clase AuditRetentionSchedule (el NestJS Logger prefiza cada línea
+# con el nombre de clase, así que un grep sobre el nombre de clase es
+# una señal estable para el operador).
+flyctl logs --app gastos-api | grep "AuditRetentionSchedule"
+# → {"level":"info","time":"...","msg":"[AuditRetentionSchedule] ..."
 ```
 
 Para deshabilitar la retención por completo (por ejemplo para una
@@ -408,10 +413,10 @@ a un entero positivo para habilitar la auto-purga.
 - `apps/api/src/modules/auth/admin.controller.ts` — los 2 nuevos
   endpoints (`GET /admin/audit`, `POST /admin/audit/purge`) + los
   5 endpoints de M3 traídos.
-- `apps/api/src/modules/auth/audit-retention.cron.ts` — el shell
-  con `@Cron('0 3 * * *')` que cablea el handler dentro del
-  ScheduleModule de NestJS.
-- `libs/features/auth/server/src/audit-retention.handler.ts` — el
+- `apps/api/src/modules/auth/audit-retention.schedule.ts` — la
+  clase `AuditRetentionSchedule` con el decorador `@Cron('0 3 * * *')`
+  que cablea el handler dentro del ScheduleModule de NestJS.
+- `libs/features/auth/server/src/audit-retention.cron.ts` — el
   handler sin decoradores invocado por el cron + el endpoint manual
   (según deviation `D-M4-4`).
 - `libs/features/auth/server/src/audit.service.ts` — los helpers
