@@ -57,8 +57,8 @@ Base PR #1. Verify `NODE_ENV=test pnpm --filter api test && pnpm --filter @featu
 - [x] 2.6 GREEN extend `AuditService` with `countOlderThan(days)` + `purgeOlderThan(days)` (D4).
 - [x] 2.7 RED `audit.controller.test.ts` (NestJS e2e): GET /admin/audit 4 endpoints × happy + edge + error + 403; POST /admin/audit/purge dry-run + real + idempotent + 403.
 - [x] 2.8 GREEN extend `AdminController` with GET /admin/audit + POST /admin/audit/purge (D4 dual-mode); update revokeSession projection to spec-literal (D7).
-- [ ] 2.9 RED `audit-retention.cron.test.ts`: when `AUDIT_RETENTION_ENABLED=true` the cron calls `auditService.purgeOlderThan(days)`; when false, no-op; reads `AUDIT_RETENTION_DAYS` env var.
-- [ ] 2.10 GREEN `libs/features/auth/server/src/audit-retention.cron.ts` with `@Cron('0 3 * * *')` (D2); register in `AdminModule` behind env flag.
+- [x] 2.9 RED `audit-retention.cron.test.ts`: when `AUDIT_RETENTION_ENABLED=true` the cron calls `auditService.purgeOlderThan(days)`; when false, no-op; reads `AUDIT_RETENTION_DAYS` env var.
+- [x] 2.10 GREEN `libs/features/auth/server/src/audit-retention.cron.ts` with `@Cron('0 3 * * *')` (D2); register in `AdminModule` behind env flag.
 - [ ] 2.11 TRIANGULATE audit findMany with edge case: action enum mismatch (admin sends `action=GOD`) → Zod 400; very large `limit=999` → clamped to 200.
 
 ## Phase 3 — Web UI + i18n (PR #3)

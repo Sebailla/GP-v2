@@ -57,8 +57,8 @@ Base PR #1. Verificar `NODE_ENV=test pnpm --filter api test && pnpm --filter @fe
 - [x] 2.6 GREEN extender `AuditService` con `countOlderThan(days)` + `purgeOlderThan(days)` (D4).
 - [x] 2.7 RED `audit.controller.test.ts` (NestJS e2e): GET /admin/audit 4 endpoints × happy + edge + error + 403; POST /admin/audit/purge dry-run + real + idempotente + 403.
 - [x] 2.8 GREEN extender `AdminController` con GET /admin/audit + POST /admin/audit/purge (D4 modo dual); actualizar proyección revokeSession a spec-literal (D7).
-- [ ] 2.9 RED `audit-retention.cron.test.ts`: cuando `AUDIT_RETENTION_ENABLED=true` el cron llama `auditService.purgeOlderThan(days)`; cuando false, no-op; lee variable de entorno `AUDIT_RETENTION_DAYS`.
-- [ ] 2.10 GREEN `libs/features/auth/server/src/audit-retention.cron.ts` con `@Cron('0 3 * * *')` (D2); registrar en `AdminModule` detrás de flag de env.
+- [x] 2.9 RED `audit-retention.cron.test.ts`: cuando `AUDIT_RETENTION_ENABLED=true` el cron llama `auditService.purgeOlderThan(days)`; cuando false, no-op; lee variable de entorno `AUDIT_RETENTION_DAYS`.
+- [x] 2.10 GREEN `libs/features/auth/server/src/audit-retention.cron.ts` con `@Cron('0 3 * * *')` (D2); registrar en `AdminModule` detrás de flag de env.
 - [ ] 2.11 TRIANGULATE audit findMany con caso borde: enum action no coincide (admin envía `action=GOD`) → Zod 400; `limit=999` muy grande → reducido a 200.
 
 ## Fase 3 — Web UI + i18n (PR #3)
