@@ -104,10 +104,10 @@ export type AuthAdminActorRole = (typeof AUTH_ADMIN_ACTOR_ROLES)[number];
  * beyond the `@` split — domain-only is the privacy contract.
  *
  * The split is intentionally narrow: only `email.split("@")[1]` is
- * read. Email subaddressing (`alice+tag@gmail.com`) and international
- * domains (`@例え.jp`) are out of scope — they would require an
- * IDN-aware parser, and the counter only cares about the domain
- * shard for grouping, not for delivery.
+ * read. Email subaddressing (`alice+tag@gmail.com`) and IDN
+ * (internationalized domain names) are out of scope — they would
+ * require an IDN-aware parser, and the counter only cares about
+ * the domain shard for grouping, not for delivery.
  */
 export function deriveEmailDomain(email: string | null | undefined): string | null {
   if (typeof email !== "string" || email.length === 0) return null;
