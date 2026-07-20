@@ -79,11 +79,11 @@ Base PR #2. Verificar `NODE_ENV=test pnpm --filter web test`.
 
 Base PR #3. Verificar `NODE_ENV=test pnpm turbo run build lint typecheck test bdd && pnpm lint:fixtures`.
 
-- [ ] 4.1 RED Cucumber `audit-flow.feature`: admin login → /en/admin/audit → listar eventos → filtrar por actorId → ver propia fila REVOKE_SESSION → dry-run purge con olderThanDays=1 → purge real con olderThanDays=90 → verificar eliminación.
-- [ ] 4.2 GREEN step-defs `libs/features/auth/docs/step-defs/audit.steps.ts` cubriendo todos los escenarios.
-- [ ] 4.3 RED Playwright `audit.spec.ts` (proyectos en + es) mismo escenario vertical.
-- [ ] 4.4 GREEN `apps/web/e2e/auth/audit.spec.ts`; `page.route()` mockea los 2 endpoints admin audit.
-- [ ] 4.5 RED borrador `docs/operations/audit-retention-runbook.md`: cómo invocar purge manualmente, dry-run vs real, rationale de política de retención, explicación de redacción de IP, notas de carry-forward M3.
-- [ ] 4.6 GREEN runbook completo; verificado contra staging; `docs/operations/audit-retention-runbook.md` + espejo ES commiteados en el mismo commit atómico.
-- [ ] 4.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`; verificar 0 CJK.
-- [ ] 4.8 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
+- [x] 4.1 RED Cucumber `audit-flow.feature`: admin login → /en/admin/audit → listar eventos → filtrar por actorId → ver propia fila REVOKE_SESSION → dry-run purge con olderThanDays=1 → purge real con olderThanDays=90 → verificar eliminación.
+- [x] 4.2 GREEN step-defs `libs/features/auth/docs/step-defs/audit.steps.ts` cubriendo todos los escenarios.
+- [x] 4.3 RED Playwright `audit.spec.ts` (proyectos en + es) mismo escenario vertical.
+- [x] 4.4 GREEN `apps/web/e2e/auth/audit.spec.ts`; `page.route()` mockea los 2 endpoints admin audit.
+- [x] 4.5 RED borrador `docs/operations/audit-retention-runbook.md`: cómo invocar purge manualmente, dry-run vs real, rationale de política de retención, explicación de redacción de IP, notas de carry-forward M3.
+- [x] 4.6 GREEN runbook completo; verificado contra staging; `docs/operations/audit-retention-runbook.md` + espejo ES commiteados en el mismo commit atómico.
+- [x] 4.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`; verificar 0 CJK.
+- [x] 4.8 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.

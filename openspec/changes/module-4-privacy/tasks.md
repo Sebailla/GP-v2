@@ -79,11 +79,11 @@ Base PR #2. Verify `NODE_ENV=test pnpm --filter web test`.
 
 Base PR #3. Verify `NODE_ENV=test pnpm turbo run build lint typecheck test bdd && pnpm lint:fixtures`.
 
-- [ ] 4.1 RED Cucumber `audit-flow.feature`: admin login → /en/admin/audit → list events → filter by actorId → see own REVOKE_SESSION row → dry-run purge with olderThanDays=1 → real purge with olderThanDays=90 → verify deletion.
-- [ ] 4.2 GREEN step-defs `libs/features/auth/docs/step-defs/audit.steps.ts` covering all scenarios.
-- [ ] 4.3 RED Playwright `audit.spec.ts` (en + es projects) same vertical scenario.
-- [ ] 4.4 GREEN `apps/web/e2e/auth/audit.spec.ts`; `page.route()` mocks the 2 admin audit endpoints.
-- [ ] 4.5 RED draft `docs/operations/audit-retention-runbook.md`: how to invoke purge manually, dry-run vs real, retention policy rationale, IP redaction explanation, M3 carry-forward notes.
-- [ ] 4.6 GREEN runbook complete; verified against staging; `docs/operations/audit-retention-runbook.md` + ES mirror committed in same atomic commit.
-- [ ] 4.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`; verify 0 CJK.
-- [ ] 4.8 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
+- [x] 4.1 RED Cucumber `audit-flow.feature`: admin login → /en/admin/audit → list events → filter by actorId → see own REVOKE_SESSION row → dry-run purge with olderThanDays=1 → real purge with olderThanDays=90 → verify deletion.
+- [x] 4.2 GREEN step-defs `libs/features/auth/docs/step-defs/audit.steps.ts` covering all scenarios.
+- [x] 4.3 RED Playwright `audit.spec.ts` (en + es projects) same vertical scenario.
+- [x] 4.4 GREEN `apps/web/e2e/auth/audit.spec.ts`; `page.route()` mocks the 2 admin audit endpoints.
+- [x] 4.5 RED draft `docs/operations/audit-retention-runbook.md`: how to invoke purge manually, dry-run vs real, retention policy rationale, IP redaction explanation, M3 carry-forward notes.
+- [x] 4.6 GREEN runbook complete; verified against staging; `docs/operations/audit-retention-runbook.md` + ES mirror committed in same atomic commit.
+- [x] 4.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`; verify 0 CJK.
+- [x] 4.8 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `NODE_ENV=test pnpm lint:fixtures` exit 0.
