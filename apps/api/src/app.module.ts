@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
@@ -19,8 +20,25 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
  * Module 1 (T1.4) — HealthModule wires /healthz, /readyz, /status
  * (R-PF-4). T1.7 added MetricsModule to expose GET /metrics (R-PF-9).
  * MailModule (T1.12) lands in its own task.
+ *
+ * JD-1 fix (JD-driven correction round 1): without
+ * `ScheduleModule.forRoot()`, the `@Cron('0 3 * * *')` decorator on
+ * `AuditRetentionSchedule` is metadata only — the @nestjs/schedule
+ * `DiscoveryService` never picks it up and the retention cron never
+ * registers in the `SchedulerRegistry`. With
+ * `AUDIT_RETENTION_ENABLED=true`, the operator believes retention is
+ * active; in production the cron is silently inactive. Activating the
+ * schedule module at the composition root activates every `@Cron`
+ * decorator in the wired modules.
  */
 @Module({
-  imports: [AuthModule, HealthModule, MailModule, MetricsModule, TransactionsModule],
+  imports: [
+    AuthModule,
+    HealthModule,
+    MailModule,
+    MetricsModule,
+    ScheduleModule.forRoot(),
+    TransactionsModule,
+  ],
 })
 export class AppModule {}
