@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 /**
  * TDD contract — M5 5.3 RED → 5.4 GREEN.
@@ -43,12 +42,16 @@ import { fileURLToPath } from "node:url";
  * pass the contract.
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// apps/api uses CommonJS (`module: commonjs` in tsconfig), so
+// `__dirname` is provided at runtime by the test harness. We avoid
+// `import.meta.url` because the typecheck rejects the meta-property
+// under CommonJS (TS1343).
+//   apps/api/test/runbook-paths.test.ts → ../../../ = REPO_ROOT
+const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 const RUNBOOK_PATHS = [
-  path.resolve(__dirname, "../../../docs/operations/audit-retention-runbook.md"),
-  path.resolve(__dirname, "../../../Documents-es/docs/operations/audit-retention-runbook.md"),
+  path.join(REPO_ROOT, "docs/operations/audit-retention-runbook.md"),
+  path.join(REPO_ROOT, "Documents-es/docs/operations/audit-retention-runbook.md"),
 ] as const;
 
 describe("runbook path/grep accuracy (M5 5.3 RED)", () => {

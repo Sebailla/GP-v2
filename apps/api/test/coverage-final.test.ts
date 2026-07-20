@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 /**
  * TDD contract — M5 5.7 RED → 5.8 GREEN.
@@ -44,11 +43,11 @@ import { fileURLToPath } from "node:url";
  * coverage requirement.
  */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// apps/api/test/coverage-final.test.ts → REPO_ROOT = ../.. (3 up
-// from file: test → api → apps → REPO_ROOT)
+// apps/api uses CommonJS (`module: commonjs` in tsconfig), so
+// `__dirname` is provided at runtime by the test harness. We avoid
+// `import.meta.url` because the typecheck rejects the meta-property
+// under CommonJS (TS1343).
+//   apps/api/test/coverage-final.test.ts → ../../../ = REPO_ROOT
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 
 interface VitestConfigShape {
