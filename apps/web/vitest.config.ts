@@ -42,6 +42,21 @@ export default defineConfig({
     globals: false,
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
+    // M5 D4 — per-package coverage threshold (60% on lines,
+    // branches, functions, statements). See the observability
+    // spec's "Coverage Gate Enforcement" requirement + the
+    // apps/api vitest config for the canonical explanation.
+    coverage: {
+      provider: "v8",
+      thresholds: {
+        global: {
+          lines: 60,
+          branches: 60,
+          functions: 60,
+          statements: 60,
+        },
+      },
+    },
     // Slice 7 PR-7 (commit 36386e1): the happy-dom 20.10 + vitest 4.1
     // worker pool has a known instability with React 18 + useEffect-
     // driven state updates in component trees (e.g. EditTransactionForm's

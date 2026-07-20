@@ -71,5 +71,25 @@ export default defineConfig({
     globals: false,
     clearMocks: true,
     setupFiles: ["./test/setup-env.ts"],
+    // M5 D4 — per-package coverage threshold (60% on lines,
+    // branches, functions, statements). The threshold matches
+    // `openspec/config.yaml#coverage_threshold` and the
+    // observability spec's "Coverage Gate Enforcement"
+    // requirement. The turbo `coverage` task is the canonical
+    // runner; the opt-out escape `coverage.disabled=true` is
+    // wired in `turbo.json#coverage.env` so operators can
+    // disable the gate for experimental branches (see D4 +
+    // observability spec "Coverage opt-out" scenario).
+    coverage: {
+      provider: "v8",
+      thresholds: {
+        global: {
+          lines: 60,
+          branches: 60,
+          functions: 60,
+          statements: 60,
+        },
+      },
+    },
   },
 });
