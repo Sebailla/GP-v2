@@ -57,6 +57,7 @@ import { stepDefinitions as authCommon } from "../step-defs/common.steps.js";
 import { stepDefinitions as authRealm } from "../step-defs/realm.steps.js";
 import { stepDefinitions as authFlow } from "../step-defs/auth-flow.steps.js";
 import { stepDefinitions as authAdmin } from "../step-defs/admin.steps.js";
+import { stepDefinitions as authAudit } from "../step-defs/audit.steps.js";
 import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
 
 /**
@@ -70,8 +71,14 @@ import { createAuthWorld, type AuthWorld } from "../step-defs/world.js";
  * `admin.steps.ts` for the admin vertical scenario in
  * `docs/admin-flow.feature` (admin login → list users → change role
  * → list sessions → revoke single → revoke all → non-admin redirect).
+ *
+ * M4 (module-4-privacy) Phase 4 PR-4 task 4.2 GREEN added
+ * `audit.steps.ts` for the audit + retention vertical scenario in
+ * `docs/audit-flow.feature` (admin login → list audit → filter by
+ * actorId → see own REVOKE_SESSION → dry-run purge → real purge →
+ * verify deletion + non-admin denial).
  */
-const ALL_BINDINGS = [...authCommon, ...authRealm, ...authFlow, ...authAdmin];
+const ALL_BINDINGS = [...authCommon, ...authRealm, ...authFlow, ...authAdmin, ...authAudit];
 
 type StepFn = (world: unknown, ...args: ReadonlyArray<string>) => void | Promise<void>;
 
