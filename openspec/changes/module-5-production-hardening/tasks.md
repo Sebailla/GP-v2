@@ -28,7 +28,7 @@ Verify `NODE_ENV=test pnpm --filter @core/config test && pnpm --filter @features
 - [x] 1.4 GREEN `libs/features/auth/server/src/{auth-service,password-reset.service}.ts`: `bcrypt.hash(p, env.BCRYPT_COST_FACTOR_OVERRIDE ?? BCRYPT_COST_FACTOR)`; `constants.ts:BCRYPT_COST_FACTOR=12`.
 - [x] 1.5 RED same test: test mode forces cost 4; 10 logins <2s.
 - [x] 1.6 GREEN keep `BCRYPT_COST_FACTOR=12`; doc override allows lower in test.
-- [ ] 1.7 ES mirror `Documents-es/.../tasks.md`; grep CJK empty.
+- [x] 1.7 ES mirror `Documents-es/.../tasks.md`; grep CJK empty.
 
 ### Phase 2 — F2 Serializable (PR #2)
 
