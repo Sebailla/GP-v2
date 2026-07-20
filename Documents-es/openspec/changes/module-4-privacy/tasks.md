@@ -65,15 +65,15 @@ Base PR #1. Verificar `NODE_ENV=test pnpm --filter api test && pnpm --filter @fe
 
 Base PR #2. Verificar `NODE_ENV=test pnpm --filter web test`.
 
-- [ ] 3.1 RED `audit-api.test.ts`: los 3 wrappers (`listAdminAuditEvents`, `dryRunPurgeAuditEvents`, `purgeAuditEvents`) envían `Authorization: Bearer <token>` (patrón M3 JD-1); parámetros URL codificados correctamente.
-- [ ] 3.2 GREEN `apps/web/lib/audit-api.ts` con 3 wrappers; `authHeader()` devuelve token Bearer.
-- [ ] 3.3 RED `audit-page.test.tsx`: server component obtiene eventos de auditoría + renderiza tabla; barra de filtros con 4 inputs; controles de paginación; botones dry-run + purge real; 5 estados de formulario según AGENTS.md §9.
-- [ ] 3.4 GREEN `apps/web/app/[locale]/(app)/admin/audit/page.tsx` server component; `AuditFilterBar` client component; `AuditLogTable` client component; `AuditRetentionButton` client component.
-- [ ] 3.5 GREEN `apps/web/messages/{en,es}.json`: añadir claves `admin.audit.*` (title, filters, columns, dryRun, purge, confirm, errors).
-- [ ] 3.6 RED `audit-filter-bar.test.tsx`: inputs de filtro se enlazan a params URL; submit dispara fetch.
-- [ ] 3.7 RED `audit-retention-button.test.tsx`: botón dry-run muestra conteo coincidente; botón real muestra diálogo de confirmación; ambos cumplen contrato de 5 estados.
-- [ ] 3.8 RED axe-core: `apps/web/e2e/auth/audit.a11y.spec.ts` auditoría por superficie; asertar 0 serious/critical.
-- [ ] 3.9 TRIANGULATE página audit: estado vacío (sin eventos) muestra CTA; estado success tras aplicar filtro muestra confirmación localizada; estado error en 401/403/500 muestra copy apropiado.
+- [x] 3.1 RED `audit-api.test.ts`: los 3 wrappers (`listAdminAuditEvents`, `dryRunPurgeAuditEvents`, `purgeAuditEvents`) envían `Authorization: Bearer <token>` (patrón M3 JD-1); parámetros URL codificados correctamente.
+- [x] 3.2 GREEN `apps/web/lib/audit-api.ts` con 3 wrappers; `authHeader()` devuelve token Bearer.
+- [x] 3.3 RED `audit-page.test.tsx`: server component obtiene eventos de auditoría + renderiza tabla; barra de filtros con 4 inputs; controles de paginación; botones dry-run + purge real; 5 estados de formulario según AGENTS.md §9.
+- [x] 3.4 GREEN `apps/web/app/[locale]/(app)/admin/audit/page.tsx` server component; `AuditFilterBar` client component; `AuditLogTable` client component; `AuditRetentionButton` client component.
+- [x] 3.5 GREEN `apps/web/messages/{en,es}.json`: añadir claves `admin.audit.*` (title, filters, columns, dryRun, purge, confirm, errors).
+- [x] 3.6 RED `audit-filter-bar.test.tsx`: inputs de filtro se enlazan a params URL; submit dispara fetch.
+- [x] 3.7 RED `audit-retention-button.test.tsx`: botón dry-run muestra conteo coincidente; botón real muestra diálogo de confirmación; ambos cumplen contrato de 5 estados.
+- [x] 3.8 RED axe-core: `apps/web/e2e/auth/audit.a11y.spec.ts` auditoría por superficie; asertar 0 serious/critical.
+- [x] 3.9 TRIANGULATE página audit: estado vacío (sin eventos) muestra CTA; estado success tras aplicar filtro muestra confirmación localizada; estado error en 401/403/500 muestra copy apropiado.
 
 ## Fase 4 — BDD + Runbook + Compuerta Final (PR #4)
 
