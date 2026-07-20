@@ -35,15 +35,15 @@ TDD estricto RED→GREEN→TRIANGULATE→REFACTOR; commits atómicos; pino `[ema
 
 Base `feat/privacy`. Verificar `pnpm --filter @core/database test && pnpm --filter @features/auth test`.
 
-- [ ] 1.1 RED prueba `schema.prisma`: añadir `Session.lastActiveAt DateTime?` + `@@index([lastActiveAt])`; asertar que la migración crea columna + índice.
-- [ ] 1.2 GREEN actualizar `schema.prisma`; generar migración Prisma `add_session_last_active_at`.
-- [ ] 1.3 RED `env-refine.audit-retention.test.ts`: AUDIT_RETENTION_DAYS parsea 0/30/90/-1/abc; AUDIT_RETENTION_ENABLED parsea true/false.
-- [ ] 1.4 GREEN `env.schema.ts`: añadir `AUDIT_RETENTION_DAYS` (z.coerce.number.int.min(0).default(90)) + `AUDIT_RETENTION_ENABLED` (z.coerce.boolean.default(false)); `.env.example` documenta.
-- [ ] 1.5 RED `session-service.last-active-at.test.ts`: validateSession sobre sesión con `lastActiveAt < now-60s` escribe `now()`; dentro de 60s coalesce; sesión nueva (`lastActiveAt IS NULL`) escribe.
-- [ ] 1.6 GREEN extender `SessionService.validateSession` con escritura coalesced (patrón D1: `where: { id, OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: cutoff } }] }`).
-- [ ] 1.7 RED `session-service.list-projection.test.ts`: list devuelve proyección spec-literal de 6 campos; orderBy `lastActiveAt DESC`; `lastActiveAt IS NULL` ordena al final.
-- [ ] 1.8 GREEN actualizar proyección de `SessionService.list` a spec-literal `{ id, userId, createdAt, lastActiveAt, userAgent, ipAddress }`; orderBy.
-- [ ] 1.9 ES mirror `Documents-es/.../tasks.md`; verificar 0 CJK.
+- [x] 1.1 RED prueba `schema.prisma`: añadir `Session.lastActiveAt DateTime?` + `@@index([lastActiveAt])`; asertar que la migración crea columna + índice.
+- [x] 1.2 GREEN actualizar `schema.prisma`; generar migración Prisma `add_session_last_active_at`.
+- [x] 1.3 RED `env-refine.audit-retention.test.ts`: AUDIT_RETENTION_DAYS parsea 0/30/90/-1/abc; AUDIT_RETENTION_ENABLED parsea true/false.
+- [x] 1.4 GREEN `env.schema.ts`: añadir `AUDIT_RETENTION_DAYS` (z.coerce.number.int.min(0).default(90)) + `AUDIT_RETENTION_ENABLED` (z.coerce.boolean.default(false)); `.env.example` documenta.
+- [x] 1.5 RED `session-service.last-active-at.test.ts`: validateSession sobre sesión con `lastActiveAt < now-60s` escribe `now()`; dentro de 60s coalesce; sesión nueva (`lastActiveAt IS NULL`) escribe.
+- [x] 1.6 GREEN extender `SessionService.validateSession` con escritura coalesced (patrón D1: `where: { id, OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: cutoff } }] }`).
+- [x] 1.7 RED `session-service.list-projection.test.ts`: list devuelve proyección spec-literal de 6 campos; orderBy `lastActiveAt DESC`; `lastActiveAt IS NULL` ordena al final.
+- [x] 1.8 GREEN actualizar proyección de `SessionService.list` a spec-literal `{ id, userId, createdAt, lastActiveAt, userAgent, ipAddress }`; orderBy.
+- [x] 1.9 ES mirror `Documents-es/.../tasks.md`; verificar 0 CJK.
 
 ## Fase 2 — Audit API + Retención (PR #2)
 
