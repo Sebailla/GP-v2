@@ -22,7 +22,7 @@ import { useTranslations } from "next-intl";
  * requiring a server-only `useLocale()` call.
  */
 
-export type AdminNavTab = "users" | "sessions";
+export type AdminNavTab = "users" | "sessions" | "audit";
 
 export interface AdminNavProps {
   readonly active: AdminNavTab;
@@ -31,6 +31,7 @@ export interface AdminNavProps {
 
 export function AdminNav({ active, locale }: AdminNavProps) {
   const t = useTranslations("admin.nav");
+  const tAudit = useTranslations("admin.audit");
 
   return (
     <nav
@@ -66,6 +67,18 @@ export function AdminNav({ active, locale }: AdminNavProps) {
         }}
       >
         {t("sessions")}
+      </Link>
+      <Link
+        href={`/${locale}/admin/audit`}
+        aria-current={active === "audit" ? "page" : undefined}
+        style={{
+          padding: "0.5rem 0.75rem",
+          textDecoration: "none",
+          fontWeight: active === "audit" ? 600 : 400,
+          color: active === "audit" ? "#0f172a" : "#475569",
+        }}
+      >
+        {tAudit("title")}
       </Link>
       <Link
         href={`/${locale}/(app)`}
