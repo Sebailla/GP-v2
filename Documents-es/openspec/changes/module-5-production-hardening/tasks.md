@@ -56,14 +56,14 @@ Verificar `NODE_ENV=test pnpm --filter @features/auth test`.
 
 Verificar `NODE_ENV=test pnpm turbo run test && pnpm turbo run build lint typecheck test bdd && pnpm turbo run test --coverage`.
 
-- [ ] 4.1 RED `apps/api/test/observability-metrics.test.ts`: incrementos aumentan el Counter correcto (`authLoginSuccessTotal`, `authLoginFailureTotal{reason,email_domain}`, `authAdminOperationTotal{operation,actor_role}`).
-- [ ] 4.2 GREEN `apps/api/src/modules/metrics/registry.ts`: 7 Counters (`auth_login_success_total`, `auth_login_failure_total`, `auth_password_reset_requested_total`, `auth_password_reset_completed_total`, `auth_admin_operation_total`, `auth_session_validations_total`, `auth_session_validations_failed_total`).
-- [ ] 4.3 RED `apps/api/test/metrics.e2e-spec.ts`: tras login+admin+sesión, `GET /metrics` retorna los contadores.
-- [ ] 4.4 GREEN `apps/api/src/modules/auth/{auth,admin}.controller.ts`: incrementar éxito/fallo; pino `[email]`+`[ip]` redactados; sin PII en etiquetas.
-- [ ] 4.5 RED `apps/api/test/coverage-gate.test.ts`: 65% pasa; 50% falla.
-- [ ] 4.6 GREEN `turbo.json` agregar `coverage.disabled` a `env`; por paquete `vitest.config.ts` `thresholds.global.{lines,branches,functions,statements}=60` (apps/api, apps/web, libs/features/auth/server, libs/core/{database,logging,rate-limit}).
-- [ ] 4.7 RED `apps/api/test/observability-pii.test.ts`: sin `@`; sin `ip_address`; sin UUID.
-- [ ] 4.8 GREEN `libs/features/auth/server/src/audit.service.ts`: incrementos en 8 endpoints admin (list_users, change_role, list_sessions, revoke_session, revoke_all_sessions, list_audit, purge_audit_dry_run, purge_audit_real).
+- [x] 4.1 RED `apps/api/test/observability-metrics.test.ts`: incrementos aumentan el Counter correcto (`authLoginSuccessTotal`, `authLoginFailureTotal{reason,email_domain}`, `authAdminOperationTotal{operation,actor_role}`).
+- [x] 4.2 GREEN `apps/api/src/modules/metrics/registry.ts`: 7 Counters (`auth_login_success_total`, `auth_login_failure_total`, `auth_password_reset_requested_total`, `auth_password_reset_completed_total`, `auth_admin_operation_total`, `auth_session_validations_total`, `auth_session_validations_failed_total`).
+- [x] 4.3 RED `apps/api/test/metrics.e2e-spec.ts`: tras login+admin+sesión, `GET /metrics` retorna los contadores.
+- [x] 4.4 GREEN `apps/api/src/modules/auth/{auth,admin}.controller.ts`: incrementar éxito/fallo; pino `[email]`+`[ip]` redactados; sin PII en etiquetas.
+- [x] 4.5 RED `apps/api/test/coverage-gate.test.ts`: 65% pasa; 50% falla.
+- [x] 4.6 GREEN `turbo.json` agregar `coverage.disabled` a `env`; por paquete `vitest.config.ts` `thresholds.global.{lines,branches,functions,statements}=60` (apps/api, apps/web, libs/features/auth/server, libs/core/{database,logging,rate-limit}).
+- [x] 4.7 RED `apps/api/test/observability-pii.test.ts`: sin `@`; sin `ip_address`; sin UUID.
+- [x] 4.8 GREEN `libs/features/auth/server/src/audit.service.ts`: incrementos en 8 endpoints admin (list_users, change_role, list_sessions, revoke_session, revoke_all_sessions, list_audit, purge_audit_dry_run, purge_audit_real).
 
 ### Fase 5 — Clamp + Runbook + Gate (PR #5)
 
