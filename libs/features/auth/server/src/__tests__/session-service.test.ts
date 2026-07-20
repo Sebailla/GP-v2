@@ -48,6 +48,11 @@ vi.mock("@core/database", () => ({
   prisma: {
     session: {
       findUnique: vi.fn(),
+      // M4 (module-4-privacy — task 1.6): getCurrentUser now performs
+      // a coalesce UPDATE on `Session.lastActiveAt` per design D1.
+      // The mock must expose `session.update` so the production code
+      // can call it without throwing.
+      update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
     },

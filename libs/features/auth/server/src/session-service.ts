@@ -67,6 +67,16 @@ export type CurrentUser = {
   role: string;
 };
 
+/**
+ * M4 (module-4-privacy) — coalesce window for `Session.lastActiveAt`
+ * writes on `getCurrentUser` (D1). The DB-level conditional UPDATE
+ * only writes when `lastActiveAt IS NULL OR lastActiveAt < now - WINDOW`.
+ * 60s is the boundary the spec mandates (`audit-log-ui` "Session
+ * LastActiveAt Update" scenario); pinning the constant here keeps the
+ * TDD contract and the production code in lock-step.
+ */
+const LAST_ACTIVE_AT_COALESCE_WINDOW_MS = 60_000;
+
 export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
@@ -105,6 +115,18 @@ export class SessionService {
    * session whose expiry is exactly `now` is considered expired.
    * This avoids the race where a request that arrives at `t == expires`
    * is served a stale session.
+   *
+   * M4 (module-4-privacy) — Session.lastActiveAt coalesce (D1):
+   * after the validation steps pass, the service writes
+   * `lastActiveAt = now` to the session row, but ONLY if the row is
+   * either (a) fresh (`lastActiveAt IS NULL`) or (b) older than the
+   * 60s coalesce window. The DB-level conditional UPDATE bounds
+   * write amplification at 1 update / 60s / session across N
+   * concurrent workers — see `openspec/changes/module-4-privacy/
+   * design.md` §2 D1 + §3.2. The coalesce UPDATE returning 0 rows
+   * (another worker won the race, or the row was just written
+   * within the window) is treated as a successful no-op; the
+   * CurrentUser projection is returned unchanged regardless.
    */
   async getCurrentUser(sessionToken: string): Promise<CurrentUser> {
     // Slice 3 batch 6: routes the session read through the
@@ -127,6 +149,23 @@ export class SessionService {
       // orphaned — same observable failure as a missing token.
       throw new AuthError("INVALID_SESSION");
     }
+    // M4 D1 coalesce write — fires AFTER the validation steps so a
+    // missing/expired/orphaned session never produces a write. The
+    // 60s cutoff is the coalesce window: a write within 60s of the
+    // previous write is a no-op (Prisma returns 0 rows affected, the
+    // service treats it as a successful coalesce).
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - LAST_ACTIVE_AT_COALESCE_WINDOW_MS);
+    await this.prisma.session.update({
+      where: {
+        id: session.id,
+        OR: [
+          { lastActiveAt: null },
+          { lastActiveAt: { lt: cutoff } },
+        ],
+      },
+      data: { lastActiveAt: now },
+    });
     return {
       id: user.id,
       email: user.email,

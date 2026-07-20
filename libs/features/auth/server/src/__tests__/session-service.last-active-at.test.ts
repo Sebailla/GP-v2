@@ -150,8 +150,17 @@ describe("SessionService.getCurrentUser — Session.lastActiveAt coalesce (M4 ta
       // `now - 60_000`, so the bound is monotonically within
       // [before - 60_000, after - 60_000].
       const ltBranch = orClause.find(
-        (branch): branch is { lastActiveAt: { lt: Date } } =>
-          "lastActiveAt" in branch && "lt" in branch.lastActiveAt,
+        (branch): branch is { lastActiveAt: { lt: Date } } => {
+          if (!("lastActiveAt" in branch)) return false;
+          const value = (branch as { lastActiveAt: unknown }).lastActiveAt;
+          // The null branch has `lastActiveAt: null` (no `lt` field).
+          // The lt branch has `lastActiveAt: { lt: Date }`.
+          return (
+            value !== null &&
+            typeof value === "object" &&
+            "lt" in (value as Record<string, unknown>)
+          );
+        },
       );
       expect(ltBranch).toBeDefined();
       const cutoff = (ltBranch as { lastActiveAt: { lt: Date } }).lastActiveAt.lt;
