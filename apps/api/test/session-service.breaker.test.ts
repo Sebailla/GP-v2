@@ -18,7 +18,11 @@ function makeService(listActive: SessionRepository["listActive"]) {
     listActive,
     revokeByToken: vi.fn(),
   };
-  const userRepo: UserRepository = { findById: vi.fn().mockResolvedValue(user) };
+  const userRepo: UserRepository = {
+    findById: vi.fn().mockResolvedValue(user),
+    findByEmail: vi.fn(),
+    updatePassword: vi.fn(),
+  };
   const prisma = { session: { update: vi.fn().mockResolvedValue({ count: 1 }) } } as unknown as PrismaClient;
   return { service: new SessionService(prisma, sessionRepo, userRepo, dispatcher), sessionRepo };
 }
