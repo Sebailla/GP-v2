@@ -342,8 +342,12 @@ export class PasswordResetService {
       throw invalidTokenError();
     }
 
-    // 5. Hash the new password at the canonical cost factor.
-    const hashed = await bcrypt.hash(newPassword, BCRYPT_COST_FACTOR);
+    // 5. Hash with the validated override when configured; otherwise
+    //    use the production default shared across auth hash paths.
+    const hashed = await bcrypt.hash(
+      newPassword,
+      env.BCRYPT_COST_FACTOR_OVERRIDE ?? BCRYPT_COST_FACTOR,
+    );
 
     // 6 + 7. F1: wrap BOTH writes in a single prisma.\$transaction so a
     //    failure on the second write rolls back the first (TOCTOU
