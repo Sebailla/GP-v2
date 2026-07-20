@@ -217,13 +217,13 @@ export type AuditServiceClient = Pick<
  * truth per AGENTS.md §8.
  */
 export interface FindManyFilters {
-  readonly actorId?: string;
-  readonly targetId?: string;
-  readonly action?: AdminAuditAction;
-  readonly since?: Date;
-  readonly until?: Date;
-  readonly limit?: number;
-  readonly offset?: number;
+  readonly actorId?: string | undefined;
+  readonly targetId?: string | undefined;
+  readonly action?: AdminAuditAction | undefined;
+  readonly since?: Date | undefined;
+  readonly until?: Date | undefined;
+  readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
 }
 
 /**

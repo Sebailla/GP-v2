@@ -82,7 +82,12 @@ describe("AuditRetentionSchedule (M4 task 2.9 RED, design D2)", () => {
   let moduleRef: TestingModule;
   let schedule: AuditRetentionSchedule;
   let purgeOlderThanMock: ReturnType<typeof vi.fn>;
-  let loggerLogMock: ReturnType<typeof vi.fn>;
+  // The logger sink has to match the handler's `(message: string) =>
+  // void` signature. `vi.fn()` returns a generic mock; the type
+  // assertion keeps typecheck green without sacrificing assertion
+  // behavior (`.toHaveBeenCalledWith` still resolves to the call
+  // signature).
+  let loggerLogMock: (message: string) => void;
 
   beforeEach(async () => {
     vi.resetAllMocks();
@@ -90,6 +95,7 @@ describe("AuditRetentionSchedule (M4 task 2.9 RED, design D2)", () => {
     envRef.AUDIT_RETENTION_DAYS = 90;
 
     purgeOlderThanMock = vi.fn().mockResolvedValue(0);
+    loggerLogMock = vi.fn();
     const auditServiceMock = {
       findMany: vi.fn(),
       countOlderThan: vi.fn().mockResolvedValue(0),
