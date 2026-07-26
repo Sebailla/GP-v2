@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "start": "next start --port 3000",
     "e2e": "playwright test",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@auth/core": "0.37.4",
