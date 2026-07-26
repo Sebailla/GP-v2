@@ -82,6 +82,7 @@ export default defineConfig({
     // observability spec "Coverage opt-out" scenario).
     coverage: {
       provider: "v8",
+      reporter: ["text", "json-summary"],
       thresholds: {
         global: {
           lines: 60,

@@ -67,22 +67,66 @@ const packageNameFor = (absoluteDir: string): string => {
   return parts[parts.length - 1] ?? absoluteDir;
 };
 
+/**
+ * Pick the first coverage file that exists and matches the
+ * expected shape. Vitest 4.x with `provider: "v8"` writes
+ * `<root>/coverage/coverage-final.json`; the legacy v8 reporter
+ * (and several CI dashboards) prefer `coverage-summary.json`.
+ * We accept either so the validator works across upstream
+ * permutations without forcing a reporter swap in every
+ * vitest.config.ts (the goal is a D3 dual-gate, not a config
+ * rewrite).
+ */
+const SUMMARY_FILENAMES = ["coverage-summary.json", "coverage-final.json"] as const;
+
+const readCoverageTotal = (absoluteDir: string): { exists: boolean; raw: string | null } => {
+  for (const filename of SUMMARY_FILENAMES) {
+    const candidate = join(absoluteDir, "coverage", filename);
+    if (existsSync(candidate)) {
+      const raw = readFileSync(candidate, "utf8");
+      // v8's `coverage-final.json` is the raw per-file trace; only
+      // `coverage-summary.json` has the aggregate `total` block at
+      // the root. Bail out of the loop early when we found the
+      // summary-shaped file (the JSON tree is identical for both
+      // providers when present).
+      const parsed: unknown = (() => {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      })();
+      if (
+        parsed !== null &&
+        typeof parsed === "object" &&
+        "total" in parsed &&
+        typeof (parsed as { total: unknown }).total === "object" &&
+        (parsed as { total: object }).total !== null
+      ) {
+        return { exists: true, raw };
+      }
+      // coverage-final.json (no `total`) is a per-file trace, not
+      // the aggregate. Fall through to the next candidate.
+    }
+  }
+  return { exists: false, raw: null };
+};
+
 const parseSummary = (absoluteDir: string): PackageReport => {
-  const summaryPath = join(absoluteDir, "coverage", "coverage-summary.json");
-  if (!existsSync(summaryPath)) {
+  const total = readCoverageTotal(absoluteDir);
+  if (!total.exists || total.raw === null) {
     return {
       dir: absoluteDir,
       name: packageNameFor(absoluteDir),
       metrics: { lines: 0, branches: 0, functions: 0, statements: 0 },
       status: "missing",
       failingMetrics: METRICS,
-      error: "coverage-summary.json not found",
+      error: "neither coverage-summary.json nor coverage-final.json (with 'total') was found",
     };
   }
-  const raw = readFileSync(summaryPath, "utf8");
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(total.raw);
   } catch (cause) {
     return {
       dir: absoluteDir,
@@ -109,7 +153,7 @@ const parseSummary = (absoluteDir: string): PackageReport => {
       error: "missing or invalid 'total' object in summary JSON",
     };
   }
-  const total = (parsed as { total: Record<string, unknown> }).total;
+  const totalRecord = (parsed as { total: Record<string, unknown> }).total;
   const metrics: Record<CoverageMetric, number> = {
     lines: 0,
     branches: 0,
@@ -117,7 +161,7 @@ const parseSummary = (absoluteDir: string): PackageReport => {
     statements: 0,
   };
   for (const metric of METRICS) {
-    const entry = total[metric];
+    const entry = totalRecord[metric];
     const pct =
       entry !== undefined &&
       entry !== null &&

@@ -35,6 +35,7 @@ export default defineConfig({
     // apps/api vitest config for the canonical explanation.
     coverage: {
       provider: "v8",
+      reporter: ["text", "json-summary"],
       thresholds: {
         global: {
           lines: 60,

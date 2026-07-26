@@ -54,12 +54,33 @@ const loadValidator = async (): Promise<CoverageValidator> => {
   return (mod.default ?? mod) as CoverageValidator;
 };
 
-const writeSummary = (dir: string, total: Record<string, { pct: number }>): void => {
+const writeSummary = (
+  dir: string,
+  total: Record<string, { pct: number }>,
+  filename: "coverage-summary.json" | "coverage-final.json" = "coverage-summary.json",
+): void => {
   mkdirSync(join(dir, "coverage"), { recursive: true });
-  writeFileSync(
-    join(dir, "coverage", "coverage-summary.json"),
-    JSON.stringify({ total }),
-  );
+  if (filename === "coverage-summary.json") {
+    writeFileSync(
+      join(dir, "coverage", "coverage-summary.json"),
+      JSON.stringify({ total }),
+    );
+  } else {
+    // coverage-final.json is the v8 raw per-file trace; the
+    // validator only accepts it when the file ALSO carries the
+    // aggregate `total` block (which real vitest output never
+    // does — but Vitest 4.x's per-package emit still drops a
+    // separate coverage-final.json with per-file slices). For
+    // the test we seed it WITH a `total` block to exercise the
+    // dual-format path the validator accepts.
+    writeFileSync(
+      join(dir, "coverage", "coverage-final.json"),
+      JSON.stringify({
+        "/some/file.ts": { s: { 1: 1 }, b: { 1: 1 }, f: { 1: 1 } },
+        total,
+      }),
+    );
+  }
 };
 
 describe("coverage-validator", () => {
@@ -148,6 +169,24 @@ describe("coverage-validator", () => {
     });
     expect(result.code).toBe(0);
     expect(result.stdout).toMatch(/WARN|disabled/i);
+  });
+
+  it("accepts coverage-final.json (v8 raw) when it carries the 'total' block (Vitest 4.x emits this)", async () => {
+    const dualFormatDir = join(tmpRoot, "apps-pkg-final-json");
+    writeSummary(
+      dualFormatDir,
+      {
+        lines: { pct: 75 },
+        branches: { pct: 75 },
+        functions: { pct: 75 },
+        statements: { pct: 75 },
+      },
+      "coverage-final.json",
+    );
+    const validator = await loadValidator();
+    const result = validator.run({ workspaceDirs: [dualFormatDir] });
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("apps-pkg-final-json");
   });
 });
 
