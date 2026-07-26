@@ -65,7 +65,11 @@ import type { DomainEvent } from "@core/events";
 
 import type { AuthEventDispatcher } from "./events.js";
 import { insertAuditEvent } from "./audit.service.js";
-import { LastAdminError, UserNotFoundError } from "./errors.js";
+import {
+  LastAdminError,
+  SerializationFailedError,
+  UserNotFoundError,
+} from "./errors.js";
 
 export type Role = "USER" | "ADMIN";
 
@@ -134,6 +138,25 @@ export interface AdminUserRow {
   readonly email: string;
   readonly role: Role;
   readonly createdAt: Date;
+}
+
+type TransactionClient = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
+
+const SERIALIZATION_RETRY_DELAYS_MS = [50, 100] as const;
+const SERIALIZATION_ERROR_CODES = new Set(["40001", "P2034"]);
+
+function isSerializationError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    SERIALIZATION_ERROR_CODES.has(error.code)
+  );
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 export class RbacService {
@@ -261,91 +284,85 @@ export class RbacService {
    * observability layer can correlate role transitions without joining
    * the audit table.
    */
+  private async runSerializable<T>(work: (tx: TransactionClient) => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(work, { isolationLevel: "Serializable" });
+      } catch (error) {
+        const retryDelay = SERIALIZATION_RETRY_DELAYS_MS[attempt];
+        if (!isSerializationError(error)) {
+          throw error;
+        }
+        if (retryDelay === undefined) {
+          throw new SerializationFailedError();
+        }
+        await delay(retryDelay);
+      }
+    }
+  }
+
   async changeRole(
     userId: string,
     newRole: Role,
     actorId: string,
   ): Promise<AdminUserRow> {
-    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (existing === null) {
-      throw new UserNotFoundError(`User not found: ${userId}`);
-    }
-    const fromRole = existing.role as Role;
+    const result = await this.runSerializable(
+      async (tx) => {
+        const existing = await tx.user.findUnique({ where: { id: userId } });
+        if (existing === null) {
+          throw new UserNotFoundError(`User not found: ${userId}`);
+        }
+        const fromRole = existing.role as Role;
 
-    // F2 fix (4R-driven correction): last-admin safeguard.
-    // Refuse to demote the only remaining admin to USER — the system
-    // would become permanently admin-less. Check runs OUTSIDE the
-    // transaction (count-then-act pattern) so a concurrent demote
-    // could theoretically race; the trade-off is intentional: the
-    // database would require Serializable isolation to enforce this
-    // inside the transaction, and we accept the small window of
-    // double-demote risk in exchange for not escalating every
-    // admin op to Serializable. The middleware / monitor layer
-    // watches for `admin_count == 1` after the change and alerts;
-    // see M4 follow-up for the invariant assertion.
-    if (fromRole === "ADMIN" && newRole === "USER") {
-      const adminCount = await this.prisma.user.count({ where: { role: "ADMIN" } });
-      if (adminCount <= 1) {
-        throw new LastAdminError(
-          `cannot demote user ${userId} to USER: they are the last remaining admin`,
-        );
-      }
-    }
+        if (fromRole === "ADMIN" && newRole === "USER") {
+          const adminCount = await tx.user.count({ where: { role: "ADMIN" } });
+          if (adminCount <= 1) {
+            throw new LastAdminError(
+              `cannot demote user ${userId} to USER: they are the last remaining admin`,
+            );
+          }
+        }
 
-    // Idempotent path: same role → no DB write, no audit, no event.
-    // Matches `rbac-admin` spec "Change User Role → Idempotent" scenario.
-    if (fromRole === newRole) {
-      return {
-        id: existing.id,
-        email: existing.email,
-        role: existing.role as Role,
-        createdAt: existing.createdAt,
-      };
-    }
+        if (fromRole === newRole) {
+          return { updated: existing, fromRole, changed: false as const };
+        }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const next = await tx.user.update({
-        where: { id: userId },
-        data: { role: newRole },
-      });
-      // Task 2.5 REFACTOR: audit insert extracted to
-      // `insertAuditEvent` so SessionService.revoke + revokeAll and any
-      // future admin op share the same primitive. The `tx` parameter
-      // (interactive-transaction client) participates in this
-      // transaction alongside `tx.user.update`, so the audit row and
-      // the role update still roll back together on a partial failure.
-      await insertAuditEvent(tx, {
-        actorId,
-        targetId: userId,
-        action: "CHANGE_ROLE",
-        metadata: { from: fromRole, to: newRole },
-        ipAddress: null,
-        userAgent: null,
-      });
-      return next;
-    });
-
-    // Pattern A: emit AFTER the transaction commits. If the dispatch
-    // rejects, we still return the updated row — the audit row IS the
-    // durable signal; the event is observability.
-    const event: DomainEvent = {
-      name: "auth.role.changed",
-      userId: actorId,
-      payload: {
-        actorId,
-        targetUserId: userId,
-        fromRole,
-        toRole: newRole,
+        const updated = await tx.user.update({
+          where: { id: userId },
+          data: { role: newRole },
+        });
+        await insertAuditEvent(tx, {
+          actorId,
+          targetId: userId,
+          action: "CHANGE_ROLE",
+          metadata: { from: fromRole, to: newRole },
+          ipAddress: null,
+          userAgent: null,
+        });
+        return { updated, fromRole, changed: true as const };
       },
-      occurredAt: new Date(),
-    };
-    await this.dispatcher(event);
+    );
+
+    if (result.changed) {
+      const event: DomainEvent = {
+        name: "auth.role.changed",
+        userId: actorId,
+        payload: {
+          actorId,
+          targetUserId: userId,
+          fromRole: result.fromRole,
+          toRole: newRole,
+        },
+        occurredAt: new Date(),
+      };
+      await this.dispatcher(event);
+    }
 
     return {
-      id: updated.id,
-      email: updated.email,
-      role: updated.role as Role,
-      createdAt: updated.createdAt,
+      id: result.updated.id,
+      email: result.updated.email,
+      role: result.updated.role as Role,
+      createdAt: result.updated.createdAt,
     };
   }
 

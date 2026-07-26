@@ -107,6 +107,20 @@ const LAST_ACTIVE_AT_COALESCE_WINDOW_MS = 60_000;
  */
 const LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS = 10;
 
+type ActiveSessionCountCacheEntry = { count: number; ts: number };
+
+/**
+ * Active-session count cache for the breaker. Cache misses are intentionally
+ * bounded rather than single-flighted: concurrent misses may briefly issue
+ * duplicate listActive queries, but every entry expires after the same 60s
+ * coalesce window and the breaker remains a safety optimization only.
+ */
+const activeSessionCountCache = new Map<string, ActiveSessionCountCacheEntry>();
+
+export function clearActiveSessionCountCache(): void {
+  activeSessionCountCache.clear();
+}
+
 export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
@@ -194,8 +208,15 @@ export class SessionService {
     // keeping it on the port keeps the unit test surface tight and
     // avoids reaching for `prisma.session` directly (boundary rule).
     const now = new Date();
-    const activeSessions = await this.sessionRepo.listActive(session.userId);
-    if (activeSessions.length > LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS) {
+    const cachedCount = activeSessionCountCache.get(session.userId);
+    const activeSessionCount =
+      cachedCount !== undefined && now.getTime() - cachedCount.ts < LAST_ACTIVE_AT_COALESCE_WINDOW_MS
+        ? cachedCount.count
+        : (await this.sessionRepo.listActive(session.userId)).length;
+    if (cachedCount === undefined || now.getTime() - cachedCount.ts >= LAST_ACTIVE_AT_COALESCE_WINDOW_MS) {
+      activeSessionCountCache.set(session.userId, { count: activeSessionCount, ts: now.getTime() });
+    }
+    if (activeSessionCount > LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS) {
       // Circuit breaker tripped — adversarial traffic profile.
       // The validation result is returned unchanged; only the
       // coalesce side-effect is suppressed.

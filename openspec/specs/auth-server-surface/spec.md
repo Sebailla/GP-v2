@@ -207,8 +207,105 @@ The `GET /admin/sessions?userId=<uuid>` response MUST return each session as a J
 - THEN the response's `ipAddress` is the 64-char lowercase HMAC-SHA256 hex digest
 - AND the raw IP is NOT present in the response
 
+### Requirement: BCRYPT Cost Factor (Production Override)
+
+The system MUST support an env var `BCRYPT_COST_FACTOR_OVERRIDE` (positive integer ≥ 4, default unset). When unset, the system MUST use `BCRYPT_COST_FACTOR = 12` (per the productionized reference repo's design contract). When set, the system MUST validate the override as a positive integer ≥ 4 via Zod and use it directly. The override MUST NOT be settable to values below 4 (defensive floor). The boot sequence MUST verify the override is wired through a startup test.
+
+#### Scenario: Default production cost
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE` is unset
+- WHEN the system boots
+- THEN the bcrypt cost factor used for new hashes is 12
+
+#### Scenario: Explicit override 14
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=14`
+- WHEN the system boots
+- THEN the bcrypt cost factor used for new hashes is 14
+
+#### Scenario: Invalid override zero
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=0`
+- WHEN the system boots
+- THEN env validation fails with a 400-friendly Zod error
+
+#### Scenario: Invalid override negative
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=-1`
+- WHEN the system boots
+- THEN env validation fails with a Zod error
+
+#### Scenario: Invalid override non-integer
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=abc`
+- WHEN the system boots
+- THEN env validation fails with a Zod error
+
+#### Scenario: Invalid override too low
+
+- GIVEN `BCRYPT_COST_FACTOR_OVERRIDE=3`
+- WHEN the system boots
+- THEN env validation fails with a Zod error (defensive floor)
+
+### Requirement: Observability Metrics for Auth Operations
+
+The system MUST emit the following Prometheus-compatible counters to the existing `GET /metrics` endpoint (per M1 R-PF-9):
+
+- `auth_login_success_total` (counter, labeled `email_domain`) — incremented on each successful login.
+- `auth_login_failure_total` (counter, labeled `reason`, `email_domain`) — incremented on each failed login with `reason` in `{invalid_credentials, rate_limited, account_locked, unknown}`.
+- `auth_password_reset_requested_total` (counter) — incremented on each password reset request.
+- `auth_password_reset_completed_total` (counter) — incremented on each successful reset.
+- `auth_admin_operation_total` (counter, labeled `operation`, `actor_role`) — incremented on each admin operation; `operation` in `{list_users, change_role, list_sessions, revoke_session, revoke_all_sessions, list_audit, purge_audit_dry_run, purge_audit_real}`; `actor_role` in `{ADMIN}`.
+- `auth_session_validations_total` (counter) — incremented on each successful session validation.
+- `auth_session_validations_failed_total` (counter) — incremented on each failed session validation.
+
+All metric labels MUST redact sensitive data: no email addresses, no userIds, no IPs. The `email_domain` label carries only the registered domain part (e.g., `gmail.com` from `alice@gmail.com`).
+
+#### Scenario: Login success counter increments
+
+- GIVEN an admin with email at registered domain `example.com`
+- WHEN the admin completes a successful login
+- THEN `auth_login_success_total{email_domain="example.com"}` is incremented by 1
+
+#### Scenario: Login failure counter increments
+
+- GIVEN a caller with email at registered domain `example.com`
+- WHEN the caller submits wrong credentials
+- THEN `auth_login_failure_total{reason="invalid_credentials", email_domain="example.com"}` is incremented by 1
+
+#### Scenario: Admin op counter increments
+
+- GIVEN an admin
+- WHEN the admin lists users via `GET /admin/users`
+- THEN `auth_admin_operation_total{operation="list_users", actor_role="ADMIN"}` is incremented by 1
+
+#### Scenario: Purge dry-run counter increments
+
+- GIVEN an admin
+- WHEN the admin posts `{ dryRun: true, olderThanDays: 90 }` to `POST /admin/audit/purge`
+- THEN `auth_admin_operation_total{operation="purge_audit_dry_run", actor_role="ADMIN"}` is incremented by 1
+
+#### Scenario: Session validation counter increments
+
+- GIVEN a user with a valid session
+- WHEN the user loads the dashboard and `validateSession` succeeds
+- THEN `auth_session_validations_total` is incremented by 1
+
+#### Scenario: Privacy — no email in label values
+
+- GIVEN an admin completes a successful login with email `alice@example.com`
+- WHEN a metrics scrape reads `GET /metrics`
+- THEN no label value contains `@`
+
+#### Scenario: Privacy — no IP label exposed
+
+- GIVEN any auth operation
+- WHEN a metrics scrape reads `GET /metrics`
+- THEN no metric carries an `ip_address` label
+
 ## Provenance
 
 Introduced by: module-2-public-auth, 2026-07-17 (slice-3 baseline).
 Extended by: module-3-superadmin, 2026-07-18 (admin session mgmt).
 Extended by: module-4-privacy, 2026-07-19 (2 NEW requirements: Session LastActiveAt Update + Session List Projection).
+Extended by: module-5-production-hardening, 2026-07-20 (2 NEW requirements: BCRYPT Cost Factor (Production Override) + Observability Metrics for Auth Operations).

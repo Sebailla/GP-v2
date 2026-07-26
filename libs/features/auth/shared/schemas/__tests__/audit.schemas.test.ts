@@ -127,16 +127,40 @@ describe("ListAuditQuerySchema (M4 task 2.1 RED, design D3)", () => {
 
   it("clamps limit to the spec-mandated ceiling of 200", async () => {
     const { ListAuditQuerySchema } = await import("../audit.schemas.js");
-    // Per spec: "max limit clamped". Zod's `.max(200)` rejects the
-    // oversize value — the controller surfaces this as 400 rather than
-    // silently clamping (per task 2.11's triangulation). Both fail-
-    // closed behaviors are acceptable per the spec; the canonical
-    // implementation REJECTS so the operator sees the bad input.
+    // M5 D6 update: Zod ceiling is now 500 (raised from 200). Values
+    // 201..500 parse successfully; the controller silently clamps
+    // the effective row count to 200. Values > 500 still fail at the
+    // Zod layer with a 400 (so a truly out-of-range UI never reaches
+    // the controller). The "999" case pins the M4 contract that
+    // extreme values still fail closed.
     expect(() => ListAuditQuerySchema.parse({ limit: "999" })).toThrow();
-    expect(() => ListAuditQuerySchema.parse({ limit: "500" })).toThrow();
-    // Boundary: exactly 200 is the inclusive max.
+    // Boundary: exactly 200 is the inclusive max (still the same).
     const result = ListAuditQuerySchema.parse({ limit: "200" });
     expect(result.limit).toBe(200);
+  });
+
+  it("M5 5.1: accepts limit=500 (Zod ceiling raised to 500)", async () => {
+    // M5 D6 + task 5.1 RED → 5.2 GREEN: the audit schema now accepts
+    // up to 500 so operators can request a full page (the controller
+    // still silently clamps the effective row count to 200 per the
+    // spec's "Silent clamp at 200" scenario). The raise from 200 →
+    // 500 is the M5 contract change documented in
+    // `openspec/changes/module-5-production-hardening/design.md` D6 +
+    // `openspec/specs/audit-log-ui/spec.md` provenance note.
+    const { ListAuditQuerySchema } = await import("../audit.schemas.js");
+    const accepted = ListAuditQuerySchema.parse({ limit: "500" });
+    expect(accepted.limit).toBe(500);
+    // Boundary: limit=501 still rejected (above the Zod ceiling).
+    expect(() => ListAuditQuerySchema.parse({ limit: "501" })).toThrow();
+  });
+
+  it("M5 5.1: rejects limit=600 (above the new Zod ceiling of 500)", async () => {
+    // Triangulation: above the new ceiling must still fail at the Zod
+    // layer so a malformed UI never reaches the controller's silent
+    // clamp. The clamp is intentional silent behavior for values in
+    // [201..500] — values > 500 stay 400.
+    const { ListAuditQuerySchema } = await import("../audit.schemas.js");
+    expect(() => ListAuditQuerySchema.parse({ limit: "600" })).toThrow();
   });
 
   it("rejects limit below 1", async () => {

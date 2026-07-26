@@ -156,11 +156,11 @@ migration, NOT through this endpoint.
 | `AUDIT_RETENTION_ENABLED` | `false` | `bool` | Whether the 03:00 cron runs |
 
 The cron itself lives at
-`libs/features/auth/server/src/audit-retention.handler.ts` (the
-decorator-free handler) + `apps/api/src/modules/auth/audit-retention.cron.ts`
-(the `@Cron('0 3 * * *')` decorator). The handler is registered in
-`AdminModule` ONLY when `AUDIT_RETENTION_ENABLED=true` (M4 PR #2
-task 2.10 GREEN).
+`libs/features/auth/server/src/audit-retention.cron.ts` (the
+decorator-free handler) + `apps/api/src/modules/auth/audit-retention.schedule.ts`
+(the `AuditRetentionSchedule` class with the `@Cron('0 3 * * *')`
+decorator). The schedule is registered in `AdminModule` ONLY when
+`AUDIT_RETENTION_ENABLED=true` (M4 PR #2 task 2.10 GREEN).
 
 **`AUDIT_RETENTION_DAYS=0` is a KILL-SWITCH, not "purge everything
 now."** Setting the value to 0 means the cron computes the cutoff as
@@ -264,22 +264,25 @@ additional Postgres storage. The cron schedule stays at
 
 ## 6. The retention cron
 
-The cron is the `@Cron('0 3 * * *')` decorator on
-`apps/api/src/modules/auth/audit-retention.cron.ts` and is
+The cron is the `@Cron('0 3 * * *')` decorator on the
+`AuditRetentionSchedule` class in
+`apps/api/src/modules/auth/audit-retention.schedule.ts` and is
 registered only when `AUDIT_RETENTION_ENABLED=true`. The 03:00 UTC
 slot keeps retention ops out of operator shift windows in NA + EU.
 The handler is intentionally split into a decorator-free
-`audit-retention.handler.ts` in the auth feature library + a
-decorator-bearing shell in `apps/api/` to keep the
+`audit-retention.cron.ts` in the auth feature library + a
+`AuditRetentionSchedule` shell in `apps/api/` to keep the
 `experimentalDecorators` requirement isolated to the API tsconfig
 (per `D-M4-4` deviation).
 
 To verify the cron is wired in production:
 
 ```bash
-# After deploy, check the API logs for the [audit-retention] line
-flyctl logs --app gastos-api | grep "audit-retention"
-# → {"level":"info","time":"...","msg":"[audit-retention] handler invoked"}
+# After deploy, check the API logs for the AuditRetentionSchedule
+# class name (the NestJS Logger prefixes every line with the class
+# name, so a grep on the class name is a stable operator signal).
+flyctl logs --app gastos-api | grep "AuditRetentionSchedule"
+# → {"level":"info","time":"...","msg":"[AuditRetentionSchedule] ..."
 ```
 
 To disable retention entirely (e.g. for a long-running
@@ -390,11 +393,11 @@ to a positive integer to enable the auto-purge.
 - `apps/api/src/modules/auth/admin.controller.ts` — the 2 new
   endpoints (`GET /admin/audit`, `POST /admin/audit/purge`) +
   the 5 M3 endpoints carried forward.
-- `apps/api/src/modules/auth/audit-retention.cron.ts` — the
-  `@Cron('0 3 * * *')` shell that wires the handler into
-  NestJS's ScheduleModule.
-- `libs/features/auth/server/src/audit-retention.handler.ts` —
-  the decorator-free handler invoked by the cron + the manual
+- `apps/api/src/modules/auth/audit-retention.schedule.ts` — the
+  `AuditRetentionSchedule` class with the `@Cron('0 3 * * *')`
+  decorator that wires the handler into NestJS's ScheduleModule.
+- `libs/features/auth/server/src/audit-retention.cron.ts` — the
+  decorator-free handler invoked by the schedule + the manual
   endpoint (per `D-M4-4` deviation).
 - `libs/features/auth/server/src/audit.service.ts` — the
   `findMany`, `countOlderThan`, `purgeOlderThan` + `insertAuditEvent`

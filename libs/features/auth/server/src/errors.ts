@@ -84,6 +84,17 @@ export class UserNotFoundError extends Error {
   }
 }
 
+export type SerializationFailedErrorCode = "SERIALIZATION_FAILED";
+
+export class SerializationFailedError extends Error {
+  public readonly code: SerializationFailedErrorCode = "SERIALIZATION_FAILED";
+
+  constructor(message?: string) {
+    super(message ?? "serialization_failed");
+    this.name = "SerializationFailedError";
+  }
+}
+
 export type LastAdminErrorCode = "LAST_ADMIN_DEMOTE";
 
 export class LastAdminError extends Error {

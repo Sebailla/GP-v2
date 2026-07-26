@@ -233,7 +233,8 @@
       "denied": "Access denied. This area is restricted to administrators."
     },
     "errors": {
-      "lastAdmin": "This is the last remaining admin. Promote another user to ADMIN before demoting this one."
+      "lastAdmin": "This is the last remaining admin. Promote another user to ADMIN before demoting this one.",
+      "serialization_failed": "The role change conflicted with another update. Please try again."
     },
     "nav": {
       "users": "Users",
@@ -336,7 +337,7 @@
         "action": "Action",
         "actorId": "Actor",
         "targetId": "Target",
-        "ipAddress": "IP (hash, first 8 chars)",
+        "ipAddress": "IP (HMAC, first 8 chars)",
         "userAgent": "User agent",
         "metadata": "Metadata"
       },

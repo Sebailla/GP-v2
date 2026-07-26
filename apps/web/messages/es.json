@@ -233,7 +233,8 @@
       "denied": "Acceso denegado. Esta sección está restringida a administradores."
     },
     "errors": {
-      "lastAdmin": "Esta es la última cuenta de administrador. Promueve a otro usuario a ADMIN antes de degradar esta."
+      "lastAdmin": "Esta es la última cuenta de administrador. Promueve a otro usuario a ADMIN antes de degradar esta.",
+      "serialization_failed": "El cambio de rol entró en conflicto con otra actualización. Inténtalo de nuevo."
     },
     "nav": {
       "users": "Usuarios",
@@ -336,7 +337,7 @@
         "action": "Acción",
         "actorId": "Actor",
         "targetId": "Objetivo",
-        "ipAddress": "IP (hash, primeros 8 chars)",
+        "ipAddress": "IP (HMAC, primeros 8 caracteres)",
         "userAgent": "User agent",
         "metadata": "Metadatos"
       },

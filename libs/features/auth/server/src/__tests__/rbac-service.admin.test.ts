@@ -76,6 +76,12 @@ function asPrismaStub(): PrismaClient {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
+    if (typeof arg === "function") {
+      return (arg as (tx: PrismaClient) => Promise<unknown>)(prisma as unknown as PrismaClient);
+    }
+    return undefined;
+  });
 });
 
 describe("RbacService — admin extensions (M3 task 1.4 GREEN)", () => {
@@ -141,6 +147,16 @@ describe("RbacService — admin extensions (M3 task 1.4 GREEN)", () => {
       // $transaction receives a callback that uses the tx client; the
       // mock invokes the callback synchronously with the outer client
       // so the same `prisma.user.update` mock records both reads.
+      vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
+        // Prisma's $transaction accepts either a callback or an array
+        // of promises; the GREEN step uses the callback form so the
+        // mock invokes the callback with a tx client and resolves to
+        // its return value.
+        if (typeof arg === "function") {
+          return (arg as (tx: PrismaClient) => Promise<unknown>)(prisma as unknown as PrismaClient);
+        }
+        return undefined;
+      });
       vi.mocked(prisma.user.findUnique).mockResolvedValueOnce(before as never);
       vi.mocked(prisma.user.update).mockResolvedValue(after as never);
       vi.mocked(prisma.adminAuditEvent.create).mockResolvedValue({
@@ -153,16 +169,6 @@ describe("RbacService — admin extensions (M3 task 1.4 GREEN)", () => {
         ipAddress: null,
         userAgent: null,
       } as never);
-      vi.mocked(prisma.$transaction).mockImplementation(async (arg) => {
-        // Prisma's $transaction accepts either a callback or an array
-        // of promises; the GREEN step uses the callback form so the
-        // mock invokes the callback with a tx client and resolves to
-        // its return value.
-        if (typeof arg === "function") {
-          return (arg as (tx: PrismaClient) => Promise<unknown>)(prisma as unknown as PrismaClient);
-        }
-        return undefined;
-      });
 
       const rbac = new RbacService(noopDispatcher, asPrismaStub());
       const result = await rbac.changeRole("u1", "ADMIN", "admin-1");

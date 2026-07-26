@@ -320,6 +320,9 @@ describe("AdminController audit endpoints (M4 task 2.7 RED)", () => {
       // sends `?limit=999`. Zod's `.max(200)` rejects the value with a
       // clear validation error rather than silently clamping — the
       // operator sees the bad input as a 400.
+      // M5 D6 update: Zod ceiling is now 500, but 999 is still
+      // above it — the rejection contract is unchanged (values
+      // > 500 stay 400).
       const adminJwt = await mintToken({
         sub: "admin-1",
         email: "admin@example.com",
@@ -332,6 +335,31 @@ describe("AdminController audit endpoints (M4 task 2.7 RED)", () => {
 
       expect(res.status).toBe(400);
       expect(auditServiceMock.findMany).not.toHaveBeenCalled();
+    });
+
+    it("M5 5.1: accepts limit=500 (Zod ceiling raised) and clamps effective row count to 200", async () => {
+      // M5 D6 + task 5.1 RED → 5.2 GREEN: the audit schema accepts up
+      // to 500, the controller pins the effective `take` to 200 via
+      // `Math.min(limit, 200)`. The operator sees a 200 response, and
+      // `AuditService.findMany` is invoked with `limit: 200`.
+      auditServiceMock.findMany.mockResolvedValue([]);
+
+      const adminJwt = await mintToken({
+        sub: "admin-1",
+        email: "admin@example.com",
+        role: "ADMIN",
+        userId: "admin-1",
+      });
+      const res = await request(app.getHttpServer() as Server)
+        .get("/admin/audit?limit=500")
+        .set("Authorization", `Bearer ${adminJwt}`);
+
+      expect(res.status).toBe(200);
+      expect(auditServiceMock.findMany).toHaveBeenCalledTimes(1);
+      const call = auditServiceMock.findMany.mock.calls[0] as unknown as [
+        { limit?: number },
+      ];
+      expect(call[0].limit).toBe(200);
     });
 
     it("returns 400 when actorId is not a UUID", async () => {

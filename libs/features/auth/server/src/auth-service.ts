@@ -274,8 +274,12 @@ export class AuthService {
           throw new AuthError("EMAIL_ALREADY_EXISTS");
         }
 
-        // 4. Hash the password. bcryptjs cost 10 — see method docstring.
-        const hashed = await bcrypt.hash(parsed.data.password, BCRYPT_COST_FACTOR);
+        // 4. Hash with the validated override when configured; otherwise
+        //    use the production default shared across auth hash paths.
+        const hashed = await bcrypt.hash(
+          parsed.data.password,
+          env.BCRYPT_COST_FACTOR_OVERRIDE ?? BCRYPT_COST_FACTOR,
+        );
 
         // 5. Create the User. `role` defaults to USER at the schema level;
         // we set it explicitly here so the contract is visible at the call
