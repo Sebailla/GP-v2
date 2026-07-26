@@ -56,6 +56,68 @@ El pipeline `pnpm turbo run test` DEBE enforce umbrales de cobertura por paquete
 - WHEN corre `pnpm turbo run test` (incluso si la cobertura está bajo umbral)
 - THEN la task `test` de turbo sale con código 0 y el paquete bajo umbral se reporta como warning, no como falla
 
+### Requirement: Enforcement del exit code por umbral de cobertura (M5.1)
+
+El sistema DEBE enforce umbrales de cobertura por paquete vía el exit code del proceso de Vitest. Cuando una corrida de `@vitest/coverage-v8` finaliza y la cobertura de cualquier paquete cae por debajo del 60% (lines, branches, functions, statements), la task turbo `test --coverage` DEBE salir con código distinto de 0 — incluso cuando todos los tests pasen. El enforcement funciona vía el threshold-vs-exit nativo de Vitest (v4.2+) o, como fallback, vía un script post-coverage (`tools/coverage-validator.ts`) que parsea `coverage/coverage-summary.json`. El método elegido DEBE estar documentado en el runbook. El escape hatch `coverage.disabled=true` DEBE bypassear el gate (contrato M5).
+
+#### Scenario: Todos los paquetes ≥ 60% — la corrida de coverage pasa
+
+- GIVEN todos los paquetes del workspace reportan ≥ 60% en lines, branches, functions, statements
+- WHEN corre `pnpm turbo run test --coverage`
+- THEN la task turbo sale con código 0 sin errores de cobertura
+
+#### Scenario: Un paquete forzado bajo 60% — la corrida de coverage falla
+
+- GIVEN un único paquete del workspace es forzado a 50% de cobertura en lines
+- WHEN corre `pnpm turbo run test --coverage`
+- THEN la task turbo sale con código distinto de 0 con un mensaje de error que nombra al paquete fallido y su porcentaje medido
+
+#### Scenario: Bypass vía `coverage.disabled=true`
+
+- GIVEN `coverage.disabled=true` está seteado en el entorno
+- WHEN corre `pnpm turbo run test --coverage` (incluso con un paquete bajo umbral)
+- THEN la task turbo sale con código 0 y el paquete bajo umbral se reporta como warning
+
+#### Scenario: Paquete nuevo con cobertura cero — la corrida de coverage falla
+
+- GIVEN se agrega un paquete nuevo al workspace sin archivos de test (0% de cobertura)
+- WHEN corre `pnpm turbo run test --coverage`
+- THEN la task turbo sale con código distinto de 0, forzando al equipo a agregar tests antes de mergear
+
+#### Scenario: Vitest v4.1.x sin validador custom — degradación elegante
+
+- GIVEN el proyecto está en Vitest v4.1.x AND `tools/coverage-validator.ts` no está presente
+- WHEN corre `pnpm turbo run test --coverage`
+- THEN se loguea un warning claro en la salida de CI y la task turbo sale con código 0 (gate no enforceado, gap visible)
+
+### Requirement: Estabilidad de timing de bcrypt cost-12 (M5.1)
+
+El sistema DEBE ejecutar el probe de timing de bcrypt cost-12 dentro de un budget de 1500 ms cuando el probe corre bajo instrumentación de coverage (carga de CPU + instrumentación de v8). El probe DEBE loguear el tiempo elapsed real a la salida del test runner para que los logs de CI expongan regresiones reales de performance. El budget de 1500 ms reemplaza al default M5 de 500 ms SOLO para el caso bajo coverage; el budget de 500 ms sigue siendo la spec para simulaciones de deploy a producción (sin overhead de instrumentación). El budget más ancho es un fix de estabilidad, no una relajación del estándar de seguridad.
+
+#### Scenario: Bcrypt cost-12 completa dentro de 1500 ms bajo coverage
+
+- GIVEN un usuario hace login con una contraseña hasheada con bcrypt a cost factor 12
+- WHEN el test de auth-hash corre bajo instrumentación de coverage de Vitest
+- THEN el login completa dentro de 1500 ms y el test pasa
+
+#### Scenario: Tiempo elapsed expuesto a los logs de CI
+
+- GIVEN el probe de timing de bcrypt cost-12 corre bajo instrumentación de coverage
+- WHEN la suite de tests finaliza
+- THEN los logs de CI incluyen una línea `bcrypt cost-12: <elapsed> ms` registrando el tiempo medido
+
+#### Scenario: Simulación de producción mantiene el budget M5 de 500 ms
+
+- GIVEN una corrida de tests separada que simula condiciones de producción (sin instrumentación de coverage)
+- WHEN el probe de timing de bcrypt cost-12 se ejecuta
+- THEN aplica el budget default M5 de 500 ms y una regresión a > 500 ms se marca como falla
+
+#### Scenario: Override de cost-14 se mantiene dentro del budget ampliado
+
+- GIVEN un usuario hace login con una contraseña hasheada con bcrypt al override de test cost-14
+- WHEN el test de auth-hash corre bajo instrumentación de coverage
+- THEN el login completa dentro de 1500 ms y el test pasa
+
 ## Procedencia
 
-Introducido por: module-5-production-hardening, 2026-07-20; fundación desde el endpoint de métricas de M1 R-PF-9.
+Introducido por: module-5-production-hardening, 2026-07-20; coverage gate wireado (umbral 60% por paquete). Extendido por: module-5.1-coverage-hardening, 2026-07-26 (2 requirements NUEVOS: Enforcement del exit code por umbral de cobertura + Estabilidad de timing de bcrypt).
