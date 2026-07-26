@@ -321,7 +321,20 @@ The 2 inherited vars from `auth-runbook.md` §5 + 2 from
 > are empty (the test fixture supplies them). Use
 > `NODE_ENV=test pnpm turbo run build` and friends.
 
-## 8. Troubleshooting
+## 8. Coverage Instrumentation Behavior
+
+The M5.1 coverage gate uses Vitest V8 instrumentation and the per-package coverage validator. Instrumentation adds CPU and execution overhead to bcrypt, so the cost-12 timing probe has a **1500 ms budget when coverage is enabled**. The test logs the measured value as `bcrypt cost-12: <elapsed> ms` so CI output still exposes regressions.
+
+The **production SLA remains 500 ms**. `apps/api/test/auth-hash.bcrypt.perf.test.ts` is the complementary production-realistic probe: it runs without coverage instrumentation and is enabled only with `BCRYPT_PERF_TEST=1`.
+
+Use both tests as a dual-test pattern:
+
+- the instrumented auth-hash test protects coverage-run stability;
+- the opt-in performance test protects the production timing contract.
+
+For an experimental branch that cannot meet the coverage threshold, set `coverage.disabled=true`. This is an explicit escape hatch for the coverage gate only; it does not disable the bcrypt timing assertions or the production performance probe.
+
+## 9. Troubleshooting
 
 ### Symptom: `GET /admin/audit` returns 400 with `error: "INVALID_QUERY"`
 

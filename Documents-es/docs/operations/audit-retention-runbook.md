@@ -339,7 +339,20 @@ Las 2 variables heredadas de `auth-runbook.md` §5 + 2 de
 > `WEB_ORIGIN` están vacíos (el fixture de test los provee). Usar
 > `NODE_ENV=test pnpm turbo run build` y compañía.
 
-## 8. Troubleshooting
+## 8. Comportamiento de la instrumentación de cobertura
+
+La compuerta de cobertura de M5.1 usa instrumentación V8 de Vitest y el validador de cobertura por paquete. La instrumentación agrega sobrecarga de CPU y ejecución a bcrypt, por lo que la sonda de timing con costo 12 tiene un **presupuesto de 1500 ms cuando la cobertura está habilitada**. El test registra el valor medido como `bcrypt cost-12: <elapsed> ms`, de modo que la salida de CI siga mostrando las regresiones.
+
+El **SLA de producción sigue siendo 500 ms**. `apps/api/test/auth-hash.bcrypt.perf.test.ts` es la sonda complementaria realista de producción: corre sin instrumentación de cobertura y se habilita únicamente con `BCRYPT_PERF_TEST=1`.
+
+Usar ambos tests como un patrón de tests dual:
+
+- el test instrumentado de auth-hash protege la estabilidad de las corridas con cobertura;
+- el test de performance opt-in protege el contrato de timing de producción.
+
+Para una rama experimental que todavía no pueda cumplir el umbral de cobertura, establecer `coverage.disabled=true`. Es una válvula de escape explícita únicamente para la compuerta de cobertura; no deshabilita las aserciones de timing de bcrypt ni la sonda de performance de producción.
+
+## 9. Troubleshooting
 
 ### Síntoma: `GET /admin/audit` devuelve 400 con `error: "INVALID_QUERY"`
 
