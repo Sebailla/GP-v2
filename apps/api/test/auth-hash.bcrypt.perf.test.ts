@@ -13,6 +13,6 @@ describe.skipIf(!shouldRunPerformanceProbe)("bcrypt production performance", () 
     const elapsed = performance.now() - startedAt;
 
     expect(Number(hash.split("$")[2])).toBe(productionBcryptCost);
-    expect(elapsed).toBeLessThan(productionTimingBudgetMs);
+    expect(elapsed).toBeLessThanOrEqual(productionTimingBudgetMs);
   });
 });
