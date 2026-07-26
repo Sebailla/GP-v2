@@ -33,16 +33,16 @@ Applicable threats: coverage gate (§7), bcrypt timing, rate-limit race.
 
 Base `feat/m5.1-coverage-hardening`. Verify `NODE_ENV=test pnpm turbo run build lint typecheck test bdd`.
 
-- [ ] 1.1 RED `tools/coverage-validator.test.ts`: package below 60% → exit 1; at 60%+ → exit 0.
-- [ ] 1.2 GREEN `tools/coverage-validator.ts`: read each package's `coverage/coverage-summary.json`; compare against 60% threshold; exit 1 if below.
-- [ ] 1.3 RED `package.json` (root): bump Vitest to v4.2.5; if all 6 suites pass keep v4.2.5; else fall back to v4.1.9 + comparator.
-- [ ] 1.4 GREEN each `vitest.config.ts` (6 pkgs): verify `coverage.thresholds.global` at 60% per metric; update for v4.2+ format if needed.
-- [ ] 1.5 RED `tools/coverage-validator.test.ts`: stub a package summary at 50% → exit 1 with failing-package error message.
-- [ ] 1.6 GREEN `turbo.json`: add `coverage` task after `test`; runs `tools/coverage-validator.ts` per package.
-- [ ] 1.7 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 consecutive full runs show intermittent flake (race with coverage).
-- [ ] 1.8 GREEN `apps/api/test/rate-limit.e2e-spec.ts`: add `describe.serial` + `beforeEach`/`afterEach` resetting the rate-limit store and flushing timers.
-- [ ] 1.9 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 consecutive runs after stabilization — no flake.
-- [ ] 1.10 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
+- [x] 1.1 RED `tools/coverage-validator.test.ts`: package below 60% → exit 1; at 60%+ → exit 0.
+- [x] 1.2 GREEN `tools/coverage-validator.ts`: read each package's `coverage/coverage-summary.json`; compare against 60% threshold; exit 1 if below.
+- [x] 1.3 RED `package.json` (root): bump Vitest to v4.2.5; if all 6 suites pass keep v4.2.5; else fall back to v4.1.9 + comparator.
+- [x] 1.4 GREEN each `vitest.config.ts` (6 pkgs): verify `coverage.thresholds.global` at 60% per metric; update for v4.2+ format if needed.
+- [x] 1.5 RED `tools/coverage-validator.test.ts`: stub a package summary at 50% → exit 1 with failing-package error message.
+- [x] 1.6 GREEN `turbo.json`: add `coverage` task after `test`; runs `tools/coverage-validator.ts` per package.
+- [x] 1.7 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 consecutive full runs show intermittent flake (race with coverage).
+- [x] 1.8 GREEN `apps/api/test/rate-limit.e2e-spec.ts`: add `describe.serial` + `beforeEach`/`afterEach` resetting the rate-limit store and flushing timers.
+- [x] 1.9 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 consecutive runs after stabilization — no flake.
+- [x] 1.10 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
 
 ## Phase 2 — Bcrypt Timing Widening + Runbook (PR #2)
 

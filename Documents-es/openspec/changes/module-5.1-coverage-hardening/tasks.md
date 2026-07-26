@@ -33,16 +33,16 @@ Amenazas aplicables: compuerta de cobertura (§7), timing de bcrypt, race de rat
 
 Base `feat/m5.1-coverage-hardening`. Verificar `NODE_ENV=test pnpm turbo run build lint typecheck test bdd`.
 
-- [ ] 1.1 RED `tools/coverage-validator.test.ts`: paquete bajo 60% → salida 1; en 60%+ → salida 0.
-- [ ] 1.2 GREEN `tools/coverage-validator.ts`: leer `coverage/coverage-summary.json` por paquete; comparar contra umbral 60%; salida 1 si está por debajo.
-- [ ] 1.3 RED `package.json` (raíz): bumpear Vitest a v4.2.5; si las 6 suites pasan, mantener v4.2.5; si no, volver a v4.1.9 + comparador.
-- [ ] 1.4 GREEN cada `vitest.config.ts` (6 paquetes): verificar `coverage.thresholds.global` al 60% por métrica; ajustar formato v4.2+ si aplica.
-- [ ] 1.5 RED `tools/coverage-validator.test.ts`: simular resumen de un paquete al 50% → salida 1 con mensaje que nombra al paquete que falla.
-- [ ] 1.6 GREEN `turbo.json`: agregar tarea `coverage` tras `test`; ejecuta `tools/coverage-validator.ts` por paquete.
-- [ ] 1.7 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 corridas consecutivas muestran flake intermitente (race con cobertura).
-- [ ] 1.8 GREEN `apps/api/test/rate-limit.e2e-spec.ts`: agregar `describe.serial` + `beforeEach`/`afterEach` que reinicien el store y vacíen timers.
-- [ ] 1.9 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 corridas consecutivas tras la estabilización — sin flake.
-- [ ] 1.10 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
+- [x] 1.1 RED `tools/coverage-validator.test.ts`: paquete bajo 60% → salida 1; en 60%+ → salida 0.
+- [x] 1.2 GREEN `tools/coverage-validator.ts`: leer `coverage/coverage-summary.json` por paquete; comparar contra umbral 60%; salida 1 si está por debajo.
+- [x] 1.3 RED `package.json` (raíz): bumpear Vitest a v4.2.5; si las 6 suites pasan, mantener v4.2.5; si no, volver a v4.1.9 + comparador.
+- [x] 1.4 GREEN cada `vitest.config.ts` (6 paquetes): verificar `coverage.thresholds.global` al 60% por métrica; ajustar formato v4.2+ si aplica.
+- [x] 1.5 RED `tools/coverage-validator.test.ts`: simular resumen de un paquete al 50% → salida 1 con mensaje que nombra al paquete que falla.
+- [x] 1.6 GREEN `turbo.json`: agregar tarea `coverage` tras `test`; ejecuta `tools/coverage-validator.ts` por paquete.
+- [x] 1.7 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 corridas consecutivas muestran flake intermitente (race con cobertura).
+- [x] 1.8 GREEN `apps/api/test/rate-limit.e2e-spec.ts`: agregar `describe.serial` + `beforeEach`/`afterEach` que reinicien el store y vacíen timers.
+- [x] 1.9 RED `apps/api/test/rate-limit.e2e-spec.ts`: 3 corridas consecutivas tras la estabilización — sin flake.
+- [x] 1.10 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
 
 ## Fase 2 — Ampliación de Timing de Bcrypt + Runbook (PR #2)
 
