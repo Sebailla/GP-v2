@@ -139,6 +139,16 @@ describe("coverage-validator", () => {
     expect(result.stderr).toContain("apps-pkg-empty");
   });
 
+  it("exits 1 when a workspace is missing its coverage summary", async () => {
+    const missingDir = mkdtempSync(join(tmpRoot, "apps-pkg-missing-"));
+    const validator = await loadValidator();
+    const result = validator.run({ workspaceDirs: [missingDir] });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("apps-pkg-missing-");
+    expect(result.stderr).toMatch(/missing/i);
+    expect(result.stdout).not.toContain("PASS");
+  });
+
   /**
    * M5.1 task 1.5 — forced-drop scenario, the literal spec contract.
    * A single workspace package forced to 50% lines coverage MUST exit
