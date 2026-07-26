@@ -48,12 +48,12 @@ Base `feat/m5.1-coverage-hardening`. Verificar `NODE_ENV=test pnpm turbo run bui
 
 Base PR #1. Verificar `NODE_ENV=test pnpm turbo run build lint typecheck test bdd`.
 
-- [ ] 2.1 RED `apps/api/test/auth-hash.bcrypt.test.ts`: costo 12 bajo cobertura tarda >500ms (reproducir flake).
-- [ ] 2.2 GREEN `apps/api/test/auth-hash.bcrypt.test.ts`: aserción de timing 500ms→1500ms; log `bcrypt cost-12: <elapsed> ms`.
-- [ ] 2.3 RED `apps/api/test/auth-hash.bcrypt.test.ts`: costo 12 pasa dentro de 1500ms.
-- [ ] 2.4 GREEN crear `apps/api/test/auth-hash.bcrypt.perf.test.ts`: sonda realista de producción de 500ms condicionada por `BCRYPT_PERF_TEST=1`.
-- [ ] 2.5 RED `apps/api/test/auth-hash.bcrypt.perf.test.ts`: con `BCRYPT_PERF_TEST=1` → costo 12 < 500ms.
-- [ ] 2.6 GREEN `docs/operations/audit-retention-runbook.md`: agregar "Comportamiento de la Instrumentación de Cobertura" (D6): presupuesto 1500ms bajo cobertura, SLA de producción 500ms, patrón dual, válvula `coverage.disabled=true`.
-- [ ] 2.7 Espejo ES `Documents-es/docs/operations/audit-retention-runbook.md`: traducir la nueva sección.
-- [ ] 2.8 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
-- [ ] 2.9 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` sale 0; `pnpm turbo run test --coverage` sale 0; 0 warnings nuevos.
+- [x] 2.1 RED `apps/api/test/auth-hash.bcrypt.test.ts`: costo 12 bajo cobertura tarda >500ms (reproducir flake).
+- [x] 2.2 GREEN `apps/api/test/auth-hash.bcrypt.test.ts`: aserción de timing 500ms→1500ms; log `bcrypt cost-12: <elapsed> ms`.
+- [x] 2.3 RED `apps/api/test/auth-hash.bcrypt.test.ts`: costo 12 pasa dentro de 1500ms.
+- [x] 2.4 GREEN crear `apps/api/test/auth-hash.bcrypt.perf.test.ts`: sonda realista de producción de 500ms condicionada por `BCRYPT_PERF_TEST=1`.
+- [x] 2.5 RED `apps/api/test/auth-hash.bcrypt.perf.test.ts`: con `BCRYPT_PERF_TEST=1` → costo 12 < 500ms.
+- [x] 2.6 GREEN `docs/operations/audit-retention-runbook.md`: agregar "Comportamiento de la Instrumentación de Cobertura" (D6): presupuesto 1500ms bajo cobertura, SLA de producción 500ms, patrón dual, válvula `coverage.disabled=true`.
+- [x] 2.7 Espejo ES `Documents-es/docs/operations/audit-retention-runbook.md`: traducir la nueva sección.
+- [x] 2.8 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
+- [x] 2.9 Compuerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` sale 0; `pnpm turbo run test --coverage` sale 0; 0 warnings nuevos.

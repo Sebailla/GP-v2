@@ -48,12 +48,12 @@ Base `feat/m5.1-coverage-hardening`. Verify `NODE_ENV=test pnpm turbo run build 
 
 Base PR #1. Verify `NODE_ENV=test pnpm turbo run build lint typecheck test bdd`.
 
-- [ ] 2.1 RED `apps/api/test/auth-hash.bcrypt.test.ts`: cost 12 under coverage takes >500ms (reproduce flake).
-- [ ] 2.2 GREEN `apps/api/test/auth-hash.bcrypt.test.ts`: timing assertion 500ms→1500ms; log `bcrypt cost-12: <elapsed> ms`.
-- [ ] 2.3 RED `apps/api/test/auth-hash.bcrypt.test.ts`: cost 12 passes within 1500ms.
-- [ ] 2.4 GREEN create `apps/api/test/auth-hash.bcrypt.perf.test.ts`: production-realistic 500ms probe gated by `BCRYPT_PERF_TEST=1`.
-- [ ] 2.5 RED `apps/api/test/auth-hash.bcrypt.perf.test.ts`: when `BCRYPT_PERF_TEST=1` → cost 12 < 500ms.
-- [ ] 2.6 GREEN `docs/operations/audit-retention-runbook.md`: add "Coverage Instrumentation Behavior" (D6): 1500ms budget under coverage, 500ms production SLA, dual-test pattern, `coverage.disabled=true` escape hatch.
-- [ ] 2.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`: translate the new section.
-- [ ] 2.8 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
-- [ ] 2.9 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` exit 0; `pnpm turbo run test --coverage` exit 0; 0 new warnings.
+- [x] 2.1 RED `apps/api/test/auth-hash.bcrypt.test.ts`: cost 12 under coverage takes >500ms (reproduce flake).
+- [x] 2.2 GREEN `apps/api/test/auth-hash.bcrypt.test.ts`: timing assertion 500ms→1500ms; log `bcrypt cost-12: <elapsed> ms`.
+- [x] 2.3 RED `apps/api/test/auth-hash.bcrypt.test.ts`: cost 12 passes within 1500ms.
+- [x] 2.4 GREEN create `apps/api/test/auth-hash.bcrypt.perf.test.ts`: production-realistic 500ms probe gated by `BCRYPT_PERF_TEST=1`.
+- [x] 2.5 RED `apps/api/test/auth-hash.bcrypt.perf.test.ts`: when `BCRYPT_PERF_TEST=1` → cost 12 < 500ms.
+- [x] 2.6 GREEN `docs/operations/audit-retention-runbook.md`: add "Coverage Instrumentation Behavior" (D6): 1500ms budget under coverage, 500ms production SLA, dual-test pattern, `coverage.disabled=true` escape hatch.
+- [x] 2.7 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md`: translate the new section.
+- [x] 2.8 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
+- [x] 2.9 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` exit 0; `pnpm turbo run test --coverage` exit 0; 0 new warnings.
