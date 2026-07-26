@@ -161,3 +161,94 @@ describe("coverage-validator harness", () => {
     expect(typeof vi.fn).toBe("function");
   });
 });
+
+/**
+ * M5.1 task 1.3 RED → 1.4 GREEN — Vitest 4.2+ upgrade contract.
+ *
+ * The design (D1) and the proposal both call for a Vitest 4.2+ bump
+ * to leverage the v4.2 threshold-vs-exit fix. The PR-#1 task 1.3
+ * explicitly says: "bump Vitest to v4.2.5; if all 6 packages' vitest
+ * suites still pass, keep v4.2.5; if not, fall back to v4.1.9 + custom
+ * comparator".
+ *
+ * RED reality check: as of the M5.1 planning date (2026-07-26) the
+ * npm `vitest` latest stable is `4.1.10` (verified via
+ * `npm view vitest dist-tags`); the 4.2 line was never published.
+ * Attempting the bump is impossible.
+ *
+ * The chosen path (D1 + D3): keep the workspace on Vitest 4.1.x and
+ * rely on the comparator (this validator) as the deterministic gate.
+ * This test pins the fallback so a future contributor is forced to
+ * revisit the comparator decision before bumping to a 5.x release.
+ */
+describe("Vitest version selection (M5.1 task 1.3 RED)", () => {
+  it("keeps Vitest pinned to 4.1.x — the custom comparator enforces 60% (1.3 fallback)", () => {
+    const root = readRootPackageJson();
+    expect(root.devDependencies?.vitest).toMatch(/^4\.1\./);
+    expect(root.devDependencies?.["@vitest/coverage-v8"]).toMatch(/^4\.1\./);
+  });
+
+  it("all six covered workspaces pin Vitest to 4.1.x (1.4 consistent state)", () => {
+    const coveredWorkspaces = [
+      "apps/api",
+      "apps/web",
+      "libs/features/auth/server",
+      "libs/core/database",
+      "libs/core/logging",
+      "libs/core/rate-limit",
+    ] as const;
+    for (const ws of coveredWorkspaces) {
+      const pkg = readWorkspacePackageJson(ws);
+      expect(pkg.devDependencies?.vitest).toMatch(/^4\.1\./);
+    }
+  });
+
+  it("every covered workspace still wires coverage.thresholds.global at 60% per metric (1.4 GREEN)", () => {
+    const coveredWorkspaces = [
+      "apps/api",
+      "apps/web",
+      "libs/features/auth/server",
+      "libs/core/database",
+      "libs/core/logging",
+      "libs/core/rate-limit",
+    ] as const;
+    for (const ws of coveredWorkspaces) {
+      const src = readWorkspaceVitestConfig(ws);
+      expect(src, `${ws}/vitest.config.ts must exist`).toBeTypeOf("string");
+      // The threshold keys must appear with the literal value 60 on every metric.
+      expect(src).toMatch(/lines:\s*60/);
+      expect(src).toMatch(/branches:\s*60/);
+      expect(src).toMatch(/functions:\s*60/);
+      expect(src).toMatch(/statements:\s*60/);
+    }
+  });
+});
+
+const readRootPackageJson = (): {
+  devDependencies?: Record<string, string>;
+} => {
+  const fs = require("node:fs") as typeof import("node:fs");
+  const path = require("node:path") as typeof import("node:path");
+  const pkgPath = path.join(__dirname, "..", "package.json");
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+    devDependencies?: Record<string, string>;
+  };
+};
+
+const readWorkspacePackageJson = (workspace: string): {
+  devDependencies?: Record<string, string>;
+} => {
+  const fs = require("node:fs") as typeof import("node:fs");
+  const path = require("node:path") as typeof import("node:path");
+  const pkgPath = path.join(__dirname, "..", workspace, "package.json");
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8")) as {
+    devDependencies?: Record<string, string>;
+  };
+};
+
+const readWorkspaceVitestConfig = (workspace: string): string => {
+  const fs = require("node:fs") as typeof import("node:fs");
+  const path = require("node:path") as typeof import("node:path");
+  const cfgPath = path.join(__dirname, "..", workspace, "vitest.config.ts");
+  return fs.readFileSync(cfgPath, "utf8");
+};
