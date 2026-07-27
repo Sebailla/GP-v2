@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -291,6 +292,71 @@ describe("coverage-validator", () => {
     });
     expect(attemptedOverride.code).toBe(1);
     expect(attemptedOverride.stderr).toMatch(/54\.87/);
+  });
+
+  /**
+   * M5.1.1 task 2.4 RED — integration check: after PR #1, the
+   * real `pnpm coverage:validate` CLI invocation MUST exit 0.
+   *
+   * The M5.1 deliverable's contract is enforced in two places:
+   *   1. The pure `run()` function (covered by the unit tests above).
+   *   2. The CLI thin wrapper (`invokeCli()`) which loads the real
+   *      workspace discovery (the 6 covered workspaces) and spawns
+   *      the validator against the current coverage-summary.json
+   *      files on disk.
+   *
+   * Before M5.1.1 PR #1, the CLI exited 1 because `apps/api` had
+   * branch coverage of 54.87% (below the 60% threshold). After PR #1,
+   * `apps/api` branch coverage is 68.80% — the CLI must exit 0.
+   *
+   * This integration test spawns the CLI as a real subprocess and
+   * asserts the exit code. Until the post-PR-#1 coverage state is
+   * present on disk, the test fails (RED). Once the existing
+   * coverage artifacts satisfy the gate, the test passes (GREEN)
+   * — i.e. the GREEN is the pre-existing coverage state, not
+   * any new validator code.
+   */
+  it("M5.1.1 task 2.4 RED: spawns the real `pnpm coverage:validate` CLI and asserts exit 0 after PR #1 coverage lift", () => {
+    // The CLI is `tools/coverage-validator.ts` wrapped via tsx
+    // (the same shape the root package.json `coverage:validate`
+    // script uses). The path is resolved relative to this test
+    // file so the test is portable across worktrees.
+    const validatorPath = join(__dirname, "coverage-validator.ts");
+    const nodeOptions = "--import tsx";
+    const env = {
+      ...process.env,
+      NODE_ENV: "test",
+      NODE_OPTIONS: nodeOptions,
+    };
+    let exitCode: number | null = null;
+    let stdout = "";
+    let stderr = "";
+    try {
+      const out = execFileSync("node", [validatorPath], {
+        env,
+        cwd: join(__dirname, ".."),
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      stdout = out.toString("utf8");
+      exitCode = 0;
+    } catch (error) {
+      // execFileSync throws on non-zero exit; capture the streams
+      // so the assertion below can still inspect them.
+      const execError = error as {
+        status: number | null;
+        stdout?: Buffer;
+        stderr?: Buffer;
+      };
+      exitCode = execError.status ?? 1;
+      stdout = execError.stdout?.toString("utf8") ?? "";
+      stderr = execError.stderr?.toString("utf8") ?? "";
+    }
+    // The M5.1.1 gate: every package's branch coverage ≥ 60%.
+    // After PR #1, apps/api is 68.80% (above 60%); the CLI reports
+    // PASS api in the stdout and exits 0.
+    expect(exitCode, `CLI exit code (stderr: ${stderr})`).toBe(0);
+    expect(stdout).toContain("PASS api");
+    expect(stdout).toMatch(/exit 0/);
   });
 });
 
