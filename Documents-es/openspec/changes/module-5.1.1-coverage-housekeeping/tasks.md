@@ -34,7 +34,7 @@ Base `feat/m5.1.1-coverage-housekeeping`. Verificar que `NODE_ENV=test pnpm turb
 - [x] 1.6 GREEN mismos archivos de tests: las aserciones pasan. **N/A — igual que 1.5; no se requiere archivo de test porque no hay ramas no cubiertas en la ruta auth-callback.**
 - [x] 1.7 RED `tools/coverage-validator.test.ts`: añadir escenario M5.1.1 — simular `coverage-summary.json` de `apps/api` con ramas < 60%; asertar exit 1 + nombre del paquete + porcentaje + sin override por paquete.
 - [x] 1.8 GREEN mismo archivo de tests: las aserciones pasan; la suite queda 12/12.
-- [ ] 1.9 `pnpm turbo run test --coverage` por paquete: apps/api ramas > 60%; los demás paquetes mantienen cobertura.
+- [x] 1.9 `pnpm turbo run test --coverage` por paquete: apps/api ramas > 60%; los demás paquetes mantienen cobertura.
 - [ ] 1.10 RED `docs/operations/audit-retention-runbook.md` §8 adenda: entrada M5.1.1 — umbral por paquete fijo en 60%; única salida es `coverage.disabled=true`.
 - [ ] 1.11 Espejo ES `Documents-es/docs/operations/audit-retention-runbook.md` §8: traducción al español de la adenda.
 - [ ] 1.12 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
