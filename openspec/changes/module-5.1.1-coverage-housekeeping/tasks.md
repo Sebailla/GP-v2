@@ -43,12 +43,12 @@ Base `feat/m5.1.1-coverage-housekeeping`. Verify `NODE_ENV=test pnpm turbo run t
 
 Base PR #1. Verify `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` exit 0.
 
-- [ ] 2.1 RED re-read `openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`; understand current FAIL known-issue section.
-- [ ] 2.2 GREEN same file: rewrite verdict FAIL → PASS WITH WARNINGS; update known-issue section to reference M5.1.1 closure.
-- [ ] 2.3 GREEN ES mirror `Documents-es/openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`: translate PASS WITH WARNINGS verdict.
-- [ ] 2.4 RED `apps/api/test/coverage-validator.test.ts` integration check: after PR #1, `pnpm coverage:validate` asserts exit 0.
-- [ ] 2.5 GREEN `pnpm turbo run test bdd`: BDD scenarios pass.
-- [ ] 2.6 GREEN `pnpm coverage:validate` exits 0 — pipeline gate enforced; apps/api branch ≥ 60%.
-- [ ] 2.7 GREEN `pnpm lint:fixtures` exits 0 — fixture gate still passes.
-- [ ] 2.8 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
-- [ ] 2.9 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` exit 0.
+- [x] 2.1 RED re-read `openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`; understand current FAIL known-issue section.
+- [x] 2.2 GREEN same file: rewrite verdict FAIL → PASS WITH WARNINGS; update known-issue section to reference M5.1.1 closure.
+- [x] 2.3 GREEN ES mirror `Documents-es/openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`: translate PASS WITH WARNINGS verdict.
+- [x] 2.4 RED `apps/api/test/coverage-validator.test.ts` integration check: after PR #1, `pnpm coverage:validate` asserts exit 0. *(path corrected to `tools/coverage-validator.test.ts` — the actual location of the coverage-validator test file in the repo structure; the test's intent is preserved: real CLI invocation asserts exit 0 at the M5.1.1 endpoint).*
+- [x] 2.5 GREEN `pnpm turbo run test bdd`: BDD scenarios pass.
+- [x] 2.6 GREEN `pnpm coverage:validate` exits 0 — pipeline gate enforced; apps/api branch ≥ 60%.
+- [x] 2.7 GREEN `pnpm lint:fixtures` exits 0 — fixture gate still passes.
+- [x] 2.8 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
+- [x] 2.9 Final gate: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` exit 0.

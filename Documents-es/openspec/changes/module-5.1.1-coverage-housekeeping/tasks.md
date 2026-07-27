@@ -43,12 +43,12 @@ Base `feat/m5.1.1-coverage-housekeeping`. Verificar que `NODE_ENV=test pnpm turb
 
 Base PR #1. Verificar que `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` salgan con 0.
 
-- [ ] 2.1 RED releer `openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`; entender la sección de issues conocidos del veredicto FAIL actual.
-- [ ] 2.2 GREEN mismo archivo: reescribir el veredicto de FAIL a PASS WITH WARNINGS; actualizar la sección de issues conocidos para referenciar el cierre de M5.1.1.
-- [ ] 2.3 GREEN Espejo ES `Documents-es/openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`: traducir el veredicto PASS WITH WARNINGS.
-- [ ] 2.4 RED Comprobación de integración `apps/api/test/coverage-validator.test.ts`: tras PR #1, `pnpm coverage:validate` asertar exit 0.
-- [ ] 2.5 GREEN `pnpm turbo run test bdd`: escenarios BDD pasan.
-- [ ] 2.6 GREEN `pnpm coverage:validate` sale 0 — puerta de cobertura aplicada en pipeline; apps/api ramas ≥ 60%.
-- [ ] 2.7 GREEN `pnpm lint:fixtures` sale 0 — la puerta de fixtures sigue pasando.
-- [ ] 2.8 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
-- [ ] 2.9 Puerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` salen 0.
+- [x] 2.1 RED releer `openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`; entender la sección de issues conocidos del veredicto FAIL actual.
+- [x] 2.2 GREEN mismo archivo: reescribir el veredicto de FAIL a PASS WITH WARNINGS; actualizar la sección de issues conocidos para referenciar el cierre de M5.1.1.
+- [x] 2.3 GREEN Espejo ES `Documents-es/openspec/changes/archive/2026-07-26-module-5.1-coverage-hardening/verify-report.md`: traducir el veredicto PASS WITH WARNINGS.
+- [x] 2.4 RED Comprobación de integración `apps/api/test/coverage-validator.test.ts`: tras PR #1, `pnpm coverage:validate` asertar exit 0. *(ruta corregida a `tools/coverage-validator.test.ts` — la ubicación real del archivo de tests del validador de cobertura en la estructura del repo; la intención del test se preserva: la invocación real del CLI asertar exit 0 en el endpoint de M5.1.1).*
+- [x] 2.5 GREEN `pnpm turbo run test bdd`: escenarios BDD pasan.
+- [x] 2.6 GREEN `pnpm coverage:validate` sale 0 — puerta de cobertura aplicada en pipeline; apps/api ramas ≥ 60%.
+- [x] 2.7 GREEN `pnpm lint:fixtures` sale 0 — la puerta de fixtures sigue pasando.
+- [x] 2.8 Espejo ES `Documents-es/.../tasks.md`; verificar 0 CJK.
+- [x] 2.9 Puerta final: `NODE_ENV=test pnpm turbo run build lint typecheck test bdd` + `pnpm coverage:validate` salen 0.
