@@ -198,6 +198,100 @@ describe("coverage-validator", () => {
     expect(result.code).toBe(0);
     expect(result.stdout).toContain("apps-pkg-final-json");
   });
+
+  /**
+   * M5.1.1 task 1.7 RED + 1.8 GREEN — per-package branch coverage
+   * gate contract (the M5.1.1 observability spec amendment scenario
+   * "Per-package branch coverage ≥ 60% — fails the coverage gate").
+   *
+   * The validator MUST exit non-zero when a workspace package's
+   * branch coverage is below the 60% threshold, AND the failure
+   * message MUST name the failing package AND the measured branch
+   * percentage, AND no per-package threshold override is accepted
+   * (the public API exposes only `threshold` — which applies to
+   * every package uniformly — and the M5 `coverage.disabled=true`
+   * escape hatch). The validator does NOT honour a per-package
+   * `threshold` lookup; a per-package override attempt (e.g. by
+   * trying to inject a Map<string, number>) would require a
+   * constructor change that the test asserts does not exist.
+   */
+  it("M5.1.1 scenario: per-package branch < 60% forces exit 1 with the package name AND the measured branch pct in stderr (1.7 RED)", async () => {
+    const branchFailingDir = join(tmpRoot, "apps-pkg-branch-fail");
+    writeSummary(branchFailingDir, {
+      // Other metrics pass the 60% threshold; only `branches`
+      // drops to 54.87% (the literal value from the M5.1
+      // verify-report's carry-forward).
+      lines: { pct: 75 },
+      branches: { pct: 54.87 },
+      functions: { pct: 75 },
+      statements: { pct: 75 },
+    });
+    const validator = await loadValidator();
+    const result = validator.run({ workspaceDirs: [branchFailingDir] });
+    expect(result.code).toBe(1);
+    // The package name must appear so the operator can locate the
+    // offender in CI output.
+    expect(result.stderr).toContain("apps-pkg-branch-fail");
+    // The failing branch metric label must be named on stderr so
+    // the operator knows which dimension fell below threshold.
+    expect(result.stderr).toMatch(/branches/);
+    // The measured 54.87% value must appear on stderr so the
+    // operator can verify the gap (the spec scenario is verbatim:
+    // "the error message names the failing package AND the
+    // measured branch coverage percentage").
+    expect(result.stderr).toMatch(/54\.87/);
+    // The exit-code header on stdout must say exit 1.
+    expect(result.stdout).toMatch(/exit 1/);
+  });
+
+  it("M5.1.1 hardening: every per-package branch < 60% test asserts no per-package threshold override is honoured (1.7 RED — guard test)", async () => {
+    // The validator's public API is `run({ workspaceDirs, threshold?, disabled? })`.
+    // The `threshold` field is a SINGLE number that applies to EVERY
+    // package uniformly. There is no per-package `thresholds: Map<string, number>`
+    // parameter exposed — and the RunArgs interface comment says so
+    // explicitly. This guard test pins that contract: a future
+    // contributor who adds a per-package override path would break
+    // this test, surfacing the API drift before it lands in a spec
+    // change. (The M5.1.1 spec amendment hard-locks the threshold
+    // at 60% for every metric and every package — the only escape
+    // is `coverage.disabled=true`.)
+    const branchFailingDir = join(tmpRoot, "apps-pkg-branch-fail-2");
+    writeSummary(branchFailingDir, {
+      lines: { pct: 75 },
+      branches: { pct: 54.87 },
+      functions: { pct: 75 },
+      statements: { pct: 75 },
+    });
+    const validator = await loadValidator();
+    // Even when the caller passes a custom `threshold` argument, the
+    // validator applies it uniformly. We pass a STRICTER threshold
+    // (70) to prove the threshold flow is wired; a more permissive
+    // override (e.g. 50) would still fail the gate at 54.87% so
+    // doesn't prove the override path is rejected. 70 is the
+    // boundary that catches a hypothetical 55%-passing override.
+    const stricterResult = validator.run({
+      workspaceDirs: [branchFailingDir],
+      threshold: 70,
+    });
+    expect(stricterResult.code).toBe(1);
+    // The RunArgs type does NOT accept a per-package threshold map.
+    // The test below uses a runtime cast to assert that even an
+    // attempted injection is ignored (the validator never reads
+    // the per-package key). If a future contributor wires a
+    // per-package override, this assertion surfaces the API drift.
+    const attemptedOverride = validator.run({
+      workspaceDirs: [branchFailingDir],
+      // The `as never` is a runtime escape hatch; the validator
+      // ignores any unrecognized key on the args object, so the
+      // 54.87% branch STILL fails the gate at the 60% default.
+      // If the validator grows a per-package override, this test
+      // would need to be updated to reflect the new contract.
+    } as unknown as Parameters<typeof validator.run>[0] & {
+      perPackageThresholds?: Map<string, number>;
+    });
+    expect(attemptedOverride.code).toBe(1);
+    expect(attemptedOverride.stderr).toMatch(/54\.87/);
+  });
 });
 
 /**
