@@ -334,6 +334,41 @@ Use both tests as a dual-test pattern:
 
 For an experimental branch that cannot meet the coverage threshold, set `coverage.disabled=true`. This is an explicit escape hatch for the coverage gate only; it does not disable the bcrypt timing assertions or the production performance probe.
 
+## 8.1 M5.1.1 Addendum — Per-Package Threshold Hard-Lock
+
+The observability spec amendment landed in M5.1.1 hard-locks the coverage threshold at 60% for **every metric** (lines, branches, functions, statements) and **every package**. The 60% is not a negotiation target; it is the spec contract.
+
+**Concretely, since the M5.1.1 close-out:**
+
+- The `tools/coverage-validator.ts` enforces a single 60% threshold via `RunArgs.threshold` — a per-package override path does not exist in the public API. A future contributor attempting to add a `perPackageThresholds: Map<string, number>` argument would break the `coverage-validator.test.ts` M5.1.1 hardening test (task 1.7), surfacing the API drift to the PR review before it lands in a spec change.
+- The only escape hatch remains `coverage.disabled=true` (the M5 contract). It bypasses the gate uniformly for every package and every metric — it does not allow opting out of a single package.
+- The M5.1.1 closure lift is now the floor: `apps/api` overall branch coverage is **68.80%** (was 54.87% pre-M5.1.1), and every covered package reports above 60% on every metric. The carry-forward WARNINGs from the M5.1 verify-report are now CLOSED.
+
+**Re-verify procedure for any future change that touches `apps/api/src/modules/transactions/` or `apps/api/test/helpers/`:**
+
+```bash
+# 1. Re-run per-package coverage — assert apps/api branches > 60%
+NODE_ENV=test pnpm turbo run test -F api -- --coverage
+
+# 2. Re-run the deterministic gate — exit 0 is the contract
+NODE_ENV=test pnpm coverage:validate
+
+# 3. If a single package drops below 60%, the validator exits 1 with
+#    the package name + the measured percentage. Treat this as a
+#    hard failure — DO NOT raise the threshold for that package
+#    (the M5.1.1 spec amendment forbids per-package negotiation).
+#    Instead, add tests for the uncovered branches (the
+#    `transactions.controller.test.ts` RED → GREEN pattern is the
+#    canonical close-out).
+```
+
+**Cross-references:**
+
+- `openspec/changes/module-5.1.1-coverage-housekeeping/proposal.md` — the M5.1.1 proposal (intent, scope, approach).
+- `openspec/changes/module-5.1.1-coverage-housekeeping/design.md` — D1–D4 (coverage-lift strategy, test approach, re-verify approach, runbook update).
+- `openspec/specs/observability/spec.md` — the M5.1.1 spec amendment (new scenario "Per-package branch coverage ≥ 60% — fails the coverage gate").
+- `tools/coverage-validator.test.ts` — the M5.1.1 scenario + hardening tests (task 1.7).
+
 ## 9. Troubleshooting
 
 ### Symptom: `GET /admin/audit` returns 400 with `error: "INVALID_QUERY"`

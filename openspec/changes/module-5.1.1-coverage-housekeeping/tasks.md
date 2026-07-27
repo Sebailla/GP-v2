@@ -35,9 +35,9 @@ Base `feat/m5.1.1-coverage-housekeeping`. Verify `NODE_ENV=test pnpm turbo run t
 - [x] 1.7 RED `tools/coverage-validator.test.ts`: add M5.1.1 scenario — stub `apps/api` `coverage-summary.json` with branch < 60%; assert exit 1 + package name + pct + no per-package override.
 - [x] 1.8 GREEN same test file: assertions pass; suite is now 12/12.
 - [x] 1.9 `pnpm turbo run test --coverage` per package: apps/api branch > 60%; other packages maintain coverage.
-- [ ] 1.10 RED `docs/operations/audit-retention-runbook.md` §8 addendum: M5.1.1 entry — per-package threshold fixed at 60%; only escape is `coverage.disabled=true`.
-- [ ] 1.11 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md` §8: Spanish translation of the addendum.
-- [ ] 1.12 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
+- [x] 1.10 RED `docs/operations/audit-retention-runbook.md` §8 addendum: M5.1.1 entry — per-package threshold fixed at 60%; only escape is `coverage.disabled=true`.
+- [x] 1.11 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md` §8: Spanish translation of the addendum.
+- [x] 1.12 ES mirror `Documents-es/.../tasks.md`; verify 0 CJK.
 
 ## Phase 2 — Re-verify M5.1 (PR #2)
 
