@@ -23,10 +23,38 @@ vi.mock("bcryptjs", () => ({
   default: { compare: vi.fn(), hash: vi.fn() },
 }));
 
-describe("RateLimitGuard (e2e, R-PF-8)", () => {
+/**
+ * M5.1 task 1.7 RED → 1.8 GREEN.
+ *
+ * D5 (design §2) — rate-limit tests share global state with two
+ * surfaces that race under coverage instrumentation:
+ *
+ *   (a) The prom-client registry `rate_limit_blocked_total` is a
+ *       process-singleton; another test file running in the same
+ *       vitest worker can increment the counter between this test's
+ *       `before` snapshot and `after` read, masking the increment
+ *       assertion.
+ *   (b) The `InMemoryRateLimiter` instance is rebuilt per
+ *       `beforeEach`, but the global `metricsRegistry` is NOT —
+ *       the `apps/api` globalPromClient instance is shared across
+ *       files in the same worker.
+ *
+ * The fix is structural (D5): run this whole file SERIALLY so the
+ * counter snapshots are stable, reset the registry in `beforeEach`
+ * to start from a known baseline, and reset the limiter + flush any
+ * pending timers in `afterEach`. This is the contract the M5.1
+ * PR #1 commits to (tasks 1.7/1.8/1.9).
+ *
+ * Vitest 4 removed `describe.serial`; the upstream-blessed
+ * replacement (per the migration guide's "concurrent tests"
+ * section) is `describe(name, fn, { concurrent: false })`.
+ */
+describe("RateLimitGuard (e2e, R-PF-8)", { concurrent: false }, () => {
   let app: INestApplication;
 
   beforeEach(async () => {
+    // Reset every vi.fn created in the file + the global mock state
+    // before rebuilding the test module.
     vi.resetAllMocks();
     vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.user.create).mockResolvedValue({
@@ -44,6 +72,15 @@ describe("RateLimitGuard (e2e, R-PF-8)", () => {
     } as never);
     vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
     vi.mocked(bcrypt.hash).mockResolvedValue("hash" as never);
+    // Reset the global prom-client registry so this test file's
+    // before/after snapshots are stable (the singleton is shared
+    // across files in the same worker). We import it here so the
+    // mock is set up before `Test.createTestingModule` pulls in
+    // the metrics module (which registers counters on import).
+    const { metricsRegistry } = await import(
+      "../src/modules/metrics/registry.js"
+    );
+    metricsRegistry.resetMetrics();
     const moduleRef: TestingModule = await Test.createTestingModule({
       imports: [AuthModule],
     })
@@ -56,6 +93,12 @@ describe("RateLimitGuard (e2e, R-PF-8)", () => {
 
   afterEach(async () => {
     if (app !== undefined) await app.close();
+    // Flush any pending timers the runtime scheduled during the
+    // test (the InMemoryRateLimiter is synchronous today, but
+    // defensive cleanup future-proofs against the Upstash adapter
+    // or the cron classes that may schedule cleanup callbacks).
+    vi.useRealTimers();
+    vi.clearAllTimers();
   });
 
   it("login rate-limit key includes email so DIFFERENT emails share no bucket (R-PF-8)", async () => {

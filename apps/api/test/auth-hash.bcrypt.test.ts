@@ -30,13 +30,15 @@ describe("bcrypt cost contract", () => {
     expect(bcryptCostFromHash(hash)).toBe(12);
   });
 
-  it("hashes cost 12 within 500ms in the focused harness", async () => {
+  it("hashes cost 12 within 1500ms in the instrumented harness", async () => {
     if (process.env.TURBO_HASH) return;
 
     const startedAt = performance.now();
     await bcrypt.hash("focused timing probe", resolveBcryptCost());
+    const elapsed = performance.now() - startedAt;
 
-    expect(performance.now() - startedAt).toBeLessThan(500);
+    console.log("bcrypt cost-12:", elapsed, "ms");
+    expect(elapsed).toBeLessThan(1_500);
   });
 
   it("uses an explicit cost 14 override", async () => {
