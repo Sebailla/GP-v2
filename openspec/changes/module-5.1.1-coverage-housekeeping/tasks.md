@@ -32,8 +32,8 @@ Base `feat/m5.1.1-coverage-housekeeping`. Verify `NODE_ENV=test pnpm turbo run t
 - [x] 1.4 GREEN same test file: assertions pass.
 - [x] 1.5 RED `apps/api/test/auth/auth-callback.workflow.test.ts` (if applicable): add tests for uncovered auth-callback branches. **N/A — `auth-callback.workflow.ts` does not exist in the codebase; the only adjacent source (`auth.controller.ts`) is at 64.7% branches and the only uncovered lines are doc comments. `apps/api` overall branch coverage is now 68.80% (well above the 60% threshold).**
 - [x] 1.6 GREEN same test files: assertions pass. **N/A — same as 1.5; no test file required because there are no uncovered branches in the auth callback path.**
-- [ ] 1.7 RED `tools/coverage-validator.test.ts`: add M5.1.1 scenario — stub `apps/api` `coverage-summary.json` with branch < 60%; assert exit 1 + package name + pct + no per-package override.
-- [ ] 1.8 GREEN same test file: assertions pass; suite is now 12/12.
+- [x] 1.7 RED `tools/coverage-validator.test.ts`: add M5.1.1 scenario — stub `apps/api` `coverage-summary.json` with branch < 60%; assert exit 1 + package name + pct + no per-package override.
+- [x] 1.8 GREEN same test file: assertions pass; suite is now 12/12.
 - [ ] 1.9 `pnpm turbo run test --coverage` per package: apps/api branch > 60%; other packages maintain coverage.
 - [ ] 1.10 RED `docs/operations/audit-retention-runbook.md` §8 addendum: M5.1.1 entry — per-package threshold fixed at 60%; only escape is `coverage.disabled=true`.
 - [ ] 1.11 ES mirror `Documents-es/docs/operations/audit-retention-runbook.md` §8: Spanish translation of the addendum.
