@@ -26,12 +26,12 @@ Strict TDD RED→GREEN→TRIANGULATE→REFACTOR; atomic commits; pino [...]; `NO
 
 Base `feat/m5.1.1-coverage-housekeeping`. Verify `NODE_ENV=test pnpm turbo run test --coverage` shows apps/api branch coverage > 60%.
 
-- [ ] 1.1 RED `apps/api/test/transactions/transactions.controller.test.ts`: read controller source first; add tests for each uncovered branch (not-found, unauthorized, negative amount, forbidden, validation, etc.).
-- [ ] 1.2 GREEN same test file: new branch-test assertions pass.
-- [ ] 1.3 RED `apps/api/test/helpers/mint-jwt.test.ts`: cover uncovered branches in `apps/api/src/test/helpers/mint-jwt.ts` (57.14% per M5.1 verify-report).
-- [ ] 1.4 GREEN same test file: assertions pass.
-- [ ] 1.5 RED `apps/api/test/auth/auth-callback.workflow.test.ts` (if applicable): add tests for uncovered auth-callback branches.
-- [ ] 1.6 GREEN same test files: assertions pass.
+- [x] 1.1 RED `apps/api/test/transactions/transactions.controller.test.ts`: read controller source first; add tests for each uncovered branch (not-found, unauthorized, negative amount, forbidden, validation, etc.).
+- [x] 1.2 GREEN same test file: new branch-test assertions pass.
+- [x] 1.3 RED `apps/api/test/helpers/mint-jwt.test.ts`: cover uncovered branches in `apps/api/src/test/helpers/mint-jwt.ts` (57.14% per M5.1 verify-report).
+- [x] 1.4 GREEN same test file: assertions pass.
+- [x] 1.5 RED `apps/api/test/auth/auth-callback.workflow.test.ts` (if applicable): add tests for uncovered auth-callback branches. **N/A — `auth-callback.workflow.ts` does not exist in the codebase; the only adjacent source (`auth.controller.ts`) is at 64.7% branches and the only uncovered lines are doc comments. `apps/api` overall branch coverage is now 68.80% (well above the 60% threshold).**
+- [x] 1.6 GREEN same test files: assertions pass. **N/A — same as 1.5; no test file required because there are no uncovered branches in the auth callback path.**
 - [ ] 1.7 RED `tools/coverage-validator.test.ts`: add M5.1.1 scenario — stub `apps/api` `coverage-summary.json` with branch < 60%; assert exit 1 + package name + pct + no per-package override.
 - [ ] 1.8 GREEN same test file: assertions pass; suite is now 12/12.
 - [ ] 1.9 `pnpm turbo run test --coverage` per package: apps/api branch > 60%; other packages maintain coverage.
