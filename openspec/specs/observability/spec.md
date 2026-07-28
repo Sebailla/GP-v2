@@ -56,9 +56,11 @@ The `pnpm turbo run test` pipeline MUST enforce per-package coverage thresholds:
 - WHEN `pnpm turbo run test` runs (even if coverage is below threshold)
 - THEN the turbo test task exits 0 and the under-threshold package is reported as a warning, not a failure
 
-### Requirement: Coverage Threshold Process Enforcement (M5.1)
+### Requirement: Coverage Threshold Process Enforcement (M5.1, amended M5.1.1)
 
 The system MUST enforce per-package coverage thresholds via the Vitest process exit code. When a `@vitest/coverage-v8` run completes and any package's coverage falls below 60% (lines, branches, functions, statements), the turbo `test --coverage` task MUST exit non-zero — even when every test passes. Enforcement works via Vitest's built-in threshold-vs-exit (v4.2+) or, as fallback, a post-coverage script (`tools/coverage-validator.ts`) that parses `coverage/coverage-summary.json`. The chosen method MUST be documented in the runbook. The escape hatch `coverage.disabled=true` MUST bypass the gate (M5 contract).
+
+**M5.1.1 amendment**: The coverage threshold is fixed at 60% for every metric (lines, branches, functions, statements) and for every package. A package that does not meet the 60% threshold on any of the four metrics is a verification failure. The threshold MUST NOT be renegotiated per package; the only escape is the M5 `coverage.disabled=true` env var.
 
 #### Scenario: All packages ≥ 60% — coverage run passes
 
@@ -90,6 +92,12 @@ The system MUST enforce per-package coverage thresholds via the Vitest process e
 - WHEN `pnpm turbo run test --coverage` runs
 - THEN a clear warning is logged to CI output and the turbo task exits 0 (gate not enforced, gap visible)
 
+#### Scenario: Per-package branch coverage ≥ 60% — fails the coverage gate (M5.1.1)
+
+- GIVEN a workspace package (e.g. `apps/api`) reports branch coverage below 60% in its `coverage/coverage-summary.json` (e.g. 54.87%)
+- WHEN `NODE_ENV=test pnpm coverage:validate` runs
+- THEN the validator exits non-zero AND the error message names the failing package AND the measured branch coverage percentage AND no per-package threshold override is accepted
+
 ### Requirement: Bcrypt Cost-12 Timing Stability (M5.1)
 
 The system MUST execute the bcrypt cost-12 timing probe within a 1500 ms budget when the probe runs under coverage instrumentation (CPU load + v8 instrumentation). The probe MUST log actual elapsed time to the test runner output so CI logs surface real performance regressions. The 1500 ms budget replaces the 500 ms M5 default for the under-coverage case ONLY; the 500 ms budget remains the spec for production deployment simulations (no instrumentation overhead). The wider budget is a stability fix, not a relaxation of the security standard.
@@ -120,4 +128,4 @@ The system MUST execute the bcrypt cost-12 timing probe within a 1500 ms budget 
 
 ## Provenance
 
-Introduced by: module-5-production-hardening, 2026-07-20; coverage gate wired (per-package 60% threshold). Extended by: module-5.1-coverage-hardening, 2026-07-26 (2 NEW requirements: Coverage Threshold Process Enforcement + Bcrypt Timing Stability).
+Introduced by: module-5-production-hardening, 2026-07-20; coverage gate wired (per-package 60% threshold). Extended by: module-5.1-coverage-hardening, 2026-07-26 (2 NEW requirements: Coverage Threshold Process Enforcement + Bcrypt Cost-12 Timing Stability). Amended by: module-5.1.1-coverage-housekeeping, 2026-07-27 (1 NEW scenario: per-package branch coverage ≥ 60% requirement; fixed threshold not negotiable per package).

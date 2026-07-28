@@ -56,9 +56,11 @@ El pipeline `pnpm turbo run test` DEBE enforce umbrales de cobertura por paquete
 - WHEN corre `pnpm turbo run test` (incluso si la cobertura está bajo umbral)
 - THEN la task `test` de turbo sale con código 0 y el paquete bajo umbral se reporta como warning, no como falla
 
-### Requirement: Enforcement del exit code por umbral de cobertura (M5.1)
+### Requirement: Enforcement del exit code por umbral de cobertura (M5.1, enmendado M5.1.1)
 
 El sistema DEBE enforce umbrales de cobertura por paquete vía el exit code del proceso de Vitest. Cuando una corrida de `@vitest/coverage-v8` finaliza y la cobertura de cualquier paquete cae por debajo del 60% (lines, branches, functions, statements), la task turbo `test --coverage` DEBE salir con código distinto de 0 — incluso cuando todos los tests pasen. El enforcement funciona vía el threshold-vs-exit nativo de Vitest (v4.2+) o, como fallback, vía un script post-coverage (`tools/coverage-validator.ts`) que parsea `coverage/coverage-summary.json`. El método elegido DEBE estar documentado en el runbook. El escape hatch `coverage.disabled=true` DEBE bypassear el gate (contrato M5).
+
+**Enmienda M5.1.1**: El umbral de cobertura está fijado en 60% para cada métrica (lines, branches, functions, statements) y para cada paquete. Un paquete que no alcance el umbral del 60% en cualquiera de las cuatro métricas es una falla de verificación. El umbral NO DEBE renegociarse por paquete; el único escape es la env var `coverage.disabled=true` del contrato M5.
 
 #### Scenario: Todos los paquetes ≥ 60% — la corrida de coverage pasa
 
@@ -90,6 +92,12 @@ El sistema DEBE enforce umbrales de cobertura por paquete vía el exit code del 
 - WHEN corre `pnpm turbo run test --coverage`
 - THEN se loguea un warning claro en la salida de CI y la task turbo sale con código 0 (gate no enforceado, gap visible)
 
+#### Scenario: Cobertura de branches por paquete ≥ 60% — falla el coverage gate (M5.1.1)
+
+- GIVEN un paquete del workspace (por ejemplo `apps/api`) reporta cobertura de branches por debajo del 60% en su `coverage/coverage-summary.json` (por ejemplo 54.87%)
+- WHEN corre `NODE_ENV=test pnpm coverage:validate`
+- THEN el validador sale con código distinto de 0 Y el mensaje de error nombra al paquete fallido Y el porcentaje de cobertura de branches medido Y no se acepta ningún override de umbral por paquete
+
 ### Requirement: Estabilidad de timing de bcrypt cost-12 (M5.1)
 
 El sistema DEBE ejecutar el probe de timing de bcrypt cost-12 dentro de un budget de 1500 ms cuando el probe corre bajo instrumentación de coverage (carga de CPU + instrumentación de v8). El probe DEBE loguear el tiempo elapsed real a la salida del test runner para que los logs de CI expongan regresiones reales de performance. El budget de 1500 ms reemplaza al default M5 de 500 ms SOLO para el caso bajo coverage; el budget de 500 ms sigue siendo la spec para simulaciones de deploy a producción (sin overhead de instrumentación). El budget más ancho es un fix de estabilidad, no una relajación del estándar de seguridad.
@@ -120,4 +128,4 @@ El sistema DEBE ejecutar el probe de timing de bcrypt cost-12 dentro de un budge
 
 ## Procedencia
 
-Introducido por: module-5-production-hardening, 2026-07-20; coverage gate wireado (umbral 60% por paquete). Extendido por: module-5.1-coverage-hardening, 2026-07-26 (2 requirements NUEVOS: Enforcement del exit code por umbral de cobertura + Estabilidad de timing de bcrypt).
+Introducido por: module-5-production-hardening, 2026-07-20; coverage gate wireado (umbral 60% por paquete). Extendido por: module-5.1-coverage-hardening, 2026-07-26 (2 requirements NUEVOS: Enforcement del exit code por umbral de cobertura + Estabilidad de timing de bcrypt cost-12). Enmendado por: module-5.1.1-coverage-housekeeping, 2026-07-27 (1 scenario NUEVO: requirement de cobertura de branches por paquete ≥ 60%; umbral fijo no negociable por paquete).

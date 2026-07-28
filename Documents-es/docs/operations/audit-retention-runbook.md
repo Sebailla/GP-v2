@@ -352,6 +352,41 @@ Usar ambos tests como un patrón de tests dual:
 
 Para una rama experimental que todavía no pueda cumplir el umbral de cobertura, establecer `coverage.disabled=true`. Es una válvula de escape explícita únicamente para la compuerta de cobertura; no deshabilita las aserciones de timing de bcrypt ni la sonda de performance de producción.
 
+## 8.1 Adenda M5.1.1 — Bloqueo firme del umbral por paquete
+
+La enmienda al spec de observabilidad que aterrizó en M5.1.1 deja firme el umbral de cobertura en 60% para **cada métrica** (lines, branches, functions, statements) y **cada paquete**. El 60% no es un objetivo de negociación; es el contrato del spec.
+
+**Concretamente, desde el cierre de M5.1.1:**
+
+- El `tools/coverage-validator.ts` aplica un único umbral del 60% mediante `RunArgs.threshold` — no existe un camino de override por paquete en la API pública. Un futuro contribuidor que intente agregar un argumento `perPackageThresholds: Map<string, number>` rompería el test de hardening de M5.1.1 en `coverage-validator.test.ts` (task 1.7), sacando a la luz el drift de la API en la revisión del PR antes de que aterrice como cambio al spec.
+- La única válvula de escape sigue siendo `coverage.disabled=true` (el contrato de M5). Bypasea la compuerta de forma uniforme para cada paquete y cada métrica — no permite opt-out de un solo paquete.
+- El piso de cobertura tras el cierre de M5.1.1: la cobertura global de ramas de `apps/api` es **68,80%** (era 54,87% pre-M5.1.1), y cada paquete cubierto reporta arriba del 60% en cada métrica. Los WARNING de carry-forward del verify-report de M5.1 ahora están CERRADOS.
+
+**Procedimiento de re-verificación para cualquier cambio futuro que toque `apps/api/src/modules/transactions/` o `apps/api/test/helpers/`:**
+
+```bash
+# 1. Re-correr la cobertura por paquete — assert apps/api branches > 60%
+NODE_ENV=test pnpm turbo run test -F api -- --coverage
+
+# 2. Re-correr la compuerta determinista — exit 0 es el contrato
+NODE_ENV=test pnpm coverage:validate
+
+# 3. Si un solo paquete cae por debajo del 60%, el validador sale
+#    con exit 1 y el mensaje nombra al paquete + el porcentaje medido.
+#    Tratar esto como un fallo duro — NO subir el umbral para ese
+#    paquete (la enmienda al spec de M5.1.1 prohíbe la negociación
+#    por paquete). En su lugar, añadir tests para las ramas no
+#    cubiertas (el patrón RED → GREEN de `transactions.controller.test.ts`
+#    es el cierre canónico).
+```
+
+**Referencias cruzadas:**
+
+- `openspec/changes/module-5.1.1-coverage-housekeeping/proposal.md` — la propuesta de M5.1.1 (intención, alcance, enfoque).
+- `openspec/changes/module-5.1.1-coverage-housekeeping/design.md` — D1–D4 (estrategia de elevación de cobertura, enfoque de testing, enfoque de re-verificación, actualización del runbook).
+- `openspec/specs/observability/spec.md` — la enmienda al spec de M5.1.1 (nuevo escenario "Per-package branch coverage ≥ 60% — fails the coverage gate").
+- `tools/coverage-validator.test.ts` — el escenario de M5.1.1 + tests de hardening (task 1.7).
+
 ## 9. Troubleshooting
 
 ### Síntoma: `GET /admin/audit` devuelve 400 con `error: "INVALID_QUERY"`
