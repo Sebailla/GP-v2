@@ -165,11 +165,7 @@ describe("CategoryService", () => {
       const cat = fakeCategory({ name: "New Name" });
       const { service, update, append } = makeService({ category: cat });
 
-      const result = await service.update(
-        "cat-1",
-        { name: "New Name" },
-        { actorId: "user-2" },
-      );
+      const result = await service.update("cat-1", { name: "New Name" }, { actorId: "user-2" });
 
       expect(update).toHaveBeenCalledTimes(1);
       expect(update).toHaveBeenCalledWith("cat-1", {
@@ -195,11 +191,7 @@ describe("CategoryService", () => {
       });
 
       await expect(
-        service.update(
-          "cat-missing",
-          { name: "New Name" },
-          { actorId: "user-1" },
-        ),
+        service.update("cat-missing", { name: "New Name" }, { actorId: "user-1" }),
       ).rejects.toBeInstanceOf(CategoryNotFoundError);
 
       expect(update).toHaveBeenCalledTimes(1);

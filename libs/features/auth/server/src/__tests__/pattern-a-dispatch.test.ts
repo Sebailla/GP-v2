@@ -49,12 +49,7 @@ describe("Pattern A dispatcher wiring", () => {
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
-      const service = new SessionService(
-        prisma,
-        undefined,
-        undefined,
-        dispatcher,
-      );
+      const service = new SessionService(prisma, undefined, undefined, dispatcher);
 
       await service.revokeSession("token-A", "user-1");
 
@@ -79,12 +74,7 @@ describe("Pattern A dispatcher wiring", () => {
       vi.mocked(prisma.session.delete).mockResolvedValue({} as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
-      const service = new SessionService(
-        prisma,
-        undefined,
-        undefined,
-        dispatcher,
-      );
+      const service = new SessionService(prisma, undefined, undefined, dispatcher);
 
       await service.revokeSession("token-A");
 
@@ -97,12 +87,7 @@ describe("Pattern A dispatcher wiring", () => {
 
       expect(
         () =>
-          new SessionService(
-            prisma,
-            undefined,
-            undefined,
-            null as unknown as AuthEventDispatcher,
-          ),
+          new SessionService(prisma, undefined, undefined, null as unknown as AuthEventDispatcher),
       ).toThrow(TypeError);
 
       expect(
@@ -122,16 +107,11 @@ describe("Pattern A dispatcher wiring", () => {
       vi.mocked(prisma.session.delete).mockRejectedValue(prismaError as never);
 
       const dispatcher = vi.fn<AuthEventDispatcher>();
-      const service = new SessionService(
-        prisma,
-        undefined,
-        undefined,
-        dispatcher,
-      );
+      const service = new SessionService(prisma, undefined, undefined, dispatcher);
 
-      await expect(
-        service.revokeSession("token-A", "user-1"),
-      ).rejects.toThrow(/connection refused/i);
+      await expect(service.revokeSession("token-A", "user-1")).rejects.toThrow(
+        /connection refused/i,
+      );
       expect(dispatcher).not.toHaveBeenCalled();
     });
   });
@@ -142,11 +122,11 @@ describe("Pattern A dispatcher wiring", () => {
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const rbac = new RbacService(dispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:read:any",
-        { kind: "session", ownerId: "user-2", id: "session-2" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:read:any", {
+        kind: "session",
+        ownerId: "user-2",
+        id: "session-2",
+      });
 
       expect(allowed).toBe(false);
       expect(dispatcher).toHaveBeenCalledTimes(1);
@@ -166,11 +146,11 @@ describe("Pattern A dispatcher wiring", () => {
       const dispatcher = vi.fn<AuthEventDispatcher>();
       const rbac = new RbacService(dispatcher);
 
-      const allowed = rbac.can(
-        { id: "user-1", role: "USER" },
-        "session:read:own",
-        { kind: "session", ownerId: "user-1", id: "session-1" },
-      );
+      const allowed = rbac.can({ id: "user-1", role: "USER" }, "session:read:own", {
+        kind: "session",
+        ownerId: "user-1",
+        id: "session-1",
+      });
 
       expect(allowed).toBe(true);
       expect(dispatcher).not.toHaveBeenCalled();
@@ -179,13 +159,9 @@ describe("Pattern A dispatcher wiring", () => {
     it("F8 — the constructor throws TypeError when the dispatcher is null/undefined", async () => {
       const { RbacService } = await import("../rbac-service.js");
 
-      expect(
-        () => new RbacService(null as unknown as AuthEventDispatcher),
-      ).toThrow(TypeError);
+      expect(() => new RbacService(null as unknown as AuthEventDispatcher)).toThrow(TypeError);
 
-      expect(
-        () => new RbacService(undefined as unknown as AuthEventDispatcher),
-      ).toThrow(TypeError);
+      expect(() => new RbacService(undefined as unknown as AuthEventDispatcher)).toThrow(TypeError);
     });
   });
 });

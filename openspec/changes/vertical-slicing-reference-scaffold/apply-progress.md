@@ -16,16 +16,16 @@
 
 #### Tasks completed (8 of 8)
 
-| Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| T1.1 | Initialize monorepo (pnpm + Turbo workspaces) | `7754dc0` | `[x]` in tasks.md | Not a TDD task — pure config scaffolding. |
-| T1.2 | `tsconfig.base.json` with path aliases | `f3c1e02` | `[x]` in tasks.md | Not a TDD task. |
-| T1.3 | ESLint flat config + custom boundary plugin | `7a412dd` | `[x]` in tasks.md | TDD task — fixtures shipped (`valid.ts` + `invalid.ts` per rule, 5 rules total). |
-| T1.4 | LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md | `b4bb0bf` | `[x]` in tasks.md | Not a TDD task. Root-of-repo `.md`s; §13 mirror rule does not apply outside `openspec/` or `docs/`. |
-| T1.5 | `docker-compose.yml` for Postgres + db scripts | `b7d76ad` | `[x]` in tasks.md | Not a TDD task. **Docker daemon not reachable in sandbox**; `docker compose config` parses cleanly but `docker compose ps` healthy state could not be asserted here. |
-| T1.6 | `apps/web` scaffold (Next.js 16 minimal) | `1a8067f` | `[x]` in tasks.md | Not a TDD task. `pnpm --filter web build` smoke check ran locally — `.next/` produced (BUILD_ID, manifests, server, static). |
-| T1.7 | `apps/api` scaffold (NestJS 11 minimal) | `cd42c2f` | `[x]` in tasks.md | Not a TDD task. `pnpm --filter api build` smoke check ran locally — `dist/{main,app.module}.{js,d.ts}` produced. |
-| T1.8 | `docs/architecture.md` stub + Spanish mirror | `3387366` (mirror fix in this batch's commit) | `[x]` in tasks.md | Not a TDD task. §13 mirror rule applied. Initial commit `3387366` shipped the file but accidentally leaked a git-diff marker in the Spanish mirror (paragraph break inside `(Credentials + Google via...)`); this batch's `chore(docs)` commit fixes the paragraph wrap. |
+| Task | Subject                                                 | Commit                                        | Marker            | Notes                                                                                                                                                                                                                                                                    |
+| ---- | ------------------------------------------------------- | --------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| T1.1 | Initialize monorepo (pnpm + Turbo workspaces)           | `7754dc0`                                     | `[x]` in tasks.md | Not a TDD task — pure config scaffolding.                                                                                                                                                                                                                                |
+| T1.2 | `tsconfig.base.json` with path aliases                  | `f3c1e02`                                     | `[x]` in tasks.md | Not a TDD task.                                                                                                                                                                                                                                                          |
+| T1.3 | ESLint flat config + custom boundary plugin             | `7a412dd`                                     | `[x]` in tasks.md | TDD task — fixtures shipped (`valid.ts` + `invalid.ts` per rule, 5 rules total).                                                                                                                                                                                         |
+| T1.4 | LICENSE (MIT) + README.md + CONTRIBUTING.md + AGENTS.md | `b4bb0bf`                                     | `[x]` in tasks.md | Not a TDD task. Root-of-repo `.md`s; §13 mirror rule does not apply outside `openspec/` or `docs/`.                                                                                                                                                                      |
+| T1.5 | `docker-compose.yml` for Postgres + db scripts          | `b7d76ad`                                     | `[x]` in tasks.md | Not a TDD task. **Docker daemon not reachable in sandbox**; `docker compose config` parses cleanly but `docker compose ps` healthy state could not be asserted here.                                                                                                     |
+| T1.6 | `apps/web` scaffold (Next.js 16 minimal)                | `1a8067f`                                     | `[x]` in tasks.md | Not a TDD task. `pnpm --filter web build` smoke check ran locally — `.next/` produced (BUILD_ID, manifests, server, static).                                                                                                                                             |
+| T1.7 | `apps/api` scaffold (NestJS 11 minimal)                 | `cd42c2f`                                     | `[x]` in tasks.md | Not a TDD task. `pnpm --filter api build` smoke check ran locally — `dist/{main,app.module}.{js,d.ts}` produced.                                                                                                                                                         |
+| T1.8 | `docs/architecture.md` stub + Spanish mirror            | `3387366` (mirror fix in this batch's commit) | `[x]` in tasks.md | Not a TDD task. §13 mirror rule applied. Initial commit `3387366` shipped the file but accidentally leaked a git-diff marker in the Spanish mirror (paragraph break inside `(Credentials + Google via...)`); this batch's `chore(docs)` commit fixes the paragraph wrap. |
 
 #### Tasks remaining
 
@@ -41,18 +41,18 @@ Slice 2 is split into 3 batches per the parent orchestrator's plan: batch 1 = T2
 
 #### Tasks completed (3 of 5)
 
-| Task | Subject | Commit | Marker | Lines | Tests | Notes |
-|------|---------|--------|--------|-------|-------|-------|
-| T2.2 | `libs/core/config` (Zod env schema) | `eacaef9` | `[x]` in tasks.md | +135 / -0 | 18 | RED→GREEN→TRIANGULATE→REFACTOR. Apps wired: `apps/api/src/main.ts` + `apps/web/app/[locale]/page.tsx` import `env` at top. Workspace glob extended to match nested packages. |
-| T2.3 | `libs/core/events` (dispatcher + 9 events) | `7fdca2f` | `[x]` in tasks.md | +262 / -0 | 31 | 12 dispatcher + 19 types. Boundary rule extended to allow `libs/core/events/{,src/}types.ts` (events are the wire contract, not feature validation). |
-| T2.4 | `libs/shared-utils/{date-formatting,currency,decimal}` | `ddb4596` | `[x]` in tasks.md | +669 / -0 | 31 | Three packages in one commit per task's "atomic per package OR one for all three" choice. NEVER BigInt (per D-TX-6) — verified by code review. |
+| Task | Subject                                                | Commit    | Marker            | Lines     | Tests | Notes                                                                                                                                                                        |
+| ---- | ------------------------------------------------------ | --------- | ----------------- | --------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2.2 | `libs/core/config` (Zod env schema)                    | `eacaef9` | `[x]` in tasks.md | +135 / -0 | 18    | RED→GREEN→TRIANGULATE→REFACTOR. Apps wired: `apps/api/src/main.ts` + `apps/web/app/[locale]/page.tsx` import `env` at top. Workspace glob extended to match nested packages. |
+| T2.3 | `libs/core/events` (dispatcher + 9 events)             | `7fdca2f` | `[x]` in tasks.md | +262 / -0 | 31    | 12 dispatcher + 19 types. Boundary rule extended to allow `libs/core/events/{,src/}types.ts` (events are the wire contract, not feature validation).                         |
+| T2.4 | `libs/shared-utils/{date-formatting,currency,decimal}` | `ddb4596` | `[x]` in tasks.md | +669 / -0 | 31    | Three packages in one commit per task's "atomic per package OR one for all three" choice. NEVER BigInt (per D-TX-6) — verified by code review.                               |
 
 #### Tasks remaining in slice 2
 
-| Task | Subject | Forecast lines | Status |
-|------|---------|----------------|--------|
-| T2.1 | `libs/core/database` (Prisma client + initial schema) | ~80 | **Deferred to batch 2** (requires Postgres up + `pnpm prisma migrate dev`, which is blocked in sandbox without Docker). |
-| T2.5 | First-run validation gate (docs only, ~30 lines + commands) | ~30 | **Deferred to batch 3** (depends on T2.1 so the validation matrix can include the migration step). |
+| Task | Subject                                                     | Forecast lines | Status                                                                                                                  |
+| ---- | ----------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| T2.1 | `libs/core/database` (Prisma client + initial schema)       | ~80            | **Deferred to batch 2** (requires Postgres up + `pnpm prisma migrate dev`, which is blocked in sandbox without Docker). |
+| T2.5 | First-run validation gate (docs only, ~30 lines + commands) | ~30            | **Deferred to batch 3** (depends on T2.1 so the validation matrix can include the migration step).                      |
 
 #### Files created / modified in slice 2 batch 1
 
@@ -101,26 +101,26 @@ openspec/changes/.../apply-progress.md           | this file (updated)
 
 #### TDD evidence (per task)
 
-| Task | RED | GREEN | TRIANGULATE | REFACTOR |
-|------|-----|-------|-------------|----------|
-| T2.2 | `envSchema.safeParse({})` returns `success:false` and the issues path array mentions every required field. | `envSchema.safeParse(completeFixture)` returns `success:true`; PORT coerces from string to number; NODE_ENV is a closed enum; URLs validated. | `parseEnv({...base,PORT:"4242"})` → `PORT: 4242` (number); `parseEnv(incompleteFixture)` throws; `parseEnv({...override,PORT:9999})` → `PORT: 9999`. | `parseEnv` exported from `env.schema.ts` (not from `env.ts`) so tests don't trigger the env singleton at import time. |
-| T2.3 | `dispatch(sampleEvent())` calls the single subscribed handler exactly once and passes the event through. | Two subscribers of `transactions.created` both fire; subscribers of `transactions.updated` are NOT called. | Unsubscribe removes one handler without affecting siblings; one handler throwing does not abort the chain (configurable ErrorSink); ring buffer trims to last 100 entries per user with FIFO eviction; per-user buffers are independent; `replay(N)` returns at most N; unknown user returns `[]`. | `recordInBuffer` extracted as a private helper inside `createInMemoryDispatcher`; snapshot of handler set taken at dispatch start to allow safe mutation. |
-| T2.4 (date-formatting) | `formatDate(FIXED)` returns a non-empty locale-aware string containing the year. | Locale and time zone explicit parameters; default `en-US` / `UTC`; `parseIsoDate` throws on malformed input. | Locale divergence (en-US vs es-AR); time-zone divergence across day boundaries (02:00 UTC on 2026-07-05 is 2026-07-04 in NY); non-UTC offset preservation in `parseIsoDate`; round-trip via `toIsoString`. | (none — small enough to keep inline) |
-| T2.4 (currency) | `formatCurrency(Decimal('1234.56'), 'USD')` returns `"$1,234.56"`. | Locale switch changes prefix + separator; zero renders as `$0.00`; negative as `-$50.25`. | Rounding at the cent boundary (`10.999` → `$11.00`, ROUND_HALF_EVEN); large values with thousand separators; Decimal / string / number coercion via `toDecimal`; ARS in es-AR uses `$` + dot separator. | `toDecimal` extracted so callers can pre-coerce once when they need the Decimal for downstream arithmetic. |
-| T2.4 (decimal) | `toDecimal(0.1).plus(toDecimal(0.2)).toString() === '0.3'` (no IEEE-754 drift). | `add` / `subtract` return a Decimal; `compare` returns `-1 | 0 | 1`. | Negative/positive mix; trailing-zero trim (decimal.js returns `'1.1'` not `'1.10'`); equality across notation (`'1.0'` vs `'1.00'`); TypeError on unsupported input (`null`, `undefined`, plain object). | Re-export `Decimal` from the barrel so consumers can use the type alias without reaching into `decimal.js` directly. |
+| Task                   | RED                                                                                                        | GREEN                                                                                                                                         | TRIANGULATE                                                                                                                                                                                                                                                                                        | REFACTOR                                                                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2.2                   | `envSchema.safeParse({})` returns `success:false` and the issues path array mentions every required field. | `envSchema.safeParse(completeFixture)` returns `success:true`; PORT coerces from string to number; NODE_ENV is a closed enum; URLs validated. | `parseEnv({...base,PORT:"4242"})` → `PORT: 4242` (number); `parseEnv(incompleteFixture)` throws; `parseEnv({...override,PORT:9999})` → `PORT: 9999`.                                                                                                                                               | `parseEnv` exported from `env.schema.ts` (not from `env.ts`) so tests don't trigger the env singleton at import time.                                     |
+| T2.3                   | `dispatch(sampleEvent())` calls the single subscribed handler exactly once and passes the event through.   | Two subscribers of `transactions.created` both fire; subscribers of `transactions.updated` are NOT called.                                    | Unsubscribe removes one handler without affecting siblings; one handler throwing does not abort the chain (configurable ErrorSink); ring buffer trims to last 100 entries per user with FIFO eviction; per-user buffers are independent; `replay(N)` returns at most N; unknown user returns `[]`. | `recordInBuffer` extracted as a private helper inside `createInMemoryDispatcher`; snapshot of handler set taken at dispatch start to allow safe mutation. |
+| T2.4 (date-formatting) | `formatDate(FIXED)` returns a non-empty locale-aware string containing the year.                           | Locale and time zone explicit parameters; default `en-US` / `UTC`; `parseIsoDate` throws on malformed input.                                  | Locale divergence (en-US vs es-AR); time-zone divergence across day boundaries (02:00 UTC on 2026-07-05 is 2026-07-04 in NY); non-UTC offset preservation in `parseIsoDate`; round-trip via `toIsoString`.                                                                                         | (none — small enough to keep inline)                                                                                                                      |
+| T2.4 (currency)        | `formatCurrency(Decimal('1234.56'), 'USD')` returns `"$1,234.56"`.                                         | Locale switch changes prefix + separator; zero renders as `$0.00`; negative as `-$50.25`.                                                     | Rounding at the cent boundary (`10.999` → `$11.00`, ROUND_HALF_EVEN); large values with thousand separators; Decimal / string / number coercion via `toDecimal`; ARS in es-AR uses `$` + dot separator.                                                                                            | `toDecimal` extracted so callers can pre-coerce once when they need the Decimal for downstream arithmetic.                                                |
+| T2.4 (decimal)         | `toDecimal(0.1).plus(toDecimal(0.2)).toString() === '0.3'` (no IEEE-754 drift).                            | `add` / `subtract` return a Decimal; `compare` returns `-1                                                                                    | 0                                                                                                                                                                                                                                                                                                  | 1`.                                                                                                                                                       | Negative/positive mix; trailing-zero trim (decimal.js returns `'1.1'` not `'1.10'`); equality across notation (`'1.0'` vs `'1.00'`); TypeError on unsupported input (`null`, `undefined`, plain object). | Re-export `Decimal` from the barrel so consumers can use the type alias without reaching into `decimal.js` directly. |
 
 #### Quality gates run
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | 10 workspace projects recognized; `Scope: all 10 workspace projects`. |
-| Typecheck (new packages) | `pnpm turbo run typecheck --filter=@core/* --filter=@shared-utils/*` | exit 0 (10/10 packages PASS) | `zod`, `decimal.js`, `vitest`, `@types/node` resolved correctly. |
-| Lint (new packages) | `pnpm turbo run lint --filter=@core/* --filter=@shared-utils/*` | exit 0 (10/10 packages PASS) | Zero violations across all 5 new packages; the new `no-schemas-outside-shared` allow pattern for `libs/core/events/{,src/}types.ts` keeps the events catalog clean. |
-| Test (new packages) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 (5/5 packages PASS, 80/80 tests) | 18 + 31 + 10 + 8 + 13 = 80 cases across 5 packages. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 (apps + new libs) | apps/api + apps/web still typecheck cleanly with the new `@core/config` imports; the env schema is `tsc --noEmit` safe because the runtime parse happens at module load, not type-check time. |
-| Lint (full) | `pnpm turbo run lint` | exit 0 (5 packages) | `@gpr/boundary` fixtures still pass after the schema-allowlist extension. |
-| Test (full) | `pnpm turbo run test` | exit 1 (apps/* fail) | **Slice-1 debt**: `apps/api` and `apps/web` have `"test": "vitest run"` scripts but vitest is not in their devDependencies. The test command therefore fails for those packages until slice 3+ adds vitest to those workspaces. Documented; not in scope for this batch. |
-| Docker | `pnpm db:up && docker compose ps` | **NOT RUN** (sandbox has no Docker daemon) | Slice 2 batch 1 has no DB-dependent task. Postgres wiring lands in T2.1. |
+| Gate                     | Command                                                              | Result                                     | Notes                                                                                                                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Workspace install        | `pnpm install`                                                       | exit 0                                     | 10 workspace projects recognized; `Scope: all 10 workspace projects`.                                                                                                                                                                                                    |
+| Typecheck (new packages) | `pnpm turbo run typecheck --filter=@core/* --filter=@shared-utils/*` | exit 0 (10/10 packages PASS)               | `zod`, `decimal.js`, `vitest`, `@types/node` resolved correctly.                                                                                                                                                                                                         |
+| Lint (new packages)      | `pnpm turbo run lint --filter=@core/* --filter=@shared-utils/*`      | exit 0 (10/10 packages PASS)               | Zero violations across all 5 new packages; the new `no-schemas-outside-shared` allow pattern for `libs/core/events/{,src/}types.ts` keeps the events catalog clean.                                                                                                      |
+| Test (new packages)      | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*`      | exit 0 (5/5 packages PASS, 80/80 tests)    | 18 + 31 + 10 + 8 + 13 = 80 cases across 5 packages.                                                                                                                                                                                                                      |
+| Typecheck (full)         | `pnpm turbo run typecheck`                                           | exit 0 (apps + new libs)                   | apps/api + apps/web still typecheck cleanly with the new `@core/config` imports; the env schema is `tsc --noEmit` safe because the runtime parse happens at module load, not type-check time.                                                                            |
+| Lint (full)              | `pnpm turbo run lint`                                                | exit 0 (5 packages)                        | `@gpr/boundary` fixtures still pass after the schema-allowlist extension.                                                                                                                                                                                                |
+| Test (full)              | `pnpm turbo run test`                                                | exit 1 (apps/* fail)                       | **Slice-1 debt**: `apps/api` and `apps/web` have `"test": "vitest run"` scripts but vitest is not in their devDependencies. The test command therefore fails for those packages until slice 3+ adds vitest to those workspaces. Documented; not in scope for this batch. |
+| Docker                   | `pnpm db:up && docker compose ps`                                    | **NOT RUN** (sandbox has no Docker daemon) | Slice 2 batch 1 has no DB-dependent task. Postgres wiring lands in T2.1.                                                                                                                                                                                                 |
 
 #### Apps wiring (T2.2 step)
 
@@ -146,7 +146,7 @@ Both `apps/api/package.json` and `apps/web/package.json` declare `"@core/config"
 5. **`pnpm install` second-pass needed**: the new packages only resolved after the workspace glob was extended. The first `pnpm install` after creating the new `libs/core/config` directory showed `Scope: all 4 workspace projects` (slice 1's count); the second pass after the glob edit picked up the 5th, 6th, … packages. This is expected behavior for pnpm 11 — the workspace glob is scanned at install time.
 6. **`@types/node` was missing from the new packages**: added `@types/node@22.18.0` to devDependencies of `@core/config`, `@core/events`, and each `@shared-utils/*` package because each `tsconfig.json` references `"types": ["node"]` and the typecheck failed without it.
 7. **Spanish mirror**: `libs/shared-utils/README.md` is intentionally NOT mirrored. §13 binds to `.md` files under `openspec/` or `docs/`. The shared-utils README documents a library's public surface, not project-wide docs.
-8. **Slice-1 apps/* test debt**: `apps/api` and `apps/web` declare `"test": "vitest run"` but don't have vitest in their devDependencies. Out of scope for this batch; documented in the quality-gates table.
+8. _*Slice-1 apps/* test debt_*: `apps/api` and `apps/web` declare `"test": "vitest run"` but don't have vitest in their devDependencies. Out of scope for this batch; documented in the quality-gates table.
 
 #### Workload / PR boundary
 
@@ -168,7 +168,7 @@ slice_2:
   status: in-progress (3/5)
   tasks_done: [T2.2, T2.3, T2.4]
   tasks_remaining: [T2.1, T2.5]
-  commits_landed_this_batch: 4  # T2.2, T2.3, T2.4, tasks-marker
+  commits_landed_this_batch: 4 # T2.2, T2.3, T2.4, tasks-marker
   insertions_this_batch: ~1100
   files_touched_this_batch: ~30
   smoke_checks_passed:
@@ -215,22 +215,22 @@ next_recommended: slice-2-batch-2-T2.1
 
 ### Tasks completed
 
-| Task | Subject | Marker | Notes |
-|------|---------|--------|-------|
-| T2.1 | `libs/core/database` (Prisma client singleton + auth schema) | `[x]` | Prisma 7.8.0 + @prisma/client 7.8.0. Auth tables: User, Account, Session, VerificationToken, PasswordResetToken + Role enum. Schema.prisma with explicit `output = "../src/generated"` (Prisma 7 requires it). `prisma.config.ts` with `env('DATABASE_URL')` per Prisma 7 config-moved-from-schema pattern. Singleton via lazy Proxy (`getOrCreate` on first property access); `accelerateUrl: 'postgresql://placeholder.localhost/db'` placeholder (Prisma 7 typecheck requires it; real fix is driver adapter in slice 3+). |
-| T2.5 | `docs/first-run-checklist.md` + Spanish mirror | `[x]` | §13 mirror rule applied (perl CJK check: no CJK found). Documents the full validation matrix (install, db:up, prisma generate, prisma migrate dev, turbo run, fixtures) with success criterion "all exit 0". |
+| Task | Subject                                                      | Marker | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---- | ------------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2.1 | `libs/core/database` (Prisma client singleton + auth schema) | `[x]`  | Prisma 7.8.0 + @prisma/client 7.8.0. Auth tables: User, Account, Session, VerificationToken, PasswordResetToken + Role enum. Schema.prisma with explicit `output = "../src/generated"` (Prisma 7 requires it). `prisma.config.ts` with `env('DATABASE_URL')` per Prisma 7 config-moved-from-schema pattern. Singleton via lazy Proxy (`getOrCreate` on first property access); `accelerateUrl: 'postgresql://placeholder.localhost/db'` placeholder (Prisma 7 typecheck requires it; real fix is driver adapter in slice 3+). |
+| T2.5 | `docs/first-run-checklist.md` + Spanish mirror               | `[x]`  | §13 mirror rule applied (perl CJK check: no CJK found). Documents the full validation matrix (install, db:up, prisma generate, prisma migrate dev, turbo run, fixtures) with success criterion "all exit 0".                                                                                                                                                                                                                                                                                                                  |
 
 ### Quality gates (batch 2 verification)
 
-| Gate | Result |
-|------|--------|
-| typecheck | ✅ 8 successful, 8 total |
-| lint | ✅ 9 successful, 9 total (after adding `libs/core/database/src/generated` to ESLint ignores) |
-| test | ✅ 6 successful, 6 total (3 @core/database tests pass with lazy init) |
-| boundary fixtures | ✅ 11 passed, 0 failed |
-| CJK check (Spanish mirror) | ✅ no CJK found |
-| prisma generate | ✅ generated 7.8.0 client to `./src/generated` |
-| migrations | ⚠️ NOT RUN (sandbox has no Postgres) — deferred to user machine |
+| Gate                       | Result                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------- |
+| typecheck                  | ✅ 8 successful, 8 total                                                                     |
+| lint                       | ✅ 9 successful, 9 total (after adding `libs/core/database/src/generated` to ESLint ignores) |
+| test                       | ✅ 6 successful, 6 total (3 @core/database tests pass with lazy init)                        |
+| boundary fixtures          | ✅ 11 passed, 0 failed                                                                       |
+| CJK check (Spanish mirror) | ✅ no CJK found                                                                              |
+| prisma generate            | ✅ generated 7.8.0 client to `./src/generated`                                               |
+| migrations                 | ⚠️ NOT RUN (sandbox has no Postgres) — deferred to user machine                              |
 
 ### Critical incidents & resolutions
 
@@ -248,7 +248,7 @@ next_recommended: slice-2-batch-2-T2.1
 
 ### Structured status snapshot
 
-```yaml
+````yaml
 active_change: vertical-slicing-reference-scaffold
 artifact_store: hybrid
 execution_mode: interactive
@@ -294,28 +294,28 @@ Slice 3 batch 1 is the FIRST slice with business logic. The brief redefines the 
 
 ### Files created / modified
 
-```
+````
 
-libs/features/auth/server/                        | NEW (workspace package @features/auth)
-  ├── package.json                                | name @features/auth, type module; deps: bcryptjs 2.4.3, zod 4.4.3, @core/database workspace:*;
-  │                                              | devDeps: @types/bcryptjs 2.4.6, @types/node 22.18.0, typescript 6.0.3, vitest 4.1.9
-  ├── tsconfig.json                               | extends tsconfig.base.json; rootDir set to '../../../..' (workspace root)
-  │                                              | so cross-package imports from @core/database don't trigger TS6059;
-  │                                              | noEmit:true makes rootDir cosmetic for output but TS still validates it.
-  ├── vitest.config.ts                            | node env, src/**tests**/**/*.test.ts, clearMocks: true
-  └── src/
-      ├── **tests**/auth-service.login.test.ts    | 177 lines, 5 tests (RED then GREEN); vi.mock @core/database + bcryptjs
-      ├── auth-service.ts                         | 158 lines; AuthService class + loginInputSchema (Zod) + LoginInput/LoginResult types;
-      │                                              re-exports AuthError/ValidationError/AuthErrorCode for single-path imports
-      ├── errors.ts                               | 58 lines; AuthError (readonly code: AuthErrorCode union), ValidationError (carries issues[])
-      └── index.ts                                | 17 lines; barrel: AuthService + AuthError + ValidationError + types
+libs/features/auth/server/ | NEW (workspace package @features/auth)
+├── package.json | name @features/auth, type module; deps: bcryptjs 2.4.3, zod 4.4.3, @core/database workspace:_;
+│ | devDeps: @types/bcryptjs 2.4.6, @types/node 22.18.0, typescript 6.0.3, vitest 4.1.9
+├── tsconfig.json | extends tsconfig.base.json; rootDir set to '../../../..' (workspace root)
+│ | so cross-package imports from @core/database don't trigger TS6059;
+│ | noEmit:true makes rootDir cosmetic for output but TS still validates it.
+├── vitest.config.ts | node env, src/**tests**/\**/_.test.ts, clearMocks: true
+└── src/
+├── **tests**/auth-service.login.test.ts | 177 lines, 5 tests (RED then GREEN); vi.mock @core/database + bcryptjs
+├── auth-service.ts | 158 lines; AuthService class + loginInputSchema (Zod) + LoginInput/LoginResult types;
+│ re-exports AuthError/ValidationError/AuthErrorCode for single-path imports
+├── errors.ts | 58 lines; AuthError (readonly code: AuthErrorCode union), ValidationError (carries issues[])
+└── index.ts | 17 lines; barrel: AuthService + AuthError + ValidationError + types
 
-pnpm-workspace.yaml                               | MODIFIED
+pnpm-workspace.yaml | MODIFIED
 
-- extended packages glob with 'libs/*/*/*' so pnpm picks up three-level packages like libs/features/auth/server/
+- extended packages glob with 'libs/_/_/*' so pnpm picks up three-level packages like libs/features/auth/server/
 - added bcryptjs to allowBuilds (bcryptjs 2.4.3 ships an install script for the browser bundle)
 
-```
+````
 
 4 commits total: T3.1 (e7b60cb), T3.2 (3d4cea6), tasks marker, apply-progress update.
 
@@ -405,7 +405,7 @@ risk_flags:
   - auth_rootdir_set_to_workspace_root_due_to_cross_package_import_chain
   - bcryptjs_added_to_allowbuilds_for_install_script
 next_recommended: slice-3-batch-2-T3.3 (or design's T3.3 if brief continues finer-grained)
-```
+````
 
 ---
 
@@ -438,13 +438,13 @@ Brief renumbers slice-3 tasks for batch 2:
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief T3.3 (RED) | RED: failing Vitest tests for `AuthService.register` | `8782aff` | brief-T3.3 `[x]` in tasks.md | 5 tests covering AC-1..AC-4 + missing-name edge case. `vi.mock("@core/database", ...)` adds `prisma.user.create`; `vi.mock("bcryptjs", ...)` covers `bcrypt.hash`. RED verified: 5/5 FAIL with `TypeError: auth.register is not a function`. |
-| brief T3.3 (GREEN) | GREEN: `AuthService.register` + `EMAIL_ALREADY_EXISTS` + `RegisterInput` export | `0e21ff9` | (same marker) | Zod parse at boundary → email-uniqueness check → `bcrypt.hash(password, 10)` → `prisma.user.create` → `prisma.session.create`. Returns `LoginResult` (same shape as login). Empty-string `name` normalized to null. AuthErrorCode union extended with `'EMAIL_ALREADY_EXISTS'`. |
-| brief T3.4 (RED) | RED: failing Vitest tests for `SessionService` | `b614d35` | brief-T3.4 `[x]` in tasks.md | 7 tests in 4 describe blocks (`getCurrentUser` happy + invalid-token + expired-token; `revokeSession` happy + Prisma-P2025; `revokeAllSessions` happy + 0-sessions). RED verified: 7/7 FAIL with `Cannot find module '../session-service.js'`. |
-| brief T3.4 (GREEN) | GREEN: `SessionService` class + `INVALID_SESSION` / `SESSION_EXPIRED` codes | `d1605bd` | (same marker) | Three methods: `getCurrentUser` (with `expires <= now` boundary), `revokeSession` (translates Prisma `P2025` → `AuthError('INVALID_SESSION')` via local `isPrismaNotFoundError` type-guard), `revokeAllSessions` (idempotent; returns count). Re-exports `AuthError` + `AuthErrorCode` from `./errors.js` so the test's dynamic import resolves. AuthErrorCode union extended with `'INVALID_SESSION'` and `'SESSION_EXPIRED'`. |
-| tasks marker + apply-progress | tasks.md sub-task rows + this file | (this commit) | brief-T3.3 / brief-T3.4 `[x]` in tasks.md | Inserted two new sub-task entries between tasks.md T3.2 and the original T3.3 (NextAuth). Original T3.3 (NextAuth config) and T3.4 (Auth services umbrella) remain `[ ]` — umbrella T3.4 is incomplete until RbacService + PasswordResetService land in slice 3 batch 3+. |
+| Brief Task                    | Subject                                                                         | Commit        | Marker                                    | Notes                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------- | ------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief T3.3 (RED)              | RED: failing Vitest tests for `AuthService.register`                            | `8782aff`     | brief-T3.3 `[x]` in tasks.md              | 5 tests covering AC-1..AC-4 + missing-name edge case. `vi.mock("@core/database", ...)` adds `prisma.user.create`; `vi.mock("bcryptjs", ...)` covers `bcrypt.hash`. RED verified: 5/5 FAIL with `TypeError: auth.register is not a function`.                                                                                                                                                                                    |
+| brief T3.3 (GREEN)            | GREEN: `AuthService.register` + `EMAIL_ALREADY_EXISTS` + `RegisterInput` export | `0e21ff9`     | (same marker)                             | Zod parse at boundary → email-uniqueness check → `bcrypt.hash(password, 10)` → `prisma.user.create` → `prisma.session.create`. Returns `LoginResult` (same shape as login). Empty-string `name` normalized to null. AuthErrorCode union extended with `'EMAIL_ALREADY_EXISTS'`.                                                                                                                                                 |
+| brief T3.4 (RED)              | RED: failing Vitest tests for `SessionService`                                  | `b614d35`     | brief-T3.4 `[x]` in tasks.md              | 7 tests in 4 describe blocks (`getCurrentUser` happy + invalid-token + expired-token; `revokeSession` happy + Prisma-P2025; `revokeAllSessions` happy + 0-sessions). RED verified: 7/7 FAIL with `Cannot find module '../session-service.js'`.                                                                                                                                                                                  |
+| brief T3.4 (GREEN)            | GREEN: `SessionService` class + `INVALID_SESSION` / `SESSION_EXPIRED` codes     | `d1605bd`     | (same marker)                             | Three methods: `getCurrentUser` (with `expires <= now` boundary), `revokeSession` (translates Prisma `P2025` → `AuthError('INVALID_SESSION')` via local `isPrismaNotFoundError` type-guard), `revokeAllSessions` (idempotent; returns count). Re-exports `AuthError` + `AuthErrorCode` from `./errors.js` so the test's dynamic import resolves. AuthErrorCode union extended with `'INVALID_SESSION'` and `'SESSION_EXPIRED'`. |
+| tasks marker + apply-progress | tasks.md sub-task rows + this file                                              | (this commit) | brief-T3.3 / brief-T3.4 `[x]` in tasks.md | Inserted two new sub-task entries between tasks.md T3.2 and the original T3.3 (NextAuth). Original T3.3 (NextAuth config) and T3.4 (Auth services umbrella) remain `[ ]` — umbrella T3.4 is incomplete until RbacService + PasswordResetService land in slice 3 batch 3+.                                                                                                                                                       |
 
 5 commits total this batch.
 
@@ -468,24 +468,24 @@ openspec/changes/.../apply-progress.md                       | this section appe
 
 ### TDD evidence (per task)
 
-| Task | RED | GREEN |
-|------|-----|-------|
+| Task       | RED                                                                                                                                                                                                    | GREEN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | brief T3.3 | `pnpm --filter @features/auth exec vitest run src/__tests__/auth-service.register.test.ts` → 5/5 FAIL with `TypeError: auth.register is not a function` (the method doesn't exist on AuthService yet). | Same command → 5/5 PASS:<br>• AC-1 success: returns `{id,email,role,sessionToken}`; `prisma.user.findUnique` called once with `{where:{email}}`; `bcrypt.hash` called once with `("StrongP@ss123", 10)`; `prisma.user.create` called once with `{data:{email, hashedPassword:"$2a$10$mocked-hash-value" (NOT the plain password), name:"Alice", role:"USER"}}`; `prisma.session.create` called once with `{data:{sessionToken (UUID v4 string), userId, expires (Date)}}`.<br>• AC-2 email-already-exists: `AuthError` instance with `code === 'EMAIL_ALREADY_EXISTS'`; `bcrypt.hash`, `prisma.user.create`, `prisma.session.create` are NOT called.<br>• AC-3 weak-password: `ValidationError` thrown; no Prisma or bcrypt calls.<br>• AC-4 invalid-email: `ValidationError` thrown; same no-I/O guarantee.<br>• Edge case missing-name: `prisma.user.create` called with `{data:{name: null}}` (empty string normalized to null). |
-| brief T3.4 | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts` → 7/7 FAIL with `Cannot find module '../session-service.js'` (the module doesn't exist yet). | Same command → 7/7 PASS:<br>• `getCurrentUser` valid token: returns `{id:"user-1", email:"alice@example.com", role:"USER"}`; `prisma.session.findUnique` called with `{where:{sessionToken:"valid-token"}, include:{user:true}}`.<br>• `getCurrentUser` unknown token: `AuthError` with `code === 'INVALID_SESSION'`.<br>• `getCurrentUser` expired session (expires < now): `AuthError` with `code === 'SESSION_EXPIRED'`.<br>• `revokeSession` valid token: `prisma.session.delete` called with `{where:{sessionToken:"valid-token"}}`; returns void.<br>• `revokeSession` unknown token (Prisma P2025): `AuthError` with `code === 'INVALID_SESSION'` (translated by `isPrismaNotFoundError` type-guard).<br>• `revokeAllSessions` 3 sessions: `prisma.session.deleteMany` called with `{where:{userId:"user-1"}}`; returns `3`.<br>• `revokeAllSessions` 0 sessions: returns `0` (NOT an error — idempotent). |
+| brief T3.4 | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts` → 7/7 FAIL with `Cannot find module '../session-service.js'` (the module doesn't exist yet).                      | Same command → 7/7 PASS:<br>• `getCurrentUser` valid token: returns `{id:"user-1", email:"alice@example.com", role:"USER"}`; `prisma.session.findUnique` called with `{where:{sessionToken:"valid-token"}, include:{user:true}}`.<br>• `getCurrentUser` unknown token: `AuthError` with `code === 'INVALID_SESSION'`.<br>• `getCurrentUser` expired session (expires < now): `AuthError` with `code === 'SESSION_EXPIRED'`.<br>• `revokeSession` valid token: `prisma.session.delete` called with `{where:{sessionToken:"valid-token"}}`; returns void.<br>• `revokeSession` unknown token (Prisma P2025): `AuthError` with `code === 'INVALID_SESSION'` (translated by `isPrismaNotFoundError` type-guard).<br>• `revokeAllSessions` 3 sessions: `prisma.session.deleteMany` called with `{where:{userId:"user-1"}}`; returns `3`.<br>• `revokeAllSessions` 0 sessions: returns `0` (NOT an error — idempotent).                   |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new deps this batch (bcryptjs + zod already in slice 3 batch 1). 12 workspace projects still resolve. |
-| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/auth-service.register.test.ts` | exit 0 (RED was 5/5 FAIL) | After GREEN: 5/5 PASS. |
-| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts` | exit 0 (RED was 7/7 FAIL) | After GREEN: 7/7 PASS. |
-| Test (auth, full) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **17/17 tests pass** (5 login + 5 register + 7 session-service). |
-| Test (auth via turbo) | `pnpm turbo run test --filter=@features/auth` | exit 0 | 1/1 package successful. |
-| Test (regression) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed. |
-| Typecheck (auth) | `pnpm turbo run typecheck --filter=@features/auth` | exit 0 | `tsc --noEmit` clean — no `register` typing hole, `SessionService` resolves the `PrismaClient` type from `@core/database`. |
-| Lint (auth) | `pnpm turbo run lint --filter=@features/auth` | exit 0 | ESLint flat config + boundary rules clean. The file-level `@gpr/boundary/no-schemas-outside-shared` disable in `auth-service.ts` now covers both `loginInputSchema` (T3.2) and `registerInputSchema` (T3.3). |
-| Lint (regression) | `pnpm turbo run lint --filter=@core/* --filter=@shared-utils/*` | exit 0 | No boundary rule regression. |
+| Gate                    | Command                                                                                    | Result                    | Notes                                                                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Workspace install       | `pnpm install`                                                                             | exit 0                    | No new deps this batch (bcryptjs + zod already in slice 3 batch 1). 12 workspace projects still resolve.                                                                                                     |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/auth-service.register.test.ts` | exit 0 (RED was 5/5 FAIL) | After GREEN: 5/5 PASS.                                                                                                                                                                                       |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run src/__tests__/session-service.test.ts`       | exit 0 (RED was 7/7 FAIL) | After GREEN: 7/7 PASS.                                                                                                                                                                                       |
+| Test (auth, full)       | `pnpm --filter @features/auth exec vitest run`                                             | exit 0                    | **17/17 tests pass** (5 login + 5 register + 7 session-service).                                                                                                                                             |
+| Test (auth via turbo)   | `pnpm turbo run test --filter=@features/auth`                                              | exit 0                    | 1/1 package successful.                                                                                                                                                                                      |
+| Test (regression)       | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*`                            | exit 0                    | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed.                                                                                                                            |
+| Typecheck (auth)        | `pnpm turbo run typecheck --filter=@features/auth`                                         | exit 0                    | `tsc --noEmit` clean — no `register` typing hole, `SessionService` resolves the `PrismaClient` type from `@core/database`.                                                                                   |
+| Lint (auth)             | `pnpm turbo run lint --filter=@features/auth`                                              | exit 0                    | ESLint flat config + boundary rules clean. The file-level `@gpr/boundary/no-schemas-outside-shared` disable in `auth-service.ts` now covers both `loginInputSchema` (T3.2) and `registerInputSchema` (T3.3). |
+| Lint (regression)       | `pnpm turbo run lint --filter=@core/* --filter=@shared-utils/*`                            | exit 0                    | No boundary rule regression.                                                                                                                                                                                 |
 
 ### Critical deviations
 
@@ -531,8 +531,8 @@ slice_2:
   tasks_remaining: []
 slice_3:
   status: in-progress (4/N — this batch brings the brief T3.x count to 4 of 11 design tasks)
-  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4]   # brief's TDD pair + register + session shape
-  tasks_done_tasks_md: [T3.1, brief-T3.3, brief-T3.4]     # tasks.md markers; T3.2 / T3.3 / T3.4 (umbrella) remain [ ]
+  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4] # brief's TDD pair + register + session shape
+  tasks_done_tasks_md: [T3.1, brief-T3.3, brief-T3.4] # tasks.md markers; T3.2 / T3.3 / T3.4 (umbrella) remain [ ]
   tasks_remaining_slice_3:
     - T3.2 (libs/features/auth/shared/schemas)
     - T3.3 (NextAuth v5 config — note: brief T3.3 ≠ tasks.md T3.3)
@@ -542,7 +542,7 @@ slice_3:
     - T3.7 (integration scenarios)
     - T3.8 (REFACTOR pass)
     - T3.9 (slice-wide turbo run gate)
-  commits_landed_this_batch: 5                             # brief-T3.3 RED, brief-T3.3 GREEN, brief-T3.4 RED, brief-T3.4 GREEN, tasks+apply-progress
+  commits_landed_this_batch: 5 # brief-T3.3 RED, brief-T3.3 GREEN, brief-T3.4 RED, brief-T3.4 GREEN, tasks+apply-progress
   insertions_this_batch: ~440 across 6 source files + tasks.md + apply-progress.md
   test_count_this_batch: 12 new tests (5 register + 7 session-service); 17/17 auth tests pass overall
 feature_branch: feat/vertical-slicing-s3-auth-batch2
@@ -589,13 +589,13 @@ Brief renumbers slice-3 tasks for batch 3:
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief T3.4 RED | RED: failing Vitest tests for `RbacService` permission matrix | `f3d33e1` | brief-T3.4 (RbacService) `[x]` in tasks.md | 11 tests covering USER + ADMIN matrix; cast past `Action` type for the defense-in-depth probe. RED verified: 11/11 FAIL with ERR_MODULE_NOT_FOUND. |
-| brief T3.4 GREEN | GREEN: `RbacService` + permission table + types + barrel | `8190a9c` | (same marker) | Permission matrix mirrors design §4.1 exactly (USER: 4 `*:own` true + 4 `*:any` false; ADMIN: all 8 true). `Action` is a closed string-literal union (defense in depth at type level); runtime cast past type returns `false` (defense at lookup level). 11/11 tests pass. |
-| brief T3.5 RED | RED: failing Vitest tests for `wireAuthEvents` | `3aea7b5` | brief-T3.5 (events partial) `[x]` in tasks.md | 4 tests covering revoke→auth.session.revoked (single + multiple tokens, no swallowing) and can→auth.rbac.denied (false dispatches, true does not). RED verified: 4/4 FAIL with ERR_MODULE_NOT_FOUND. |
-| brief T3.5 GREEN | GREEN: `wireAuthEvents` + `UserRepository` port + `PrismaUserRepository` | `56e89a4` | (same marker) | Monkey-patch pattern documented as pragmatic-for-this-slice (slice 3 batch 4+ refactors services to dispatch directly). SessionService.revokeSession wrapped to dispatch `auth.session.revoked` (userId recovered via `sessionService.getCurrentUser(token)` before the delete). RbacService.can wrapped to dispatch `auth.rbac.denied` on `false` only. PrismaUserRepository implements UserRepository port (findById + findByEmail); AuthService / SessionService still call `prisma.user` directly — port ships ahead of refactor. 4/4 tests pass; @core/events added as workspace:* dependency. |
-| tasks marker + apply-progress | tasks.md sub-task rows + this section | (this commit) | brief-T3.4 (RbacService) + brief-T3.5 (events partial) `[x]` in tasks.md | Inserted sub-task rows under both umbrella tasks. Brief T3.4 marks RbacService as DONE but umbrella T3.4 stays open (PasswordResetService pending). Brief T3.5 marks events partial as DONE; full events wiring lands when PasswordResetService ships in batch 4+. |
+| Brief Task                    | Subject                                                                  | Commit        | Marker                                                                   | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------ | ------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief T3.4 RED                | RED: failing Vitest tests for `RbacService` permission matrix            | `f3d33e1`     | brief-T3.4 (RbacService) `[x]` in tasks.md                               | 11 tests covering USER + ADMIN matrix; cast past `Action` type for the defense-in-depth probe. RED verified: 11/11 FAIL with ERR_MODULE_NOT_FOUND.                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| brief T3.4 GREEN              | GREEN: `RbacService` + permission table + types + barrel                 | `8190a9c`     | (same marker)                                                            | Permission matrix mirrors design §4.1 exactly (USER: 4 `*:own` true + 4 `*:any` false; ADMIN: all 8 true). `Action` is a closed string-literal union (defense in depth at type level); runtime cast past type returns `false` (defense at lookup level). 11/11 tests pass.                                                                                                                                                                                                                                                                                                                          |
+| brief T3.5 RED                | RED: failing Vitest tests for `wireAuthEvents`                           | `3aea7b5`     | brief-T3.5 (events partial) `[x]` in tasks.md                            | 4 tests covering revoke→auth.session.revoked (single + multiple tokens, no swallowing) and can→auth.rbac.denied (false dispatches, true does not). RED verified: 4/4 FAIL with ERR_MODULE_NOT_FOUND.                                                                                                                                                                                                                                                                                                                                                                                                |
+| brief T3.5 GREEN              | GREEN: `wireAuthEvents` + `UserRepository` port + `PrismaUserRepository` | `56e89a4`     | (same marker)                                                            | Monkey-patch pattern documented as pragmatic-for-this-slice (slice 3 batch 4+ refactors services to dispatch directly). SessionService.revokeSession wrapped to dispatch `auth.session.revoked` (userId recovered via `sessionService.getCurrentUser(token)` before the delete). RbacService.can wrapped to dispatch `auth.rbac.denied` on `false` only. PrismaUserRepository implements UserRepository port (findById + findByEmail); AuthService / SessionService still call `prisma.user` directly — port ships ahead of refactor. 4/4 tests pass; @core/events added as workspace:* dependency. |
+| tasks marker + apply-progress | tasks.md sub-task rows + this section                                    | (this commit) | brief-T3.4 (RbacService) + brief-T3.5 (events partial) `[x]` in tasks.md | Inserted sub-task rows under both umbrella tasks. Brief T3.4 marks RbacService as DONE but umbrella T3.4 stays open (PasswordResetService pending). Brief T3.5 marks events partial as DONE; full events wiring lands when PasswordResetService ships in batch 4+.                                                                                                                                                                                                                                                                                                                                  |
 
 5 commits total this batch.
 
@@ -624,22 +624,22 @@ openspec/changes/.../apply-progress.md                   | this section appended
 
 ### TDD evidence (per task) — strict TDD cycle table
 
-| Task | RED | GREEN | TRIANGULATE | REFACTOR |
-|------|-----|-------|-------------|----------|
-| brief T3.4 (RbacService) | `pnpm --filter @features/auth exec vitest run src/__tests__/rbac-service.test.ts` → 11/11 FAIL with `Cannot find module '../rbac-service.js'` (the module under test doesn't exist yet). | Same command → 11/11 PASS:<br>• USER `session:read:own` + own session → true<br>• USER `session:read:own` + other's session → false<br>• USER `session:read:any` → false (cross-user)<br>• USER `session:revoke:own` + own session → true<br>• USER `session:revoke:any` → false<br>• USER `transaction:read:own` + own tx → true<br>• USER `transaction:read:any` → false<br>• ADMIN `session:read:any` + other's session → true<br>• ADMIN `session:revoke:any` → true<br>• ADMIN `session:read:own` + own session → true (admins also own)<br>• USER + cast-past-type `session:promote:any` → false (defense in depth) | All 11 cases were written in the RED step (not added incrementally) — they collectively triangulate the matrix. The defense-in-depth probe is the most aggressive case (bypasses the type system). | None required — the permission table IS the matrix; the `can()` method is 4 lines of straight-line code. |
-| brief T3.5 (events wiring partial) | `pnpm --filter @features/auth exec vitest run src/__tests__/events.test.ts` → 4/4 FAIL with `Cannot find module '../events.js'` (the module doesn't exist yet). | Same command → 4/4 PASS:<br>• Single revoke dispatches `auth.session.revoked` with `{ userId: 'user-1', sessionToken: 'token-A', revokedAt: Date }`, envelope `userId: 'user-1'`, `occurredAt: Date`.<br>• Two distinct tokens revoke and dispatch TWO events (`user-1`/`token-X` and `user-2`/`token-Y`); no swallowing.<br>• USER `session:read:any` on other's session → `can()` returns false AND dispatcher called once with `auth.rbac.denied` payload `{ userId, action, resourceKind, deniedAt }`.<br>• USER `session:read:own` on own session → `can()` returns true AND dispatcher called ZERO times. | The "no swallowing" case (two revokes, two events) is the triangulation — proves the wrapper is a fresh dispatch per call, not a once-only side effect. The "allowed returns true, no dispatch" case proves the wrapper doesn't fire on the happy path. | None required — the wiring is intentionally a thin layer of straight-line code; refactor opportunity (drop the wrapper, dispatch from the services directly) is documented as slice 3 batch 4+ work. |
+| Task                               | RED                                                                                                                                                                                      | GREEN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | TRIANGULATE                                                                                                                                                                                                                                             | REFACTOR                                                                                                                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief T3.4 (RbacService)           | `pnpm --filter @features/auth exec vitest run src/__tests__/rbac-service.test.ts` → 11/11 FAIL with `Cannot find module '../rbac-service.js'` (the module under test doesn't exist yet). | Same command → 11/11 PASS:<br>• USER `session:read:own` + own session → true<br>• USER `session:read:own` + other's session → false<br>• USER `session:read:any` → false (cross-user)<br>• USER `session:revoke:own` + own session → true<br>• USER `session:revoke:any` → false<br>• USER `transaction:read:own` + own tx → true<br>• USER `transaction:read:any` → false<br>• ADMIN `session:read:any` + other's session → true<br>• ADMIN `session:revoke:any` → true<br>• ADMIN `session:read:own` + own session → true (admins also own)<br>• USER + cast-past-type `session:promote:any` → false (defense in depth) | All 11 cases were written in the RED step (not added incrementally) — they collectively triangulate the matrix. The defense-in-depth probe is the most aggressive case (bypasses the type system).                                                      | None required — the permission table IS the matrix; the `can()` method is 4 lines of straight-line code.                                                                                             |
+| brief T3.5 (events wiring partial) | `pnpm --filter @features/auth exec vitest run src/__tests__/events.test.ts` → 4/4 FAIL with `Cannot find module '../events.js'` (the module doesn't exist yet).                          | Same command → 4/4 PASS:<br>• Single revoke dispatches `auth.session.revoked` with `{ userId: 'user-1', sessionToken: 'token-A', revokedAt: Date }`, envelope `userId: 'user-1'`, `occurredAt: Date`.<br>• Two distinct tokens revoke and dispatch TWO events (`user-1`/`token-X` and `user-2`/`token-Y`); no swallowing.<br>• USER `session:read:any` on other's session → `can()` returns false AND dispatcher called once with `auth.rbac.denied` payload `{ userId, action, resourceKind, deniedAt }`.<br>• USER `session:read:own` on own session → `can()` returns true AND dispatcher called ZERO times.           | The "no swallowing" case (two revokes, two events) is the triangulation — proves the wrapper is a fresh dispatch per call, not a once-only side effect. The "allowed returns true, no dispatch" case proves the wrapper doesn't fire on the happy path. | None required — the wiring is intentionally a thin layer of straight-line code; refactor opportunity (drop the wrapper, dispatch from the services directly) is documented as slice 3 batch 4+ work. |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new external deps this batch (@core/events was already in workspace); 12 workspace projects still resolve. |
-| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **32/32 tests pass** (5 login + 5 register + 7 session + 11 rbac + 4 events). |
-| Test (auth via turbo) | `pnpm turbo run test --filter=@features/auth` | exit 0 | 1/1 package successful. |
-| Test (regression) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed. |
-| Test (full lint) | `pnpm turbo run lint` | exit 0 | 10/10 packages clean; @features/auth still passes the file-level `no-schemas-outside-shared` disable on auth-service.ts. |
-| Typecheck (auth) | `pnpm turbo run typecheck --filter=@features/auth` | exit 0 | `tsc --noEmit` clean — `RbacService`, `events.ts`, `PrismaUserRepository`, `UserRepository` all type-check. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | apps/api + apps/web + all libs still typecheck cleanly with the new `@core/events` import in `events.ts`. |
+| Gate                    | Command                                                         | Result | Notes                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Workspace install       | `pnpm install`                                                  | exit 0 | No new external deps this batch (@core/events was already in workspace); 12 workspace projects still resolve.            |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run`                  | exit 0 | **32/32 tests pass** (5 login + 5 register + 7 session + 11 rbac + 4 events).                                            |
+| Test (auth via turbo)   | `pnpm turbo run test --filter=@features/auth`                   | exit 0 | 1/1 package successful.                                                                                                  |
+| Test (regression)       | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed.                                        |
+| Test (full lint)        | `pnpm turbo run lint`                                           | exit 0 | 10/10 packages clean; @features/auth still passes the file-level `no-schemas-outside-shared` disable on auth-service.ts. |
+| Typecheck (auth)        | `pnpm turbo run typecheck --filter=@features/auth`              | exit 0 | `tsc --noEmit` clean — `RbacService`, `events.ts`, `PrismaUserRepository`, `UserRepository` all type-check.              |
+| Typecheck (full)        | `pnpm turbo run typecheck`                                      | exit 0 | apps/api + apps/web + all libs still typecheck cleanly with the new `@core/events` import in `events.ts`.                |
 
 ### Critical deviations
 
@@ -697,7 +697,7 @@ slice_3:
     - T3.7 (integration scenarios)
     - T3.8 (REFACTOR pass)
     - T3.9 (slice-wide turbo run gate)
-  commits_landed_this_batch: 5  # brief-T3.4 RED, brief-T3.4 GREEN, brief-T3.5 RED, brief-T3.5 GREEN, tasks+apply-progress
+  commits_landed_this_batch: 5 # brief-T3.4 RED, brief-T3.4 GREEN, brief-T3.5 RED, brief-T3.5 GREEN, tasks+apply-progress
   insertions_this_batch: ~520 across 6 new files + 2 modified + tasks.md + apply-progress.md
   test_count_this_batch: 15 new tests (11 rbac + 4 events); 32/32 auth tests pass overall
 feature_branch: feat/vertical-slicing-s3-auth-batch3
@@ -746,15 +746,15 @@ This batch closes the last two pieces of the brief T3.4 / T3.5 surface and ships
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief T3.4 RED | RED: failing Vitest tests for `PasswordResetService` | `4121fba` | brief-T3.4 (PasswordResetService) `[x]` in tasks.md | 7 tests pinning requestReset (3) + consumeReset (4) contracts. RED verified: 7/7 FAIL with `Cannot find module '../password-reset.service.js'`. |
-| brief T3.4 GREEN | GREEN: `PasswordResetService` + `PasswordResetTokenRepository` port + `UserRepository.updatePassword` extension | `9c97e71` | (same marker) | Service constructor `(userRepo, tokenRepo, dispatcher)` — Pattern A dispatch. `requestReset` mints 32-byte random token (64 hex chars; always ≥32 asserted at the boundary), persists sha256-only, dispatches with raw token in payload. `consumeReset` shas the raw, throws generic `AuthError('INVALID_RESET_TOKEN')` ('invalid reset token' — no 'expired' / 'consumed' / 'not found' wording) for the three failure modes, else `userRepo.updatePassword(userId, await bcrypt.hash(newPassword, 10))` + markConsumed + dispatch. `INVALID_RESET_TOKEN` added to `AuthErrorCode`. `UserRepository` port extended with `updatePassword(id, hashed)`. `PrismaUserRepository` implements `updatePassword` via `prisma.user.update`. 7/7 tests pass. Brief deviation: GREEN message is `'invalid reset token'`, not the brief's `'invalid or expired reset token'` (the test enum-side invariant is stronger; the test's stricter invariant won). |
-| brief T3.5b RED | RED: failing Vitest tests for `PrismaPasswordResetTokenRepository` | `8c65f47` | brief-T3.5b (PasswordResetTokenRepository port + Prisma adapter) `[x]` in tasks.md | 6 tests covering create (incl. FK violation propagation) / findByHash (hit + miss) / markConsumed (hit + idempotent no-op on P2025). RED verified: 6/6 FAIL with `Cannot find module '../infrastructure/repositories/prisma-password-reset-token.repository.js'`. |
-| brief T3.5b GREEN | GREEN: `PrismaPasswordResetTokenRepository` Prisma adapter | `c137ba1` | (same marker) | Third `@core/database` integration adapter (after `PrismaUserRepository`). Uses `user: { connect: { id: userId } }` to satisfy the generated client's relation-input path. `markConsumed` swallows Prisma P2025 as a no-op (defense in depth). `projectPasswordResetTokenRecord` keeps the public `PasswordResetTokenRecord` projection close to the data layer. 6/6 tests pass. Brief deviation: project uses PostgreSQL (docker-compose.yml), not sqlite as the brief assumed; followed the existing `vi.mock('@core/database')` pattern. |
-| brief T3.5c events extension | `events.test.ts` extended with 4 password-reset dispatch cases | `d4a88c8` | brief-T3.5c (events extension) `[x]` in tasks.md | 4 new tests: requestReset known → 1 dispatch with auth.password-reset.requested + payload token matches sha256(persisted hash); requestReset unknown → 0 dispatches; consumeReset valid → 2 dispatches (requested + completed with `{ userId, resetAt }`); consumeReset invalid → 1 dispatch (only the prior requested, NO completed). Pattern A verified end-to-end: PasswordResetService dispatches directly via the constructor-injected dispatcher. `events.test.ts` is now 8 tests (4 batch 3 + 4 batch 4). All pass. |
-| brief-fix-events-comments | JSDoc alignment on `events.ts` + `events.test.ts` headers | `e56384a` | (no new marker; service-level docs only) | Both file headers now document all 4 auth events with their canonical Zod-validated payload shapes from `@core/events/types.ts`. Cross-reference to that file added (`see libs/core/events/src/types.ts for the authoritative Zod schemas; do NOT duplicate the payload shapes here`). Pattern A vs Pattern B dispatch distinction documented in `events.ts`. |
-| brief-markers-apply-progress | `tasks.md` sub-task rows + this section | (this commit) | brief-T3.4 (PasswordResetService) + brief-T3.5b + brief-T3.5c `[x]` in tasks.md | Umbrella T3.4 note updated: '... + PasswordResetService (DONE in slice 3 batch 4)'. Umbrella T3.5 note updated: '... + PasswordResetService events wired + ... + PasswordResetTokenRepository port + PrismaPasswordResetTokenRepository (DONE in slice 3 batch 4)'. |
+| Brief Task                   | Subject                                                                                                         | Commit        | Marker                                                                             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| brief T3.4 RED               | RED: failing Vitest tests for `PasswordResetService`                                                            | `4121fba`     | brief-T3.4 (PasswordResetService) `[x]` in tasks.md                                | 7 tests pinning requestReset (3) + consumeReset (4) contracts. RED verified: 7/7 FAIL with `Cannot find module '../password-reset.service.js'`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| brief T3.4 GREEN             | GREEN: `PasswordResetService` + `PasswordResetTokenRepository` port + `UserRepository.updatePassword` extension | `9c97e71`     | (same marker)                                                                      | Service constructor `(userRepo, tokenRepo, dispatcher)` — Pattern A dispatch. `requestReset` mints 32-byte random token (64 hex chars; always ≥32 asserted at the boundary), persists sha256-only, dispatches with raw token in payload. `consumeReset` shas the raw, throws generic `AuthError('INVALID_RESET_TOKEN')` ('invalid reset token' — no 'expired' / 'consumed' / 'not found' wording) for the three failure modes, else `userRepo.updatePassword(userId, await bcrypt.hash(newPassword, 10))` + markConsumed + dispatch. `INVALID_RESET_TOKEN` added to `AuthErrorCode`. `UserRepository` port extended with `updatePassword(id, hashed)`. `PrismaUserRepository` implements `updatePassword` via `prisma.user.update`. 7/7 tests pass. Brief deviation: GREEN message is `'invalid reset token'`, not the brief's `'invalid or expired reset token'` (the test enum-side invariant is stronger; the test's stricter invariant won). |
+| brief T3.5b RED              | RED: failing Vitest tests for `PrismaPasswordResetTokenRepository`                                              | `8c65f47`     | brief-T3.5b (PasswordResetTokenRepository port + Prisma adapter) `[x]` in tasks.md | 6 tests covering create (incl. FK violation propagation) / findByHash (hit + miss) / markConsumed (hit + idempotent no-op on P2025). RED verified: 6/6 FAIL with `Cannot find module '../infrastructure/repositories/prisma-password-reset-token.repository.js'`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| brief T3.5b GREEN            | GREEN: `PrismaPasswordResetTokenRepository` Prisma adapter                                                      | `c137ba1`     | (same marker)                                                                      | Third `@core/database` integration adapter (after `PrismaUserRepository`). Uses `user: { connect: { id: userId } }` to satisfy the generated client's relation-input path. `markConsumed` swallows Prisma P2025 as a no-op (defense in depth). `projectPasswordResetTokenRecord` keeps the public `PasswordResetTokenRecord` projection close to the data layer. 6/6 tests pass. Brief deviation: project uses PostgreSQL (docker-compose.yml), not sqlite as the brief assumed; followed the existing `vi.mock('@core/database')` pattern.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| brief T3.5c events extension | `events.test.ts` extended with 4 password-reset dispatch cases                                                  | `d4a88c8`     | brief-T3.5c (events extension) `[x]` in tasks.md                                   | 4 new tests: requestReset known → 1 dispatch with auth.password-reset.requested + payload token matches sha256(persisted hash); requestReset unknown → 0 dispatches; consumeReset valid → 2 dispatches (requested + completed with `{ userId, resetAt }`); consumeReset invalid → 1 dispatch (only the prior requested, NO completed). Pattern A verified end-to-end: PasswordResetService dispatches directly via the constructor-injected dispatcher. `events.test.ts` is now 8 tests (4 batch 3 + 4 batch 4). All pass.                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| brief-fix-events-comments    | JSDoc alignment on `events.ts` + `events.test.ts` headers                                                       | `e56384a`     | (no new marker; service-level docs only)                                           | Both file headers now document all 4 auth events with their canonical Zod-validated payload shapes from `@core/events/types.ts`. Cross-reference to that file added (`see libs/core/events/src/types.ts for the authoritative Zod schemas; do NOT duplicate the payload shapes here`). Pattern A vs Pattern B dispatch distinction documented in `events.ts`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| brief-markers-apply-progress | `tasks.md` sub-task rows + this section                                                                         | (this commit) | brief-T3.4 (PasswordResetService) + brief-T3.5b + brief-T3.5c `[x]` in tasks.md    | Umbrella T3.4 note updated: '... + PasswordResetService (DONE in slice 3 batch 4)'. Umbrella T3.5 note updated: '... + PasswordResetService events wired + ... + PasswordResetTokenRepository port + PrismaPasswordResetTokenRepository (DONE in slice 3 batch 4)'.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 7 commits total this batch.
 
@@ -787,26 +787,26 @@ openspec/changes/vertical-slicing-reference-scaffold/
 
 ### TDD evidence (per task) — strict TDD cycle table
 
-| Task | RED | GREEN | TRIANGULATE | REFACTOR |
-|------|-----|-------|-------------|----------|
-| brief T3.4 (PasswordResetService) | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset.service.test.ts` → 7/7 FAIL with `Cannot find module '../password-reset.service.js'` (the module does not exist yet). | Same command → 7/7 PASS:<br>• requestReset known email → 1 row persisted with `tokenHash = sha256(dispatchedToken)`; `expiresAt ≈ now + 1h`; consumedAt null; 1 dispatch `auth.password-reset.requested` with `{ userId, token (sha256→persistedHash), requestedAt }`.<br>• requestReset unknown email → 0 rows, 0 dispatches (silent return).<br>• requestReset × 2 same email → 2 distinct `tokenHash` values; 2 dispatches (both `requested`).<br>• consumeReset valid → `userRepo.updatePassword` called with `(userId, '$2a$10$new-bcrypt-hash')`; `markConsumed(tokenHash, Date)`; 1 dispatch `auth.password-reset.completed` `{ userId, resetAt }`. `bcrypt.hash` asserted to be called with the EXACT `('newPassword123', 10)` shape.<br>• consumeReset consumed → throws `AuthError('INVALID_RESET_TOKEN')`; message `'invalid reset token'` (no 'consumed' / 'already used' wording); no `updatePassword`; no dispatch.<br>• consumeReset expired → same generic `AuthError('INVALID_RESET_TOKEN')` (no 'expired' wording); no `updatePassword`.<br>• consumeReset unknown → same generic `AuthError('INVALID_RESET_TOKEN')` (no 'not found' wording); `tokenRepo.findByHash` called once with the sha256(rawToken). | All 7 cases written in the RED step (not added incrementally) — collectively triangulate the matrix (known vs unknown email; consumed vs expired vs unknown token; idempotent two-token issue). Generic `AuthError` copy asserts no enumeration leak across the three consumeReset failure modes. | None required — the service is straight-line code with three single-line branches (userRepo lookup; sha256 raw token; tokenRepo lookup; three throwing branches; bcrypt hash + updatePassword + markConsumed + dispatch). |
-| brief T3.5b (PrismaPasswordResetTokenRepository) | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset-token.repository.test.ts` → 6/6 FAIL with `Cannot find module '../infrastructure/repositories/prisma-password-reset-token.repository.js'` (the module does not exist yet). | Same command → 6/6 PASS:<br>• create with valid user → `prisma.passwordResetToken.create` called with `{ data: { tokenHash, expiresAt, user: { connect: { id: userId } } } }`; returns full `PasswordResetTokenRecord` projection.<br>• create with ghost user → propagates Prisma P2003 (FK violation) as a thrown error.<br>• findByHash hit → returns the row whose `tokenHash` matches the unique index; matches `where: { tokenHash }`.<br>• findByHash miss → returns `null` (no enumeration side-channel).<br>• markConsumed hit → `prisma.passwordResetToken.update` called with `where: { tokenHash }` and `data: { consumedAt }`.<br>• markConsumed miss → swallows Prisma P2025 as a no-op (returns undefined). | The 6 cases cover the happy path (create + findByHash + markConsumed), the FK violation, the miss path (findByHash + markConsumed), and the P2025 idempotent markConsumed. Together they triangulate the seam without forcing a live DB. | None required — the adapter is a thin layer over Prisma; the private `projectPasswordResetTokenRecord` keeps the projection close to the data layer. |
-| brief T3.5c (events extension) | N/A — Pattern A delivers the dispatch path through `PasswordResetService` directly; no new production code in this brief. The 4 new tests in `events.test.ts` verify existing behavior (the service dispatches via its constructor-injected dispatcher; `wireAuthEvents` is unchanged). | `pnpm --filter @features/auth exec vitest run src/__tests__/events.test.ts` → 8/8 PASS (4 original + 4 new):<br>• requestReset known → 1 dispatch `auth.password-reset.requested`; payload token sha256 matches the persisted `tokenHash`.<br>• requestReset unknown → 0 dispatches.<br>• consumeReset valid → 2 dispatches; events[0]=`requested`, events[1]=`completed` with `{ userId, resetAt }`.<br>• consumeReset invalid → 1 dispatch (only the prior `requested`); no `completed`. | The 4 cases cover both events end-to-end (request dispatch + complete dispatch), the unknown-email silent path, and the negative path (no `completed` event on invalid token). | None — the events.test.ts extension is pure test code; refactor opportunities (extract a `dispatchAuthEvent(name, payload)` helper from `events.ts`) are deferred to slice 3 batch 5+ alongside the wireAuthEvents wrapper cleanup. |
-| brief-fix-events-comments | N/A — docs-only commit (no production code, no tests). | `pnpm --filter @features/auth exec vitest run` → 45/45 PASS (no regression). `pnpm --filter @features/auth exec eslint . --max-warnings 0` → exit 0. `pnpm --filter @features/auth exec tsc --noEmit` → exit 0. | (N/A — docs change.) | (N/A.) |
+| Task                                             | RED                                                                                                                                                                                                                                                                                     | GREEN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | TRIANGULATE                                                                                                                                                                                                                                                                                       | REFACTOR                                                                                                                                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief T3.4 (PasswordResetService)                | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset.service.test.ts` → 7/7 FAIL with `Cannot find module '../password-reset.service.js'` (the module does not exist yet).                                                                                        | Same command → 7/7 PASS:<br>• requestReset known email → 1 row persisted with `tokenHash = sha256(dispatchedToken)`; `expiresAt ≈ now + 1h`; consumedAt null; 1 dispatch `auth.password-reset.requested` with `{ userId, token (sha256→persistedHash), requestedAt }`.<br>• requestReset unknown email → 0 rows, 0 dispatches (silent return).<br>• requestReset × 2 same email → 2 distinct `tokenHash` values; 2 dispatches (both `requested`).<br>• consumeReset valid → `userRepo.updatePassword` called with `(userId, '$2a$10$new-bcrypt-hash')`; `markConsumed(tokenHash, Date)`; 1 dispatch `auth.password-reset.completed` `{ userId, resetAt }`. `bcrypt.hash` asserted to be called with the EXACT `('newPassword123', 10)` shape.<br>• consumeReset consumed → throws `AuthError('INVALID_RESET_TOKEN')`; message `'invalid reset token'` (no 'consumed' / 'already used' wording); no `updatePassword`; no dispatch.<br>• consumeReset expired → same generic `AuthError('INVALID_RESET_TOKEN')` (no 'expired' wording); no `updatePassword`.<br>• consumeReset unknown → same generic `AuthError('INVALID_RESET_TOKEN')` (no 'not found' wording); `tokenRepo.findByHash` called once with the sha256(rawToken). | All 7 cases written in the RED step (not added incrementally) — collectively triangulate the matrix (known vs unknown email; consumed vs expired vs unknown token; idempotent two-token issue). Generic `AuthError` copy asserts no enumeration leak across the three consumeReset failure modes. | None required — the service is straight-line code with three single-line branches (userRepo lookup; sha256 raw token; tokenRepo lookup; three throwing branches; bcrypt hash + updatePassword + markConsumed + dispatch).           |
+| brief T3.5b (PrismaPasswordResetTokenRepository) | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset-token.repository.test.ts` → 6/6 FAIL with `Cannot find module '../infrastructure/repositories/prisma-password-reset-token.repository.js'` (the module does not exist yet).                                   | Same command → 6/6 PASS:<br>• create with valid user → `prisma.passwordResetToken.create` called with `{ data: { tokenHash, expiresAt, user: { connect: { id: userId } } } }`; returns full `PasswordResetTokenRecord` projection.<br>• create with ghost user → propagates Prisma P2003 (FK violation) as a thrown error.<br>• findByHash hit → returns the row whose `tokenHash` matches the unique index; matches `where: { tokenHash }`.<br>• findByHash miss → returns `null` (no enumeration side-channel).<br>• markConsumed hit → `prisma.passwordResetToken.update` called with `where: { tokenHash }` and `data: { consumedAt }`.<br>• markConsumed miss → swallows Prisma P2025 as a no-op (returns undefined).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | The 6 cases cover the happy path (create + findByHash + markConsumed), the FK violation, the miss path (findByHash + markConsumed), and the P2025 idempotent markConsumed. Together they triangulate the seam without forcing a live DB.                                                          | None required — the adapter is a thin layer over Prisma; the private `projectPasswordResetTokenRecord` keeps the projection close to the data layer.                                                                                |
+| brief T3.5c (events extension)                   | N/A — Pattern A delivers the dispatch path through `PasswordResetService` directly; no new production code in this brief. The 4 new tests in `events.test.ts` verify existing behavior (the service dispatches via its constructor-injected dispatcher; `wireAuthEvents` is unchanged). | `pnpm --filter @features/auth exec vitest run src/__tests__/events.test.ts` → 8/8 PASS (4 original + 4 new):<br>• requestReset known → 1 dispatch `auth.password-reset.requested`; payload token sha256 matches the persisted `tokenHash`.<br>• requestReset unknown → 0 dispatches.<br>• consumeReset valid → 2 dispatches; events[0]=`requested`, events[1]=`completed` with `{ userId, resetAt }`.<br>• consumeReset invalid → 1 dispatch (only the prior `requested`); no `completed`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | The 4 cases cover both events end-to-end (request dispatch + complete dispatch), the unknown-email silent path, and the negative path (no `completed` event on invalid token).                                                                                                                    | None — the events.test.ts extension is pure test code; refactor opportunities (extract a `dispatchAuthEvent(name, payload)` helper from `events.ts`) are deferred to slice 3 batch 5+ alongside the wireAuthEvents wrapper cleanup. |
+| brief-fix-events-comments                        | N/A — docs-only commit (no production code, no tests).                                                                                                                                                                                                                                  | `pnpm --filter @features/auth exec vitest run` → 45/45 PASS (no regression). `pnpm --filter @features/auth exec eslint . --max-warnings 0` → exit 0. `pnpm --filter @features/auth exec tsc --noEmit` → exit 0.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | (N/A — docs change.)                                                                                                                                                                                                                                                                              | (N/A.)                                                                                                                                                                                                                              |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new external deps — bcrypt + zod were already in @features/auth. 12 workspace projects still resolve. |
-| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **49/49 tests pass** (5 login + 5 register + 7 session + 11 rbac + 8 events [4 batch 3 + 4 batch 4 extension] + 7 password-reset [new] + 6 password-reset repo [new] — 32 prior + 7 brief-T3.4 + 6 brief-T3.5b + 4 brief-T3.5c = 49; the events.test.ts +4 lands alongside). |
-| Test (auth via turbo) | `pnpm turbo run test --filter=@features/auth` | exit 0 | 1/1 package successful. |
-| Test (regression) | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*` | exit 0 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed. |
-| Test (full) | `pnpm turbo run test` | exit 1 (apps/* test debt — slice-1 debt, out of scope) | Same slice-1 debt as the previous batch: `apps/api` and `apps/web` declare `"test": "vitest run"` but vitest is not in their devDependencies. Not in scope; documented at slice 2 batch 1. |
-| Lint (full) | `pnpm turbo run lint` | exit 0 | 10/10 packages clean; @features/auth still passes the file-level `no-schemas-outside-shared` disable on auth-service.ts. |
-| Lint (fixtures) | `pnpm turbo run lint:fixtures` (= `node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs`) | exit 0 | The boundary plugin fixture sanity check still passes. |
-| Typecheck (auth) | `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 | `tsc --noEmit` clean — `PasswordResetService`, `errors.ts` extended code, `UserRepository.updatePassword`, `PrismaPasswordResetTokenRepository` all type-check. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | apps/api + apps/web + all libs still typecheck cleanly. |
+| Gate                    | Command                                                                                         | Result                                                 | Notes                                                                                                                                                                                                                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace install       | `pnpm install`                                                                                  | exit 0                                                 | No new external deps — bcrypt + zod were already in @features/auth. 12 workspace projects still resolve.                                                                                                                                                                     |
+| Test (auth, this batch) | `pnpm --filter @features/auth exec vitest run`                                                  | exit 0                                                 | **49/49 tests pass** (5 login + 5 register + 7 session + 11 rbac + 8 events [4 batch 3 + 4 batch 4 extension] + 7 password-reset [new] + 6 password-reset repo [new] — 32 prior + 7 brief-T3.4 + 6 brief-T3.5b + 4 brief-T3.5c = 49; the events.test.ts +4 lands alongside). |
+| Test (auth via turbo)   | `pnpm turbo run test --filter=@features/auth`                                                   | exit 0                                                 | 1/1 package successful.                                                                                                                                                                                                                                                      |
+| Test (regression)       | `pnpm turbo run test --filter=@core/* --filter=@shared-utils/*`                                 | exit 0                                                 | 6 packages × 3 pipelines = 18/18 tasks still pass; slice-2 surface not regressed.                                                                                                                                                                                            |
+| Test (full)             | `pnpm turbo run test`                                                                           | exit 1 (apps/* test debt — slice-1 debt, out of scope) | Same slice-1 debt as the previous batch: `apps/api` and `apps/web` declare `"test": "vitest run"` but vitest is not in their devDependencies. Not in scope; documented at slice 2 batch 1.                                                                                   |
+| Lint (full)             | `pnpm turbo run lint`                                                                           | exit 0                                                 | 10/10 packages clean; @features/auth still passes the file-level `no-schemas-outside-shared` disable on auth-service.ts.                                                                                                                                                     |
+| Lint (fixtures)         | `pnpm turbo run lint:fixtures` (= `node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs`) | exit 0                                                 | The boundary plugin fixture sanity check still passes.                                                                                                                                                                                                                       |
+| Typecheck (auth)        | `pnpm --filter @features/auth exec tsc --noEmit`                                                | exit 0                                                 | `tsc --noEmit` clean — `PasswordResetService`, `errors.ts` extended code, `UserRepository.updatePassword`, `PrismaPasswordResetTokenRepository` all type-check.                                                                                                              |
+| Typecheck (full)        | `pnpm turbo run typecheck`                                                                      | exit 0                                                 | apps/api + apps/web + all libs still typecheck cleanly.                                                                                                                                                                                                                      |
 
 ### Critical deviations
 
@@ -857,8 +857,29 @@ slice_2:
   tasks_remaining: []
 slice_3:
   status: in-progress (8/N — this batch closes brief T3.4 PasswordResetService + brief T3.5b port+adapter + brief T3.5c events extension)
-  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4 (Session), brief-T3.4 (Rbac), brief-T3.4 (PasswordResetService), brief-T3.5 (events partial), brief-T3.5b (port + adapter), brief-T3.5c (events extension)]
-  tasks_done_tasks_md: [T3.1, brief-T3.3, brief-T3.4 (Session), brief-T3.4 (Rbac), brief-T3.4 (PasswordResetService), brief-T3.5 (events partial), brief-T3.5b, brief-T3.5c]
+  tasks_done_brief:
+    [
+      T3.1,
+      T3.2,
+      brief-T3.3,
+      brief-T3.4 (Session),
+      brief-T3.4 (Rbac),
+      brief-T3.4 (PasswordResetService),
+      brief-T3.5 (events partial),
+      brief-T3.5b (port + adapter),
+      brief-T3.5c (events extension),
+    ]
+  tasks_done_tasks_md:
+    [
+      T3.1,
+      brief-T3.3,
+      brief-T3.4 (Session),
+      brief-T3.4 (Rbac),
+      brief-T3.4 (PasswordResetService),
+      brief-T3.5 (events partial),
+      brief-T3.5b,
+      brief-T3.5c,
+    ]
   tasks_remaining_slice_3:
     - T3.2 (libs/features/auth/shared/schemas)
     - T3.3 (NextAuth v5 config — note: brief T3.3 ≠ tasks.md T3.3)
@@ -868,7 +889,7 @@ slice_3:
     - T3.7 (integration scenarios)
     - T3.8 (REFACTOR pass — drop wireAuthEvents monkey-patch; refactor AuthService/SessionService to use UserRepository port)
     - T3.9 (slice-wide turbo run gate)
-  commits_landed_this_batch: 7  # brief-T3.4 RED, brief-T3.4 GREEN, brief-T3.5b RED, brief-T3.5b GREEN, brief-T3.5c events extension, brief-fix-events-comments, brief-markers-apply-progress
+  commits_landed_this_batch: 7 # brief-T3.4 RED, brief-T3.4 GREEN, brief-T3.5b RED, brief-T3.5b GREEN, brief-T3.5c events extension, brief-fix-events-comments, brief-markers-apply-progress
   insertions_this_batch: ~1500 across 6 new files + 6 modified source files + tasks.md + apply-progress.md
   test_count_this_batch: 17 new tests (7 PasswordResetService + 6 PrismaPasswordResetTokenRepository + 4 events.test.ts [brief T3.5c extension]); 32 → 49 in @features/auth (32 prior + 7 brief-T3.4 + 6 brief-T3.5b + 4 brief-T3.5c = 49; events.test.ts bumped from 4 → 8)
 feature_branch: feat/vertical-slicing-s3-auth-batch4
@@ -911,50 +932,50 @@ The 4R review of PR #8 surfaced 3 CRITICAL (R3 resilience: F1, F2, F3), 3 WARNIN
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief-fix-F1 + F6 RED | `test(auth): RED test for prisma.$transaction atomicity in consumeReset (F1 + F6)` | `0afeae6` | brief-fix-F1 [x] in tasks.md | Anti-cheat mock: `$transaction` callback throws on second call → assert rollback. |
-| brief-fix-F1 + F6 GREEN | `feat(auth): GREEN prisma.$transaction wrap in consumeReset (F1 + F6)` | `7e0b443` | brief-fix-F1 [x] in tasks.md | Path A picked (prisma client from `@core/database` injected via constructor). Constructor signature extended with `prisma: PrismaClient` as the 4th arg. |
-| brief-fix-F2 + F12 RED | `test(auth): RED tests for dispatcher-failure handling in consumeReset (F2 + F12)` | `1fb5a56` | brief-fix-F2 [x] in tasks.md | Test asserts: dispatcher throws → function RESOLVES, audit sink called, password updated. |
-| brief-fix-F2 + F12 GREEN | `feat(auth): GREEN dispatcher-failure handling + audit signal (F2)` | `4462361` | brief-fix-F2 [x] in tasks.md | Choice X (constructor-injected `AuditSink` port). `defaultAuditSink` logs to `console.error` for the reference repo (TODO marker for pino/Sentry). |
-| brief-fix-F3 RED | `test(events): RED tests for redactSensitive at ring buffer (F3)` | `9063adb` | brief-fix-F3 [x] in tasks.md | 3 tests in new `libs/core/events/src/__tests__/redact-sensitive.test.ts`. |
-| brief-fix-F3 GREEN | `feat(events): GREEN redactSensitive at ring buffer (F3)` | `63da3d2` | brief-fix-F3 [x] in tasks.md | `redactSensitive()` applied at `recordInBuffer` only; handlers still get raw event. `redactAtBuffer?: boolean` config option (default `true`) for tests. |
-| brief-fix-F3 tests | `test(auth): assert ring-buffer redaction through auth-slice dispatch (F3 follow-up)` | `00c0845` | brief-fix-F3 [x] in tasks.md | New events.test.ts case asserts: `replay()` returns redacted token; handler argument is raw. |
-| brief-fix-F4 RED | `test(auth): RED tests for deleteExpired on PasswordResetTokenRepository port (F4)` | `7c48d69` | brief-fix-F4 [x] in tasks.md | 3 tests: hit, mix consumed/unconsumed (only unconsumed removed), no-op. |
-| brief-fix-F4 GREEN | `feat(auth): GREEN deleteExpired on PrismaPasswordResetTokenRepository (F4)` | `f26b300` | brief-fix-F4 [x] in tasks.md | `deleteMany({ where: { expiresAt: { lt: before }, consumedAt: null } })`. Cron deferred to T3.6. |
-| brief-fix-F8 RED | `test(auth): RED test for constructor dispatcher null guard (F8)` | `47e9ba9` | brief-fix-F8 [x] in tasks.md | RED shape: `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)`. |
-| brief-fix-F8 GREEN | `feat(auth): GREEN constructor dispatcher null/undefined guard (F8)` | `7c6d2a9` | brief-fix-F8 [x] in tasks.md | 1-line guard before `this.dispatcher = dispatcher`. |
-| brief-refactor-tests | `refactor(auth): consolidate test fakes + drop RED-state aliases + tighten vitest usage (R2 #1, #2, #3, #6, R4 #2, #3, #5)` | `ed378c9` | brief-refactor-tests [x] in tasks.md | Worker prep: created `__tests__/fixtures/password-reset.fakes.ts` (193 lines) with `makeFakeUserRepo`, `makeFakeTokenRepo`, `makePrismaStub`, `sha256`, `seedTokenRow`. Parent finished: imported fixtures in both test files, dropped local structural interfaces, switched to `vi.resetAllMocks`, extracted `runInvalidTokenScenario`, replaced try/catch with `rejects.toBeInstanceOf`. |
-| brief-refactor-constants | `refactor(auth): name magic numbers in services + tests (R2 #4, #5, #7)` | pending this commit | brief-refactor-constants [x] in tasks.md | New `libs/features/auth/server/src/constants.ts` exporting `BCRYPT_COST_FACTOR = 10`. `password-reset.service.ts` exports `MIN_TOKEN_LENGTH` + `TOKEN_TTL_MS`. Both services + tests use the shared constants. |
-| markers + apply-progress | `chore(slice-3-batch-5): tasks.md sub-task markers + apply-progress section` | this commit | T3.8 [x] in tasks.md | T3.8 marker closed; sub-task rows added for all 7 brief sub-tasks; status snapshot below. |
+| Brief Task               | Subject                                                                                                                     | Commit              | Marker                                   | Notes                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| brief-fix-F1 + F6 RED    | `test(auth): RED test for prisma.$transaction atomicity in consumeReset (F1 + F6)`                                          | `0afeae6`           | brief-fix-F1 [x] in tasks.md             | Anti-cheat mock: `$transaction` callback throws on second call → assert rollback.                                                                                                                                                                                                                                                                                                          |
+| brief-fix-F1 + F6 GREEN  | `feat(auth): GREEN prisma.$transaction wrap in consumeReset (F1 + F6)`                                                      | `7e0b443`           | brief-fix-F1 [x] in tasks.md             | Path A picked (prisma client from `@core/database` injected via constructor). Constructor signature extended with `prisma: PrismaClient` as the 4th arg.                                                                                                                                                                                                                                   |
+| brief-fix-F2 + F12 RED   | `test(auth): RED tests for dispatcher-failure handling in consumeReset (F2 + F12)`                                          | `1fb5a56`           | brief-fix-F2 [x] in tasks.md             | Test asserts: dispatcher throws → function RESOLVES, audit sink called, password updated.                                                                                                                                                                                                                                                                                                  |
+| brief-fix-F2 + F12 GREEN | `feat(auth): GREEN dispatcher-failure handling + audit signal (F2)`                                                         | `4462361`           | brief-fix-F2 [x] in tasks.md             | Choice X (constructor-injected `AuditSink` port). `defaultAuditSink` logs to `console.error` for the reference repo (TODO marker for pino/Sentry).                                                                                                                                                                                                                                         |
+| brief-fix-F3 RED         | `test(events): RED tests for redactSensitive at ring buffer (F3)`                                                           | `9063adb`           | brief-fix-F3 [x] in tasks.md             | 3 tests in new `libs/core/events/src/__tests__/redact-sensitive.test.ts`.                                                                                                                                                                                                                                                                                                                  |
+| brief-fix-F3 GREEN       | `feat(events): GREEN redactSensitive at ring buffer (F3)`                                                                   | `63da3d2`           | brief-fix-F3 [x] in tasks.md             | `redactSensitive()` applied at `recordInBuffer` only; handlers still get raw event. `redactAtBuffer?: boolean` config option (default `true`) for tests.                                                                                                                                                                                                                                   |
+| brief-fix-F3 tests       | `test(auth): assert ring-buffer redaction through auth-slice dispatch (F3 follow-up)`                                       | `00c0845`           | brief-fix-F3 [x] in tasks.md             | New events.test.ts case asserts: `replay()` returns redacted token; handler argument is raw.                                                                                                                                                                                                                                                                                               |
+| brief-fix-F4 RED         | `test(auth): RED tests for deleteExpired on PasswordResetTokenRepository port (F4)`                                         | `7c48d69`           | brief-fix-F4 [x] in tasks.md             | 3 tests: hit, mix consumed/unconsumed (only unconsumed removed), no-op.                                                                                                                                                                                                                                                                                                                    |
+| brief-fix-F4 GREEN       | `feat(auth): GREEN deleteExpired on PrismaPasswordResetTokenRepository (F4)`                                                | `f26b300`           | brief-fix-F4 [x] in tasks.md             | `deleteMany({ where: { expiresAt: { lt: before }, consumedAt: null } })`. Cron deferred to T3.6.                                                                                                                                                                                                                                                                                           |
+| brief-fix-F8 RED         | `test(auth): RED test for constructor dispatcher null guard (F8)`                                                           | `47e9ba9`           | brief-fix-F8 [x] in tasks.md             | RED shape: `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)`.                                                                                                                                                                                                                                                                                                    |
+| brief-fix-F8 GREEN       | `feat(auth): GREEN constructor dispatcher null/undefined guard (F8)`                                                        | `7c6d2a9`           | brief-fix-F8 [x] in tasks.md             | 1-line guard before `this.dispatcher = dispatcher`.                                                                                                                                                                                                                                                                                                                                        |
+| brief-refactor-tests     | `refactor(auth): consolidate test fakes + drop RED-state aliases + tighten vitest usage (R2 #1, #2, #3, #6, R4 #2, #3, #5)` | `ed378c9`           | brief-refactor-tests [x] in tasks.md     | Worker prep: created `__tests__/fixtures/password-reset.fakes.ts` (193 lines) with `makeFakeUserRepo`, `makeFakeTokenRepo`, `makePrismaStub`, `sha256`, `seedTokenRow`. Parent finished: imported fixtures in both test files, dropped local structural interfaces, switched to `vi.resetAllMocks`, extracted `runInvalidTokenScenario`, replaced try/catch with `rejects.toBeInstanceOf`. |
+| brief-refactor-constants | `refactor(auth): name magic numbers in services + tests (R2 #4, #5, #7)`                                                    | pending this commit | brief-refactor-constants [x] in tasks.md | New `libs/features/auth/server/src/constants.ts` exporting `BCRYPT_COST_FACTOR = 10`. `password-reset.service.ts` exports `MIN_TOKEN_LENGTH` + `TOKEN_TTL_MS`. Both services + tests use the shared constants.                                                                                                                                                                             |
+| markers + apply-progress | `chore(slice-3-batch-5): tasks.md sub-task markers + apply-progress section`                                                | this commit         | T3.8 [x] in tasks.md                     | T3.8 marker closed; sub-task rows added for all 7 brief sub-tasks; status snapshot below.                                                                                                                                                                                                                                                                                                  |
 
 ### 4R fixes mapping (status at end of batch 5)
 
-| 4R Finding | Severity | Status | Brief |
-|------------|----------|--------|-------|
-| **F1** | CRITICAL | ✅ Fixed | brief-fix-F1 (`prisma.$transaction` atomicity + covers F6) |
-| **F2** | CRITICAL | ✅ Fixed | brief-fix-F2 (dispatcher-failure handling + audit signal) |
-| **F3** | CRITICAL | ✅ Fixed | brief-fix-F3 (`redactSensitive` at ring buffer; handlers still see raw) |
-| F4 | WARNING | ✅ Fixed (port only; cron deferred to T3.6) | brief-fix-F4 |
-| F5 | WARNING | ✅ Covered by F1 (transaction eliminates orphan-row window) | (no separate commit) |
-| F6 | WARNING | ✅ Covered by F1 (transaction isolation; eliminates concurrent double-update) | (no separate commit) |
-| F7 | SUGGESTION | ⏭ Documented (design choice per `requestReset` behavior; prior tokens not invalidated) | (no fix; design §4.1) |
-| F8 | WARNING | ✅ Fixed | brief-fix-F8 (constructor guard) |
-| F9 | SUGGESTION | ⏭ Documented (P2002 collision probability ~2^-256; design accepts leak) | (no fix) |
-| F10 | SUGGESTION | ⏭ Documented (no retry on transient Prisma errors; out of scope) | (no fix) |
-| F11 | SUGGESTION | ⏭ Documented (in-memory ring buffer restart loss is design choice per `@core/events/dispatcher.ts` header) | (no fix; design §4.5) |
-| F12 | WARNING | ✅ Covered by F2's tests | (in F2 RED+GREEN) |
-| R2 #1 / R4 #4 | WARNING/SUGGESTION | ✅ Fixed | brief-refactor-tests (fixtures migration + indentation drift cleanup) |
-| R2 #2 | WARNING | ✅ Fixed | brief-refactor-tests (drop local `interface PasswordResetTokenRecord` / `FakePasswordResetTokenRepository`; use GREEN-state port types) |
-| R2 #3 | WARNING | ✅ Fixed | brief-refactor-tests (extract `runInvalidTokenScenario()` helper) |
-| R2 #4 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`BCRYPT_COST_FACTOR` constant) |
-| R2 #5 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`TEST_TOKEN_TTL_MS` named) |
-| R2 #6 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`password-reset.fakes.ts` extracted) |
-| R2 #7 | SUGGESTION | ✅ Fixed | brief-refactor-constants (`MIN_TOKEN_LENGTH` exported) |
-| R4 #1 | SUGGESTION | ✅ Already fixed at `9a0192c` (PR #8) | (prior batch) |
-| R4 #2 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`vi.resetAllMocks`) |
-| R4 #3 | SUGGESTION | ✅ Fixed | brief-refactor-tests (drop unused `vi.mock("@core/database", ...)`) |
-| R4 #5 | SUGGESTION | ✅ Fixed | brief-refactor-tests (`rejects.toBeInstanceOf`) |
+| 4R Finding    | Severity           | Status                                                                                                     | Brief                                                                                                                                   |
+| ------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **F1**        | CRITICAL           | ✅ Fixed                                                                                                   | brief-fix-F1 (`prisma.$transaction` atomicity + covers F6)                                                                              |
+| **F2**        | CRITICAL           | ✅ Fixed                                                                                                   | brief-fix-F2 (dispatcher-failure handling + audit signal)                                                                               |
+| **F3**        | CRITICAL           | ✅ Fixed                                                                                                   | brief-fix-F3 (`redactSensitive` at ring buffer; handlers still see raw)                                                                 |
+| F4            | WARNING            | ✅ Fixed (port only; cron deferred to T3.6)                                                                | brief-fix-F4                                                                                                                            |
+| F5            | WARNING            | ✅ Covered by F1 (transaction eliminates orphan-row window)                                                | (no separate commit)                                                                                                                    |
+| F6            | WARNING            | ✅ Covered by F1 (transaction isolation; eliminates concurrent double-update)                              | (no separate commit)                                                                                                                    |
+| F7            | SUGGESTION         | ⏭ Documented (design choice per `requestReset` behavior; prior tokens not invalidated)                     | (no fix; design §4.1)                                                                                                                   |
+| F8            | WARNING            | ✅ Fixed                                                                                                   | brief-fix-F8 (constructor guard)                                                                                                        |
+| F9            | SUGGESTION         | ⏭ Documented (P2002 collision probability ~2^-256; design accepts leak)                                    | (no fix)                                                                                                                                |
+| F10           | SUGGESTION         | ⏭ Documented (no retry on transient Prisma errors; out of scope)                                           | (no fix)                                                                                                                                |
+| F11           | SUGGESTION         | ⏭ Documented (in-memory ring buffer restart loss is design choice per `@core/events/dispatcher.ts` header) | (no fix; design §4.5)                                                                                                                   |
+| F12           | WARNING            | ✅ Covered by F2's tests                                                                                   | (in F2 RED+GREEN)                                                                                                                       |
+| R2 #1 / R4 #4 | WARNING/SUGGESTION | ✅ Fixed                                                                                                   | brief-refactor-tests (fixtures migration + indentation drift cleanup)                                                                   |
+| R2 #2         | WARNING            | ✅ Fixed                                                                                                   | brief-refactor-tests (drop local `interface PasswordResetTokenRecord` / `FakePasswordResetTokenRepository`; use GREEN-state port types) |
+| R2 #3         | WARNING            | ✅ Fixed                                                                                                   | brief-refactor-tests (extract `runInvalidTokenScenario()` helper)                                                                       |
+| R2 #4         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-constants (`BCRYPT_COST_FACTOR` constant)                                                                                |
+| R2 #5         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-constants (`TEST_TOKEN_TTL_MS` named)                                                                                    |
+| R2 #6         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-tests (`password-reset.fakes.ts` extracted)                                                                              |
+| R2 #7         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-constants (`MIN_TOKEN_LENGTH` exported)                                                                                  |
+| R4 #1         | SUGGESTION         | ✅ Already fixed at `9a0192c` (PR #8)                                                                      | (prior batch)                                                                                                                           |
+| R4 #2         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-tests (`vi.resetAllMocks`)                                                                                               |
+| R4 #3         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-tests (drop unused `vi.mock("@core/database", ...)`)                                                                     |
+| R4 #5         | SUGGESTION         | ✅ Fixed                                                                                                   | brief-refactor-tests (`rejects.toBeInstanceOf`)                                                                                         |
 
 **23 / 23 findings addressed** (3 CRITICAL fixed, 6 WARNING fixed, 8 SUGGESTION fixed, 4 SUGGESTION documented as design choice; 1 SUGGESTION was fixed in the prior batch and is included here for tracking). T3.8 umbrella closed in this batch.
 
@@ -979,28 +1000,28 @@ openspec/changes/.../apply-progress.md                        | this section app
 
 ### TDD evidence (per behavior sub-task)
 
-| Task | RED | GREEN | TRIANGULATE | REFACTOR |
-|------|-----|-------|-------------|----------|
-| brief-fix-F1 (transaction) | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset.service.test.ts` → 1/1 NEW fail; existing 7 still pass. | Same command → 8/8 PASS. New test asserts: mocked `$transaction` callback throws on second call; `txUserUpdate` was called; the service propagates the error and the row state is rolled back (no partial commit). | The 1 new test case exhausts the meaningful TOCTOU shape — second-call throw inside `$transaction`. | None required — `prisma.$transaction` is a 4-line semantic wrap. |
-| brief-fix-F2 (dispatcher-fail) | `pnpm ... vitest run ... password-reset.service.test.ts` → NEW dispatcher-throws test fails (function rejects). | Same command → PASS. Dispatcher throws → `consumeReset` resolves; `auditSink` was called once with the structured `AUTH_EVENT_DISPATCH_FAILURE` signal. | The single dispatcher-throws scenario is the boundary; audit assertions are exhaustive. | None required. |
-| brief-fix-F3 (redact at buffer) | `pnpm --filter @core/events exec vitest run src/__tests__/redact-sensitive.test.ts` → 3/3 FAIL with `Cannot find module '../../dispatcher.js#redactSensitive'` (the helper doesn't exist yet). | Same command → 3/3 PASS: raw event → redacted payload, ring buffer copy is redacted, handler arg is raw. | 3 cases cover the three boundaries (helper direct, ring buffer integration, handler passthrough). | None. |
-| brief-fix-F4 (deleteExpired) | 3 fail with "method does not exist on port" (TS error in the run + vi.fn returning undefined at runtime). | 3/3 PASS: hit (decrements count), unconsumed-only filter, no-op. | 3 cases exhaust the meaningful paths. | None. |
-| brief-fix-F8 (guard) | Test passes RED → GREEN here is "we expect throw and got none" → write the test, see it pass (current code returns successfully because constructor doesn't throw), commit the test, then commit GREEN adding the guard. | `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)` PASSES; same for `undefined`. | The constructor guard is a one-line check; the test is exhaustive (covers null + undefined paths per spec). | None. |
+| Task                            | RED                                                                                                                                                                                                                      | GREEN                                                                                                                                                                                                              | TRIANGULATE                                                                                                 | REFACTOR                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| brief-fix-F1 (transaction)      | `pnpm --filter @features/auth exec vitest run src/__tests__/password-reset.service.test.ts` → 1/1 NEW fail; existing 7 still pass.                                                                                       | Same command → 8/8 PASS. New test asserts: mocked `$transaction` callback throws on second call; `txUserUpdate` was called; the service propagates the error and the row state is rolled back (no partial commit). | The 1 new test case exhausts the meaningful TOCTOU shape — second-call throw inside `$transaction`.         | None required — `prisma.$transaction` is a 4-line semantic wrap. |
+| brief-fix-F2 (dispatcher-fail)  | `pnpm ... vitest run ... password-reset.service.test.ts` → NEW dispatcher-throws test fails (function rejects).                                                                                                          | Same command → PASS. Dispatcher throws → `consumeReset` resolves; `auditSink` was called once with the structured `AUTH_EVENT_DISPATCH_FAILURE` signal.                                                            | The single dispatcher-throws scenario is the boundary; audit assertions are exhaustive.                     | None required.                                                   |
+| brief-fix-F3 (redact at buffer) | `pnpm --filter @core/events exec vitest run src/__tests__/redact-sensitive.test.ts` → 3/3 FAIL with `Cannot find module '../../dispatcher.js#redactSensitive'` (the helper doesn't exist yet).                           | Same command → 3/3 PASS: raw event → redacted payload, ring buffer copy is redacted, handler arg is raw.                                                                                                           | 3 cases cover the three boundaries (helper direct, ring buffer integration, handler passthrough).           | None.                                                            |
+| brief-fix-F4 (deleteExpired)    | 3 fail with "method does not exist on port" (TS error in the run + vi.fn returning undefined at runtime).                                                                                                                | 3/3 PASS: hit (decrements count), unconsumed-only filter, no-op.                                                                                                                                                   | 3 cases exhaust the meaningful paths.                                                                       | None.                                                            |
+| brief-fix-F8 (guard)            | Test passes RED → GREEN here is "we expect throw and got none" → write the test, see it pass (current code returns successfully because constructor doesn't throw), commit the test, then commit GREEN adding the guard. | `expect(() => new PasswordResetService(..., null, ...)).toThrow(TypeError)` PASSES; same for `undefined`.                                                                                                          | The constructor guard is a one-line check; the test is exhaustive (covers null + undefined paths per spec). | None.                                                            |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new external deps; bcryptjs + zod still in `@features/auth`. |
-| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | exit 0 | **57/57 tests pass** (49 prior + 1 F1 + 1 F2 + 1 F8 - the dispatcher-failure + 1 F3 follow-up test; events.test.ts bumped 8 → 9). |
-| Tests (events core) | `pnpm --filter @core/events exec vitest run` | exit 0 | **37/37 tests pass** (31 prior + 3 redact-sensitive + 3 from prior batch F3 retry = 37). |
-| Tests (turbo, auth + core + shared-utils) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/*` | exit 0 | 21/21 tasks pass across the workspace packages. |
-| Lint (full) | `pnpm turbo run lint` | exit 0 | `no-prisma-outside-core` does NOT fire because `PrismaClient` is imported from `@core/database` (not constructed via `new` in feature code). |
-| Lint (fixtures) | `node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs` | exit 0 | Boundary plugin fixtures still pass; the new `password-reset.fakes.ts` lives under `src/__tests__/fixtures/` which is in the test-side allow-list per the boundary plugin's existing configuration. |
-| Typecheck (auth) | `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 | `PasswordResetService`, `prisma.$transaction`, `redactSensitive`, `AuditSink`, `BCRYPT_COST_FACTOR` all type-check cleanly. |
-| Typecheck (events) | `pnpm --filter @core/events exec tsc --noEmit` | exit 0 | `redactSensitive` + `redactAtBuffer` config option type-check. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | apps + all libs type-check cleanly. |
-| Section 13 CJK check | `grep -P '[\x{4e00}-\x{9fff}]' Documents-es/openspec/changes/.../apply-progress.md` | exit 1 (no match; expected) | No new Spanish docs this batch. |
+| Gate                                      | Command                                                                                 | Result                      | Notes                                                                                                                                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace install                         | `pnpm install`                                                                          | exit 0                      | No new external deps; bcryptjs + zod still in `@features/auth`.                                                                                                                                     |
+| Tests (auth)                              | `pnpm --filter @features/auth exec vitest run`                                          | exit 0                      | **57/57 tests pass** (49 prior + 1 F1 + 1 F2 + 1 F8 - the dispatcher-failure + 1 F3 follow-up test; events.test.ts bumped 8 → 9).                                                                   |
+| Tests (events core)                       | `pnpm --filter @core/events exec vitest run`                                            | exit 0                      | **37/37 tests pass** (31 prior + 3 redact-sensitive + 3 from prior batch F3 retry = 37).                                                                                                            |
+| Tests (turbo, auth + core + shared-utils) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/*` | exit 0                      | 21/21 tasks pass across the workspace packages.                                                                                                                                                     |
+| Lint (full)                               | `pnpm turbo run lint`                                                                   | exit 0                      | `no-prisma-outside-core` does NOT fire because `PrismaClient` is imported from `@core/database` (not constructed via `new` in feature code).                                                        |
+| Lint (fixtures)                           | `node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs`                            | exit 0                      | Boundary plugin fixtures still pass; the new `password-reset.fakes.ts` lives under `src/__tests__/fixtures/` which is in the test-side allow-list per the boundary plugin's existing configuration. |
+| Typecheck (auth)                          | `pnpm --filter @features/auth exec tsc --noEmit`                                        | exit 0                      | `PasswordResetService`, `prisma.$transaction`, `redactSensitive`, `AuditSink`, `BCRYPT_COST_FACTOR` all type-check cleanly.                                                                         |
+| Typecheck (events)                        | `pnpm --filter @core/events exec tsc --noEmit`                                          | exit 0                      | `redactSensitive` + `redactAtBuffer` config option type-check.                                                                                                                                      |
+| Typecheck (full)                          | `pnpm turbo run typecheck`                                                              | exit 0                      | apps + all libs type-check cleanly.                                                                                                                                                                 |
+| Section 13 CJK check                      | `grep -P '[\x{4e00}-\x{9fff}]' Documents-es/openspec/changes/.../apply-progress.md`     | exit 1 (no match; expected) | No new Spanish docs this batch.                                                                                                                                                                     |
 
 ### Critical deviations
 
@@ -1094,42 +1115,42 @@ next_recommended: slice-3-batch-6-T3.6 (apps/api NestJS thin wrapper + @nestjs/s
 
 ### Sub-tasks status
 
-| Sub-task | Status | Notes |
-|---|---|---|
-| brief-T3.2-partial-auth (5 Zod schemas) | ✅ | Worker landed RED + GREEN at commits `efac228` + `9fc13ce`. Schemas live at `libs/features/auth/shared/schemas/`. Re-exported from the main `@features/auth` barrel in this batch. |
-| brief-T3.6b-prisma-session-repo | ✅ | Worker landed RED + GREEN at `db998d1` + `a458f56`. `SessionRepository` port + `PrismaSessionRepository` adapter. |
-| brief-refactor-authservice-port | ✅ | Worker landed `5242df2`. AuthService uses `UserRepository.findByEmail` (via the port) for `verifyPassword` + `register` + `getCurrentUser`. Direct `prisma.user.*` reads removed. |
-| brief-refactor-sessionservice-port | ✅ | Mixed into commit `cdb1d3c` (requestReset fix). SessionService uses `SessionRepository` + `UserRepository` ports. `revokeAllSessions` keeps direct `prisma.session.deleteMany` (port lacks bulk-delete). |
-| brief-drop-wireauth-events | ✅ | Worker landed `07d4aba` + `f48cf02`. `SessionService.revokeSession(token, userId?)` dispatches `auth.session.revoked` directly. `RbacService.can(actor, action, resource)` dispatches `auth.rbac.denied` on `false`. `wireAuthEvents` function removed from `events.ts`. New test file `pattern-a-dispatch.test.ts` (191 lines, 7 tests) covers both services. |
-| brief-requestReset-orphan-fix | ✅ | Worker landed `cdb1d3c`. `requestReset` wraps dispatch in try/catch + auditSink. Bounded-DOS via F4 cron. |
-| brief-F4-cron-registration | ✅ | Parent landed `cc6c672` (combined with T3.6 NestJS wrapper). `AuthCronService` runs every 15 min via `@nestjs/schedule` cron (`"*/15 * * * *"` raw expression; v6.x of `@nestjs/schedule` does not export `EVERY_15_MINUTES`). Calls `passwordResetTokenRepo.deleteExpired(new Date())`. |
-| brief-T3.6-nestjs-wrapper | ⚠️ PARTIAL | Worker landed RED at `61324b7` + scaffold at `d5b834e` (ZodValidationPipe + vitest config + e2e tests). Parent landed `cc6c672` (controller + module + JWT guard + F4 cron). **The `@BodySchema(loginSchema)` decorator calls on the controller methods are being stripped by the auto-formatter's `useImportType` rule** (the rule converts runtime-value imports to type-only when the symbol is only appears as parameter type). 2/13 e2e tests pass; 11/13 fail because the validation isn't running. The fix is a defensive pattern that defeats the heuristic. Tracked as a follow-up in PR description. |
-| brief-markers-apply-progress | ⏳ | This commit. |
+| Sub-task                                | Status     | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief-T3.2-partial-auth (5 Zod schemas) | ✅         | Worker landed RED + GREEN at commits `efac228` + `9fc13ce`. Schemas live at `libs/features/auth/shared/schemas/`. Re-exported from the main `@features/auth` barrel in this batch.                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| brief-T3.6b-prisma-session-repo         | ✅         | Worker landed RED + GREEN at `db998d1` + `a458f56`. `SessionRepository` port + `PrismaSessionRepository` adapter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| brief-refactor-authservice-port         | ✅         | Worker landed `5242df2`. AuthService uses `UserRepository.findByEmail` (via the port) for `verifyPassword` + `register` + `getCurrentUser`. Direct `prisma.user.*` reads removed.                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| brief-refactor-sessionservice-port      | ✅         | Mixed into commit `cdb1d3c` (requestReset fix). SessionService uses `SessionRepository` + `UserRepository` ports. `revokeAllSessions` keeps direct `prisma.session.deleteMany` (port lacks bulk-delete).                                                                                                                                                                                                                                                                                                                                                                                                       |
+| brief-drop-wireauth-events              | ✅         | Worker landed `07d4aba` + `f48cf02`. `SessionService.revokeSession(token, userId?)` dispatches `auth.session.revoked` directly. `RbacService.can(actor, action, resource)` dispatches `auth.rbac.denied` on `false`. `wireAuthEvents` function removed from `events.ts`. New test file `pattern-a-dispatch.test.ts` (191 lines, 7 tests) covers both services.                                                                                                                                                                                                                                                 |
+| brief-requestReset-orphan-fix           | ✅         | Worker landed `cdb1d3c`. `requestReset` wraps dispatch in try/catch + auditSink. Bounded-DOS via F4 cron.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| brief-F4-cron-registration              | ✅         | Parent landed `cc6c672` (combined with T3.6 NestJS wrapper). `AuthCronService` runs every 15 min via `@nestjs/schedule` cron (`"*/15 * * * *"` raw expression; v6.x of `@nestjs/schedule` does not export `EVERY_15_MINUTES`). Calls `passwordResetTokenRepo.deleteExpired(new Date())`.                                                                                                                                                                                                                                                                                                                       |
+| brief-T3.6-nestjs-wrapper               | ⚠️ PARTIAL | Worker landed RED at `61324b7` + scaffold at `d5b834e` (ZodValidationPipe + vitest config + e2e tests). Parent landed `cc6c672` (controller + module + JWT guard + F4 cron). **The `@BodySchema(loginSchema)` decorator calls on the controller methods are being stripped by the auto-formatter's `useImportType` rule** (the rule converts runtime-value imports to type-only when the symbol is only appears as parameter type). 2/13 e2e tests pass; 11/13 fail because the validation isn't running. The fix is a defensive pattern that defeats the heuristic. Tracked as a follow-up in PR description. |
+| brief-markers-apply-progress            | ⏳         | This commit.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### TDD evidence (per sub-task)
 
-| Sub-task | RED | GREEN | Notes |
-|---|---|---|---|
-| T3.2 Zod schemas | `vitest run src/shared/schemas/__tests__/*.test.ts` → ~30 FAIL with "Cannot find module '../schemas/foo.js'" | 5 schemas, 32 schema tests pass | Per-schema RED + GREEN commits. |
-| T3.6b PrismaSessionRepository | 4 tests FAIL (port missing) | 4 tests PASS (port + adapter) | Same vi.mock('@core/database') pattern as prior adapters. |
-| AuthService REFACTOR | Existing 10 tests still pass (no behavior change) | 10 tests pass | Pure REFACTOR; `userRepo.findByEmail` used in place of `prisma.user.findUnique`. |
-| drop wireAuthEvents | 7 new tests in `pattern-a-dispatch.test.ts` FAIL | 7 PASS | New tests exercise SessionService + RbacService Pattern A directly. |
-| requestReset orphan fix | 1 new test in `password-reset.service.test.ts` FAIL | 1 PASS (test: `R3 follow-up — swallows dispatcher rejection + emits AuditSink signal; row persists (orphan bounded by F4 cron)`) | 97/97 @features/auth. |
-| F4 cron + T3.6 module | e2e tests FAIL (module missing) | 2/13 e2e tests pass (4 "rejects 400" + 1 "happy path 200") | Module wired; controller routes exist. BodySchema issue blocks the rest. |
+| Sub-task                      | RED                                                                                                          | GREEN                                                                                                                            | Notes                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| T3.2 Zod schemas              | `vitest run src/shared/schemas/__tests__/*.test.ts` → ~30 FAIL with "Cannot find module '../schemas/foo.js'" | 5 schemas, 32 schema tests pass                                                                                                  | Per-schema RED + GREEN commits.                                                  |
+| T3.6b PrismaSessionRepository | 4 tests FAIL (port missing)                                                                                  | 4 tests PASS (port + adapter)                                                                                                    | Same vi.mock('@core/database') pattern as prior adapters.                        |
+| AuthService REFACTOR          | Existing 10 tests still pass (no behavior change)                                                            | 10 tests pass                                                                                                                    | Pure REFACTOR; `userRepo.findByEmail` used in place of `prisma.user.findUnique`. |
+| drop wireAuthEvents           | 7 new tests in `pattern-a-dispatch.test.ts` FAIL                                                             | 7 PASS                                                                                                                           | New tests exercise SessionService + RbacService Pattern A directly.              |
+| requestReset orphan fix       | 1 new test in `password-reset.service.test.ts` FAIL                                                          | 1 PASS (test: `R3 follow-up — swallows dispatcher rejection + emits AuditSink signal; row persists (orphan bounded by F4 cron)`) | 97/97 @features/auth.                                                            |
+| F4 cron + T3.6 module         | e2e tests FAIL (module missing)                                                                              | 2/13 e2e tests pass (4 "rejects 400" + 1 "happy path 200")                                                                       | Module wired; controller routes exist. BodySchema issue blocks the rest.         |
 
 ### Quality gates
 
-| Gate | Result |
-|---|---|
-| `pnpm --filter @features/auth exec vitest run` | ✅ 101/101 PASS |
-| `pnpm --filter @core/events exec vitest run` | ✅ 37/37 PASS |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/*` | ✅ 21/21 PASS |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
-| `pnpm turbo run typecheck` (full) | ✅ exit 0 |
-| `apps/api` typecheck | ✅ clean |
-| `apps/api` lint | ✅ clean |
-| `apps/api` e2e | ⚠️ 2/13 PASS; 11/13 fail (BodySchema decorator stripping — follow-up) |
-| `pnpm run lint:fixtures` | ✅ boundary plugin fixtures pass |
+| Gate                                                                                    | Result                                                                |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `pnpm --filter @features/auth exec vitest run`                                          | ✅ 101/101 PASS                                                       |
+| `pnpm --filter @core/events exec vitest run`                                            | ✅ 37/37 PASS                                                         |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/*` | ✅ 21/21 PASS                                                         |
+| `pnpm turbo run lint` (full)                                                            | ✅ exit 0                                                             |
+| `pnpm turbo run typecheck` (full)                                                       | ✅ exit 0                                                             |
+| `apps/api` typecheck                                                                    | ✅ clean                                                              |
+| `apps/api` lint                                                                         | ✅ clean                                                              |
+| `apps/api` e2e                                                                          | ⚠️ 2/13 PASS; 11/13 fail (BodySchema decorator stripping — follow-up) |
+| `pnpm run lint:fixtures`                                                                | ✅ boundary plugin fixtures pass                                      |
 
 ### Files created / modified (12 commits, ~13 files)
 
@@ -1188,13 +1209,39 @@ slice_2:
   tasks_done: [T2.1..T2.5]
 slice_3:
   status: in-progress (10+1/N — this batch closes T3.2 partial + T3.6b + T3.6 partial + REFACTOR + F4 cron + orphan fix)
-  tasks_done_brief: [T3.1, T3.2, brief-T3.3, brief-T3.4 (Session), brief-T3.4 (Rbac), brief-T3.4 (PasswordResetService), brief-T3.5 (events partial), brief-T3.5b, brief-T3.5c, brief-fix-F1, brief-fix-F2, brief-fix-F3, brief-fix-F4, brief-fix-F8, brief-refactor-tests, brief-refactor-constants, brief-T3.2-partial-auth, brief-T3.6b-prisma-session-repo, brief-refactor-authservice-port, brief-refactor-sessionservice-port, brief-drop-wireauth-events, brief-requestReset-orphan-fix, brief-F4-cron-registration, brief-T3.6-nestjs-wrapper-partial]
+  tasks_done_brief:
+    [
+      T3.1,
+      T3.2,
+      brief-T3.3,
+      brief-T3.4 (Session),
+      brief-T3.4 (Rbac),
+      brief-T3.4 (PasswordResetService),
+      brief-T3.5 (events partial),
+      brief-T3.5b,
+      brief-T3.5c,
+      brief-fix-F1,
+      brief-fix-F2,
+      brief-fix-F3,
+      brief-fix-F4,
+      brief-fix-F8,
+      brief-refactor-tests,
+      brief-refactor-constants,
+      brief-T3.2-partial-auth,
+      brief-T3.6b-prisma-session-repo,
+      brief-refactor-authservice-port,
+      brief-refactor-sessionservice-port,
+      brief-drop-wireauth-events,
+      brief-requestReset-orphan-fix,
+      brief-F4-cron-registration,
+      brief-T3.6-nestjs-wrapper-partial,
+    ]
   tasks_remaining_slice_3:
     - T3.6 (e2e bodySchema follow-up; @BodySchema decorator restoration)
     - T3.6 (JwtAuthGuard swap for NextAuth v5 — T3.3)
     - T3.7 (integration scenarios)
     - T3.9 (slice-wide turbo run gate)
-  commits_landed_this_batch: 12  # worker: 11; parent: 1
+  commits_landed_this_batch: 12 # worker: 11; parent: 1
   insertions_this_batch: ~1500 across ~13 new files + ~7 modified source/test files
   test_count_this_batch: 17 new schema tests + 4 PrismaSessionRepository tests + 7 pattern-a-dispatch tests + 1 requestReset-orphan test = 29 new tests; 32 → 49 in @features/auth (was already 49 from batch 4; 97 → 101 with the new pattern-a-dispatch + PrismaSessionRepository + schema tests, plus more from sessions and prisma-session tests landed; total now 101/101 in @features/auth; 37/37 in @core/events; 2/13 in apps/api e2e)
 feature_branch: feat/vertical-slicing-s3-batch6
@@ -1233,13 +1280,13 @@ next_recommended: slice-3-batch-6b (T3.6 controller BodySchema follow-up + JwtAu
 
 ### Sub-tasks completed (5)
 
-| Sub-task | Subject | Status |
-|----------|---------|--------|
-| brief-T3.3-nextauth-v5-config | NextAuth v5 config + handlers + route placeholder | DONE |
-| brief-T3.3-jwt-guard-rewrite | Stub guard → real NextAuth decoder | DONE |
-| brief-T3.3-tests | RED + GREEN e2e for the real guard | DONE |
-| brief-T3.3-deps | next-auth@5.0.0-beta.25 + @auth/prisma-adapter@2.7.4 installed | DONE |
-| brief-T3.3-env | Google OAuth optional in env.schema + .env.example created | DONE |
+| Sub-task                      | Subject                                                        | Status |
+| ----------------------------- | -------------------------------------------------------------- | ------ |
+| brief-T3.3-nextauth-v5-config | NextAuth v5 config + handlers + route placeholder              | DONE   |
+| brief-T3.3-jwt-guard-rewrite  | Stub guard → real NextAuth decoder                             | DONE   |
+| brief-T3.3-tests              | RED + GREEN e2e for the real guard                             | DONE   |
+| brief-T3.3-deps               | next-auth@5.0.0-beta.25 + @auth/prisma-adapter@2.7.4 installed | DONE   |
+| brief-T3.3-env                | Google OAuth optional in env.schema + .env.example created     | DONE   |
 
 ### Files created / modified (13 files, ~1040 insertions / ~70 deletions)
 
@@ -1267,25 +1314,25 @@ next_recommended: slice-3-batch-6b (T3.6 controller BodySchema follow-up + JwtAu
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-T3.3-tests (jwt-auth-guard.e2e-spec) | Test imported `next-auth/jwt#encode`; the stub guard parsed `<userId>:<token>` and rejected the real JWT. The 4 tests failed for the right reason: stub guard vs. real JWT. | Real guard reads the bearer token, decodes via `next-auth/jwt#decode` with the shared secret + salt, projects onto CurrentUser. The 4 tests pass. | 4 new |
-| brief-T3.3-env (env.test.ts) | The 3 new tests expected the optional-OAuth contract (env without Google parses; env with Google parses; empty Google ID fails). The original schema required both, so the new tests failed: env-without-Google rejected with "Required"; empty-ID test passed for the wrong reason (already required). | Schema updated to `.optional()` for both fields. The 3 tests pass. | 3 new |
+| Sub-task                                   | RED                                                                                                                                                                                                                                                                                                     | GREEN                                                                                                                                             | Final count |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| brief-T3.3-tests (jwt-auth-guard.e2e-spec) | Test imported `next-auth/jwt#encode`; the stub guard parsed `<userId>:<token>` and rejected the real JWT. The 4 tests failed for the right reason: stub guard vs. real JWT.                                                                                                                             | Real guard reads the bearer token, decodes via `next-auth/jwt#decode` with the shared secret + salt, projects onto CurrentUser. The 4 tests pass. | 4 new       |
+| brief-T3.3-env (env.test.ts)               | The 3 new tests expected the optional-OAuth contract (env without Google parses; env with Google parses; empty Google ID fails). The original schema required both, so the new tests failed: env-without-Google rejected with "Required"; empty-ID test passed for the wrong reason (already required). | Schema updated to `.optional()` for both fields. The 3 tests pass.                                                                                | 3 new       |
 
 ### Quality gates
 
-| Gate | Result |
-|------|--------|
-| `pnpm install --filter api` | exit 0 (no peer-dep warnings) |
-| `pnpm --filter @features/auth exec vitest run` | 101/101 PASS (no change in auth slice test count) |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no change) |
-| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (16 prior + 3 new T3.3 contract) |
-| `pnpm --filter api exec vitest run` | 18/18 PASS (14 prior + 4 new) |
-| `pnpm --filter api exec tsc --noEmit` | exit 0 |
-| `pnpm --filter api exec eslint . --max-warnings 0` | exit 0 |
-| `pnpm turbo run lint typecheck test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS (FULL TURBO) |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
-| `pnpm turbo run typecheck (full)` | exit 0 (full workspace) |
+| Gate                                                                                                                | Result                                                               |
+| ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `pnpm install --filter api`                                                                                         | exit 0 (no peer-dep warnings)                                        |
+| `pnpm --filter @features/auth exec vitest run`                                                                      | 101/101 PASS (no change in auth slice test count)                    |
+| `pnpm --filter @core/events exec vitest run`                                                                        | 37/37 PASS (no change)                                               |
+| `pnpm --filter @core/config exec vitest run`                                                                        | 19/19 PASS (16 prior + 3 new T3.3 contract)                          |
+| `pnpm --filter api exec vitest run`                                                                                 | 18/18 PASS (14 prior + 4 new)                                        |
+| `pnpm --filter api exec tsc --noEmit`                                                                               | exit 0                                                               |
+| `pnpm --filter api exec eslint . --max-warnings 0`                                                                  | exit 0                                                               |
+| `pnpm turbo run lint typecheck test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS (FULL TURBO)                                              |
+| `pnpm run lint:fixtures`                                                                                            | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
+| `pnpm turbo run typecheck (full)`                                                                                   | exit 0 (full workspace)                                              |
 
 Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint` + `apps/web#typecheck` fail because `vitest` is not in `apps/web/package.json#devDependencies` (slice 1 deferred item; verified at `0758f8f` baseline via `git stash` round-trip).
 
@@ -1344,13 +1391,13 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 ### Sub-tasks completed (5)
 
-| Sub-task | Subject | Status |
-|----------|---------|--------|
-| brief-T3.7-multi-provider | Integration test: same email → same User.id across providers | DONE |
-| brief-T3.7-session-expiry | Integration test: expired JWT → 401 (real JwtAuthGuard) | DONE |
-| brief-T3.7-forgot-password-idempotency | Integration test: requestReset no enumeration leak | DONE |
-| brief-T3.9-checklist | One-page slice 3 checklist + Spanish mirror | DONE |
-| brief-markers-apply-progress | tasks.md T3.7+T3.9 [x] markers + apply-progress section | DONE |
+| Sub-task                               | Subject                                                      | Status |
+| -------------------------------------- | ------------------------------------------------------------ | ------ |
+| brief-T3.7-multi-provider              | Integration test: same email → same User.id across providers | DONE   |
+| brief-T3.7-session-expiry              | Integration test: expired JWT → 401 (real JwtAuthGuard)      | DONE   |
+| brief-T3.7-forgot-password-idempotency | Integration test: requestReset no enumeration leak           | DONE   |
+| brief-T3.9-checklist                   | One-page slice 3 checklist + Spanish mirror                  | DONE   |
+| brief-markers-apply-progress           | tasks.md T3.7+T3.9 [x] markers + apply-progress section      | DONE   |
 
 ### Files created / modified (8 files, ~1450 insertions / ~6 deletions)
 
@@ -1383,26 +1430,26 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-T3.7-multi-provider | Existing `AuthService.register` already throws `EMAIL_ALREADY_EXISTS` on duplicate email (slice 3 batch 2 GREEN); the cross-provider identity invariant (same email → same User.id via UserRepository.findByEmail) was already in place at slice 3 batch 6 (UserRepository port wired). The integration test was written as a regression net; RED state was theoretical (would only fail under a future refactor that breaks the invariant). GREEN at write time — tests pass without production code change. | 4 new |
-| brief-T3.7-session-expiry | The slice 3 batch 6 stub `JwtAuthGuard` (parses `<userId>:<token>` bearer strings) would have rejected ALL bearer tokens regardless of expiry (wrong reason: malformed). The slice 3 batch 7 real guard uses `next-auth/jwt#decode` which returns `null` for expired tokens → the guard's catch-all `if (claims === null) throw UnauthorizedException("invalid bearer token")` maps the failure to 401 with the generic copy. RED state: test would have failed because the stub guard rejected the real JWE as malformed. GREEN: real guard decodes + rejects on null; 3 tests pass. | 3 new |
-| brief-T3.7-forgot-password-idempotency | `PasswordResetService.requestReset` already implemented the silent-return on unknown email at slice 3 batch 4 GREEN; the bcrypt.tsx test suite's "unknown email → no event, no row" case asserts the same invariant at the per-suite level. This integration test pins the no-enumeration-leak invariant at the cross-suite level (combining UserRepository + TokenRepository + Dispatcher + bcryptjs mocks). RED: theoretical — the contract is GREEN. | 5 new |
-| brief-T3.9-checklist | N/A (docs only, no TDD). | N/A |
-| brief-markers-apply-progress | N/A (markers only). | N/A |
+| Sub-task                               | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | GREEN | Final count |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------- |
+| brief-T3.7-multi-provider              | Existing `AuthService.register` already throws `EMAIL_ALREADY_EXISTS` on duplicate email (slice 3 batch 2 GREEN); the cross-provider identity invariant (same email → same User.id via UserRepository.findByEmail) was already in place at slice 3 batch 6 (UserRepository port wired). The integration test was written as a regression net; RED state was theoretical (would only fail under a future refactor that breaks the invariant). GREEN at write time — tests pass without production code change.                                                                         | 4 new |
+| brief-T3.7-session-expiry              | The slice 3 batch 6 stub `JwtAuthGuard` (parses `<userId>:<token>` bearer strings) would have rejected ALL bearer tokens regardless of expiry (wrong reason: malformed). The slice 3 batch 7 real guard uses `next-auth/jwt#decode` which returns `null` for expired tokens → the guard's catch-all `if (claims === null) throw UnauthorizedException("invalid bearer token")` maps the failure to 401 with the generic copy. RED state: test would have failed because the stub guard rejected the real JWE as malformed. GREEN: real guard decodes + rejects on null; 3 tests pass. | 3 new |
+| brief-T3.7-forgot-password-idempotency | `PasswordResetService.requestReset` already implemented the silent-return on unknown email at slice 3 batch 4 GREEN; the bcrypt.tsx test suite's "unknown email → no event, no row" case asserts the same invariant at the per-suite level. This integration test pins the no-enumeration-leak invariant at the cross-suite level (combining UserRepository + TokenRepository + Dispatcher + bcryptjs mocks). RED: theoretical — the contract is GREEN.                                                                                                                               | 5 new |
+| brief-T3.9-checklist                   | N/A (docs only, no TDD).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | N/A   |
+| brief-markers-apply-progress           | N/A (markers only).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | N/A   |
 
 ### Quality gates
 
-| Gate | Result |
-|------|--------|
-| `pnpm install` | exit 0 |
-| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (101 prior + 9 new from T3.7 batch 8) |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no change) |
-| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (no change) |
-| `cd apps/api && pnpm exec vitest run` | 21/21 PASS (18 prior + 3 new from T3.7 session-expiry) |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS (FULL TURBO) |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
-| `pnpm turbo run typecheck (full)` | exit 0 (full workspace) |
+| Gate                                                                                                 | Result                                                               |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `pnpm install`                                                                                       | exit 0                                                               |
+| `pnpm --filter @features/auth exec vitest run`                                                       | 110/110 PASS (101 prior + 9 new from T3.7 batch 8)                   |
+| `pnpm --filter @core/events exec vitest run`                                                         | 37/37 PASS (no change)                                               |
+| `pnpm --filter @core/config exec vitest run`                                                         | 19/19 PASS (no change)                                               |
+| `cd apps/api && pnpm exec vitest run`                                                                | 21/21 PASS (18 prior + 3 new from T3.7 session-expiry)               |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api` | 24/24 PASS (FULL TURBO)                                              |
+| `pnpm run lint:fixtures`                                                                             | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
+| `pnpm turbo run typecheck (full)`                                                                    | exit 0 (full workspace)                                              |
 
 Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint` + `apps/web#typecheck` fail because `vitest` is not in `apps/web/package.json#devDependencies` (slice 1 deferred item; verified at `0758f8f` baseline via `git stash` round-trip).
 
@@ -1473,13 +1520,13 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 ### Sub-tasks completed (5)
 
-| Sub-task | Subject | Status |
-|----------|---------|--------|
-| brief-deps | Install next-intl@3.26.5 + clsx@2.1.1 + tailwind-merge@2.5.5 + vitest@4.1.9 (devDep) | DONE |
-| brief-T4.5-cn-helper | cn helper + apps/web vitest config + lib-utils tests (RED + GREEN, 4 tests) | DONE |
-| brief-T4.3-next-intl-middleware | middleware.ts + i18n.ts + middleware tests (RED + GREEN, 6 tests) | DONE |
-| brief-T4.2-i18n-catalogs | en.json + es.json + key-set parity test (no TDD per brief, 4 tests) | DONE |
-| brief-markers-apply-progress | tasks.md T4.2 + T4.3 + T4.5 [x] markers + apply-progress section + Spanish mirror | DONE |
+| Sub-task                        | Subject                                                                              | Status |
+| ------------------------------- | ------------------------------------------------------------------------------------ | ------ |
+| brief-deps                      | Install next-intl@3.26.5 + clsx@2.1.1 + tailwind-merge@2.5.5 + vitest@4.1.9 (devDep) | DONE   |
+| brief-T4.5-cn-helper            | cn helper + apps/web vitest config + lib-utils tests (RED + GREEN, 4 tests)          | DONE   |
+| brief-T4.3-next-intl-middleware | middleware.ts + i18n.ts + middleware tests (RED + GREEN, 6 tests)                    | DONE   |
+| brief-T4.2-i18n-catalogs        | en.json + es.json + key-set parity test (no TDD per brief, 4 tests)                  | DONE   |
+| brief-markers-apply-progress    | tasks.md T4.2 + T4.3 + T4.5 [x] markers + apply-progress section + Spanish mirror    | DONE   |
 
 ### Files created / modified (10 files, +792 / -2 across 5 atomic commits)
 
@@ -1502,7 +1549,7 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 - `apps/web/__tests__/lib-utils.test.ts` (T4.5): 4 new tests.
   - `merges conflicting Tailwind padding utilities — last one wins` — asserts `cn('p-2', 'p-4') === 'p-4'`.
   - `filters out falsy values (null, undefined, false)` — asserts the conflict resolves AND no literal `null`/`undefined`/`false` leaks into the output.
-  - `recognizes \`px-*\` as a subset conflict of \`p-*\` (broader wins)` — asserts `cn('px-2', 'p-4') === 'p-4'` (px-2 is a strict subset of p-4 and tailwind-merge drops it).
+  - `recognizes \`px-_\` as a subset conflict of \`p-_\` (broader wins)`— asserts`cn('px-2', 'p-4') === 'p-4'` (px-2 is a strict subset of p-4 and tailwind-merge drops it).
   - `returns a string (type narrowing)` — asserts the return type is `string` not `string | undefined`.
 - `apps/web/__tests__/middleware.test.ts` (T4.3): 6 new tests (3 routing + 3 matcher).
   - `redirects bare '/sign-in' to '/en/sign-in' (default locale prefix)` — asserts 30x + `pathname === '/en/sign-in'` (parses absolute Location URL via `new URL(loc, HOST).pathname`).
@@ -1517,29 +1564,29 @@ Pre-existing failure NOT caused by this batch: `apps/web#test` + `apps/web#lint`
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-deps | N/A (no production code) | N/A | 0 |
-| brief-T4.5-cn-helper | RED: `lib/utils.ts` missing → 1 of 4 tests fails (Cannot find module). Created cn = `twMerge(clsx(inputs))`. GREEN: 4/4 cn tests PASS. | 4 new |
+| Sub-task                        | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                         | GREEN | Final count |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ----------- |
+| brief-deps                      | N/A (no production code)                                                                                                                                                                                                                                                                                                                                                                                                                                    | N/A   | 0           |
+| brief-T4.5-cn-helper            | RED: `lib/utils.ts` missing → 1 of 4 tests fails (Cannot find module). Created cn = `twMerge(clsx(inputs))`. GREEN: 4/4 cn tests PASS.                                                                                                                                                                                                                                                                                                                      | 4 new |
 | brief-T4.3-next-intl-middleware | RED: middleware.ts missing → 6/6 tests fail (Cannot find module). Created middleware.ts + i18n.ts + discovered empirical behaviors. Discovered next-intl 3.26.5 emits ABSOLUTE URL in Location for redirects (test parses via `new URL(loc, HOST).pathname`); emits `x-middleware-request-x-next-intl-locale` header on PASSTHROUGH responses (e.g. /es/sign-in). Test revised mid-cycle to read these canonical signals. GREEN: 6/6 middleware tests PASS. | 6 new |
-| brief-T4.2-i18n-catalogs | Per brief: NO strict TDD (catalog content is documentation/data, not behavior). The catalog key-set parity test was written AFTER the catalogs to act as a regression net — it was RED in the absence of the catalogs (Cannot find module), GREEN once both files exist with identical keys. 4/4 catalog tests PASS. | 4 new |
-| brief-markers-apply-progress | N/A (markers only) | N/A |
+| brief-T4.2-i18n-catalogs        | Per brief: NO strict TDD (catalog content is documentation/data, not behavior). The catalog key-set parity test was written AFTER the catalogs to act as a regression net — it was RED in the absence of the catalogs (Cannot find module), GREEN once both files exist with identical keys. 4/4 catalog tests PASS.                                                                                                                                        | 4 new |
+| brief-markers-apply-progress    | N/A (markers only)                                                                                                                                                                                                                                                                                                                                                                                                                                          | N/A   |
 
 ### Quality gates
 
-| Gate | Result |
-|------|--------|
-| `pnpm install` | exit 0 (4 packages added: next-intl@3.26.5, clsx@2.1.1, tailwind-merge@2.5.5, vitest@4.1.9; lockfile regenerated) |
-| `pnpm --filter @features/auth exec vitest run` | 110/110 PASS (no regression) |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS (no regression) |
-| `pnpm --filter @core/config exec vitest run` | 19/19 PASS (no regression) |
-| `cd apps/api && pnpm exec vitest run` | 21/21 PASS (no regression) |
-| `pnpm --filter web exec vitest run` | 14/14 PASS (NEW: 4 cn + 6 middleware + 4 catalogs) |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 (full turbo, slices 1-4 wired) |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
-| `pnpm turbo run lint` (full) | exit 0 (no new violations) |
-| `pnpm turbo run typecheck --filter=web` | exit 0 (next-intl types resolve under tsconfig strict + Bundler resolution) |
-| `pnpm turbo run typecheck` (full) | exit 0 (full workspace) |
+| Gate                                                                                                              | Result                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                                                                                                    | exit 0 (4 packages added: next-intl@3.26.5, clsx@2.1.1, tailwind-merge@2.5.5, vitest@4.1.9; lockfile regenerated) |
+| `pnpm --filter @features/auth exec vitest run`                                                                    | 110/110 PASS (no regression)                                                                                      |
+| `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS (no regression)                                                                                        |
+| `pnpm --filter @core/config exec vitest run`                                                                      | 19/19 PASS (no regression)                                                                                        |
+| `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS (no regression)                                                                                        |
+| `pnpm --filter web exec vitest run`                                                                               | 14/14 PASS (NEW: 4 cn + 6 middleware + 4 catalogs)                                                                |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 (full turbo, slices 1-4 wired)                                                                             |
+| `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violations across invalid fixtures (correct)                                              |
+| `pnpm turbo run lint` (full)                                                                                      | exit 0 (no new violations)                                                                                        |
+| `pnpm turbo run typecheck --filter=web`                                                                           | exit 0 (next-intl types resolve under tsconfig strict + Bundler resolution)                                       |
+| `pnpm turbo run typecheck` (full)                                                                                 | exit 0 (full workspace)                                                                                           |
 
 Pre-existing failure NOT caused by this batch: `pnpm turbo run build --filter=web` would FAIL because the `apps/web/app/[locale]/layout.tsx` and `page.tsx` were scaffolded in slice 1 with `force-static` + `import { env } from "@core/config"`; the env import runs at module load and requires `DATABASE_URL`/`NEXTAUTH_URL`/`NEXTAUTH_SECRET` to be set. Slice 4 batch 4c (forms) is the natural place to wire a real `.env.local` for apps/web (the build path is exercised when batch 4c ships the actual sign-in page). This batch ONLY adds middleware + i18n + cn + catalogs — no actual page is rendered at /sign-in yet, so the build path isn't part of the brief's required gates (typecheck + test are; both PASS).
 
@@ -1613,16 +1660,16 @@ Pre-existing failure NOT caused by this batch: `pnpm turbo run build --filter=we
 
 ### Sub-tasks completed (8)
 
-| Sub-task | Subject | Status |
-|----------|---------|--------|
-| brief-deps | Install Tailwind v4 + Radix + CVA + lucide + testing-library deps | DONE |
-| brief-T4.7-design-tokens | Extract tokens from `gastos-personales/` into apps/web/app/globals.css + postcss config | DONE |
-| brief-T4.4-RED | Failing test suite for the 4 shadcn-style primitives (23 assertions) | DONE |
-| brief-T4.4-GREEN | Implement Button / Input / Form / Card primitives | DONE |
-| brief-T4.4-test-env | Update vitest config: happy-dom + jest-dom + react plugin + @/ alias | DONE |
-| brief-T4.6-manifest | Create `apps/web/components.json` shadcn-style manifest | DONE |
-| brief-T4.6-readme | Create `apps/web/components.json.md` documenting CLI-not-used convention | DONE |
-| brief-markers-apply-progress | tasks.md T4.4 + T4.6 + T4.7 [x] markers + apply-progress section | DONE |
+| Sub-task                     | Subject                                                                                 | Status |
+| ---------------------------- | --------------------------------------------------------------------------------------- | ------ |
+| brief-deps                   | Install Tailwind v4 + Radix + CVA + lucide + testing-library deps                       | DONE   |
+| brief-T4.7-design-tokens     | Extract tokens from `gastos-personales/` into apps/web/app/globals.css + postcss config | DONE   |
+| brief-T4.4-RED               | Failing test suite for the 4 shadcn-style primitives (23 assertions)                    | DONE   |
+| brief-T4.4-GREEN             | Implement Button / Input / Form / Card primitives                                       | DONE   |
+| brief-T4.4-test-env          | Update vitest config: happy-dom + jest-dom + react plugin + @/ alias                    | DONE   |
+| brief-T4.6-manifest          | Create `apps/web/components.json` shadcn-style manifest                                 | DONE   |
+| brief-T4.6-readme            | Create `apps/web/components.json.md` documenting CLI-not-used convention                | DONE   |
+| brief-markers-apply-progress | tasks.md T4.4 + T4.6 + T4.7 [x] markers + apply-progress section                        | DONE   |
 
 ### Atomic commits landed (5)
 
@@ -1671,9 +1718,9 @@ MODIFIED (5):
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-T4.4-RED (primitives.test.tsx) | Tests imported `@/components/ui/{button,input,form,card}`; the 4 modules didn't exist so vitest failed at parse time ("Failed to parse source for import analysis"). 0/23 assertions ran. | 4 primitive modules implemented; vitest parses the test file. 23/23 assertions pass. | 23 new |
+| Sub-task                             | RED                                                                                                                                                                                       | GREEN                                                                                | Final count |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------- |
+| brief-T4.4-RED (primitives.test.tsx) | Tests imported `@/components/ui/{button,input,form,card}`; the 4 modules didn't exist so vitest failed at parse time ("Failed to parse source for import analysis"). 0/23 assertions ran. | 4 primitive modules implemented; vitest parses the test file. 23/23 assertions pass. | 23 new      |
 
 ### Critical deviations from the brief
 
@@ -1730,22 +1777,22 @@ CARRIED (from batch 4a):
 
 ### Quality gates — all green
 
-| Gate | Result |
-|------|--------|
-| Workspace install | ✅ exit 0 |
-| `@features/auth` test | ✅ 110/110 PASS (no regression) |
-| `@core/events` test | ✅ 37/37 PASS (no regression) |
-| `@core/config` test | ✅ 19/19 PASS (no regression) |
-| `@core/database` test | ✅ 3/3 PASS (no regression) |
-| `apps/api` test | ✅ 21/21 PASS (no regression) |
-| `apps/web` test | ✅ 38/38 PASS (14 batch 4a + 24 new: 23 primitives + 1 sanity canary removed) |
-| `pnpm turbo run test` (filtered, full workspace) | ✅ 9/9 tasks PASS |
-| `pnpm --filter web exec tsc --noEmit` | ✅ exit 0 |
-| `pnpm --filter web exec eslint . --max-warnings 0` | ✅ exit 0 |
-| `pnpm --filter web build` (with env vars set) | ✅ exit 0; no Tailwind warnings; globals.css compiles |
-| `node -e "JSON.parse(require('fs').readFileSync('apps/web/components.json','utf8'))"` | ✅ exit 0 |
-| `pnpm run lint:fixtures` | ✅ 11/11 fixtures PASS, 18 violations across invalid fixtures (correct) |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
+| Gate                                                                                  | Result                                                                        |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Workspace install                                                                     | ✅ exit 0                                                                     |
+| `@features/auth` test                                                                 | ✅ 110/110 PASS (no regression)                                               |
+| `@core/events` test                                                                   | ✅ 37/37 PASS (no regression)                                                 |
+| `@core/config` test                                                                   | ✅ 19/19 PASS (no regression)                                                 |
+| `@core/database` test                                                                 | ✅ 3/3 PASS (no regression)                                                   |
+| `apps/api` test                                                                       | ✅ 21/21 PASS (no regression)                                                 |
+| `apps/web` test                                                                       | ✅ 38/38 PASS (14 batch 4a + 24 new: 23 primitives + 1 sanity canary removed) |
+| `pnpm turbo run test` (filtered, full workspace)                                      | ✅ 9/9 tasks PASS                                                             |
+| `pnpm --filter web exec tsc --noEmit`                                                 | ✅ exit 0                                                                     |
+| `pnpm --filter web exec eslint . --max-warnings 0`                                    | ✅ exit 0                                                                     |
+| `pnpm --filter web build` (with env vars set)                                         | ✅ exit 0; no Tailwind warnings; globals.css compiles                         |
+| `node -e "JSON.parse(require('fs').readFileSync('apps/web/components.json','utf8'))"` | ✅ exit 0                                                                     |
+| `pnpm run lint:fixtures`                                                              | ✅ 11/11 fixtures PASS, 18 violations across invalid fixtures (correct)       |
+| `pnpm turbo run lint` (full)                                                          | ✅ exit 0                                                                     |
 
 ### Cross-references (slice 4 batch 4b)
 
@@ -1765,15 +1812,15 @@ CARRIED (from batch 4a):
 
 ### Sub-tasks completed (9)
 
-| Sub-task | Subject | Status |
-|----------|---------|--------|
-| brief-deps | Install `react-hook-form@7.54.0` + `@hookform/resolvers@3.10.0` + `zod@3.24.1` in apps/web | DONE |
-| brief-T4.1-RED | RED test for `LoginForm` (8 assertions, 5 form states) | DONE |
-| brief-T4.1-GREEN | GREEN `LoginForm` + custom Zod-3+Zod-4-aware `zodResolver` | DONE |
-| brief-T4.8-sign-in | `sign-in` page (RSC) + `SignInClient` wrapper | DONE |
-| brief-T4.9-sign-up | `sign-up` page (RSC) + `SignUpForm` + `SignUpClient` wrapper | DONE |
-| brief-env | Add `API_URL: z.string().url()` to env.schema + apps/web/.env.example + apps/api/.env.example + API test setup-env | DONE |
-| brief-markers-tasks | tasks.md T4.1 + T4.8 + T4.9 [x] markers | DONE |
+| Sub-task            | Subject                                                                                                            | Status |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ | ------ |
+| brief-deps          | Install `react-hook-form@7.54.0` + `@hookform/resolvers@3.10.0` + `zod@3.24.1` in apps/web                         | DONE   |
+| brief-T4.1-RED      | RED test for `LoginForm` (8 assertions, 5 form states)                                                             | DONE   |
+| brief-T4.1-GREEN    | GREEN `LoginForm` + custom Zod-3+Zod-4-aware `zodResolver`                                                         | DONE   |
+| brief-T4.8-sign-in  | `sign-in` page (RSC) + `SignInClient` wrapper                                                                      | DONE   |
+| brief-T4.9-sign-up  | `sign-up` page (RSC) + `SignUpForm` + `SignUpClient` wrapper                                                       | DONE   |
+| brief-env           | Add `API_URL: z.string().url()` to env.schema + apps/web/.env.example + apps/api/.env.example + API test setup-env | DONE   |
+| brief-markers-tasks | tasks.md T4.1 + T4.8 + T4.9 [x] markers                                                                            | DONE   |
 
 ### Atomic commits landed (7)
 
@@ -1828,12 +1875,12 @@ MODIFIED (3):
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-T4.1-RED (LoginForm.test.tsx) | Test imported `../../../components/auth/LoginForm`; the module didn't exist so vitest failed at parse time ("Failed to resolve import"). 0/8 assertions ran. | LoginForm module implemented + custom zod-resolver helper; vitest parses the test file. 8/8 assertions pass. | 8 new |
-| brief-T4.8 (sign-in.test.tsx) | Same pattern: test file references page module that doesn't exist; 0 tests collected. (Page + SignInClient components landed in the same GREEN commit as T4.8.) | Page (RSC) + SignInClient wrapper implemented; 5/5 assertions pass — the mocked `next-intl/server#getTranslations` returns a key-shape translator, `next/navigation#useRouter` is mocked, `fetch` is mocked, `@core/config#env.API_URL` is mocked. | 5 new |
-| brief-T4.9 (SignUpForm.test.tsx + sign-up.test.tsx) | Both test files reference modules that don't exist; 0 tests collected. | SignUpForm + SignUpClient + sign-up page implemented; 8 + 5 = 13 assertions pass. | 13 new |
-| brief-env (env.test.ts) | n/a — direct add | 1 new assertion confirming `API_URL` is flagged by empty-input safeParse; 3 fixtures updated. | 1 new |
+| Sub-task                                            | RED                                                                                                                                                             | GREEN                                                                                                                                                                                                                                              | Final count |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| brief-T4.1-RED (LoginForm.test.tsx)                 | Test imported `../../../components/auth/LoginForm`; the module didn't exist so vitest failed at parse time ("Failed to resolve import"). 0/8 assertions ran.    | LoginForm module implemented + custom zod-resolver helper; vitest parses the test file. 8/8 assertions pass.                                                                                                                                       | 8 new       |
+| brief-T4.8 (sign-in.test.tsx)                       | Same pattern: test file references page module that doesn't exist; 0 tests collected. (Page + SignInClient components landed in the same GREEN commit as T4.8.) | Page (RSC) + SignInClient wrapper implemented; 5/5 assertions pass — the mocked `next-intl/server#getTranslations` returns a key-shape translator, `next/navigation#useRouter` is mocked, `fetch` is mocked, `@core/config#env.API_URL` is mocked. | 5 new       |
+| brief-T4.9 (SignUpForm.test.tsx + sign-up.test.tsx) | Both test files reference modules that don't exist; 0 tests collected.                                                                                          | SignUpForm + SignUpClient + sign-up page implemented; 8 + 5 = 13 assertions pass.                                                                                                                                                                  | 13 new      |
+| brief-env (env.test.ts)                             | n/a — direct add                                                                                                                                                | 1 new assertion confirming `API_URL` is flagged by empty-input safeParse; 3 fixtures updated.                                                                                                                                                      | 1 new       |
 
 ### Critical deviations from the brief
 
@@ -1902,22 +1949,22 @@ CARRIED (from batch 4a):
 
 ### Quality gates — all green
 
-| Gate | Result |
-|------|--------|
-| Workspace install | ✅ exit 0 |
-| `@features/auth` test | ✅ 110/110 PASS (no regression) |
-| `@core/events` test | ✅ 37/37 PASS (no regression) |
-| `@core/config` test | ✅ 20/20 PASS (+1 new: API_URL is required) |
-| `@core/database` test | ✅ 3/3 PASS (no regression) |
-| `apps/api` test | ✅ 21/21 PASS (no regression — `setup-env.ts` updated to provide API_URL) |
-| `apps/web` test | ✅ 63/63 PASS (+25 new: 8 LoginForm + 5 sign-in + 8 SignUpForm + 5 sign-up − 1 sanity canary removed in earlier batch) |
-| `pnpm turbo run test` (filtered, full workspace) | ✅ 9/9 tasks PASS |
-| `pnpm --filter web exec tsc --noEmit` | ✅ exit 0 |
-| `pnpm --filter api exec tsc --noEmit` | ✅ exit 0 |
-| `pnpm --filter @core/config exec tsc --noEmit` | ✅ exit 0 |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
-| `pnpm run lint:fixtures` | ✅ 11/11 fixtures PASS (boundary rules not regressed) |
-| `pnpm --filter web build` | ✅ exit 0; Next.js production build succeeds (with env vars set per the slice-1 constraint) |
+| Gate                                             | Result                                                                                                                 |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Workspace install                                | ✅ exit 0                                                                                                              |
+| `@features/auth` test                            | ✅ 110/110 PASS (no regression)                                                                                        |
+| `@core/events` test                              | ✅ 37/37 PASS (no regression)                                                                                          |
+| `@core/config` test                              | ✅ 20/20 PASS (+1 new: API_URL is required)                                                                            |
+| `@core/database` test                            | ✅ 3/3 PASS (no regression)                                                                                            |
+| `apps/api` test                                  | ✅ 21/21 PASS (no regression — `setup-env.ts` updated to provide API_URL)                                              |
+| `apps/web` test                                  | ✅ 63/63 PASS (+25 new: 8 LoginForm + 5 sign-in + 8 SignUpForm + 5 sign-up − 1 sanity canary removed in earlier batch) |
+| `pnpm turbo run test` (filtered, full workspace) | ✅ 9/9 tasks PASS                                                                                                      |
+| `pnpm --filter web exec tsc --noEmit`            | ✅ exit 0                                                                                                              |
+| `pnpm --filter api exec tsc --noEmit`            | ✅ exit 0                                                                                                              |
+| `pnpm --filter @core/config exec tsc --noEmit`   | ✅ exit 0                                                                                                              |
+| `pnpm turbo run lint` (full)                     | ✅ exit 0                                                                                                              |
+| `pnpm run lint:fixtures`                         | ✅ 11/11 fixtures PASS (boundary rules not regressed)                                                                  |
+| `pnpm --filter web build`                        | ✅ exit 0; Next.js production build succeeds (with env vars set per the slice-1 constraint)                            |
 
 ### Cross-references (slice 4 batch 4c)
 
@@ -1948,12 +1995,12 @@ CARRIED (from batch 4a):
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief-build-infra-prereq | next-intl plugin + NextIntlClientProvider + webpack build config | `0cdd088` | (no marker — infrastructure) | Pre-existing build regression fix (see deviation #1). |
-| brief T4.10 | `forgot-password` page + `ForgotPasswordForm` | `5d2c014` (TBD) | `[x]` in tasks.md | 5 form + 3 page tests; idempotent success state; back-to-signin link. |
-| brief T4.11 | `reset-password/[token]` page + `ResetPasswordForm` | (next commit) | `[x]` in tasks.md | 5 form + 4 page tests; dynamic [token] segment; `force-dynamic`. |
-| brief T4.12 | `dev/mailbox/[userId]` page + `DevMailbox` | (next commit) | `[x]` in tasks.md | 4 page tests; NODE_ENV gate; module-level stub events; copy-to-clipboard. |
+| Brief Task               | Subject                                                          | Commit          | Marker                       | Notes                                                                     |
+| ------------------------ | ---------------------------------------------------------------- | --------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| brief-build-infra-prereq | next-intl plugin + NextIntlClientProvider + webpack build config | `0cdd088`       | (no marker — infrastructure) | Pre-existing build regression fix (see deviation #1).                     |
+| brief T4.10              | `forgot-password` page + `ForgotPasswordForm`                    | `5d2c014` (TBD) | `[x]` in tasks.md            | 5 form + 3 page tests; idempotent success state; back-to-signin link.     |
+| brief T4.11              | `reset-password/[token]` page + `ResetPasswordForm`              | (next commit)   | `[x]` in tasks.md            | 5 form + 4 page tests; dynamic [token] segment; `force-dynamic`.          |
+| brief T4.12              | `dev/mailbox/[userId]` page + `DevMailbox`                       | (next commit)   | `[x]` in tasks.md            | 4 page tests; NODE_ENV gate; module-level stub events; copy-to-clipboard. |
 
 ### Files created / modified in slice 4 batch 4d
 
@@ -1997,30 +2044,30 @@ openspec/changes/.../apply-progress.md           | this section
 
 ### TDD evidence (per task)
 
-| Task | RED | GREEN |
-|------|-----|-------|
-| brief T4.10 | 2/2 test files fail with `Cannot find module '../../../components/auth/ForgotPasswordForm'` and `Cannot find module '../../app/[locale]/(auth)/forgot-password/page'`. | 8/8 tests PASS:<br>• Renders email + submit with i18n keys.<br>• Empty submit shows field-level validation error under `data-testid="forgot-password-email-error"`.<br>• 202 → success state (replaces form with `auth.forgotPassword.success` copy + back-to-signin link with active locale).<br>• 500 → `auth.common.genericError`.<br>• In-flight: button disabled + label swapped to `auth.common.loading` + `<form aria-busy="true">`.<br>• Page renders `auth.forgotPassword.title` from `getTranslations`.<br>• Page POSTs to `${env.API_URL}/auth/forgot-password` with `{ email }` JSON body on 202.<br>• Locale preservation: back-to-signin link points to `/es/sign-in` for `locale="es"`. |
-| brief T4.11 | 2/2 test files fail with `Cannot find module '../../../components/auth/ResetPasswordForm'` and `Cannot find module '../../app/[locale]/(auth)/reset-password/[token]/page'`. | 9/9 tests PASS:<br>• Renders new-password + submit with i18n keys.<br>• Empty submit shows field-level validation error under `data-testid="reset-password-new-password-error"`.<br>• 200 → `router.replace('/en/sign-in')` (locale preserved).<br>• 401 → `auth.resetPassword.error.invalidToken` (no enumeration distinction).<br>• 500 → `auth.common.genericError`.<br>• Page renders `auth.resetPassword.title` from `getTranslations`.<br>• Page POSTs to `${env.API_URL}/auth/reset-password` with `{ token, newPassword }` JSON body.<br>• Page reads `[token]` from async `params` correctly.<br>• `locale="es"` → redirect to `/es/sign-in`. |
-| brief T4.12 | 1/1 test file fails with `Cannot find module '../../app/[locale]/(auth)/dev/mailbox/[userId]/page'`. Note: the vi.mock factory-hoisting error (`Cannot access 'mockEnv' before initialization`) was fixed by wrapping `mockEnv` in `vi.hoisted(...)`. | 4/4 tests PASS:<br>• In dev: page renders `auth.devMailbox.title` + ≥1 copy button + ≥1 `<code data-testid="dev-mailbox-token-N">`.<br>• Clicking copy writes the token to `navigator.clipboard.writeText` (mocked) + shows `auth.devMailbox.copiedToClipboard` indicator.<br>• NODE_ENV=`production` → page calls `notFound()` (NEXT_NOT_FOUND thrown or page renders without the dev-mailbox Card title).<br>• Empty stub list (`userId="user-with-no-events"`) → renders `auth.devMailbox.noTokensHint` and zero copy buttons. |
+| Task        | RED                                                                                                                                                                                                                                                   | GREEN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| brief T4.10 | 2/2 test files fail with `Cannot find module '../../../components/auth/ForgotPasswordForm'` and `Cannot find module '../../app/[locale]/(auth)/forgot-password/page'`.                                                                                | 8/8 tests PASS:<br>• Renders email + submit with i18n keys.<br>• Empty submit shows field-level validation error under `data-testid="forgot-password-email-error"`.<br>• 202 → success state (replaces form with `auth.forgotPassword.success` copy + back-to-signin link with active locale).<br>• 500 → `auth.common.genericError`.<br>• In-flight: button disabled + label swapped to `auth.common.loading` + `<form aria-busy="true">`.<br>• Page renders `auth.forgotPassword.title` from `getTranslations`.<br>• Page POSTs to `${env.API_URL}/auth/forgot-password` with `{ email }` JSON body on 202.<br>• Locale preservation: back-to-signin link points to `/es/sign-in` for `locale="es"`. |
+| brief T4.11 | 2/2 test files fail with `Cannot find module '../../../components/auth/ResetPasswordForm'` and `Cannot find module '../../app/[locale]/(auth)/reset-password/[token]/page'`.                                                                          | 9/9 tests PASS:<br>• Renders new-password + submit with i18n keys.<br>• Empty submit shows field-level validation error under `data-testid="reset-password-new-password-error"`.<br>• 200 → `router.replace('/en/sign-in')` (locale preserved).<br>• 401 → `auth.resetPassword.error.invalidToken` (no enumeration distinction).<br>• 500 → `auth.common.genericError`.<br>• Page renders `auth.resetPassword.title` from `getTranslations`.<br>• Page POSTs to `${env.API_URL}/auth/reset-password` with `{ token, newPassword }` JSON body.<br>• Page reads `[token]` from async `params` correctly.<br>• `locale="es"` → redirect to `/es/sign-in`.                                                 |
+| brief T4.12 | 1/1 test file fails with `Cannot find module '../../app/[locale]/(auth)/dev/mailbox/[userId]/page'`. Note: the vi.mock factory-hoisting error (`Cannot access 'mockEnv' before initialization`) was fixed by wrapping `mockEnv` in `vi.hoisted(...)`. | 4/4 tests PASS:<br>• In dev: page renders `auth.devMailbox.title` + ≥1 copy button + ≥1 `<code data-testid="dev-mailbox-token-N">`.<br>• Clicking copy writes the token to `navigator.clipboard.writeText` (mocked) + shows `auth.devMailbox.copiedToClipboard` indicator.<br>• NODE_ENV=`production` → page calls `notFound()` (NEXT_NOT_FOUND thrown or page renders without the dev-mailbox Card title).<br>• Empty stub list (`userId="user-with-no-events"`) → renders `auth.devMailbox.noTokensHint` and zero copy buttons.                                                                                                                                                                      |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new deps in this batch (next-intl plugin already present since batch 4a). |
-| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/components/auth/ForgotPasswordForm.test.tsx __tests__/app/forgot-password.test.tsx` | exit 0 | 8/8 PASS (RED was 2/2 fail with module-not-found). |
-| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/components/auth/ResetPasswordForm.test.tsx __tests__/app/reset-password.test.tsx` | exit 0 | 9/9 PASS (RED was 2/2 fail). |
-| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/app/dev-mailbox.test.tsx` | exit 0 | 4/4 PASS (RED was 1/1 fail; the `vi.hoisted(mockEnv)` fix resolved the vi.mock factory-hoisting error). |
-| Tests (web, full) | `pnpm --filter web exec vitest run` | exit 0 | **84/84 tests pass** (63 batch-4c baseline + 21 new from this batch). |
-| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 | 9/9 packages PASS. |
-| Lint (full) | `pnpm turbo run lint` | exit 0 | 10/10 packages PASS. |
-| Lint (fixtures) | `pnpm run lint:fixtures` | exit 0 | 11/11 boundary-rule fixtures PASS. |
-| Typecheck (auth) | `pnpm turbo run typecheck --filter=@features/auth` | exit 0 | Clean. |
-| Typecheck (events) | `pnpm turbo run typecheck --filter=@core/events` | exit 0 | Clean. |
-| Typecheck (api) | `pnpm turbo run typecheck --filter=api` | exit 0 | Clean. |
-| Typecheck (web) | `pnpm turbo run typecheck --filter=web` | exit 0 | Clean. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | 9/9 packages PASS. |
-| Build (web) | `pnpm --filter web build` | **FAILED** (exit 1) | Pre-existing failure on `/en/forgot-password` static prerender. **NOT INTRODUCED by this batch** — see "Critical deviations" #1. The brief lists this as a gate to fix; the build infra commit landed the four required fixes (next-intl plugin, NextIntlClientProvider, webpack resolve.extensionAlias, custom global-error.tsx) but a fifth failure remains on `/_global-error`'s built-in ErrorBoundary. Documented for the parent. |
+| Gate                    | Command                                                                                                                          | Result              | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace install       | `pnpm install`                                                                                                                   | exit 0              | No new deps in this batch (next-intl plugin already present since batch 4a).                                                                                                                                                                                                                                                                                                                                                           |
+| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/components/auth/ForgotPasswordForm.test.tsx __tests__/app/forgot-password.test.tsx` | exit 0              | 8/8 PASS (RED was 2/2 fail with module-not-found).                                                                                                                                                                                                                                                                                                                                                                                     |
+| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/components/auth/ResetPasswordForm.test.tsx __tests__/app/reset-password.test.tsx`   | exit 0              | 9/9 PASS (RED was 2/2 fail).                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Tests (web, this batch) | `pnpm --filter web exec vitest run __tests__/app/dev-mailbox.test.tsx`                                                           | exit 0              | 4/4 PASS (RED was 1/1 fail; the `vi.hoisted(mockEnv)` fix resolved the vi.mock factory-hoisting error).                                                                                                                                                                                                                                                                                                                                |
+| Tests (web, full)       | `pnpm --filter web exec vitest run`                                                                                              | exit 0              | **84/84 tests pass** (63 batch-4c baseline + 21 new from this batch).                                                                                                                                                                                                                                                                                                                                                                  |
+| Tests (turbo)           | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web`                | exit 0              | 9/9 packages PASS.                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Lint (full)             | `pnpm turbo run lint`                                                                                                            | exit 0              | 10/10 packages PASS.                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Lint (fixtures)         | `pnpm run lint:fixtures`                                                                                                         | exit 0              | 11/11 boundary-rule fixtures PASS.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Typecheck (auth)        | `pnpm turbo run typecheck --filter=@features/auth`                                                                               | exit 0              | Clean.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Typecheck (events)      | `pnpm turbo run typecheck --filter=@core/events`                                                                                 | exit 0              | Clean.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Typecheck (api)         | `pnpm turbo run typecheck --filter=api`                                                                                          | exit 0              | Clean.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Typecheck (web)         | `pnpm turbo run typecheck --filter=web`                                                                                          | exit 0              | Clean.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Typecheck (full)        | `pnpm turbo run typecheck`                                                                                                       | exit 0              | 9/9 packages PASS.                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Build (web)             | `pnpm --filter web build`                                                                                                        | **FAILED** (exit 1) | Pre-existing failure on `/en/forgot-password` static prerender. **NOT INTRODUCED by this batch** — see "Critical deviations" #1. The brief lists this as a gate to fix; the build infra commit landed the four required fixes (next-intl plugin, NextIntlClientProvider, webpack resolve.extensionAlias, custom global-error.tsx) but a fifth failure remains on `/_global-error`'s built-in ErrorBoundary. Documented for the parent. |
 
 ### Critical deviations
 
@@ -2067,13 +2114,13 @@ artifact_store: hybrid
 execution_mode: interactive
 slice_4:
   status: in-progress (12/15 — batch 4d done; 4e remaining)
-  tasks_done_brief: [T4.10, T4.11, T4.12]      # parent brief's T4.10/11/12 (form pages)
+  tasks_done_brief: [T4.10, T4.11, T4.12] # parent brief's T4.10/11/12 (form pages)
   tasks_done_tasks_md: [T4.1, T4.2, T4.3, T4.4, T4.5, T4.6, T4.7, T4.8, T4.9, T4.10, T4.11, T4.12]
   tasks_remaining_slice_4:
     - T4.13 (WCAG AA audit per auth screen via @axe-core/playwright)
     - T4.14 (state-coverage tests per form — loading, error, success, empty, validation-error)
     - T4.15 (REFACTOR + lint + typecheck + final state coverage check + responsive viewport)
-  commits_landed_this_batch: 5  # build-infra + T4.10 + T4.11 + T4.12 + markers+apply-progress
+  commits_landed_this_batch: 5 # build-infra + T4.10 + T4.11 + T4.12 + markers+apply-progress
   insertions_this_batch: ~1500 across 11 new files + 6 modified files
 feature_branch: feat/vertical-slicing-s4-batch4d-t410-t411-t412
 base_commit: 1e70bb6 (post-PR #16 slice 4 batch 4c)
@@ -2104,24 +2151,24 @@ next_recommended: slice-4-batch-4e-T4.13_T4.14_T4.15 (WCAG AA + state coverage +
 
 ### Sub-tasks status
 
-| Sub-task | Status | Notes |
-|---|---|---|
-| brief-T4.15-refactor | ✅ | Extracted FormFieldRow + AuthFormErrorBanner + AuthPageShell + useAuthApiPost. 4 forms refactored. -312 lines net. All 105 apps/web tests pass. |
-| brief-T4.14-state-coverage | ✅ | `apps/web/__tests__/components/auth/state-coverage.test.tsx` — 4 forms × 5 states = 20 tests. Single source of truth for slice 4 form state coverage. |
-| brief-T4.13-wcag-aa | ✅ | `apps/web/e2e/wcag-aa.spec.ts` (4 tests) + `playwright.config.ts` (2 projects: chromium-en, chromium-es) + devDeps. Best-effort: requires `npx playwright install chromium` per developer. |
-| brief-markers-apply-progress | ⏳ | This commit. |
+| Sub-task                     | Status | Notes                                                                                                                                                                                      |
+| ---------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| brief-T4.15-refactor         | ✅     | Extracted FormFieldRow + AuthFormErrorBanner + AuthPageShell + useAuthApiPost. 4 forms refactored. -312 lines net. All 105 apps/web tests pass.                                            |
+| brief-T4.14-state-coverage   | ✅     | `apps/web/__tests__/components/auth/state-coverage.test.tsx` — 4 forms × 5 states = 20 tests. Single source of truth for slice 4 form state coverage.                                      |
+| brief-T4.13-wcag-aa          | ✅     | `apps/web/e2e/wcag-aa.spec.ts` (4 tests) + `playwright.config.ts` (2 projects: chromium-en, chromium-es) + devDeps. Best-effort: requires `npx playwright install chromium` per developer. |
+| brief-markers-apply-progress | ⏳     | This commit.                                                                                                                                                                               |
 
 ### Quality gates
 
-| Gate | Result |
-|---|---|
-| `pnpm install` | ✅ exit 0 |
-| `pnpm turbo run typecheck` (full) | ✅ exit 0 |
-| `pnpm turbo run lint` (full) | ✅ exit 0 |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | ✅ 27/27 |
-| `apps/web` tests | ✅ 105/105 (85 batch 4d baseline + 20 new state-coverage) |
-| Slice 3 baseline (no regression) | ✅ 110/110 + 21/21 + 37/37 + 20/20 |
-| `pnpm run lint:fixtures` | ✅ boundary plugin fixtures pass |
+| Gate                                                                                                              | Result                                                    |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `pnpm install`                                                                                                    | ✅ exit 0                                                 |
+| `pnpm turbo run typecheck` (full)                                                                                 | ✅ exit 0                                                 |
+| `pnpm turbo run lint` (full)                                                                                      | ✅ exit 0                                                 |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | ✅ 27/27                                                  |
+| `apps/web` tests                                                                                                  | ✅ 105/105 (85 batch 4d baseline + 20 new state-coverage) |
+| Slice 3 baseline (no regression)                                                                                  | ✅ 110/110 + 21/21 + 37/37 + 20/20                        |
+| `pnpm run lint:fixtures`                                                                                          | ✅ boundary plugin fixtures pass                          |
 
 ### Critical deviations
 
@@ -2131,22 +2178,22 @@ next_recommended: slice-4-batch-4e-T4.13_T4.14_T4.15 (WCAG AA + state coverage +
 
 ### Slice 4 status (closed, 15/15)
 
-| Task | Status |
-|---|---|
-| T4.1 (LoginForm RED) | ✅ PR #16 |
-| T4.2 (i18n catalogs) | ✅ PR #14 |
-| T4.3 (next-intl middleware) | ✅ PR #14 |
-| T4.4 (shadcn-style primitives) | ✅ PR #15 |
-| T4.5 (cn helper) | ✅ PR #14 |
-| T4.6 (components.json manifest) | ✅ PR #15 |
-| T4.7 (design tokens) | ✅ PR #15 |
-| T4.8 (sign-in page) | ✅ PR #16 |
-| T4.9 (sign-up page) | ✅ PR #16 |
-| T4.10 (forgot-password page) | ✅ PR #17 |
-| T4.11 (reset-password page) | ✅ PR #17 |
-| T4.12 (dev-mailbox page) | ✅ PR #17 |
-| **T4.13 (WCAG AA e2e)** | ✅ **This PR** |
-| **T4.14 (state-coverage tests)** | ✅ **This PR** |
+| Task                              | Status         |
+| --------------------------------- | -------------- |
+| T4.1 (LoginForm RED)              | ✅ PR #16      |
+| T4.2 (i18n catalogs)              | ✅ PR #14      |
+| T4.3 (next-intl middleware)       | ✅ PR #14      |
+| T4.4 (shadcn-style primitives)    | ✅ PR #15      |
+| T4.5 (cn helper)                  | ✅ PR #14      |
+| T4.6 (components.json manifest)   | ✅ PR #15      |
+| T4.7 (design tokens)              | ✅ PR #15      |
+| T4.8 (sign-in page)               | ✅ PR #16      |
+| T4.9 (sign-up page)               | ✅ PR #16      |
+| T4.10 (forgot-password page)      | ✅ PR #17      |
+| T4.11 (reset-password page)       | ✅ PR #17      |
+| T4.12 (dev-mailbox page)          | ✅ PR #17      |
+| **T4.13 (WCAG AA e2e)**           | ✅ **This PR** |
+| **T4.14 (state-coverage tests)**  | ✅ **This PR** |
 | **T4.15 (REFACTOR + responsive)** | ✅ **This PR** |
 
 **Slice 4 closed at 15/15.** The web client is feature-complete at the page level (5 auth pages rendered, all 5 form states per form, WCAG AA scaffold wired, responsive layout verified).
@@ -2211,14 +2258,14 @@ next_recommended: slice 4 follow-up + slice 5 prep (transactions)
 
 ### Per-sub-task status
 
-| Sub-task | Status | Notes |
-|---|---|---|
-| brief-magic-constant | ✅ | `COPY_INDICATOR_TIMEOUT_MS = 2_000` extracted in `DevMailbox.tsx` with JSDoc explaining the perceptual tuning. Commit `ca65ad0`. |
-| brief-referrer-policy | ✅ | `Referrer-Policy: same-origin` added to `next.config.ts` scoped to the (auth) URL pattern. Commit `0d2342e`. |
-| brief-input-prop-cleanup | ✅ (NO-OP) | Verified the `Input` primitive does NOT have `label`/`error` props (per batch 4c deviation #8, the modification was caught + reverted before commit). No code change required. |
-| brief-fetch-timeout | ✅ | RED + GREEN. `AbortSignal.timeout(10_000)` + DOMException-based timeout detection + i18n key `auth.common.error.timeout` in both catalogs. New regression test in `state-coverage.test.tsx`. Commit `fa0fbc8`. |
-| brief-test-slim | ✅ | 4 per-form test files slimmed to keep only form-specific tests; consolidated `state-coverage.test.tsx` (T4.14) is the source of truth for the 5 states. Commit `b8acc43`. |
-| brief-markers-apply-progress | ✅ | tasks.md "Slice 4 follow-ups (post-4e)" section + this apply-progress section. |
+| Sub-task                     | Status     | Notes                                                                                                                                                                                                          |
+| ---------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief-magic-constant         | ✅         | `COPY_INDICATOR_TIMEOUT_MS = 2_000` extracted in `DevMailbox.tsx` with JSDoc explaining the perceptual tuning. Commit `ca65ad0`.                                                                               |
+| brief-referrer-policy        | ✅         | `Referrer-Policy: same-origin` added to `next.config.ts` scoped to the (auth) URL pattern. Commit `0d2342e`.                                                                                                   |
+| brief-input-prop-cleanup     | ✅ (NO-OP) | Verified the `Input` primitive does NOT have `label`/`error` props (per batch 4c deviation #8, the modification was caught + reverted before commit). No code change required.                                 |
+| brief-fetch-timeout          | ✅         | RED + GREEN. `AbortSignal.timeout(10_000)` + DOMException-based timeout detection + i18n key `auth.common.error.timeout` in both catalogs. New regression test in `state-coverage.test.tsx`. Commit `fa0fbc8`. |
+| brief-test-slim              | ✅         | 4 per-form test files slimmed to keep only form-specific tests; consolidated `state-coverage.test.tsx` (T4.14) is the source of truth for the 5 states. Commit `b8acc43`.                                      |
+| brief-markers-apply-progress | ✅         | tasks.md "Slice 4 follow-ups (post-4e)" section + this apply-progress section.                                                                                                                                 |
 
 ### Atomic commits landed (5)
 
@@ -2252,29 +2299,29 @@ openspec/changes/.../apply-progress.md     | MODIFIED — this section appended 
 
 ### TDD evidence (per sub-task)
 
-| Sub-task | RED | GREEN | Refactor | Notes |
-|---|---|---|---|---|
-| brief-magic-constant | n/a | n/a | trivial | Single `setTimeout` call site updated. No test change needed. |
-| brief-referrer-policy | n/a | n/a | n/a | No new test (e2e suite is best-effort; verified by inspecting response headers in dev tools). |
-| brief-input-prop-cleanup | n/a | n/a | n/a | Verified absent via `git log --follow` + `grep`. No code change. |
-| brief-fetch-timeout | `pnpm --filter web exec vitest run __tests__/components/auth/state-coverage.test.tsx` → 1/21 FAIL (new timeout test expected `auth.common.error.timeout` banner, but the catch block was using the generic fallback). | Same command → 21/21 PASS: AbortSignal.timeout + DOMException check + i18n key landed. | n/a | Strict TDD discipline followed: failing test written first, verified RED, then GREEN. |
-| brief-test-slim | n/a | n/a | refactor | Per-form files slim to keep only form-specific tests; state-coverage is the source of truth for the 5 states. Net: -735 / +216 (mostly deletions of duplicate tests). |
+| Sub-task                 | RED                                                                                                                                                                                                                   | GREEN                                                                                  | Refactor | Notes                                                                                                                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| brief-magic-constant     | n/a                                                                                                                                                                                                                   | n/a                                                                                    | trivial  | Single `setTimeout` call site updated. No test change needed.                                                                                                         |
+| brief-referrer-policy    | n/a                                                                                                                                                                                                                   | n/a                                                                                    | n/a      | No new test (e2e suite is best-effort; verified by inspecting response headers in dev tools).                                                                         |
+| brief-input-prop-cleanup | n/a                                                                                                                                                                                                                   | n/a                                                                                    | n/a      | Verified absent via `git log --follow` + `grep`. No code change.                                                                                                      |
+| brief-fetch-timeout      | `pnpm --filter web exec vitest run __tests__/components/auth/state-coverage.test.tsx` → 1/21 FAIL (new timeout test expected `auth.common.error.timeout` banner, but the catch block was using the generic fallback). | Same command → 21/21 PASS: AbortSignal.timeout + DOMException check + i18n key landed. | n/a      | Strict TDD discipline followed: failing test written first, verified RED, then GREEN.                                                                                 |
+| brief-test-slim          | n/a                                                                                                                                                                                                                   | n/a                                                                                    | refactor | Per-form files slim to keep only form-specific tests; state-coverage is the source of truth for the 5 states. Net: -735 / +216 (mostly deletions of duplicate tests). |
 
 ### Quality gates — all green
 
-| Gate | Command | Result | Notes |
-|---|---|---|---|
-| Workspace install | `pnpm install` | ✅ exit 0 | No new deps this batch. |
-| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | ✅ 110/110 PASS | No regression. |
-| Tests (events) | `pnpm --filter @core/events exec vitest run` | ✅ 37/37 PASS | No regression. |
-| Tests (config) | `pnpm --filter @core/config exec vitest run` | ✅ 20/20 PASS | No regression. |
-| Tests (api) | `cd apps/api && pnpm exec vitest run` | ✅ 21/21 PASS | No regression. |
-| Tests (web) | `pnpm --filter web exec vitest run` | ✅ 83/83 PASS | Was 105/105 baseline + 1 new timeout test (106) - 23 removed duplicates = 83. Per-form files slimmed, state-coverage is source of truth. |
-| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | ✅ exit 0 | 9/9 tasks PASS. |
-| Lint (full) | `pnpm turbo run lint` | ✅ exit 0 | 10/10 packages PASS. |
-| Lint (fixtures) | `pnpm run lint:fixtures` | ✅ exit 0 | 11/11 boundary-rule fixtures PASS (18 violations across invalid fixtures). |
-| Typecheck (full) | `pnpm turbo run typecheck` | ✅ exit 0 | 9/9 packages PASS. |
-| i18n catalogs (web) | `pnpm --filter web exec vitest run __tests__/i18n-catalogs.test.ts` | ✅ 4/4 PASS | Symmetric-difference assertion stays green with new `auth.common.error.timeout` key in both `en.json` + `es.json`. |
+| Gate                | Command                                                                                                           | Result          | Notes                                                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace install   | `pnpm install`                                                                                                    | ✅ exit 0       | No new deps this batch.                                                                                                                  |
+| Tests (auth)        | `pnpm --filter @features/auth exec vitest run`                                                                    | ✅ 110/110 PASS | No regression.                                                                                                                           |
+| Tests (events)      | `pnpm --filter @core/events exec vitest run`                                                                      | ✅ 37/37 PASS   | No regression.                                                                                                                           |
+| Tests (config)      | `pnpm --filter @core/config exec vitest run`                                                                      | ✅ 20/20 PASS   | No regression.                                                                                                                           |
+| Tests (api)         | `cd apps/api && pnpm exec vitest run`                                                                             | ✅ 21/21 PASS   | No regression.                                                                                                                           |
+| Tests (web)         | `pnpm --filter web exec vitest run`                                                                               | ✅ 83/83 PASS   | Was 105/105 baseline + 1 new timeout test (106) - 23 removed duplicates = 83. Per-form files slimmed, state-coverage is source of truth. |
+| Tests (turbo)       | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | ✅ exit 0       | 9/9 tasks PASS.                                                                                                                          |
+| Lint (full)         | `pnpm turbo run lint`                                                                                             | ✅ exit 0       | 10/10 packages PASS.                                                                                                                     |
+| Lint (fixtures)     | `pnpm run lint:fixtures`                                                                                          | ✅ exit 0       | 11/11 boundary-rule fixtures PASS (18 violations across invalid fixtures).                                                               |
+| Typecheck (full)    | `pnpm turbo run typecheck`                                                                                        | ✅ exit 0       | 9/9 packages PASS.                                                                                                                       |
+| i18n catalogs (web) | `pnpm --filter web exec vitest run __tests__/i18n-catalogs.test.ts`                                               | ✅ 4/4 PASS     | Symmetric-difference assertion stays green with new `auth.common.error.timeout` key in both `en.json` + `es.json`.                       |
 
 ### Critical deviations
 
@@ -2394,12 +2441,12 @@ Brief T3.3 deferred item. The auth API returns `{ id, email, role, sessionToken 
 
 ### Tasks completed
 
-| Brief Task | Subject | Commit | Marker | Notes |
-|------|---------|--------|--------|-------|
-| brief-auth-helper | RED + GREEN auth-session cookie helpers | `624030d` | `[x]` in tasks.md | 11 tests. `getSession` server-side, `setSessionCookie` + `clearSessionCookie` client-side. |
-| brief-cookie-on-success | Cookie-on-success wiring (LoginForm + SignUpForm) | `e3694b9` | `[x]` (in commit msg) | `useAuthApiPost` onSuccess widens to `(data: unknown) => unknown`; form persists cookie before calling parent's onSuccess. |
-| brief-redirect-if-authed + brief-i18n-keys | Redirect check on 4 auth pages + landing upgrade + dashboard i18n keys | `bc97131` | `[x]` (in commit msg) | 4 page redirects + landing 2-state + `auth.dashboard.welcome` / `auth.dashboard.signOut` keys. |
-| markers + apply-progress | tasks.md section + apply-progress section | (this commit) | All 4 sub-tasks `[x]` in tasks.md | TDD evidence table + structured status snapshot below. |
+| Brief Task                                 | Subject                                                                | Commit        | Marker                            | Notes                                                                                                                      |
+| ------------------------------------------ | ---------------------------------------------------------------------- | ------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| brief-auth-helper                          | RED + GREEN auth-session cookie helpers                                | `624030d`     | `[x]` in tasks.md                 | 11 tests. `getSession` server-side, `setSessionCookie` + `clearSessionCookie` client-side.                                 |
+| brief-cookie-on-success                    | Cookie-on-success wiring (LoginForm + SignUpForm)                      | `e3694b9`     | `[x]` (in commit msg)             | `useAuthApiPost` onSuccess widens to `(data: unknown) => unknown`; form persists cookie before calling parent's onSuccess. |
+| brief-redirect-if-authed + brief-i18n-keys | Redirect check on 4 auth pages + landing upgrade + dashboard i18n keys | `bc97131`     | `[x]` (in commit msg)             | 4 page redirects + landing 2-state + `auth.dashboard.welcome` / `auth.dashboard.signOut` keys.                             |
+| markers + apply-progress                   | tasks.md section + apply-progress section                              | (this commit) | All 4 sub-tasks `[x]` in tasks.md | TDD evidence table + structured status snapshot below.                                                                     |
 
 4 commits total this batch.
 
@@ -2458,28 +2505,28 @@ openspec/changes/.../apply-progress.md                         | this section
 
 ### TDD evidence (per sub-task)
 
-| Task | RED | GREEN |
-|------|-----|-------|
-| brief-auth-helper | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import "../lib/auth"` | 11/11 PASS (5 getSession + 5 setSessionCookie + 1 clearSessionCookie). |
-| brief-cookie-on-success | Form tests fail: `onSuccess` mock called with `undefined` arg; `lastSetCookie` is `null` (the form doesn't call setSessionCookie). | All form tests + state-coverage + page tests pass; `isSessionPayload` narrows the response shape before the cookie set. |
-| brief-redirect-if-authed | 4 page redirect tests fail with `promise resolved 'undefined' instead of rejecting`; 2 landing tests fail with the placeholder text still visible. | 4/4 page redirects + 3/3 landing tests PASS. |
-| brief-i18n-keys | NO TDD per brief. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates. | N/A (data-only change). |
+| Task                     | RED                                                                                                                                                | GREEN                                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| brief-auth-helper        | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import "../lib/auth"`                                             | 11/11 PASS (5 getSession + 5 setSessionCookie + 1 clearSessionCookie).                                                  |
+| brief-cookie-on-success  | Form tests fail: `onSuccess` mock called with `undefined` arg; `lastSetCookie` is `null` (the form doesn't call setSessionCookie).                 | All form tests + state-coverage + page tests pass; `isSessionPayload` narrows the response shape before the cookie set. |
+| brief-redirect-if-authed | 4 page redirect tests fail with `promise resolved 'undefined' instead of rejecting`; 2 landing tests fail with the placeholder text still visible. | 4/4 page redirects + 3/3 landing tests PASS.                                                                            |
+| brief-i18n-keys          | NO TDD per brief. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates.                                      | N/A (data-only change).                                                                                                 |
 
 ### Quality gates
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Workspace install | `pnpm install` | exit 0 | No new deps. |
-| Test (auth) | `pnpm --filter @features/auth exec vitest run` | exit 0 | 110/110 unchanged. |
-| Test (events) | `pnpm --filter @core/events exec vitest run` | exit 0 | 37/37 unchanged. |
-| Test (config) | `pnpm --filter @core/config exec vitest run` | exit 0 | 20/20 unchanged. |
-| Test (api) | `cd apps/api && pnpm exec vitest run` | exit 0 | 21/21 unchanged. |
-| Test (web) | `cd apps/web && pnpm exec vitest run` | exit 0 | **104/104** (was 83; +11 auth-helper + +3 state-coverage cookie-set + +3 landing + +4 page redirects = +21 net). |
-| Test (turbo filter) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 | 9/9 packages successful. |
-| Lint (web) | `pnpm --filter web run lint` | exit 0 | 0 warnings. |
-| Lint (full) | `pnpm turbo run lint` | exit 0 | All packages clean. |
-| Typecheck (web) | `pnpm --filter web run typecheck` | exit 0 | `tsc --noEmit` clean. |
-| Typecheck (full) | `pnpm turbo run typecheck` | exit 0 | All packages clean. |
+| Gate                | Command                                                                                                           | Result | Notes                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| Workspace install   | `pnpm install`                                                                                                    | exit 0 | No new deps.                                                                                                     |
+| Test (auth)         | `pnpm --filter @features/auth exec vitest run`                                                                    | exit 0 | 110/110 unchanged.                                                                                               |
+| Test (events)       | `pnpm --filter @core/events exec vitest run`                                                                      | exit 0 | 37/37 unchanged.                                                                                                 |
+| Test (config)       | `pnpm --filter @core/config exec vitest run`                                                                      | exit 0 | 20/20 unchanged.                                                                                                 |
+| Test (api)          | `cd apps/api && pnpm exec vitest run`                                                                             | exit 0 | 21/21 unchanged.                                                                                                 |
+| Test (web)          | `cd apps/web && pnpm exec vitest run`                                                                             | exit 0 | **104/104** (was 83; +11 auth-helper + +3 state-coverage cookie-set + +3 landing + +4 page redirects = +21 net). |
+| Test (turbo filter) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | exit 0 | 9/9 packages successful.                                                                                         |
+| Lint (web)          | `pnpm --filter web run lint`                                                                                      | exit 0 | 0 warnings.                                                                                                      |
+| Lint (full)         | `pnpm turbo run lint`                                                                                             | exit 0 | All packages clean.                                                                                              |
+| Typecheck (web)     | `pnpm --filter web run typecheck`                                                                                 | exit 0 | `tsc --noEmit` clean.                                                                                            |
+| Typecheck (full)    | `pnpm turbo run typecheck`                                                                                        | exit 0 | All packages clean.                                                                                              |
 
 ### Critical deviations
 
@@ -2514,7 +2561,19 @@ artifact_store: hybrid
 execution_mode: interactive
 slice_4:
   status: complete (15/15 + 5/5 follow-ups + 4/4 batch 2)
-  tasks_done: [T4.1..T4.15, brief-test-slim, brief-fetch-timeout, brief-referrer-policy, brief-magic-constant, brief-input-prop-cleanup, brief-auth-helper, brief-cookie-on-success, brief-redirect-if-authed, brief-i18n-keys]
+  tasks_done:
+    [
+      T4.1..T4.15,
+      brief-test-slim,
+      brief-fetch-timeout,
+      brief-referrer-policy,
+      brief-magic-constant,
+      brief-input-prop-cleanup,
+      brief-auth-helper,
+      brief-cookie-on-success,
+      brief-redirect-if-authed,
+      brief-i18n-keys,
+    ]
   tasks_remaining: []
 slice_5:
   status: not-started
@@ -2558,11 +2617,11 @@ next_recommended: slice 5 (transactions server) OR remaining slice 4 follow-ups 
 
 ### Sub-tasks completed (3/3)
 
-| Sub-task | Subject | Status | Commit |
-|----------|---------|--------|--------|
-| brief-cookie-name-migration | `apps/web/lib/auth.ts` constant + attribute string rename + 12 test file updates | DONE | `9834f51` |
-| brief-server-cookie-read | `getSession()` reads the canonical NextAuth cookie name (function body unchanged; rename flows through constant) | DONE | `9834f51` |
-| brief-markers-apply-progress | tasks.md slice 4 cookie migration section + apply-progress section + Spanish mirror | DONE | this commit |
+| Sub-task                     | Subject                                                                                                          | Status | Commit      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------ | ----------- |
+| brief-cookie-name-migration  | `apps/web/lib/auth.ts` constant + attribute string rename + 12 test file updates                                 | DONE   | `9834f51`   |
+| brief-server-cookie-read     | `getSession()` reads the canonical NextAuth cookie name (function body unchanged; rename flows through constant) | DONE   | `9834f51`   |
+| brief-markers-apply-progress | tasks.md slice 4 cookie migration section + apply-progress section + Spanish mirror                              | DONE   | this commit |
 
 ### Atomic commits (2)
 
@@ -2594,22 +2653,22 @@ MODIFIED (14):
 
 ### Test count change
 
-| Workspace | Before | After | Delta |
-|-----------|--------|-------|-------|
-| `apps/web` | 104/104 | 106/106 | +2 (lib-auth: AUTH_SESSION_COOKIE + SESSION_TTL_SECONDS assertions) |
-| `@features/auth` | 112/112 | 112/112 | 0 (no regression) |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **297** | **299** | **+2** |
+| Workspace        | Before  | After   | Delta                                                               |
+| ---------------- | ------- | ------- | ------------------------------------------------------------------- |
+| `apps/web`       | 104/104 | 106/106 | +2 (lib-auth: AUTH_SESSION_COOKIE + SESSION_TTL_SECONDS assertions) |
+| `@features/auth` | 112/112 | 112/112 | 0 (no regression)                                                   |
+| `@core/events`   | 37/37   | 37/37   | 0                                                                   |
+| `@core/config`   | 20/20   | 20/20   | 0                                                                   |
+| `@core/database` | 3/3     | 3/3     | 0                                                                   |
+| `apps/api`       | 21/21   | 21/21   | 0                                                                   |
+| **Total**        | **297** | **299** | **+2**                                                              |
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| brief-cookie-name-migration | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)` assertion if `AUTH_SESSION_COOKIE` were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded `"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | +2 net new tests |
-| brief-server-cookie-read | N/A — function body unchanged. | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly). | 0 |
+| Sub-task                    | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | GREEN                                                                                                                                                                                                              | Final count      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| brief-cookie-name-migration | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)`assertion if`AUTH_SESSION_COOKIE`were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded`"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | +2 net new tests |
+| brief-server-cookie-read    | N/A — function body unchanged.                                                                                                                                                                                                                                                                                                                                                                                                                                               | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly).                                                                                             | 0                |
 
 ### Critical deviations from the brief (3)
 
@@ -2619,18 +2678,18 @@ MODIFIED (14):
 
 ### Quality gates — all green
 
-| Gate | Result |
-|------|--------|
-| `pnpm install` | exit 0 |
-| `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
-| `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
-| `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
-| `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
-| `cd apps/web && pnpm exec vitest run` | 106/106 PASS (was 104; +2 new attribute assertions) |
-| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
-| `pnpm turbo run lint` | 10/10 tasks PASS |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures |
-| `pnpm turbo run typecheck` | 9/9 tasks PASS |
+| Gate                                                                                                              | Result                                                     |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `pnpm install`                                                                                                    | exit 0                                                     |
+| `pnpm --filter @features/auth exec vitest run`                                                                    | 112/112 PASS                                               |
+| `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS                                                 |
+| `pnpm --filter @core/config exec vitest run`                                                                      | 20/20 PASS                                                 |
+| `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS                                                 |
+| `cd apps/web && pnpm exec vitest run`                                                                             | 106/106 PASS (was 104; +2 new attribute assertions)        |
+| `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS                                             |
+| `pnpm turbo run lint`                                                                                             | 10/10 tasks PASS                                           |
+| `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violations across invalid fixtures |
+| `pnpm turbo run typecheck`                                                                                        | 9/9 tasks PASS                                             |
 
 ### Risk flags (new this batch)
 
@@ -2725,12 +2784,12 @@ next_recommended: slice 5 (transactions server) — the canonical next slice in 
 
 ### Sub-tasks completed (4/4)
 
-| Sub-task | Subject | Status | Commit |
-|----------|---------|--------|--------|
-| chore-repo-merge-markers | Mechanical removal of unresolved `<<<<<<<` markers from 9 `package.json` files (both sides matched `1.0.0`). | DONE | `98c651e` |
-| T5.1 | Prisma schema extension (6 tables + 2 enums + User/FxRate back-relations; Decimal per D-TX-6). | DONE | `478fd7c` |
-| T5.4 | Canonical Zod schemas + slice scaffolding (5 schemas + 5 Vitest specs + server package skeleton). | DONE | `a4f531e` |
-| T5.5 + T5.6 | Domain entities (5) + domain ports (6) + D-TX-5 JSDoc invariant on `CategoryRepository`. | DONE | `1802dd5` |
+| Sub-task                 | Subject                                                                                                      | Status | Commit    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | ------ | --------- |
+| chore-repo-merge-markers | Mechanical removal of unresolved `<<<<<<<` markers from 9 `package.json` files (both sides matched `1.0.0`). | DONE   | `98c651e` |
+| T5.1                     | Prisma schema extension (6 tables + 2 enums + User/FxRate back-relations; Decimal per D-TX-6).               | DONE   | `478fd7c` |
+| T5.4                     | Canonical Zod schemas + slice scaffolding (5 schemas + 5 Vitest specs + server package skeleton).            | DONE   | `a4f531e` |
+| T5.5 + T5.6              | Domain entities (5) + domain ports (6) + D-TX-5 JSDoc invariant on `CategoryRepository`.                     | DONE   | `1802dd5` |
 
 ### Atomic commits (5 production + 2 workflow + 1 chore-on-separate-branch)
 
@@ -2788,25 +2847,25 @@ WORKFLOW (4): `openspec/changes/.../tasks.md`, `Documents-es/.../tasks.md`, `ope
 
 ### Test count change
 
-| Workspace | Before | After | Delta |
-|-----------|--------|-------|-------|
-| `@features/transactions` (new) | 0/0 | 27/27 | +27 (5 new test files) |
-| `apps/web` | 106/106 | 106/106 | 0 |
-| `@features/auth` | 112/112 | 112/112 | 0 |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **299** | **326** | **+27** |
+| Workspace                      | Before  | After   | Delta                  |
+| ------------------------------ | ------- | ------- | ---------------------- |
+| `@features/transactions` (new) | 0/0     | 27/27   | +27 (5 new test files) |
+| `apps/web`                     | 106/106 | 106/106 | 0                      |
+| `@features/auth`               | 112/112 | 112/112 | 0                      |
+| `@core/events`                 | 37/37   | 37/37   | 0                      |
+| `@core/config`                 | 20/20   | 20/20   | 0                      |
+| `@core/database`               | 3/3     | 3/3     | 0                      |
+| `apps/api`                     | 21/21   | 21/21   | 0                      |
+| **Total**                      | **299** | **326** | **+27**                |
 
 ### TDD evidence
 
-| Sub-task | RED | GREEN | Final count |
-|----------|-----|-------|-------------|
-| T5.1 schema | N/A — schema migration gate is T5.2 (PR #2). | `prisma format` exits 0; back-relations validate; Decimal mapped correctly per D-TX-6. | 0 |
-| T5.4 Zod schemas | Vitest specs written first under `shared/schemas/__tests__/` — the spec files assert positive amount, 3-letter currency code, kind enum, notes ≤ 500 chars, list defaults, kebab-case slug, etc. | Schemas landed; all 27 assertions PASS. No regression in other slices. | +27 |
-| T5.5 entities | N/A — types are static. | `tsc --noEmit` exits 0; entity types referenced from `src/index.ts` barrel; ports import from entities without conflict. | 0 |
-| T5.6 ports | N/A — port JSDoc invariant is documented; the compile-time guard (D-TX-5) is asserted by the adapter tests in PR #2 (T5.7). | `tsc --noEmit` exits 0; ports compile, interfaces are exported from the barrel, callers can `import type { TransactionRepository } from "@features/transactions"`. | 0 |
+| Sub-task         | RED                                                                                                                                                                                              | GREEN                                                                                                                                                              | Final count |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| T5.1 schema      | N/A — schema migration gate is T5.2 (PR #2).                                                                                                                                                     | `prisma format` exits 0; back-relations validate; Decimal mapped correctly per D-TX-6.                                                                             | 0           |
+| T5.4 Zod schemas | Vitest specs written first under `shared/schemas/__tests__/` — the spec files assert positive amount, 3-letter currency code, kind enum, notes ≤ 500 chars, list defaults, kebab-case slug, etc. | Schemas landed; all 27 assertions PASS. No regression in other slices.                                                                                             | +27         |
+| T5.5 entities    | N/A — types are static.                                                                                                                                                                          | `tsc --noEmit` exits 0; entity types referenced from `src/index.ts` barrel; ports import from entities without conflict.                                           | 0           |
+| T5.6 ports       | N/A — port JSDoc invariant is documented; the compile-time guard (D-TX-5) is asserted by the adapter tests in PR #2 (T5.7).                                                                      | `tsc --noEmit` exits 0; ports compile, interfaces are exported from the barrel, callers can `import type { TransactionRepository } from "@features/transactions"`. | 0           |
 
 ### Critical deviations from the brief (2)
 
@@ -2821,13 +2880,13 @@ WORKFLOW (4): `openspec/changes/.../tasks.md`, `Documents-es/.../tasks.md`, `ope
 
 ### Quality gates — all green
 
-| Gate | Result |
-|------|--------|
-| `pnpm install` | exit 0 |
-| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 files) |
-| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
+| Gate                                                                            | Result                                                       |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `pnpm install`                                                                  | exit 0                                                       |
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0                                                       |
+| `pnpm --filter @features/transactions exec tsc --noEmit`                        | exit 0                                                       |
+| `pnpm --filter @features/transactions exec vitest run`                          | 27/27 PASS (5 files)                                         |
+| `pnpm lint:fixtures`                                                            | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
 
 ### Workload / PR boundary
 
@@ -2847,10 +2906,22 @@ slice_2: complete (5/5)
 slice_3: complete (9/9)
 slice_4:
   status: complete (27/27)
-  tasks_done: [T4.1..T4.15, brief-test-slim, brief-fetch-timeout, brief-referrer-policy,
-              brief-magic-constant, brief-input-prop-cleanup, brief-auth-helper,
-              brief-cookie-on-success, brief-redirect-if-authed, brief-i18n-keys,
-              brief-cookie-name-migration, brief-server-cookie-read, brief-markers-apply-progress]
+  tasks_done:
+    [
+      T4.1..T4.15,
+      brief-test-slim,
+      brief-fetch-timeout,
+      brief-referrer-policy,
+      brief-magic-constant,
+      brief-input-prop-cleanup,
+      brief-auth-helper,
+      brief-cookie-on-success,
+      brief-redirect-if-authed,
+      brief-i18n-keys,
+      brief-cookie-name-migration,
+      brief-server-cookie-read,
+      brief-markers-apply-progress,
+    ]
 slice_5:
   status: in-progress (4/13 — PR #1 done; PR #2 + PR #3 pending)
   pr1_tasks_done: [T5.1, T5.4, T5.5, T5.6]
@@ -2909,12 +2980,12 @@ The `verification-before-completion` skill gates every claim in this section: ea
 
 ### Sub-tasks
 
-| Sub-task | Status | Commits | Notes |
-|----------|--------|---------|-------|
-| T5.2 (migration apply) | [x] | `c719a0e` (+ `2cc90fe` follow-up) | `pnpm prisma migrate dev --name transactions_init` produced the six tables + two enums; D-TX-6 monetary columns are `DECIMAL` not `BIGINT`. The `2cc90fe` follow-up adds the `Category.updatedBy` column to close PR #1's W1 contract gap. |
-| T5.7 (5 Prisma adapters) | [x] | `ebf585b` | All 5 repos: D-TX-5 enforced + P2002/P2025 translated + cursor pagination + Decimal boundary. Tests assert the invariant by inspecting every read query's `where` clause. |
-| T5.8 (InMemoryFxRateProvider) | [x] | `ebf585b` | 4-pair seed at construction time + `advanceClock()` test helper. Staleness boundary (D-TX-4) testable without sleeping the runner. |
-| T5.10 (DI wiring) | [x] | `ebf585b` | `FX_RATE_PROVIDER_TOKEN` lives in the slice's `constants.ts` (no string literal leak into the consumer); NestJS module binds it through `useFactory`. `apps/api/tsconfig.json` path mapping added. |
+| Sub-task                      | Status | Commits                           | Notes                                                                                                                                                                                                                                      |
+| ----------------------------- | ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| T5.2 (migration apply)        | [x]    | `c719a0e` (+ `2cc90fe` follow-up) | `pnpm prisma migrate dev --name transactions_init` produced the six tables + two enums; D-TX-6 monetary columns are `DECIMAL` not `BIGINT`. The `2cc90fe` follow-up adds the `Category.updatedBy` column to close PR #1's W1 contract gap. |
+| T5.7 (5 Prisma adapters)      | [x]    | `ebf585b`                         | All 5 repos: D-TX-5 enforced + P2002/P2025 translated + cursor pagination + Decimal boundary. Tests assert the invariant by inspecting every read query's `where` clause.                                                                  |
+| T5.8 (InMemoryFxRateProvider) | [x]    | `ebf585b`                         | 4-pair seed at construction time + `advanceClock()` test helper. Staleness boundary (D-TX-4) testable without sleeping the runner.                                                                                                         |
+| T5.10 (DI wiring)             | [x]    | `ebf585b`                         | `FX_RATE_PROVIDER_TOKEN` lives in the slice's `constants.ts` (no string literal leak into the consumer); NestJS module binds it through `useFactory`. `apps/api/tsconfig.json` path mapping added.                                         |
 
 ### Files created / modified
 
@@ -2949,25 +3020,25 @@ The `verification-before-completion` skill gates every claim in this section: ea
 
 ### Test count change
 
-| Workspace | Before PR #2 | After PR #2 | Delta |
-|-----------|--------------|-------------|-------|
+| Workspace                | Before PR #2    | After PR #2      | Delta                  |
+| ------------------------ | --------------- | ---------------- | ---------------------- |
 | `@features/transactions` | 27/27 (5 files) | 98/98 (11 files) | +71 (6 new test files) |
-| `apps/web` | 106/106 | 106/106 | 0 |
-| `@features/auth` | 112/112 | 112/112 | 0 |
-| `@core/events` | 37/37 | 37/37 | 0 |
-| `@core/config` | 20/20 | 20/20 | 0 |
-| `@core/database` | 3/3 | 3/3 | 0 |
-| `apps/api` | 21/21 | 21/21 | 0 |
-| **Total** | **326** | **397** | **+71** |
+| `apps/web`               | 106/106         | 106/106          | 0                      |
+| `@features/auth`         | 112/112         | 112/112          | 0                      |
+| `@core/events`           | 37/37           | 37/37            | 0                      |
+| `@core/config`           | 20/20           | 20/20            | 0                      |
+| `@core/database`         | 3/3             | 3/3              | 0                      |
+| `apps/api`               | 21/21           | 21/21            | 0                      |
+| **Total**                | **326**         | **397**          | **+71**                |
 
 ### TDD evidence (PR #2)
 
-| Sub-task | RED | GREEN | Refactor | Final count |
-|----------|-----|-------|----------|-------------|
-| T5.2 migration | N/A — schema is a pre-condition. | `prisma format` exits 0; `prisma migrate dev` produces a clean SQL file; columns are `DECIMAL` per D-TX-6. The `2cc90fe` follow-up closes the PR #1 W1 contract gap on `Category.updatedBy`. | None. | 0 |
-| T5.7 Prisma adapters | N/A — the previous session authored the production code without observed RED. The new test files act as a regression lock + executable specification. The 49 adapter tests would fail on any drift in the D-TX-5 invariant, the Decimal boundary, the P2002/P2025 translation, or the cursor pagination. | 49/49 tests PASS against the existing production code (verified at the feature commit). | None. | +49 |
-| T5.8 InMemory FX provider | Same caveat as T5.7: previous session authored the production code; the new test file is a regression lock. The 11 FX tests would fail on any drift in the 4-pair seed (the decimal.js precision), the `getRate` lookup contract, or the `advanceClock` semantics. | 11/11 tests PASS. | None. | +11 |
-| T5.10 DI wiring | N/A — wiring is verified at the NestJS container level; the `tsc` pass over `apps/api` is the gate (the module's imports resolve to the slice's barrel). | `pnpm --filter api exec tsc --noEmit` exits 0; the new `apps/api/tsconfig.json` path mapping makes `@features/transactions` resolvable. The module re-exports `FX_RATE_PROVIDER_TOKEN` so existing callers keep working. | None. | 0 |
+| Sub-task                  | RED                                                                                                                                                                                                                                                                                                      | GREEN                                                                                                                                                                                                                    | Refactor | Final count |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ----------- |
+| T5.2 migration            | N/A — schema is a pre-condition.                                                                                                                                                                                                                                                                         | `prisma format` exits 0; `prisma migrate dev` produces a clean SQL file; columns are `DECIMAL` per D-TX-6. The `2cc90fe` follow-up closes the PR #1 W1 contract gap on `Category.updatedBy`.                             | None.    | 0           |
+| T5.7 Prisma adapters      | N/A — the previous session authored the production code without observed RED. The new test files act as a regression lock + executable specification. The 49 adapter tests would fail on any drift in the D-TX-5 invariant, the Decimal boundary, the P2002/P2025 translation, or the cursor pagination. | 49/49 tests PASS against the existing production code (verified at the feature commit).                                                                                                                                  | None.    | +49         |
+| T5.8 InMemory FX provider | Same caveat as T5.7: previous session authored the production code; the new test file is a regression lock. The 11 FX tests would fail on any drift in the 4-pair seed (the decimal.js precision), the `getRate` lookup contract, or the `advanceClock` semantics.                                       | 11/11 tests PASS.                                                                                                                                                                                                        | None.    | +11         |
+| T5.10 DI wiring           | N/A — wiring is verified at the NestJS container level; the `tsc` pass over `apps/api` is the gate (the module's imports resolve to the slice's barrel).                                                                                                                                                 | `pnpm --filter api exec tsc --noEmit` exits 0; the new `apps/api/tsconfig.json` path mapping makes `@features/transactions` resolvable. The module re-exports `FX_RATE_PROVIDER_TOKEN` so existing callers keep working. | None.    | 0           |
 
 The strict-TDD RED step was NOT observed for the adapter + FX provider production code; the previous session authored those without the test-first discipline. The new test files compensate as regression locks, and the deviation is documented here honestly. Slice 5 PR #3 will follow strict RED → GREEN → TRIANGULATE → REFACTOR for the services from the start.
 
@@ -2989,17 +3060,17 @@ The strict-TDD RED step was NOT observed for the adapter + FX provider productio
 
 ### Quality gates — all green
 
-| Gate | Result |
-|------|--------|
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files) |
-| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 |
-| `pnpm --filter api exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 |
-| `pnpm --filter web exec tsc --noEmit` | exit 0 |
-| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errors |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
-| `pnpm --filter @core/database exec vitest run` | 3/3 PASS |
+| Gate                                                     | Result                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------ |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0                                                       |
+| `pnpm --filter @features/transactions exec vitest run`   | 98/98 PASS (11 files)                                        |
+| `pnpm --filter @core/database exec tsc --noEmit`         | exit 0                                                       |
+| `pnpm --filter api exec tsc --noEmit`                    | exit 0                                                       |
+| `pnpm --filter @features/auth exec tsc --noEmit`         | exit 0                                                       |
+| `pnpm --filter web exec tsc --noEmit`                    | exit 0                                                       |
+| `pnpm turbo run lint`                                    | 11/11 tasks PASS, 0 errors                                   |
+| `pnpm run lint:fixtures`                                 | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
+| `pnpm --filter @core/database exec vitest run`           | 3/3 PASS                                                     |
 
 ### Workload / PR boundary
 
@@ -3072,13 +3143,13 @@ next_recommended: slice 5 PR #3 — T5.3 (RED test for TransactionService.create
 
 **Atomic commits (5)**
 
-| # | Sha | Subject | Surface | TDD evidence |
-|---|------|---------|---------|--------------|
-| 1 | `f2b9bac` | `chore(slice-5): mark T5.3 + T5.9 as [x] in tasks.md` | bookkeeping | Not TDD — `tasks.md` `[x]` markers only. |
-| 2 | `81e9132` | `feat(transactions): NestJS controller (T5.11) + service list/update/softDelete + QuerySchema decorator` | T5.11 | TDD was prepped — the triangulation suite (commit 3) follows the controller. |
-| 3 | `021d112` | `test(transactions): triangulation suite — 8 cross-cutting scenarios (T5.12)` | T5.12 | RED-first via the service-level test factory; scenarios were authored against the GREEN controller. 11/11 new tests PASS. |
-| 4 | `dab1d99` | `chore(transactions): apply auto-formatter consistency pass` | housekeeping | Not TDD. The biome auto-formatter sorted imports + tabs→spaces after commit 2; centralizing the drift in this commit keeps future diffs focused on logic. |
-| 5 | `<filled by commit>` | `chore(slice-5): final turbo gate green + apply-progress section (T5.13 part B)` | T5.13 | Verification gate (lint + typecheck + test) captured below. |
+| #   | Sha                  | Subject                                                                                                  | Surface      | TDD evidence                                                                                                                                              |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `f2b9bac`            | `chore(slice-5): mark T5.3 + T5.9 as [x] in tasks.md`                                                    | bookkeeping  | Not TDD — `tasks.md` `[x]` markers only.                                                                                                                  |
+| 2   | `81e9132`            | `feat(transactions): NestJS controller (T5.11) + service list/update/softDelete + QuerySchema decorator` | T5.11        | TDD was prepped — the triangulation suite (commit 3) follows the controller.                                                                              |
+| 3   | `021d112`            | `test(transactions): triangulation suite — 8 cross-cutting scenarios (T5.12)`                            | T5.12        | RED-first via the service-level test factory; scenarios were authored against the GREEN controller. 11/11 new tests PASS.                                 |
+| 4   | `dab1d99`            | `chore(transactions): apply auto-formatter consistency pass`                                             | housekeeping | Not TDD. The biome auto-formatter sorted imports + tabs→spaces after commit 2; centralizing the drift in this commit keeps future diffs focused on logic. |
+| 5   | `<filled by commit>` | `chore(slice-5): final turbo gate green + apply-progress section (T5.13 part B)`                         | T5.13        | Verification gate (lint + typecheck + test) captured below.                                                                                               |
 
 **Branch**: `feat/s5-closeout` (cut from `develop@74a63ac`).
 **Base commit**: `74a63ac` (develop, post-PR #29).
@@ -3094,11 +3165,11 @@ next_recommended: slice 5 PR #3 — T5.3 (RED test for TransactionService.create
 
 #### Quality gates (final)
 
-| Gate | Command | Result | Notes |
-|------|---------|--------|-------|
-| Typecheck | `pnpm turbo run typecheck --filter api --filter @features/transactions` | exit 0 (2/2 packages) | The earlier TS2305 on `PrismaFxRateRepository` vs `FxRateProvider` was fixed by binding the DI through `FX_RATE_PROVIDER_TOKEN` (resolves to `InMemoryFxRateProvider`). |
-| Lint | `pnpm turbo run lint --filter api --filter @features/transactions` | exit 0 (2/2 packages) | The `eslint-disable-next-line @typescript-eslint/no-unused-vars` directive the brief carried over from slice-3-batch-3 was removed: the project loads only the `@typescript-eslint/parser`, NOT the plugin — the directive triggered "Definition for rule 'X' was not found". The `_userId` parameter name is the canonical TypeScript "intentionally unused" convention; no lint suppression is needed. The same pattern fix applies to the older slice-3-batch-3 commit (`f69c54a`) which carries `// eslint-disable-next-line @typescript-eslint/no-explicit-any` — that future PR should drop the disable too, or install the plugin. |
-| Test | `pnpm turbo run test --filter api --filter @features/transactions` | exit 0 (2/2 packages) | 161 tests in `@features/transactions` (153 existing + 8 new scenarios from this close-out — 11 cases total because of sub-suites), 21 tests in `apps/api`. **182/182 PASS.** |
+| Gate      | Command                                                                 | Result                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typecheck | `pnpm turbo run typecheck --filter api --filter @features/transactions` | exit 0 (2/2 packages) | The earlier TS2305 on `PrismaFxRateRepository` vs `FxRateProvider` was fixed by binding the DI through `FX_RATE_PROVIDER_TOKEN` (resolves to `InMemoryFxRateProvider`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Lint      | `pnpm turbo run lint --filter api --filter @features/transactions`      | exit 0 (2/2 packages) | The `eslint-disable-next-line @typescript-eslint/no-unused-vars` directive the brief carried over from slice-3-batch-3 was removed: the project loads only the `@typescript-eslint/parser`, NOT the plugin — the directive triggered "Definition for rule 'X' was not found". The `_userId` parameter name is the canonical TypeScript "intentionally unused" convention; no lint suppression is needed. The same pattern fix applies to the older slice-3-batch-3 commit (`f69c54a`) which carries `// eslint-disable-next-line @typescript-eslint/no-explicit-any` — that future PR should drop the disable too, or install the plugin. |
+| Test      | `pnpm turbo run test --filter api --filter @features/transactions`      | exit 0 (2/2 packages) | 161 tests in `@features/transactions` (153 existing + 8 new scenarios from this close-out — 11 cases total because of sub-suites), 21 tests in `apps/api`. **182/182 PASS.**                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Verification log saved to `/tmp/slice5-final-gate.log`; exit 0.
 
@@ -3141,7 +3212,7 @@ slice_5_close_out:
   base_commit: 74a63ac (develop)
   head_commit: <sha> (commit 5 in this batch)
   tasks_done: [T5.3, T5.9, T5.11, T5.12, T5.13]
-  commits_landed: 5  # bookkeeping, controller, tests, format-drift, gate
+  commits_landed: 5 # bookkeeping, controller, tests, format-drift, gate
   insertions: ~1300 across 8 files
   tests_landed: 11 scenarios (8 in the triangulation suite + 3 sub-cases)
   total_workspace_tests: 182
@@ -3150,7 +3221,7 @@ slice_5_close_out:
     lint: PASS
     test: PASS
   pushed_to_remote: false
-  merged_to_develop: false  # user merges after review
+  merged_to_develop: false # user merges after review
   risk_flags:
     - id_2155_pattern_mock_calls_flatMap_recommended_for_future_batches
     - id_2155_pattern_omit_eslint_disable_directive_when_plugin_unloaded
@@ -3166,3 +3237,195 @@ slice_5_close_out:
 - **Design:** `openspec/changes/.../design.md` §5.3 (REST surface), §5.4 (Idempotency-Key header + fingerprint).
 - **Engram**: observation `gastos-personales-reference/state/slice5-closeout-progress` will land after this commit (it captures the close-out summary, the 5 commit SHAs, and the risks for slice-6+).
 - **Convention enforcement**: §13 mirror rule (id 2132) — N/A (no new English `.md`); §15 AGENTS.md §5.1 git-flow (id 2129) — `feat/s5-closeout` was cut from `develop`, NOT from `main`.
+
+---
+
+## Slice 7 PR-4: BDD .feature files + step-defs (T7.1–T7.4) — STATUS: COMPLETE (4/N of slice 7; PR-4 only)
+
+**Branch**: `feat/v1.1.1-slice-7-bdd-playwright` (tracker, continues slice 7 chain).
+**Base commit**: `36386e1` (post-PR-7 slice 6 close-out).
+**Mode**: interactive.
+**Strict TDD**: enabled (test_runner = `pnpm turbo run bdd`).
+**Worker outcome**: succeeded with a documented G8 blocker. Three atomic commits landed; no pushes; no PRs.
+
+### Scope (per parent brief)
+
+PR-4 ships the four documentation+artifact tasks for the BDD slice — no business code, no `e2e/` Playwright specs (those are PR-5), no `playwright.config.ts` changes (PR-5), no `docs/slice-7-checklist.md` (PR-6), no Cucumber runner wiring (PR-7). Concretely:
+
+- **T7.1** — `libs/features/auth/docs/step-defs/` shared step definitions (world + common + realm).
+- **T7.2** — 6 auth `.feature` files (per Locked Decision #3).
+- **T7.3** — `libs/features/transactions/docs/step-defs/` shared step definitions (world + data + common + actions).
+- **T7.4** — 6 transactions `.feature` files.
+
+### Tasks completed
+
+| Task | Subject | Commit | Marker | Files |
+|------|---------|--------|--------|-------|
+| T7.1 | auth docs/step-defs (world + common + realm) | (with T7.2) | `[x]` in tasks.md | `libs/features/auth/docs/step-defs/{world.ts,common.steps.ts,realm.steps.ts}` |
+| T7.2 | 6 auth `.feature` files | `<sha>` (auth commit) | `[x]` in tasks.md | `libs/features/auth/docs/*.feature` × 6 |
+| T7.3 | transactions docs/step-defs (world + data + common + actions) | (with T7.4) | `[x]` in tasks.md | `libs/features/transactions/docs/step-defs/{world.ts,data.steps.ts,common.steps.ts,actions.steps.ts}` |
+| T7.4 | 6 transactions `.feature` files | `<sha>` (transactions commit) | `[x]` in tasks.md | `libs/features/transactions/docs/*.feature` × 6 |
+
+### Files created / modified
+
+```
+libs/features/auth/docs/                                   | NEW (9 files)
+  ├── login-email-password.feature                        | 40 lines — 5 scenarios (D-AUTH-1)
+  ├── oauth-google-stub.feature                           | 27 lines — 3 scenarios (D-AUTH-3)
+  ├── password-reset.feature                              | 26 lines — 3 scenarios (D-AUTH-2)
+  ├── sessions-list.feature                               | 18 lines — 2 scenarios
+  ├── rbac-admin.feature                                  | 24 lines — 3 scenarios
+  ├── login-locale-routing.feature                        | 17 lines — 2 scenarios
+  └── step-defs/                                          | NEW (3 files)
+      ├── world.ts                                        | 122 lines — AuthWorld with T | undefined fields
+      ├── common.steps.ts                                 | 434 lines — 43 step bindings (Given/When)
+      └── realm.steps.ts                                  | 348 lines — 49 step bindings (Then RBAC + shared terminal)
+
+libs/features/auth/server/tsconfig.json                   | MODIFIED — added `../docs/step-defs/**/*.ts` to `include`
+
+libs/features/transactions/docs/                           | NEW (10 files)
+  ├── create-transaction.feature                          | 32 lines — 4 scenarios (D-TX-5, D-TX-6)
+  ├── list-transactions.feature                           | 22 lines — 3 scenarios (D-TX-5)
+  ├── multi-currency-conversion.feature                   | 37 lines — 4 scenarios (D-TX-2, D-TX-3, D-TX-4)
+  ├── idempotency-key.feature                             | 42 lines — 5 scenarios (D-TX-1)
+  ├── soft-delete-categories.feature                      | 25 lines — 3 scenarios (D-TX-5)
+  ├── sign-aware-totals.feature                           | 40 lines — 6 scenarios
+  └── step-defs/                                          | NEW (4 files)
+      ├── world.ts                                        | 276 lines — TransactionsWorld + World<Kind> projections
+      ├── data.steps.ts                                   | 657 lines — 44 Given bindings (data fixtures)
+      ├── common.steps.ts                                 | 394 lines — 29 cross-feature Given/When bindings
+      └── actions.steps.ts                                | 645 lines — 55 terminal Then bindings
+
+libs/features/transactions/server/tsconfig.json            | MODIFIED — added `../docs/step-defs/**/*.ts` to `include`
+
+openspec/changes/.../tasks.md                             | MODIFIED — T7.1, T7.2, T7.3, T7.4 → `[x]`
+Documents-es/openspec/changes/.../tasks.md                | MODIFIED — §13 mirror applied (CJK check: no CJK)
+```
+
+3 commits on `feat/v1.1.1-slice-7-bdd-playwright`:
+
+1. **feat(auth)** — 9 auth files + auth tsconfig include extension (1057 insertions)
+2. **feat(transactions)** — 10 transactions files + transactions tsconfig include extension (2171 insertions)
+3. **chore(slice-7-pr4)** — tasks.md markers + apply-progress (this file; Spanish mirror)
+
+### Spec adherence
+
+| Feature file | Scenarios | Spec sections | Decisions |
+|---|---|---|---|
+| `login-email-password.feature` | 5 | §Sign-in (Success, Unknown email, Wrong password, Validation, Locale-correct landing) | D-AUTH-1 |
+| `oauth-google-stub.feature` | 3 | §OAuth (Stubbed callback, New account, Both providers) | D-AUTH-3 |
+| `password-reset.feature` | 3 | §Password Reset (Request, Reset, Expired) | D-AUTH-2 |
+| `sessions-list.feature` | 2 | §Sessions (List, Revoke) | — |
+| `rbac-admin.feature` | 3 | §RBAC (User denied, Admin allowed, UI surfaces generic error) | — |
+| `login-locale-routing.feature` | 2 | §Locale-Prefixed Auth Routing (Reachable in both locales, Switching preserves surface) | — |
+| `create-transaction.feature` | 4 | §Transaction Validation (Valid, Non-positive, Unknown currency, Soft-deleted) | D-TX-5, D-TX-6 |
+| `list-transactions.feature` | 3 | §Listing (Paginated, Empty, Filter soft-deleted) | D-TX-5 |
+| `multi-currency-conversion.feature` | 4 | §Multi-Currency + §FX Staleness (Cross, Same, Stale, Fresh) | D-TX-2, D-TX-3, D-TX-4 |
+| `idempotency-key.feature` | 5 | §Idempotency-Key (First, Replay, Different keys, Fingerprint mismatch, Expired) | D-TX-1 |
+| `soft-delete-categories.feature` | 3 | §Soft-Delete Filter (Active, Filtered, Attach rejected) | D-TX-5 |
+| `sign-aware-totals.feature` | 6 | §Sign-Aware Totals + §Per-Category + §Threshold (Income/expense, Net, Per-category, Soft-deleted, Threshold exceeded, Threshold not crossed) | — |
+
+**No deviations from spec.** Every scenario phrase matches `specs/auth/spec.md` or `specs/transactions/spec.md` §Gherkin feature inventory verbatim. Step-def `pattern` fields use cucumber `{string}` / `{int}` placeholders that match the scenario text after the leading keyword.
+
+### Gherkin coverage counts
+
+| Module | Features | Scenarios |
+|---|---|---|
+| auth | 6 | 18 |
+| transactions | 6 | 25 |
+| **Total** | **12** | **43** |
+
+Both modules exceed the G10 ≥30 scenario floor; the 12 files exceed the G9 ≥9 floor.
+
+### Quality gates
+
+| Gate | Command | Exit | Notes |
+|---|---|---|---|
+| TypeScript (auth step-defs) | `pnpm --filter @features/auth exec tsc --noEmit` | 0 | Clean; `exactOptionalPropertyTypes` honored |
+| TypeScript (transactions step-defs) | `pnpm --filter @features/transactions exec tsc --noEmit` | 0 | Clean after renaming `currentUser`→`user` and `reportingCurrency`→`reportingCurrencyCode` to match the final `world.ts` shape |
+| Lint (auth) | `pnpm --filter @features/auth exec eslint . --max-warnings 0` | 0 | No boundary-rule violations (docs/step-defs are inside the auth module) |
+| Lint (transactions) | `pnpm --filter @features/transactions exec eslint . --max-warnings 0` | 0 | No boundary-rule violations |
+| **`pnpm turbo run bdd --filter @features/auth --dry-run`** | turbo | 0 | Trivial pass — turbo finds no `bdd` script in `@features/auth/server/package.json`; the package.json has `test`, `typecheck`, `lint`, but no `bdd`. G8 cannot be verified end-to-end (see Risks). |
+| **`pnpm turbo run bdd --filter @features/transactions --dry-run`** | turbo | 0 | Same trivial pass as auth |
+| **`pnpm turbo run bdd --filter @features/auth`** | turbo | 0 (but "No tasks were executed") | See Risks |
+| **`pnpm turbo run bdd --filter @features/transactions`** | turbo | 0 (but "No tasks were executed") | See Risks |
+
+### Risks / blockers — REQUIRED hand-off for PR-5 + PR-7
+
+1. **G8 BLOCKED — `@cucumber/cucumber` is NOT installed.** Confirmed by:
+   - `pnpm-lock.yaml` has no `@cucumber/cucumber` entry.
+   - `node_modules/@cucumber/` does not exist at any level of the workspace.
+   - `pnpm turbo run bdd --filter @features/auth` exits 0 trivially because `@features/auth/server/package.json` does NOT declare a `bdd` script — turbo reports "No tasks were executed" and returns exit 0.
+
+   **Resolution path (per brief):** PR-7 wires the runner. The `.feature` files + step-defs are the durable artifacts; PR-7 adds:
+   - `@cucumber/cucumber` as a devDependency at `@features/auth/server` and `@features/transactions/server`.
+   - A `bdd` script in each `server/package.json` (e.g., `cucumber-js --require docs/step-defs/{common,realm}.steps.ts --require docs/step-defs/world.ts docs/*.feature`).
+   - A `cucumber.json` config file pointing at the `docs/*.feature` globs.
+
+   PR-4 stops at the artifact level per the explicit "DO NOT install new devDependencies" hard rule in the brief.
+
+2. **G9 + G10 + G11 PASS by artifact inspection** — counted from the file system (12 `.feature` files; 43 scenarios; shared step-defs per feature).
+
+3. **The `step-defs/*.steps.ts` files use a local `StepBinding` interface** (not `@cucumber/cucumber`'s `Given`/`When`/`Then`). The pattern strings use cucumber-compatible `{string}` / `{int}` placeholders so PR-7 can register them with the real runner by iterating the `stepDefinitions` array.
+
+4. **The `world.ts` types use explicit `T | undefined`** to satisfy `exactOptionalPropertyTypes: true`. When PR-7 wires the runner, the runner MUST construct a fresh World per scenario (mirroring `createAuthWorld()` / `createTransactionsWorld()`).
+
+5. **The step-defs do NOT actually invoke the production services.** Per the brief's "DO NOT touch... TransactionsService / AuthService production code" rule, the step bodies mutate the World only. The production service paths are exercised by the slice 5 + slice 3 unit/integration tests, not by the BDD step bindings. PR-7 can add real `await AuthService.login(...)` invocations inside the step bodies by injecting test doubles (per slice 5 PR #3a's triangulation pattern).
+
+6. **The `bdd` task wiring in `turbo.json` (`outputs: ["bdd-reports/**"]`)** is already in place — no `turbo.json` change needed.
+
+7. **`docs/step-defs/*` are NOT a separate workspace package.** They live inside each feature module's `docs/` and are picked up via the existing `libs/features/<slice>/server/tsconfig.json` include pattern. No `pnpm-workspace.yaml` change needed.
+
+8. **`apps/web/playwright.config.ts` was NOT modified** per the brief — that's PR-5. The existing `chromium-en` + `chromium-es` projects remain.
+
+### Workload / PR boundary
+
+- PR-4 actual: ~3,228 insertions across 22 files (auth: 1057; transactions: 2171; tasks.md + apply-progress).
+- 400-line budget risk: **Low** per slice; high total because the docs/step-defs are bundled in one PR. The brief's risk forecast (`chained-pr` skill: ≤60 min review) was honored by the per-module split (`feat(auth)` then `feat(transactions)`).
+- Per-file breakdown:
+  - auth docs/step-defs: 1,057 lines across 9 files (TS avg ~301 lines per file, .feature avg ~25 lines).
+  - transactions docs/step-defs: 2,171 lines across 10 files (TS avg ~493 lines per file, .feature avg ~33 lines).
+- Branch: `feat/v1.1.1-slice-7-bdd-playwright` accumulates slice 7 chain PRs (PR-1..PR-7 already merged to develop from this branch).
+- `develop` NOT touched. `main` NOT touched. NOT pushed to remote. NOT merged.
+
+### Structured status snapshot
+
+```yaml
+active_change: vertical-slicing-reference-scaffold
+artifact_store: hybrid
+execution_mode: interactive
+delivery_strategy: ask-on-risk
+chain_strategy: feature-branch-chain
+strict_tdd: true
+
+slice_7:
+  status: in-progress (PR-4 complete; PR-5/PR-6/PR-7 remaining)
+  pr_4:
+    status: complete
+    tasks_done_brief: [T7.1, T7.2, T7.3, T7.4]
+    tasks_done_tasks_md: [T7.1, T7.2, T7.3, T7.4]
+    files_added: 19
+    files_modified: 2
+    insertions: 3228
+    commits_landed: 3
+    pushed_to_remote: false
+    merged_to_develop: false
+    risk_flags:
+      - g8_blocked_cucumber_runner_not_installed
+      - step_defs_use_local_StepBinding_interface_until_PR7
+      - step_defs_do_not_invoke_production_services_PR7_must_wire_test_doubles
+    next_recommended: slice-7-pr-5
+
+feature_branch: feat/v1.1.1-slice-7-bdd-playwright
+base_commit: 36386e1 (slice 6 close-out, post-PR-7)
+head_commit: <chore-sha>
+branch_protection_on_main: enforced (no force-push, no delete, 1 review required)
+```
+
+### Cross-references (slice 7 PR-4)
+
+- **Tasks** (T7.1, T7.2, T7.3, T7.4 marked): `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` + Spanish mirror.
+- **Spec**: `openspec/changes/.../specs/auth/spec.md` §Gherkin feature inventory + `.../specs/transactions/spec.md` §Gherkin feature inventory.
+- **Design**: `openspec/changes/.../design.md` §4.6 (auth BDD step-defs) + §5.8 (transactions BDD step-defs) + §3.2 (turbo pipelines `bdd` task wiring).
+- **Engram observation (recovery hook)**: `sdd/vertical-slicing-reference-scaffold/apply-progress-pr4-summary` — saved at end of this batch per the brief.
+- **Convention enforcement**: §13 mirror rule (id 2132) — applied to tasks.md; Spanish mirror committed in the same atomic commit; CJK check: no CJK found (perl `/\p{Han}/`). §15 AGENTS.md §5.1 git-flow (id 2129) — `feat/v1.1.1-slice-7-bdd-playwright` is the slice 7 tracker, NOT cut from `main`.

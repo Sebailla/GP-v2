@@ -12,10 +12,11 @@
 
 import boundary from "./tools/eslint-plugin-boundary/index.cjs";
 import tsParser from "@typescript-eslint/parser";
+import markdownPlugin from "@eslint/markdown";
 
 export default [
   {
-ignores: [
+    ignores: [
       "**/node_modules/**",
       "**/dist/**",
       "**/.next/**",
@@ -51,11 +52,33 @@ ignores: [
     },
   },
 
+  // Markdown files: register @eslint/markdown as the language plugin.
+  // The plugin exposes a `language` object ("commonmark") that ESLint's
+  // flat config uses to parse Markdown. The rule block that follows
+  // (Documents-es/**/*.md) reuses the `boundary` plugin to fire
+  // `no-mojibake-in-docs` against the parsed AST.
+  {
+    files: ["**/*.md"],
+    plugins: { markdown: markdownPlugin },
+    language: "markdown/commonmark",
+  },
+
   // Globally-applicable rules (no glob restriction inside the config;
   // each rule's own path check decides whether to fire).
   {
     files: ["**/*.{ts,tsx,js,mjs,cjs}"],
     ...boundary.configs.recommended,
+  },
+
+  // Spanish mirror under Documents-es/: the boundary plugin's
+  // no-mojibake-in-docs rule fires here only. The rule has no
+  // path filter (Program visitor + sourceCode.getText), so the
+  // glob MUST be scoped to Documents-es/ to avoid false positives
+  // on Spanish prose in .ts comments or anywhere else.
+  {
+    files: ["Documents-es/**/*.md"],
+    plugins: { "@gpr/boundary": boundary },
+    rules: { "@gpr/boundary/no-mojibake-in-docs": "error" },
   },
 
   // Client-only rules

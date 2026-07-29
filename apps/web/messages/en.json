@@ -1,20 +1,22 @@
 {
   "auth": {
-"common": {
-          "loading": "Loading…",
-          "genericError": "Something went wrong. Please try again.",
-          "cancel": "Cancel",
-          "backToLoginLink": "Back to sign-in",
-          "error": {
-            "timeout": "Request timed out. Please check your connection and try again."
-          }
-        },
+    "common": {
+      "loading": "Loading…",
+      "genericError": "Something went wrong. Please try again.",
+      "cancel": "Cancel",
+      "backToLoginLink": "Back to sign-in",
+      "error": {
+        "timeout": "Request timed out. Please check your connection and try again."
+      }
+    },
     "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",
       "email": "Email",
       "password": "Password",
       "submit": "Sign in",
+      "google": "Continue with Google",
+      "dividerOr": "or",
       "error": {
         "invalidCredentials": "Invalid email or password."
       }
@@ -51,12 +53,32 @@
       "revokeButton": "Revoke",
       "empty": "No active sessions found."
     },
+    "error": {
+      "title": "Sign-in error",
+      "backToSignIn": "Back to sign-in",
+      "codes": {
+        "unknown": "Something went wrong while signing you in. Please try again.",
+        "Configuration": "Authentication is misconfigured. Please contact support.",
+        "AccessDenied": "Access to this resource was denied. The link may have expired or be invalid.",
+        "Verification": "The verification link is invalid or has expired.",
+        "OAuthSignin": "Could not start the OAuth flow. Please try again.",
+        "OAuthCallback": "Could not complete the OAuth flow. Please try again.",
+        "OAuthCreateAccount": "Could not create your account via OAuth. Please try again.",
+        "EmailCreateAccount": "Could not create your account via email. Please try again.",
+        "Callback": "The OAuth callback failed. Please try again.",
+        "OAuthAccountNotLinked": "This email is already linked to another sign-in method.",
+        "EmailSignin": "Could not send the email sign-in link. Please try again.",
+        "CredentialsSignin": "Invalid email or password.",
+        "SessionRequired": "You must be signed in to view this page."
+      }
+    },
     "devMailbox": {
       "title": "Dev mailbox",
       "noTokensHint": "No password reset tokens have been dispatched yet.",
       "tokenLabel": "Reset token",
       "copyButton": "Copy token",
-      "copiedToClipboard": "Copied to clipboard"
+      "copiedToClipboard": "Copied to clipboard",
+      "resetUrlLabel": "Visit reset link"
     },
     "dashboard": {
       "welcome": "Welcome, {email}.",
@@ -65,6 +87,282 @@
     "locale": {
       "en": "English",
       "es": "Spanish"
+    }
+  },
+  "transactions": {
+    "list": {
+      "title": "Transactions",
+      "subtitle": "Browse, search, and manage your transactions.",
+      "empty": "No transactions yet. Add your first one.",
+      "error": {
+        "load": "Could not load transactions. Please try again.",
+        "network": "Network error. Please check your connection."
+      },
+      "columns": {
+        "date": "Date",
+        "amount": "Amount",
+        "category": "Category",
+        "currency": "Currency",
+        "kind": "Kind",
+        "actions": "Actions"
+      },
+      "filter": {
+        "fromDate": "From",
+        "toDate": "To",
+        "category": "Category",
+        "currency": "Currency",
+        "apply": "Apply",
+        "reset": "Reset"
+      }
+    },
+    "new": {
+      "title": "New transaction",
+      "submit": "Create",
+      "success": "Transaction created.",
+      "error": {
+        "invalidData": "Please check the form values.",
+        "duplicate": "A transaction with the same fingerprint already exists.",
+        "server": "Server error. Please try again."
+      },
+      "amount": "Amount",
+      "currency": "Currency",
+      "kind": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "category": "Category",
+      "notes": "Notes (optional)",
+      "occurredAt": "Date"
+    },
+    "edit": {
+      "title": "Edit transaction",
+      "submit": "Save",
+      "success": "Transaction updated.",
+      "error": {
+        "load": "Could not load this transaction.",
+        "update": "Could not save the changes."
+      }
+    },
+    "detail": {
+      "delete": "Delete",
+      "deleteConfirm": "Soft-delete this transaction? It can be recovered by an admin."
+    },
+    "delete": {
+      "success": "Transaction soft-deleted.",
+      "error": "Could not delete the transaction."
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View"
+    },
+    "totals": {
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net"
+    },
+    "threshold": {
+      "title": "Threshold alert",
+      "dismissed": "Dismissed"
+    }
+  },
+  "categories": {
+    "list": {
+      "title": "Categories",
+      "subtitle": "Organize your transactions into categories.",
+      "empty": "No categories yet.",
+      "new": "New category"
+    },
+    "form": {
+      "name": "Name",
+      "kind": {
+        "income": "Income",
+        "expense": "Expense"
+      },
+      "submit": "Save",
+      "success": "Category saved.",
+      "error": "Could not save the category.",
+      "slug": "Slug",
+      "slugHint": "Lowercase letters, numbers, and dashes only."
+    },
+    "delete": {
+      "confirm": "Soft-delete this category? Existing transactions keep their data but the category will disappear from selectors.",
+      "success": "Category soft-deleted.",
+      "error": "Could not delete the category."
+    },
+    "kinds": {
+      "income": "Income",
+      "expense": "Expense"
+    }
+  },
+  "common": {
+    "loading": "Loading…",
+    "genericError": "Something went wrong. Please try again.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "status": {
+    "title": "System status",
+    "description": "Operational snapshot of the production foundation.",
+    "loading": "Loading status…",
+    "errorTitle": "Status unavailable",
+    "error": "We could not load the status. Details: {message}",
+    "retry": "Retry",
+    "notFoundTitle": "Status page not found",
+    "cardTitle": "Status details",
+    "environment": "Environment",
+    "commit": "API commit",
+    "lastBackup": "Last backup",
+    "never": "Never",
+    "uptime": "API uptime",
+    "publicApiUrl": "API URL",
+    "publicWebUrl": "Web URL",
+    "lastUpdate": "Snapshot taken at {ts}"
+  },
+  "admin": {
+    "flash": {
+      "denied": "Access denied. This area is restricted to administrators."
+    },
+    "errors": {
+      "lastAdmin": "This is the last remaining admin. Promote another user to ADMIN before demoting this one.",
+      "serialization_failed": "The role change conflicted with another update. Please try again."
+    },
+    "nav": {
+      "users": "Users",
+      "sessions": "Sessions",
+      "back": "Back to app"
+    },
+    "users": {
+      "title": "User management",
+      "description": "Review registered users and adjust their roles.",
+      "loading": "Loading users…",
+      "empty": "No users yet.",
+      "emptyHelp": "When new accounts are created they will appear here for role assignment.",
+      "error": "We could not load the users. {message}",
+      "retry": "Retry",
+      "columns": {
+        "email": "Email",
+        "role": "Role",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "view": "Open",
+      "roleChange": {
+        "label": "Change role",
+        "submit": "Save role",
+        "submitting": "Saving…",
+        "success": "Role updated.",
+        "validationError": "Pick a valid role (USER or ADMIN)."
+      }
+    },
+    "userDetail": {
+      "title": "User detail",
+      "backToList": "Back to users",
+      "loading": "Loading user…",
+      "notFound": "User not found.",
+      "roleLabel": "Current role",
+      "metadataTitle": "Account metadata",
+      "createdAt": "Account created",
+      "updatedAt": "Last update",
+      "error": "We could not load the user. {message}",
+      "retry": "Retry"
+    },
+    "sessions": {
+      "title": "Session management",
+      "description": "Review active sessions for any user and revoke them if needed.",
+      "userIdLabel": "User ID",
+      "userIdPlaceholder": "Paste a user ID to list sessions",
+      "load": "List sessions",
+      "loading": "Loading sessions…",
+      "empty": "No active sessions for this user.",
+      "error": "We could not load the sessions. {message}",
+      "retry": "Retry",
+      "revokeAll": "Revoke all sessions",
+      "revokeAllConfirm": "Revoke every session for this user? They will be signed out everywhere.",
+      "revokeAllSuccess": "All sessions revoked.",
+      "revokeSuccess": "Session revoked.",
+      "validationError": "Enter a valid user ID to list sessions.",
+      "columns": {
+        "id": "Session ID",
+        "createdAt": "Created",
+        "lastActiveAt": "Last active",
+        "userAgent": "User agent",
+        "ipAddress": "IP address",
+        "actions": "Actions"
+      },
+      "revoke": "Revoke"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Review admin actions and run retention purge.",
+      "loading": "Loading audit events…",
+      "empty": "No audit events match the current filters.",
+      "emptyHelp": "Audit events are recorded when an admin revokes sessions or changes roles. Adjust filters or wait for new activity.",
+      "error": "We could not load the audit events. {message}",
+      "retry": "Retry",
+      "filterApplied": "Filters applied.",
+      "validationError": "Enter valid filter values.",
+      "filters": {
+        "title": "Filters",
+        "actorIdLabel": "Actor ID",
+        "actorIdPlaceholder": "Filter by actor (UUID)",
+        "targetIdLabel": "Target ID",
+        "targetIdPlaceholder": "Filter by target (UUID)",
+        "actionLabel": "Action",
+        "actionAll": "All actions",
+        "sinceLabel": "Since",
+        "untilLabel": "Until",
+        "apply": "Apply filters",
+        "reset": "Reset filters",
+        "validationError": "Enter at least one filter value (actor, target, action, or date range)."
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {page} of {total}",
+        "first": "First",
+        "last": "Last"
+      },
+      "columns": {
+        "createdAt": "When",
+        "action": "Action",
+        "actorId": "Actor",
+        "targetId": "Target",
+        "ipAddress": "IP (HMAC, first 8 chars)",
+        "userAgent": "User agent",
+        "metadata": "Metadata"
+      },
+      "retention": {
+        "title": "Retention purge",
+        "description": "Preview how many rows match a given age threshold, then run a real purge.",
+        "olderThanDaysLabel": "Older than (days)",
+        "olderThanDaysPlaceholder": "e.g. 90",
+        "validationError": "Enter a positive integer for the age threshold (in days).",
+        "dryRun": "Dry-run purge",
+        "dryRunning": "Running dry-run…",
+        "dryRunResult": "Dry-run: {matched} row(s) would be deleted.",
+        "dryRunResultZero": "Dry-run: no rows match this threshold.",
+        "purge": "Purge now",
+        "purging": "Purging…",
+        "purgeConfirm": "Delete {matched} audit event(s) older than {days} day(s)? This action cannot be undone.",
+        "purgeResult": "Purged {deleted} row(s).",
+        "purgeResultZero": "Purge committed — no rows matched.",
+        "error": "Retention action failed. {message}"
+      },
+      "actions": {
+        "REVOKE_SESSION": "Revoke session",
+        "REVOKE_ALL_SESSIONS": "Revoke all sessions",
+        "CHANGE_ROLE": "Change role"
+      }
     }
   }
 }

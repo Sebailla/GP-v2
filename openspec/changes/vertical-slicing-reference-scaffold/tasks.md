@@ -13,17 +13,17 @@
 
 ## Review Workload Forecast
 
-| Field | Value |
-|-------|-------|
-| Estimated changed lines | ~2200–2800 |
-| 400-line budget risk | High |
-| Chained PRs recommended | Yes |
-| Suggested split | 8 chained PRs (slices 1–8) |
-| Delivery strategy | ask-on-risk |
-| Chain strategy | feature-branch-chain |
-| Tracker branch | `feat/vertical-slicing-reference-scaffold` |
-| Slice targets | feat/vertical-slicing-reference-scaffold (NOT `develop`) |
-| Last merge | feat/... → develop after all 8 slices approved |
+| Field                   | Value                                                    |
+| ----------------------- | -------------------------------------------------------- |
+| Estimated changed lines | ~2200–2800                                               |
+| 400-line budget risk    | High                                                     |
+| Chained PRs recommended | Yes                                                      |
+| Suggested split         | 8 chained PRs (slices 1–8)                               |
+| Delivery strategy       | ask-on-risk                                              |
+| Chain strategy          | feature-branch-chain                                     |
+| Tracker branch          | `feat/vertical-slicing-reference-scaffold`               |
+| Slice targets           | feat/vertical-slicing-reference-scaffold (NOT `develop`) |
+| Last merge              | feat/... → develop after all 8 slices approved           |
 
 ```text
 Decision needed before apply: Yes
@@ -51,16 +51,16 @@ Chain strategy: feature-branch-chain
 
 The 8 slices are the smallest unit of work a chained PR ships. Each slice has explicit start, finish, verification, and rollback boundaries and fits one PR review session.
 
-| Slice | Subject | Approx changed lines | Target gate subset |
-|-------|---------|----------------------|---------------------|
-| 1 | Skeleton & monorepo bootstrap | ~280 | G1, G2, G4, G5, G7, G14, G15, G35, G36 |
-| 2 | `libs/core` + `libs/shared-utils` | ~250 | G3, G6, G16 |
-| 3 | Auth server (vertical slice 1) | ~390 | G17, G20, G21, G22, G23 |
-| 4 | Auth client + i18n + shadcn | ~380 | G17, G40, G41, G42, G43, G44, G45, G46 |
-| 5 | Transactions server | ~390 | G18, G19, G24, G25, G26, G27, G28 |
-| 6 | Transactions client + RBAC UI | ~380 | G40, G41, G43, G44, G45, G46 |
-| 7 | BDD + e2e | ~390 | G8, G9, G10, G11, G12, G13, G47 |
-| 8 | Docs + polish + final verification | ~280 | G29, G30, G31, G32, G33, G34, G37, G38, G39 |
+| Slice | Subject                            | Approx changed lines | Target gate subset                          |
+| ----- | ---------------------------------- | -------------------- | ------------------------------------------- |
+| 1     | Skeleton & monorepo bootstrap      | ~280                 | G1, G2, G4, G5, G7, G14, G15, G35, G36      |
+| 2     | `libs/core` + `libs/shared-utils`  | ~250                 | G3, G6, G16                                 |
+| 3     | Auth server (vertical slice 1)     | ~390                 | G17, G20, G21, G22, G23                     |
+| 4     | Auth client + i18n + shadcn        | ~380                 | G17, G40, G41, G42, G43, G44, G45, G46      |
+| 5     | Transactions server                | ~390                 | G18, G19, G24, G25, G26, G27, G28           |
+| 6     | Transactions client + RBAC UI      | ~380                 | G40, G41, G43, G44, G45, G46                |
+| 7     | BDD + e2e                          | ~390                 | G8, G9, G10, G11, G12, G13, G47             |
+| 8     | Docs + polish + final verification | ~280                 | G29, G30, G31, G32, G33, G34, G37, G38, G39 |
 
 Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. Slices are ordered; slice N depends on slice N-1 being merged into the tracker branch.
 
@@ -744,7 +744,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 **Verification.** `pnpm turbo run bdd e2e` exits 0.
 **Rollback.** Per atomic commit.
 
-### Task T7.1 — `libs/features/auth/docs/step-defs/` (shared step definitions) (~30 lines)
+### Task T7.1 — `libs/features/auth/docs/step-defs/` (shared step definitions) (~30 lines) — `[x]`
 
 - **Description.** Set up the shared step-defs directory with the canonical phrasing for the most common steps (`Given a registered user exists with role '<role>'`, `When the user submits the sign-in form at /{locale}/sign-in with email '<email>' and password '<password>'`, `Then a session is created`). Single source of truth for the six feature files in T7.2.
 - **Discovery / file targets.** `libs/features/auth/docs/step-defs/{common.steps.ts,realm.steps.ts}`.
@@ -753,7 +753,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.1-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T7.2 — `libs/features/auth/docs/*.feature` (6 files per Locked Decision #3) (~60 lines)
+### Task T7.2 — `libs/features/auth/docs/*.feature` (6 files per Locked Decision #3) (~60 lines) — `[x]`
 
 - **Description.** Per auth spec §Gherkin feature inventory: `login-email-password.feature`, `oauth-google-stub.feature`, `password-reset.feature`, `sessions-list.feature`, `rbac-admin.feature`, `login-locale-routing.feature`. Each holds the spec's scenarios verbatim.
 - **Discovery / file targets.** Six files under `libs/features/auth/docs/`.
@@ -762,7 +762,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.2-sha>`.
 - **Files touched (rough).** ~60 lines.
 
-### Task T7.3 — `libs/features/transactions/docs/step-defs/` (shared step definitions) (~40 lines)
+### Task T7.3 — `libs/features/transactions/docs/step-defs/` (shared step definitions) (~40 lines) — `[x]`
 
 - **Description.** Per spec: shared step defs for the 6 transactions `.feature` files. `Given a category <name> with kind <kind> exists`, `Given an FxRate from <from> to <to> at rate <rate> recorded <time> ago`, `When the user submits the create-transaction form at /{locale}/transactions/new with idempotency key <key> and amount <amount>`, etc.
 - **Discovery / file targets.** `libs/features/transactions/docs/step-defs/{common,data,actions}.steps.ts`.
@@ -771,7 +771,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.3-sha>`.
 - **Files touched (rough).** ~40 lines.
 
-### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 files per Locked Decision #3) (~60 lines)
+### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 files per Locked Decision #3) (~60 lines) — `[x]`
 
 - **Description.** Per transactions spec §Gherkin feature inventory: `create-transaction.feature`, `list-transactions.feature`, `multi-currency-conversion.feature`, `idempotency-key.feature`, `soft-delete-categories.feature`, `sign-aware-totals.feature`. Each holds the spec's scenarios verbatim.
 - **Discovery / file targets.** Six files under `libs/features/transactions/docs/`.
@@ -780,7 +780,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.4-sha>`.
 - **Files touched (rough).** ~60 lines.
 
-### Task T7.5 — `apps/web/playwright.config.ts` (two projects: `en`, `es`) (~20 lines)
+### Task T7.5 — `apps/web/playwright.config.ts` (two projects: `en`, `es`) (~20 lines) — `[x]`
 
 - **Description.** Per design §8.4: two Playwright projects (`en`, `es`) so axe-core runs per locale and the report is split. `@axe-core/playwright` is wired per project.
 - **Discovery / file targets.** `apps/web/playwright.config.ts`; add `apps/web/e2e/utils/axe.ts` as the assertion helper.
@@ -789,7 +789,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.5-sha>`.
 - **Files touched (rough).** ~20 lines.
 
-### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 critical flow × 2 locales) (~30 lines)
+### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 critical flow × 2 locales) (~30 lines) — `[x]`
 
 - **Description.** G47 + design §8.4: clean session → fill the sign-in form → submit → assert the authenticated landing route is reached for both locales.
 - **Discovery / file targets.** `apps/web/e2e/auth/login-and-landing.spec.ts`.
@@ -798,7 +798,7 @@ Slice → task numbering convention: `T1.1` is the first task of slice 1, etc. S
 - **Rollback.** `git revert <T7.6-sha>`.
 - **Files touched (rough).** ~30 lines.
 
-### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 lines)
+### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 lines) — `[x]`
 
 - **Description.** G47 + design §8.4: sign in → navigate to the transactions list → open the create form → fill it → submit → assert the new row appears. Runs under both `en` and `es` projects.
 - **Discovery / file targets.** `apps/web/e2e/transactions/login-list-create.spec.ts`.
@@ -947,55 +947,55 @@ After all 8 slices are reviewed and approved on `feat/vertical-slicing-reference
 
 Every gate G1–G47 from `proposal.md` §7 + §11.3, mapped to the slice + task(s) that satisfy it and the verification command. This is the source of truth for `sdd-verify`'s final run.
 
-| Gate | Description (proposal §7.X / §11.3) | Slice | Task(s) | How verified |
-|------|--------------------------------------|-------|---------|--------------|
-| G1 | `pnpm install` on a clean clone completes with no errors | 1 | T1.1 | `pnpm install` → exit 0 |
-| G2 | `pnpm db:up` brings up the Postgres Docker container | 1 | T1.5 | `docker compose ps` → service `postgres` healthy |
-| G3 | `pnpm prisma migrate dev` applies all migrations cleanly | 2 | T2.1, T5.2 | `prisma/migrations/` populated; `psql \d+ "Transaction"` shows `amount DECIMAL` |
-| G4 | `pnpm turbo run build` returns 0 across all packages | 1, 8 | T1.6, T1.7, T8.6 | `pnpm turbo run build` → exit 0; `apps/web/.next/` and `apps/api/dist/` produced |
-| G5 | `pnpm turbo run lint` returns 0 | 1 | T1.3, T8.6 | `pnpm turbo run lint` → exit 0; ESLint flat config + boundary plugin active |
-| G6 | `pnpm turbo run test` returns 0 | 2, 3, 4, 5, 6, 8 | T2.4, T3.*, T4.*, T5.*, T6.*, T8.6 | Vitest exit 0 across workspaces |
-| G7 | `pnpm turbo run typecheck` returns 0 | 1, 8 | T1.2, T8.6 | `tsc --noEmit` → exit 0 across the workspace |
-| G8 | `pnpm turbo run bdd` returns 0 | 7, 8 | T7.1, T7.2, T7.3, T7.4, T7.9, T8.6 | `@cucumber/cucumber` → exit 0; ≥ 30 scenarios pass |
-| G9 | ≥ 9 `.feature` files exist (12 in this design) | 7 | T7.2, T7.4 | `find libs/features -name '*.feature' \| wc -l` ≥ 9 (actual: 12) |
-| G10 | ≥ 30 scenarios total across the `.feature` files | 7 | T7.2, T7.4 | grep-count `Scenario:` lines ≥ 30 |
-| G11 | Step definitions are shared per-feature under `libs/features/<feature>/docs/step-defs/` | 7 | T7.1, T7.3 | path check for `step-defs/` directories; no duplicate step bodies across feature files |
-| G12 | BDD covers email+password E2E (happy + invalid creds) AND OAuth Google happy stubbed path | 7 | T7.2 | `libs/features/auth/docs/{login-email-password,oauth-google-stub}.feature` exist and contain the required scenarios |
-| G13 | OAuth callback against real Google is NOT in Gherkin (manual/integration only) | 7 | T7.2 (negative assertion) | grep `real google\|google oauth callback` across `libs/features/**/docs/*.feature` returns empty |
-| G14 | ESLint boundary rules active (no `*/server/*` from `*/client/*`; no cross-module imports) | 1 | T1.3 | `pnpm turbo run lint` → 0 errors; `no-client-server-import` and `no-cross-module-import` rules produce violations on the fixtures |
-| G15 | A deliberate violation (test fixture) is detected by ESLint | 1 | T1.3 | `pnpm turbo run lint:fixtures` asserts each `invalid.ts` triggers its rule |
-| G16 | `libs/core/database` is the only place `new PrismaClient()` is instantiated | 2 | T2.1 | `grep -rn 'new PrismaClient(' apps libs apps/api` returns 0 matches outside `libs/core/database/src/`; ESLint rule `no-prisma-outside-core` enforces it |
-| G17 | Shared Zod schemas are reused by both client (forms) and server (validation pipe); no duplicated validators | 3, 4, 5 | T3.2, T3.6, T4.8–T4.12, T5.4, T5.11 | client form imports the same `@features/<slice>/shared/schemas/*` module as the NestJS ZodValidationPipe |
-| G18 | Multi-currency: `Currency` and `FxRate` tables exist; FX conversion has a staleness warning at > 24 h | 5 | T5.1, T5.3, T5.8, T5.9, T5.12 | schema inspection (tables exist); unit test on `TransactionService.create` asserts `transactions.fx.stale` is dispatched when the rate is older than 24 h |
-| G19 | Soft-delete categories: every category query filters `deletedAt: null` (non-opt-out) | 5 | T5.6, T5.7, T5.12 | JSDoc invariant on `CategoryRepository` ports; unit tests assert `findById` returns `null` for soft-deleted categories; integration test asserts soft-deleted categories do not appear in selectors or per-category totals |
-| G20 | Email+password + Google OAuth providers run in parallel against `@auth/prisma-adapter` | 3 | T3.3 | unit test on `auth.config.ts` asserts providers array contains exactly `credentials` + `google` and that the adapter is wired |
-| G21 | Password reset (forgot + reset) implemented with email mocked | 3, 4 | T3.4, T4.10, T4.11 | BDD covers the flow (`libs/features/auth/docs/password-reset.feature`); unit test on `PasswordResetService.requestReset` asserts the mocked email capture is produced |
-| G22 | Sessions list + revoke implemented | 3, 4, 6 | T3.4, T4.6, T6.3 | BDD covers it; `SessionService.revokeSession` unit test asserts the session can no longer authenticate |
-| G23 | RBAC roles (admin / user) enforced in the **domain** layer | 3 | T3.4, T3.7 | permission check lives in `RbacService`, called from controllers; BDD covers the user-denied and admin-allowed scenarios |
-| G24 | Tx validation: `amount > 0`, currency valid, category exists | 5 | T5.4, T5.9, T5.12 | Zod schema rejects `amount <= 0`; repository tests assert the category lookup applies the soft-delete filter |
-| G25 | Idempotency-key on POST prevents duplicates on retry | 5 | T5.4, T5.9, T5.11, T5.12 | unit tests on `IdempotencyService.lookup` cover: hit + fingerprint match → cached response; hit + mismatch → 409; miss → fresh insert; expired → fresh request |
-| G26 | Decimal precision: `Transaction.amount` is Prisma `Decimal`, not `BigInt` | 5 | T5.1, T5.5 | schema inspection (column is `DECIMAL`, not `BIGINT`); test asserts `12.34` round-trips as `12.34` exactly |
-| G27 | Audit log: `createdBy` / `updatedBy` on every Transaction write | 5 | T5.1, T5.9, T5.12 | schema inspection (columns present); unit test on `TransactionService.create` asserts the `AuditLog` row carries `actorId = userId` |
-| G28 | Sign-aware totals (income vs expense) + per-category totals + threshold alerts | 5, 6 | T5.9, T5.12, T6.8, T6.9 | unit tests on `TotalsService.forUser` split income/expense correctly; `perCategory` excludes soft-deleted categories; `ThresholdService.evaluate` emits `transactions.threshold.exceeded` |
-| G29 | `docs/architecture.md` exists and is non-empty | 1, 8 | T1.8, T8.1 | `wc -l docs/architecture.md` ≥ 200 |
-| G30 | `Documents-es/docs/architecture.md` exists; same content (sans locale delta) | 1, 8 | T1.8, T8.2 | diff between the two files differs only in locale-specific strings; CJK check empty |
-| G31 | `docs/migration-playbook.md` exists with one section per playbook stage | 8 | T8.3 | section count = 7 (one per stage) |
-| G32 | `Documents-es/docs/migration-playbook.md` exists | 8 | T8.4 | file check + CJK check empty |
-| G33 | `scripts/migrate/*.sh` exists; one `.sh` per playbook stage | 8 | T8.5 | `ls scripts/migrate/*.sh \| wc -l` = 7 |
-| G34 | Each `*.sh` is idempotent: re-running on an empty branch is a no-op or prints `already applied` | 8 | T8.5 | run each script twice on a fresh clone; exit 0 both times |
-| G35 | `LICENSE` is MIT | 1 | T1.4 | `head -1 LICENSE` reports MIT; `grep 'MIT License'` matches |
-| G36 | `CONTRIBUTING.md` and `README.md` exist | 1 | T1.4 | file check |
-| G37 | All commits are on `develop` (no commits to `main`) | 1–8 | chain strategy + T8 final merge | `git log main` shows no new commits beyond the sdd-init baseline |
-| G38 | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md` is the canonical proposal | cross-cutting | chain strategy | file exists; matches the Engram observation at topic_key `sdd/vertical-slicing-reference-scaffold/proposal` |
-| G39 | Engram observation at topic_key `sdd/vertical-slicing-reference-scaffold/proposal` exists and is retrievable | cross-cutting | chain strategy | `mem_search` + `mem_get_observation` returns the proposal |
-| G40 | `apps/web/components.json` exists; shadcn-style components present at `apps/web/components/ui/{button,input,form,card,dialog,dropdown-menu,toast}.tsx` | 4, 6 | T4.4, T4.6 | path check on all eight primitives |
-| G41 | Design tokens (colors, spacing, typography) extracted from `gastos-personales/` and applied via `apps/web/tailwind.config.ts` (or CSS variables in `apps/web/app/globals.css`) | 4, 6 | T4.7 | grep + visual diff; `apps/web/app/globals.css` contains the expected `--background`, `--foreground`, `--primary` variables; `apps/web/tailwind.config.ts` references them |
-| G42 | `next-intl` configured; `apps/web/messages/{en,es}.json` exist | 4 | T4.2, T4.3 | file check; `pnpm --filter web dev` shows `/en` and `/es` routes; at least one string renders in both locales |
-| G43 | Every screen in `apps/web/app/(auth)/*` and `apps/web/app/(app)/*` is WCAG AA compliant | 4, 6, 7 | T4.13, T6.10, T7.8 | `@axe-core/playwright` audit passes for each critical screen; manual keyboard tab-test passes |
-| G44 | Every form has loading / error / success / empty / validation-error states implemented | 4, 6 | T4.14, T6.10 | component review per form; state-coverage tests pass |
-| G45 | All pages are responsive: mobile (≤640px) and desktop (≥1024px) breakpoints covered; layout doesn't break in between | 4, 6 | T4.13, T6.10 | responsive visual diff; no horizontal overflow at 360px and 1440px |
-| G46 | Component tests with Vitest + Testing Library: at least one test per critical screen for the happy path | 4, 6 | T4.1, T4.8–T4.12, T6.1, T6.4–T6.9 | vitest run reports passing component tests per critical screen |
-| G47 | E2E tests with Playwright: at least one critical flow (login → transactions list → create transaction) passes | 7 | T7.6, T7.7, T7.9 | `pnpm turbo run e2e` exits 0; both projects (`en`, `es`) pass |
+| Gate | Description (proposal §7.X / §11.3)                                                                                                                                            | Slice            | Task(s)                             | How verified                                                                                                                                                                                                               |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1   | `pnpm install` on a clean clone completes with no errors                                                                                                                       | 1                | T1.1                                | `pnpm install` → exit 0                                                                                                                                                                                                    |
+| G2   | `pnpm db:up` brings up the Postgres Docker container                                                                                                                           | 1                | T1.5                                | `docker compose ps` → service `postgres` healthy                                                                                                                                                                           |
+| G3   | `pnpm prisma migrate dev` applies all migrations cleanly                                                                                                                       | 2                | T2.1, T5.2                          | `prisma/migrations/` populated; `psql \d+ "Transaction"` shows `amount DECIMAL`                                                                                                                                            |
+| G4   | `pnpm turbo run build` returns 0 across all packages                                                                                                                           | 1, 8             | T1.6, T1.7, T8.6                    | `pnpm turbo run build` → exit 0; `apps/web/.next/` and `apps/api/dist/` produced                                                                                                                                           |
+| G5   | `pnpm turbo run lint` returns 0                                                                                                                                                | 1                | T1.3, T8.6                          | `pnpm turbo run lint` → exit 0; ESLint flat config + boundary plugin active                                                                                                                                                |
+| G6   | `pnpm turbo run test` returns 0                                                                                                                                                | 2, 3, 4, 5, 6, 8 | T2.4, T3._, T4._, T5._, T6._, T8.6  | Vitest exit 0 across workspaces                                                                                                                                                                                            |
+| G7   | `pnpm turbo run typecheck` returns 0                                                                                                                                           | 1, 8             | T1.2, T8.6                          | `tsc --noEmit` → exit 0 across the workspace                                                                                                                                                                               |
+| G8   | `pnpm turbo run bdd` returns 0                                                                                                                                                 | 7, 8             | T7.1, T7.2, T7.3, T7.4, T7.9, T8.6  | `@cucumber/cucumber` → exit 0; ≥ 30 scenarios pass                                                                                                                                                                         |
+| G9   | ≥ 9 `.feature` files exist (12 in this design)                                                                                                                                 | 7                | T7.2, T7.4                          | `find libs/features -name '*.feature' \| wc -l` ≥ 9 (actual: 12)                                                                                                                                                           |
+| G10  | ≥ 30 scenarios total across the `.feature` files                                                                                                                               | 7                | T7.2, T7.4                          | grep-count `Scenario:` lines ≥ 30                                                                                                                                                                                          |
+| G11  | Step definitions are shared per-feature under `libs/features/<feature>/docs/step-defs/`                                                                                        | 7                | T7.1, T7.3                          | path check for `step-defs/` directories; no duplicate step bodies across feature files                                                                                                                                     |
+| G12  | BDD covers email+password E2E (happy + invalid creds) AND OAuth Google happy stubbed path                                                                                      | 7                | T7.2                                | `libs/features/auth/docs/{login-email-password,oauth-google-stub}.feature` exist and contain the required scenarios                                                                                                        |
+| G13  | OAuth callback against real Google is NOT in Gherkin (manual/integration only)                                                                                                 | 7                | T7.2 (negative assertion)           | grep `real google\|google oauth callback` across `libs/features/**/docs/*.feature` returns empty                                                                                                                           |
+| G14  | ESLint boundary rules active (no `*/server/*` from `*/client/*`; no cross-module imports)                                                                                      | 1                | T1.3                                | `pnpm turbo run lint` → 0 errors; `no-client-server-import` and `no-cross-module-import` rules produce violations on the fixtures                                                                                          |
+| G15  | A deliberate violation (test fixture) is detected by ESLint                                                                                                                    | 1                | T1.3                                | `pnpm turbo run lint:fixtures` asserts each `invalid.ts` triggers its rule                                                                                                                                                 |
+| G16  | `libs/core/database` is the only place `new PrismaClient()` is instantiated                                                                                                    | 2                | T2.1                                | `grep -rn 'new PrismaClient(' apps libs apps/api` returns 0 matches outside `libs/core/database/src/`; ESLint rule `no-prisma-outside-core` enforces it                                                                    |
+| G17  | Shared Zod schemas are reused by both client (forms) and server (validation pipe); no duplicated validators                                                                    | 3, 4, 5          | T3.2, T3.6, T4.8–T4.12, T5.4, T5.11 | client form imports the same `@features/<slice>/shared/schemas/*` module as the NestJS ZodValidationPipe                                                                                                                   |
+| G18  | Multi-currency: `Currency` and `FxRate` tables exist; FX conversion has a staleness warning at > 24 h                                                                          | 5                | T5.1, T5.3, T5.8, T5.9, T5.12       | schema inspection (tables exist); unit test on `TransactionService.create` asserts `transactions.fx.stale` is dispatched when the rate is older than 24 h                                                                  |
+| G19  | Soft-delete categories: every category query filters `deletedAt: null` (non-opt-out)                                                                                           | 5                | T5.6, T5.7, T5.12                   | JSDoc invariant on `CategoryRepository` ports; unit tests assert `findById` returns `null` for soft-deleted categories; integration test asserts soft-deleted categories do not appear in selectors or per-category totals |
+| G20  | Email+password + Google OAuth providers run in parallel against `@auth/prisma-adapter`                                                                                         | 3                | T3.3                                | unit test on `auth.config.ts` asserts providers array contains exactly `credentials` + `google` and that the adapter is wired                                                                                              |
+| G21  | Password reset (forgot + reset) implemented with email mocked                                                                                                                  | 3, 4             | T3.4, T4.10, T4.11                  | BDD covers the flow (`libs/features/auth/docs/password-reset.feature`); unit test on `PasswordResetService.requestReset` asserts the mocked email capture is produced                                                      |
+| G22  | Sessions list + revoke implemented                                                                                                                                             | 3, 4, 6          | T3.4, T4.6, T6.3                    | BDD covers it; `SessionService.revokeSession` unit test asserts the session can no longer authenticate                                                                                                                     |
+| G23  | RBAC roles (admin / user) enforced in the **domain** layer                                                                                                                     | 3                | T3.4, T3.7                          | permission check lives in `RbacService`, called from controllers; BDD covers the user-denied and admin-allowed scenarios                                                                                                   |
+| G24  | Tx validation: `amount > 0`, currency valid, category exists                                                                                                                   | 5                | T5.4, T5.9, T5.12                   | Zod schema rejects `amount <= 0`; repository tests assert the category lookup applies the soft-delete filter                                                                                                               |
+| G25  | Idempotency-key on POST prevents duplicates on retry                                                                                                                           | 5                | T5.4, T5.9, T5.11, T5.12            | unit tests on `IdempotencyService.lookup` cover: hit + fingerprint match → cached response; hit + mismatch → 409; miss → fresh insert; expired → fresh request                                                             |
+| G26  | Decimal precision: `Transaction.amount` is Prisma `Decimal`, not `BigInt`                                                                                                      | 5                | T5.1, T5.5                          | schema inspection (column is `DECIMAL`, not `BIGINT`); test asserts `12.34` round-trips as `12.34` exactly                                                                                                                 |
+| G27  | Audit log: `createdBy` / `updatedBy` on every Transaction write                                                                                                                | 5                | T5.1, T5.9, T5.12                   | schema inspection (columns present); unit test on `TransactionService.create` asserts the `AuditLog` row carries `actorId = userId`                                                                                        |
+| G28  | Sign-aware totals (income vs expense) + per-category totals + threshold alerts                                                                                                 | 5, 6             | T5.9, T5.12, T6.8, T6.9             | unit tests on `TotalsService.forUser` split income/expense correctly; `perCategory` excludes soft-deleted categories; `ThresholdService.evaluate` emits `transactions.threshold.exceeded`                                  |
+| G29  | `docs/architecture.md` exists and is non-empty                                                                                                                                 | 1, 8             | T1.8, T8.1                          | `wc -l docs/architecture.md` ≥ 200                                                                                                                                                                                         |
+| G30  | `Documents-es/docs/architecture.md` exists; same content (sans locale delta)                                                                                                   | 1, 8             | T1.8, T8.2                          | diff between the two files differs only in locale-specific strings; CJK check empty                                                                                                                                        |
+| G31  | `docs/migration-playbook.md` exists with one section per playbook stage                                                                                                        | 8                | T8.3                                | section count = 7 (one per stage)                                                                                                                                                                                          |
+| G32  | `Documents-es/docs/migration-playbook.md` exists                                                                                                                               | 8                | T8.4                                | file check + CJK check empty                                                                                                                                                                                               |
+| G33  | `scripts/migrate/*.sh` exists; one `.sh` per playbook stage                                                                                                                    | 8                | T8.5                                | `ls scripts/migrate/*.sh \| wc -l` = 7                                                                                                                                                                                     |
+| G34  | Each `*.sh` is idempotent: re-running on an empty branch is a no-op or prints `already applied`                                                                                | 8                | T8.5                                | run each script twice on a fresh clone; exit 0 both times                                                                                                                                                                  |
+| G35  | `LICENSE` is MIT                                                                                                                                                               | 1                | T1.4                                | `head -1 LICENSE` reports MIT; `grep 'MIT License'` matches                                                                                                                                                                |
+| G36  | `CONTRIBUTING.md` and `README.md` exist                                                                                                                                        | 1                | T1.4                                | file check                                                                                                                                                                                                                 |
+| G37  | All commits are on `develop` (no commits to `main`)                                                                                                                            | 1–8              | chain strategy + T8 final merge     | `git log main` shows no new commits beyond the sdd-init baseline                                                                                                                                                           |
+| G38  | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md` is the canonical proposal                                                                                   | cross-cutting    | chain strategy                      | file exists; matches the Engram observation at topic_key `sdd/vertical-slicing-reference-scaffold/proposal`                                                                                                                |
+| G39  | Engram observation at topic_key `sdd/vertical-slicing-reference-scaffold/proposal` exists and is retrievable                                                                   | cross-cutting    | chain strategy                      | `mem_search` + `mem_get_observation` returns the proposal                                                                                                                                                                  |
+| G40  | `apps/web/components.json` exists; shadcn-style components present at `apps/web/components/ui/{button,input,form,card,dialog,dropdown-menu,toast}.tsx`                         | 4, 6             | T4.4, T4.6                          | path check on all eight primitives                                                                                                                                                                                         |
+| G41  | Design tokens (colors, spacing, typography) extracted from `gastos-personales/` and applied via `apps/web/tailwind.config.ts` (or CSS variables in `apps/web/app/globals.css`) | 4, 6             | T4.7                                | grep + visual diff; `apps/web/app/globals.css` contains the expected `--background`, `--foreground`, `--primary` variables; `apps/web/tailwind.config.ts` references them                                                  |
+| G42  | `next-intl` configured; `apps/web/messages/{en,es}.json` exist                                                                                                                 | 4                | T4.2, T4.3                          | file check; `pnpm --filter web dev` shows `/en` and `/es` routes; at least one string renders in both locales                                                                                                              |
+| G43  | Every screen in `apps/web/app/(auth)/*` and `apps/web/app/(app)/*` is WCAG AA compliant                                                                                        | 4, 6, 7          | T4.13, T6.10, T7.8                  | `@axe-core/playwright` audit passes for each critical screen; manual keyboard tab-test passes                                                                                                                              |
+| G44  | Every form has loading / error / success / empty / validation-error states implemented                                                                                         | 4, 6             | T4.14, T6.10                        | component review per form; state-coverage tests pass                                                                                                                                                                       |
+| G45  | All pages are responsive: mobile (≤640px) and desktop (≥1024px) breakpoints covered; layout doesn't break in between                                                           | 4, 6             | T4.13, T6.10                        | responsive visual diff; no horizontal overflow at 360px and 1440px                                                                                                                                                         |
+| G46  | Component tests with Vitest + Testing Library: at least one test per critical screen for the happy path                                                                        | 4, 6             | T4.1, T4.8–T4.12, T6.1, T6.4–T6.9   | vitest run reports passing component tests per critical screen                                                                                                                                                             |
+| G47  | E2E tests with Playwright: at least one critical flow (login → transactions list → create transaction) passes                                                                  | 7                | T7.6, T7.7, T7.9                    | `pnpm turbo run e2e` exits 0; both projects (`en`, `es`) pass                                                                                                                                                              |
 
 ### Gate coverage completeness
 
@@ -1166,12 +1166,12 @@ The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically
 
 ### TDD evidence (per sub-task)
 
-| Sub-task | RED | GREEN | Refactor |
-|----------|-----|-------|----------|
-| brief-auth-helper | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import '../lib/auth'`. | 11/11 PASS after `auth.ts` ships. | None — surface is small + self-contained. |
-| brief-cookie-on-success | `vitest run` on LoginForm/SignUpForm/state-coverage → 3 failures (`callArg` is `undefined`, `lastSetCookie` is `null`). | 4/4 form tests PASS + 22/22 state-coverage tests PASS + 4/4 page tests PASS. | None — the `isSessionPayload` guard absorbs the shape-check complexity that would otherwise leak into the forms. |
-| brief-redirect-if-authed | 4 page redirect tests + 2 landing tests fail (`promise resolved 'undefined' instead of rejecting` / `expected document not to contain element`). | 4/4 page redirect tests + 3/3 landing tests PASS after the `getSession()` + `redirect(...)` wiring lands. | None. |
-| brief-i18n-keys | NO TDD. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates. | N/A (data-only). | N/A. |
+| Sub-task                 | RED                                                                                                                                              | GREEN                                                                                                     | Refactor                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| brief-auth-helper        | `vitest run __tests__/lib-auth.test.ts` → 0 tests collected + `Failed to resolve import '../lib/auth'`.                                          | 11/11 PASS after `auth.ts` ships.                                                                         | None — surface is small + self-contained.                                                                        |
+| brief-cookie-on-success  | `vitest run` on LoginForm/SignUpForm/state-coverage → 3 failures (`callArg` is `undefined`, `lastSetCookie` is `null`).                          | 4/4 form tests PASS + 22/22 state-coverage tests PASS + 4/4 page tests PASS.                              | None — the `isSessionPayload` guard absorbs the shape-check complexity that would otherwise leak into the forms. |
+| brief-redirect-if-authed | 4 page redirect tests + 2 landing tests fail (`promise resolved 'undefined' instead of rejecting` / `expected document not to contain element`). | 4/4 page redirect tests + 3/3 landing tests PASS after the `getSession()` + `redirect(...)` wiring lands. | None.                                                                                                            |
+| brief-i18n-keys          | NO TDD. The symmetric-difference test in `__tests__/i18n-catalogs.test.ts` automatically validates.                                              | N/A (data-only).                                                                                          | N/A.                                                                                                             |
 
 ---
 
@@ -1241,26 +1241,26 @@ This is the same behavior as slice 4 batch 2 — no new decode logic is needed.
 
 ### TDD evidence (per sub-task)
 
-| Sub-task | RED | GREEN | Refactor |
-|----------|-----|-------|----------|
-| brief-cookie-name-migration | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieName.startsWith(\`${cookieName}=\`)` assertion if `AUTH_SESSION_COOKIE` were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded `"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | None — the surface is small + self-contained. |
-| brief-server-cookie-read | N/A — function body unchanged; only the constant flows the rename. | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly). | None. |
-| brief-markers-apply-progress | N/A — documentation only. | N/A. | N/A. |
+| Sub-task                     | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | GREEN                                                                                                                                                                                                                                                                                              | Refactor                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| brief-cookie-name-migration  | N/A — mechanical rename + 2 new attribute assertions. The existing 11 tests in `lib-auth.test.ts` would fail at the `cookieName.startsWith(\`${cookieName}=\`)`assertion if`AUTH_SESSION_COOKIE`were changed without updating the test mock — but the mock uses the constant so the rename flows through. The 8 page / form tests that hardcoded`"auth-session"` in the cookie store DID fail after the rename + were updated in the same commit (test+code atomic). | 13/13 lib-auth tests PASS (was 11; +2 new attribute assertions); 106/106 apps/web tests PASS (was 104; +2 lib-auth + no new page/form tests); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | None — the surface is small + self-contained. |
+| brief-server-cookie-read     | N/A — function body unchanged; only the constant flows the rename.                                                                                                                                                                                                                                                                                                                                                                                                   | All tests pass without modification (the existing tests assert on the decoded shape, not on the cookie name directly).                                                                                                                                                                             | None.                                         |
+| brief-markers-apply-progress | N/A — documentation only.                                                                                                                                                                                                                                                                                                                                                                                                                                            | N/A.                                                                                                                                                                                                                                                                                               | N/A.                                          |
 
 ### Quality gates — all green
 
-| Gate | Command | Result |
-|------|---------|--------|
-| Workspace install | `pnpm install` | exit 0 |
-| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
-| Tests (events) | `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
-| Tests (config) | `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
-| Tests (api) | `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
-| Tests (web) | `cd apps/web && pnpm exec vitest run` | 106/106 PASS (was 104; +2 new attribute assertions) |
-| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
-| Lint (full) | `pnpm turbo run lint` | 10/10 tasks PASS |
-| Lint (fixtures) | `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violations across invalid fixtures |
-| Typecheck (full) | `pnpm turbo run typecheck` | 9/9 tasks PASS |
+| Gate              | Command                                                                                                           | Result                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Workspace install | `pnpm install`                                                                                                    | exit 0                                                     |
+| Tests (auth)      | `pnpm --filter @features/auth exec vitest run`                                                                    | 112/112 PASS                                               |
+| Tests (events)    | `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS                                                 |
+| Tests (config)    | `pnpm --filter @core/config exec vitest run`                                                                      | 20/20 PASS                                                 |
+| Tests (api)       | `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS                                                 |
+| Tests (web)       | `cd apps/web && pnpm exec vitest run`                                                                             | 106/106 PASS (was 104; +2 new attribute assertions)        |
+| Tests (turbo)     | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS                                             |
+| Lint (full)       | `pnpm turbo run lint`                                                                                             | 10/10 tasks PASS                                           |
+| Lint (fixtures)   | `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violations across invalid fixtures |
+| Typecheck (full)  | `pnpm turbo run typecheck`                                                                                        | 9/9 tasks PASS                                             |
 
 ### Critical deviations from the brief
 
@@ -1328,12 +1328,12 @@ Domain ports. `libs/features/transactions/server/src/domain/interfaces/{transact
 
 ### Quality gates (per slice 5 PR #1)
 
-| Gate | Result |
-|------|--------|
-| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 files) |
-| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
+| Gate                                                                            | Result                                                       |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0                                                       |
+| `pnpm --filter @features/transactions exec tsc --noEmit`                        | exit 0                                                       |
+| `pnpm --filter @features/transactions exec vitest run`                          | 27/27 PASS (5 files)                                         |
+| `pnpm lint:fixtures`                                                            | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
 
 ### Out of scope for PR #1 (deferred)
 
@@ -1399,17 +1399,17 @@ Five Prisma adapters implementing the domain ports. Located at `libs/features/tr
 
 ### Quality gates (slice 5 PR #2)
 
-| Gate | Result |
-|------|--------|
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files: 5 schema + 6 adapter/FX) |
-| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 (modified export surface still typechecks) |
-| `pnpm --filter api exec tsc --noEmit` | exit 0 (NestJS module compiles against the public barrel) |
-| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 (no cross-slice regression) |
-| `pnpm --filter web exec tsc --noEmit` | exit 0 (no app regression) |
-| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errors |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
-| `pnpm --filter @core/database exec vitest run` | 3/3 PASS (no regression in the singleton surface) |
+| Gate                                                     | Result                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------ |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0                                                       |
+| `pnpm --filter @features/transactions exec vitest run`   | 98/98 PASS (11 files: 5 schema + 6 adapter/FX)               |
+| `pnpm --filter @core/database exec tsc --noEmit`         | exit 0 (modified export surface still typechecks)            |
+| `pnpm --filter api exec tsc --noEmit`                    | exit 0 (NestJS module compiles against the public barrel)    |
+| `pnpm --filter @features/auth exec tsc --noEmit`         | exit 0 (no cross-slice regression)                           |
+| `pnpm --filter web exec tsc --noEmit`                    | exit 0 (no app regression)                                   |
+| `pnpm turbo run lint`                                    | 11/11 tasks PASS, 0 errors                                   |
+| `pnpm run lint:fixtures`                                 | 11/11 fixtures PASS, 18 invalid-fixture violations preserved |
+| `pnpm --filter @core/database exec vitest run`           | 3/3 PASS (no regression in the singleton surface)            |
 
 ### Out of scope for PR #2 (deferred to PR #3)
 

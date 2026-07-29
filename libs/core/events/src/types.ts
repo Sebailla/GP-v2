@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Catalog of the 9 domain events for gastos-personales-reference,
+ * Catalog of the 10 domain events for gastos-personales-reference,
  * per design §4.7 (auth) + §5.9 (transactions).
  *
  * Each event has:
@@ -24,6 +24,7 @@ export const AUTH_PASSWORD_RESET_REQUESTED = "auth.password-reset.requested" as 
 export const AUTH_PASSWORD_RESET_COMPLETED = "auth.password-reset.completed" as const;
 export const AUTH_SESSION_REVOKED = "auth.session.revoked" as const;
 export const AUTH_RBAC_DENIED = "auth.rbac.denied" as const;
+export const AUTH_ROLE_CHANGED = "auth.role.changed" as const;
 export const TRANSACTIONS_CREATED = "transactions.created" as const;
 export const TRANSACTIONS_UPDATED = "transactions.updated" as const;
 export const TRANSACTIONS_SOFT_DELETED = "transactions.soft-deleted" as const;
@@ -35,6 +36,7 @@ export const EVENT_NAMES = [
   AUTH_PASSWORD_RESET_COMPLETED,
   AUTH_SESSION_REVOKED,
   AUTH_RBAC_DENIED,
+  AUTH_ROLE_CHANGED,
   TRANSACTIONS_CREATED,
   TRANSACTIONS_UPDATED,
   TRANSACTIONS_SOFT_DELETED,
@@ -47,24 +49,35 @@ export type EventName = (typeof EVENT_NAMES)[number];
 // ----- auth.password-reset.requested -------------------------------------
 export const authPasswordResetRequestedPayload = z.object({
   userId: z.string().min(1),
+  // Module-2 PR #3 (task 3.4): the recipient email — copied from the
+  // user record the service already loaded. The controller subscriber
+  // uses this to call MailAdapter.send without a second DB hit.
+  to: z.string().email(),
   // Raw token is dev-only (slice 4 dev mailbox). The reference repo
   // never persists it; production deployments should remove this
   // field or replace it with a magic-link slug.
   token: z.string().min(32),
+  // Module-2 PR #3 (task 3.2): the active request locale is carried
+  // in the payload so the controller subscriber can build a
+  // locale-aware reset URL without re-deriving it from headers.
+  // Closed enum mirrors the `next-intl` routing locales shipped in
+  // apps/web.
+  locale: z.enum(["en", "es"]),
+  // Module-2 PR #3: full reset URL the user will click. Shape:
+  // `${PUBLIC_WEB_URL}/{locale}/reset-password/{rawToken}` per D2.
+  // The controller passes this URL to MailAdapter.send verbatim; the
+  // URL is the source of truth for the rendered email body.
+  resetUrl: z.string().url(),
   requestedAt: isoDate,
 });
-export type AuthPasswordResetRequestedPayload = z.infer<
-  typeof authPasswordResetRequestedPayload
->;
+export type AuthPasswordResetRequestedPayload = z.infer<typeof authPasswordResetRequestedPayload>;
 
 // ----- auth.password-reset.completed -------------------------------------
 export const authPasswordResetCompletedPayload = z.object({
   userId: z.string().min(1),
   resetAt: isoDate,
 });
-export type AuthPasswordResetCompletedPayload = z.infer<
-  typeof authPasswordResetCompletedPayload
->;
+export type AuthPasswordResetCompletedPayload = z.infer<typeof authPasswordResetCompletedPayload>;
 
 // ----- auth.session.revoked ----------------------------------------------
 export const authSessionRevokedPayload = z.object({
@@ -82,6 +95,20 @@ export const authRbacDeniedPayload = z.object({
   at: isoDate,
 });
 export type AuthRbacDeniedPayload = z.infer<typeof authRbacDeniedPayload>;
+
+// ----- auth.role.changed -------------------------------------------------
+// M3 (module-3-superadmin): emitted by `RbacService.changeRole` after
+// a successful role transition. The payload mirrors the `from` / `to`
+// audit metadata but lives in the event so subscribers (observability
+// sinks, dev mailbox) can correlate role transitions without joining
+// the audit table.
+export const authRoleChangedPayload = z.object({
+  actorId: z.string().min(1),
+  targetUserId: z.string().min(1),
+  fromRole: z.enum(["USER", "ADMIN"]),
+  toRole: z.enum(["USER", "ADMIN"]),
+});
+export type AuthRoleChangedPayload = z.infer<typeof authRoleChangedPayload>;
 
 // ----- transactions.created ---------------------------------------------
 export const transactionsCreatedPayload = z.object({
@@ -108,9 +135,7 @@ export const transactionsSoftDeletedPayload = z.object({
   userId: z.string().min(1),
   at: isoDate,
 });
-export type TransactionsSoftDeletedPayload = z.infer<
-  typeof transactionsSoftDeletedPayload
->;
+export type TransactionsSoftDeletedPayload = z.infer<typeof transactionsSoftDeletedPayload>;
 
 // ----- transactions.fx.stale --------------------------------------------
 export const transactionsFxStalePayload = z.object({
@@ -156,7 +181,7 @@ export interface DomainEvent {
 export function validatePayload<T extends z.ZodTypeAny>(
   name: EventName,
   schema: T,
-  payload: unknown
+  payload: unknown,
 ): z.infer<T> {
   const result = schema.safeParse(payload);
   if (!result.success) {

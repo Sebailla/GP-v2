@@ -20,11 +20,11 @@ import type { Request } from "express";
 import {
   CategoryAlreadyExistsError,
   CategoryNotFoundError,
-  type CategoryService,
+  CategoryService,
   IdempotencyKeyReusedError,
-  type ThresholdService,
+  ThresholdService,
   TransactionNotFoundError,
-  type TransactionService,
+  TransactionService,
   UnsupportedCurrencyPairError,
   categoryCreateSchema,
   categoryUpdateSchema,
@@ -46,6 +46,8 @@ import { toDecimal } from "@shared-utils/decimal";
 import type { CurrentUser } from "@features/auth";
 
 import { JwtAuthGuard } from "../../shared/guards/jwt.guard.js";
+import { RateLimit } from "../../shared/guards/rate-limit.decorator.js";
+import { RateLimitGuard } from "../../shared/guards/rate-limit.guard.js";
 import { BodySchema } from "../../shared/decorators/body.decorator.js";
 import { QuerySchema } from "../../shared/decorators/query.decorator.js";
 
@@ -84,13 +86,17 @@ import { QuerySchema } from "../../shared/decorators/query.decorator.js";
  * dispatch for downstream subscribers (notification, audit, slice-6+
  * dashboard).
  *
-* AUTO-FORMATTER NOTE: NestJS's reflective DI reads `import { Foo }`
- * symbols as runtime class references, not types. `verbatimModuleSyntax`
- * keeps the runtime imports intact here so the container can resolve
- * each constructor parameter.
+ * AUTO-FORMATTER MITIGATION (per ADR 0008): NestJS's reflective DI
+ * reads `import { Foo }` symbols as runtime class references, not
+ * types. Under `isolatedModules: true` (`tsconfig.base.json` line 10)
+ * the `import { type Foo }` form is fully erased at compile time and
+ * Nest's container sees `undefined` for the constructor parameter.
+ * The `_ServiceAnchor` static field references each service as a
+ * VALUE so the symbols survive any future biome reformat. Enforced
+ * by ESLint rule `@gpr/boundary/no-import-type-injectable`.
  */
 @Controller("/transactions")
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RateLimitGuard)
 export class TransactionsController {
   constructor(
     private readonly transactionService: TransactionService,
@@ -101,6 +107,7 @@ export class TransactionsController {
   // ---- /transactions ----
 
   @Post()
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   @HttpCode(201)
   async create(
     @Headers("idempotency-key") idempotencyKey: string | undefined,
@@ -110,8 +117,7 @@ export class TransactionsController {
     if (typeof idempotencyKey !== "string" || idempotencyKey.length === 0) {
       throw new BadRequestException({
         error: "IDEMPOTENCY_KEY_REQUIRED",
-        message:
-          "POST /transactions requires the Idempotency-Key header (D-TX-1).",
+        message: "POST /transactions requires the Idempotency-Key header (D-TX-1).",
       });
     }
     // R1-004 — cap the Idempotency-Key at the boundary. A multi-megabyte
@@ -129,22 +135,18 @@ export class TransactionsController {
 
     let transaction: Transaction;
     try {
-      transaction = await this.transactionService.create(
-        this.toServiceCreateInput(body),
-        {
-          userId: request.user.id,
-          actorId: request.user.id,
-          idempotencyKey,
-          requestFingerprint: fingerprint,
-        },
-      );
+      transaction = await this.transactionService.create(this.toServiceCreateInput(body), {
+        userId: request.user.id,
+        actorId: request.user.id,
+        idempotencyKey,
+        requestFingerprint: fingerprint,
+      });
     } catch (err) {
       throw mapServiceError(err, {
         IdempotencyKeyReused: () =>
           new ConflictException({
             error: "IDEMPOTENCY_KEY_REUSED",
-            message:
-              "The Idempotency-Key was previously used with a different request payload.",
+            message: "The Idempotency-Key was previously used with a different request payload.",
           }),
         CategoryNotFound: (id) =>
           new NotFoundException({
@@ -159,35 +161,36 @@ export class TransactionsController {
       });
     }
 
-      // Threshold evaluation runs AFTER the create succeeds. Per design §5.9,
-      // it is informational — it does NOT block the write. The threshold
-      // service dispatches `transactions.threshold.exceeded` internally when
-      // crossed; the controller doesn't surface the result. Failures here
-      // (e.g. a downstream subscriber that throws) MUST NOT surface as 500
-      // because the transaction is already persisted — the idempotency-key
-      // cache protects against duplicate creation on retry, but a 500
-      // would lose the threshold event with no recovery path. Log + continue
-      // (R3-001 review finding).
-      try {
-        await this.thresholdService.evaluate(transaction);
-      } catch (err) {
-        // TODO(slice-7): structured logger once NestJS Logger is wired.
-        // For now, swallow + log to stderr so the 201 path is preserved.
-        // The project's ESLint config loads the @typescript-eslint parser
-        // only — the `no-console` rule is not registered (id 2155
-        // discovery); a disable directive would fail with "rule not
-        // found", so we rely on the runtime console.error without
-        // suppressing the lint signal.
-        console.error(
-          "[transactions.controller] threshold evaluation failed; transaction persisted",
-          { transactionId: transaction.id, error: err },
-        );
-      }
-
-      return projectTransaction(transaction);
+    // Threshold evaluation runs AFTER the create succeeds. Per design §5.9,
+    // it is informational — it does NOT block the write. The threshold
+    // service dispatches `transactions.threshold.exceeded` internally when
+    // crossed; the controller doesn't surface the result. Failures here
+    // (e.g. a downstream subscriber that throws) MUST NOT surface as 500
+    // because the transaction is already persisted — the idempotency-key
+    // cache protects against duplicate creation on retry, but a 500
+    // would lose the threshold event with no recovery path. Log + continue
+    // (R3-001 review finding).
+    try {
+      await this.thresholdService.evaluate(transaction);
+    } catch (err) {
+      // TODO(slice-7): structured logger once NestJS Logger is wired.
+      // For now, swallow + log to stderr so the 201 path is preserved.
+      // The project's ESLint config loads the @typescript-eslint parser
+      // only — the `no-console` rule is not registered (id 2155
+      // discovery); a disable directive would fail with "rule not
+      // found", so we rely on the runtime console.error without
+      // suppressing the lint signal.
+      console.error(
+        "[transactions.controller] threshold evaluation failed; transaction persisted",
+        { transactionId: transaction.id, error: err },
+      );
     }
 
+    return projectTransaction(transaction);
+  }
+
   @Get()
+  @RateLimit({ key: "transactions:read", limit: 60, windowSeconds: 60 })
   async list(
     @QuerySchema(listSchema) query: ListTransactionsQuery,
     @Req() request: Request & { user: CurrentUser },
@@ -205,9 +208,7 @@ export class TransactionsController {
       ...(query.categoryId !== undefined ? { categoryId: query.categoryId } : {}),
       ...(query.fromDate !== undefined ? { fromDate: query.fromDate } : {}),
       ...(query.toDate !== undefined ? { toDate: query.toDate } : {}),
-      ...(query.currencyCode !== undefined
-        ? { currencyCode: query.currencyCode }
-        : {}),
+      ...(query.currencyCode !== undefined ? { currencyCode: query.currencyCode } : {}),
     };
     const page = await this.transactionService.list(request.user.id, filter);
     return {
@@ -217,6 +218,7 @@ export class TransactionsController {
   }
 
   @Patch("/:id")
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   async update(
     @Param("id") id: string,
     @BodySchema(updateSchema) body: UpdateTransactionInput,
@@ -246,6 +248,7 @@ export class TransactionsController {
   }
 
   @Delete("/:id")
+  @RateLimit({ key: "transactions:write", limit: 120, windowSeconds: 60 })
   @HttpCode(204)
   async softDelete(
     @Param("id") id: string,
@@ -345,7 +348,7 @@ export class TransactionsController {
 
   // ---- private mapping helpers ----
 
-/**
+  /**
    * Project the Zod-validated body to the service's `CreateTransactionInput`.
    * The service uses `Decimal` (decimal.js), but the controller receives
    * `number` (the Zod schema coerces with `z.coerce.number()`). The
@@ -390,6 +393,20 @@ export class TransactionsController {
     if (body.occurredAt !== undefined) result["occurredAt"] = body.occurredAt;
     return result as Parameters<TransactionService["update"]>[1];
   }
+
+  /**
+   * Runtime anchor — LAST field, defensive against future `import type`
+   * regressions (see ADR 0008 + ESLint rule
+   * `@gpr/boundary/no-import-type-injectable`). The anchor references
+   * each service as a VALUE so that even if a future auto-formatter
+   * rewrites the import to `import { type Service }`, the symbols
+   * remain reachable at runtime.
+   */
+  private static readonly _ServiceAnchor: ReadonlyArray<unknown> = [
+    CategoryService,
+    ThresholdService,
+    TransactionService,
+  ] as const;
 }
 
 // ---- module-private helpers ----
@@ -404,9 +421,7 @@ export class TransactionsController {
  * field order is fixed by the schema declaration.
  */
 function computeRequestFingerprint(body: CreateTransactionInput): string {
-  return createHash("sha256")
-    .update(JSON.stringify(body))
-    .digest("hex");
+  return createHash("sha256").update(JSON.stringify(body)).digest("hex");
 }
 
 /**
@@ -496,4 +511,3 @@ function mapServiceError(
   }
   throw err;
 }
-

@@ -13,17 +13,17 @@
 
 ## Review Workload Forecast (Pronóstico de carga de revisión)
 
-| Campo | Valor |
-|-------|-------|
-| Estimated changed lines | ~2200–2800 |
-| 400-line budget risk | High |
-| Chained PRs recommended | Yes |
-| Suggested split | 8 chained PRs (slices 1–8) |
-| Delivery strategy | ask-on-risk |
-| Chain strategy | feature-branch-chain |
-| Tracker branch | `feat/vertical-slicing-reference-scaffold` |
-| Slice targets | feat/vertical-slicing-reference-scaffold (NOT `develop`) |
-| Last merge | feat/... → develop after all 8 slices approved |
+| Campo                   | Valor                                                    |
+| ----------------------- | -------------------------------------------------------- |
+| Estimated changed lines | ~2200–2800                                               |
+| 400-line budget risk    | High                                                     |
+| Chained PRs recommended | Yes                                                      |
+| Suggested split         | 8 chained PRs (slices 1–8)                               |
+| Delivery strategy       | ask-on-risk                                              |
+| Chain strategy          | feature-branch-chain                                     |
+| Tracker branch          | `feat/vertical-slicing-reference-scaffold`               |
+| Slice targets           | feat/vertical-slicing-reference-scaffold (NOT `develop`) |
+| Last merge              | feat/... → develop after all 8 slices approved           |
 
 ```text
 Decision needed before apply: Yes
@@ -51,16 +51,16 @@ Chain strategy: feature-branch-chain
 
 Las 8 slices son la menor unidad de trabajo que un PR encadenado embarca. Cada slice tiene boundaries explícitos de start, finish, verificación y rollback, y entra en una sesión de revisión de PR.
 
-| Slice | Asunto | Líneas modificadas aprox. | Subset de gates target |
-|-------|--------|---------------------------|------------------------|
-| 1 | Skeleton y bootstrap del monorepo | ~280 | G1, G2, G4, G5, G7, G14, G15, G35, G36 |
-| 2 | `libs/core` + `libs/shared-utils` | ~250 | G3, G6, G16 |
-| 3 | Auth server (vertical slice 1) | ~390 | G17, G20, G21, G22, G23 |
-| 4 | Auth client + i18n + shadcn | ~380 | G17, G40, G41, G42, G43, G44, G45, G46 |
-| 5 | Transactions server | ~390 | G18, G19, G24, G25, G26, G27, G28 |
-| 6 | Transactions client + RBAC UI | ~380 | G40, G41, G43, G44, G45, G46 |
-| 7 | BDD + e2e | ~390 | G8, G9, G10, G11, G12, G13, G47 |
-| 8 | Docs + polish + verificación final | ~280 | G29, G30, G31, G32, G33, G34, G37, G38, G39 |
+| Slice | Asunto                             | Líneas modificadas aprox. | Subset de gates target                      |
+| ----- | ---------------------------------- | ------------------------- | ------------------------------------------- |
+| 1     | Skeleton y bootstrap del monorepo  | ~280                      | G1, G2, G4, G5, G7, G14, G15, G35, G36      |
+| 2     | `libs/core` + `libs/shared-utils`  | ~250                      | G3, G6, G16                                 |
+| 3     | Auth server (vertical slice 1)     | ~390                      | G17, G20, G21, G22, G23                     |
+| 4     | Auth client + i18n + shadcn        | ~380                      | G17, G40, G41, G42, G43, G44, G45, G46      |
+| 5     | Transactions server                | ~390                      | G18, G19, G24, G25, G26, G27, G28           |
+| 6     | Transactions client + RBAC UI      | ~380                      | G40, G41, G43, G44, G45, G46                |
+| 7     | BDD + e2e                          | ~390                      | G8, G9, G10, G11, G12, G13, G47             |
+| 8     | Docs + polish + verificación final | ~280                      | G29, G30, G31, G32, G33, G34, G37, G38, G39 |
 
 Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice 1, etc. Los slices están ordenados; el slice N depende de que el slice N-1 esté mergeado en la rama trackera.
 
@@ -696,7 +696,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 **Verificación.** `pnpm turbo run bdd e2e` sale 0.
 **Rollback.** Por commit atómico.
 
-### Task T7.1 — `libs/features/auth/docs/step-defs/` (definiciones de step compartidas) (~30 líneas)
+### Task T7.1 — `libs/features/auth/docs/step-defs/` (definiciones de step compartidas) (~30 líneas) — `[x]`
 
 - **Description.** Configurar el directorio de step-defs compartidos con el phrasing canónico para los steps más comunes (`Given a registered user exists with role '<role>'`, `When the user submits the sign-in form at /{locale}/sign-in with email '<email>' and password '<password>'`, `Then a session is created`). Single source of truth para los seis archivos `.feature` en T7.2.
 - **Discovery / file targets.** `libs/features/auth/docs/step-defs/{common.steps.ts,realm.steps.ts}`.
@@ -705,7 +705,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.1-sha>`.
 - **Files touched (rough).** ~30 líneas.
 
-### Task T7.2 — `libs/features/auth/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas)
+### Task T7.2 — `libs/features/auth/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas) — `[x]`
 
 - **Description.** Según inventario de features Gherkin del spec auth: `login-email-password.feature`, `oauth-google-stub.feature`, `password-reset.feature`, `sessions-list.feature`, `rbac-admin.feature`, `login-locale-routing.feature`. Cada uno contiene los escenarios del spec en forma verbatim.
 - **Discovery / file targets.** Seis archivos bajo `libs/features/auth/docs/`.
@@ -714,7 +714,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.2-sha>`.
 - **Files touched (rough).** ~60 líneas.
 
-### Task T7.3 — `libs/features/transactions/docs/step-defs/` (definiciones de step compartidas) (~40 líneas)
+### Task T7.3 — `libs/features/transactions/docs/step-defs/` (definiciones de step compartidas) (~40 líneas) — `[x]`
 
 - **Description.** Según spec: step defs compartidos para los 6 archivos `.feature` de transactions. `Given a category <name> with kind <kind> exists`, `Given an FxRate from <from> to <to> at rate <rate> recorded <time> ago`, `When the user submits the create-transaction form at /{locale}/transactions/new with idempotency key <key> and amount <amount>`, etc.
 - **Discovery / file targets.** `libs/features/transactions/docs/step-defs/{common,data,actions}.steps.ts`.
@@ -723,7 +723,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.3-sha>`.
 - **Files touched (rough).** ~40 líneas.
 
-### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas)
+### Task T7.4 — `libs/features/transactions/docs/*.feature` (6 archivos según Locked Decision #3) (~60 líneas) — `[x]`
 
 - **Description.** Según inventario de features Gherkin del spec transactions: `create-transaction.feature`, `list-transactions.feature`, `multi-currency-conversion.feature`, `idempotency-key.feature`, `soft-delete-categories.feature`, `sign-aware-totals.feature`. Cada uno contiene los escenarios del spec en forma verbatim.
 - **Discovery / file targets.** Seis archivos bajo `libs/features/transactions/docs/`.
@@ -732,7 +732,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.4-sha>`.
 - **Files touched (rough).** ~60 líneas.
 
-### Task T7.5 — `apps/web/playwright.config.ts` (dos proyectos: `en`, `es`) (~20 líneas)
+### Task T7.5 — `apps/web/playwright.config.ts` (dos proyectos: `en`, `es`) (~20 líneas) — `[x]`
 
 - **Description.** Según design §8.4: dos proyectos de Playwright (`en`, `es`) para que axe-core corra por locale y el reporte quede split. `@axe-core/playwright` se cablea por proyecto.
 - **Discovery / file targets.** `apps/web/playwright.config.ts`; agregar `apps/web/e2e/utils/axe.ts` como helper de aserción.
@@ -741,7 +741,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.5-sha>`.
 - **Files touched (rough).** ~20 líneas.
 
-### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 flujo crítico × 2 locales) (~30 líneas)
+### Task T7.6 — `apps/web/e2e/auth/login-and-landing.spec.ts` (1 flujo crítico × 2 locales) (~30 líneas) — `[x]`
 
 - **Description.** G47 + design §8.4: session limpia → llenar el form de sign-in → submittear → assertear que se llega a la ruta de landing autenticada para ambos locales.
 - **Discovery / file targets.** `apps/web/e2e/auth/login-and-landing.spec.ts`.
@@ -750,7 +750,7 @@ Convención de numeración slice → tarea: `T1.1` es la primera tarea del slice
 - **Rollback.** `git revert <T7.6-sha>`.
 - **Files touched (rough).** ~30 líneas.
 
-### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 líneas)
+### Task T7.7 — `apps/web/e2e/transactions/login-list-create.spec.ts` (~40 líneas) — `[x]`
 
 - **Description.** G47 + design §8.4: sign in → navegar a la lista de transactions → abrir el form de create → llenarlo → submittear → assertear que la nueva fila aparece. Corre bajo ambos proyectos `en` y `es`.
 - **Discovery / file targets.** `apps/web/e2e/transactions/login-list-create.spec.ts`.
@@ -899,55 +899,55 @@ Después de que los 8 slices estén revisados y aprobados sobre `feat/vertical-s
 
 Cada gate G1–G47 del `proposal.md` §7 + §11.3, mapeado al slice + tarea(s) que lo satisfacen y al comando de verificación. Esta es la source of truth para la corrida final de `sdd-verify`.
 
-| Gate | Descripción (proposal §7.X / §11.3) | Slice | Tarea(s) | Cómo se verifica |
-|------|-------------------------------------|-------|----------|-------------------|
-| G1 | `pnpm install` sobre un clone limpio completa sin errores | 1 | T1.1 | `pnpm install` → exit 0 |
-| G2 | `pnpm db:up` levanta el contenedor Docker de Postgres | 1 | T1.5 | `docker compose ps` → servicio `postgres` healthy |
-| G3 | `pnpm prisma migrate dev` aplica todas las migraciones de forma limpia | 2 | T2.1, T5.2 | `prisma/migrations/` populado; `psql \d+ "Transaction"` muestra `amount DECIMAL` |
-| G4 | `pnpm turbo run build` retorna 0 sobre todos los packages | 1, 8 | T1.6, T1.7, T8.6 | `pnpm turbo run build` → exit 0; `apps/web/.next/` y `apps/api/dist/` producidos |
-| G5 | `pnpm turbo run lint` retorna 0 | 1 | T1.3, T8.6 | `pnpm turbo run lint` → exit 0; ESLint flat config + boundary plugin activos |
-| G6 | `pnpm turbo run test` retorna 0 | 2, 3, 4, 5, 6, 8 | T2.4, T3.*, T4.*, T5.*, T6.*, T8.6 | Vitest exit 0 sobre los workspaces |
-| G7 | `pnpm turbo run typecheck` retorna 0 | 1, 8 | T1.2, T8.6 | `tsc --noEmit` → exit 0 sobre el workspace |
-| G8 | `pnpm turbo run bdd` retorna 0 | 7, 8 | T7.1, T7.2, T7.3, T7.4, T7.9, T8.6 | `@cucumber/cucumber` → exit 0; ≥ 30 escenarios pasan |
-| G9 | Existen ≥ 9 archivos `.feature` (12 en este design) | 7 | T7.2, T7.4 | `find libs/features -name '*.feature' \| wc -l` ≥ 9 (actual: 12) |
-| G10 | ≥ 30 escenarios totales en los archivos `.feature` | 7 | T7.2, T7.4 | grep-count `Scenario:` lines ≥ 30 |
-| G11 | Step definitions compartidas por feature bajo `libs/features/<feature>/docs/step-defs/` | 7 | T7.1, T7.3 | path check de los directorios `step-defs/`; sin cuerpos de step duplicados entre archivos `.feature` |
-| G12 | BDD cubre email+password E2E (happy + invalid creds) Y OAuth Google happy stubbed path | 7 | T7.2 | `libs/features/auth/docs/{login-email-password,oauth-google-stub}.feature` existen y contienen los escenarios requeridos |
-| G13 | El callback de OAuth contra Google real NO está en Gherkin (solo manual/integración) | 7 | T7.2 (aserción negativa) | grep `real google\|google oauth callback` sobre `libs/features/**/docs/*.feature` devuelve vacío |
-| G14 | ESLint boundary rules activos (sin `*/server/*` desde `*/client/*`; sin imports cross-module) | 1 | T1.3 | `pnpm turbo run lint` → 0 errores; las reglas `no-client-server-import` y `no-cross-module-import` producen violaciones sobre los fixtures |
-| G15 | Una violación deliberada (test fixture) es detectada por ESLint | 1 | T1.3 | `pnpm turbo run lint:fixtures` asserta que cada `invalid.ts` dispara su regla |
-| G16 | `libs/core/database` es el único lugar donde se instancia `new PrismaClient()` | 2 | T2.1 | `grep -rn 'new PrismaClient(' apps libs apps/api` retorna 0 matches fuera de `libs/core/database/src/`; la regla de ESLint `no-prisma-outside-core` lo enforce |
-| G17 | Los schemas Zod compartidos se reutilizan tanto en el client (forms) como en el server (validation pipe); sin validadores duplicados | 3, 4, 5 | T3.2, T3.6, T4.8–T4.12, T5.4, T5.11 | el form de client importa el mismo módulo `@features/<slice>/shared/schemas/*` que el `ZodValidationPipe` de NestJS |
-| G18 | Multi-currency: existen las tablas `Currency` y `FxRate`; la conversión de FX tiene una advertencia de staleness a > 24 h | 5 | T5.1, T5.3, T5.8, T5.9, T5.12 | inspección del schema (las tablas existen); test unitario sobre `TransactionService.create` asserta que `transactions.fx.stale` se dispatcha cuando la rate tiene más de 24 h |
-| G19 | Soft-delete categories: cada query de category filtra `deletedAt: null` (no opt-out) | 5 | T5.6, T5.7, T5.12 | invariante JSDoc sobre los ports de `CategoryRepository`; tests unitarios assertean que `findById` retorna `null` para categorías soft-deleted; test de integración asserta que las categorías soft-deleted no aparecen en selectores ni en totales por categoría |
-| G20 | Los providers de email+password + Google OAuth corren en paralelo contra `@auth/prisma-adapter` | 3 | T3.3 | test unitario sobre `auth.config.ts` asserta que el array de providers contiene exactamente `credentials` + `google` y que el adapter está cableado |
-| G21 | Password reset (forgot + reset) implementado con email mockeado | 3, 4 | T3.4, T4.10, T4.11 | BDD cubre el flujo (`libs/features/auth/docs/password-reset.feature`); test unitario sobre `PasswordResetService.requestReset` asserta que se produce la captura de email mockeada |
-| G22 | Sessions list + revoke implementado | 3, 4, 6 | T3.4, T4.6, T6.3 | BDD lo cubre; test unitario de `SessionService.revokeSession` asserta que la session ya no puede autenticar |
-| G23 | Los roles RBAC (admin / user) se enforce en la **capa de dominio** | 3 | T3.4, T3.7 | el chequeo de permisos vive en `RbacService`, llamado desde los controllers; BDD cubre los escenarios user-denied y admin-allowed |
-| G24 | Tx validation: `amount > 0`, currency válida, category existe | 5 | T5.4, T5.9, T5.12 | el schema Zod rechaza `amount <= 0`; los tests de repository assertean que el lookup de category aplica el filtro de soft-delete |
-| G25 | Idempotency-key en POST previene duplicados ante retry | 5 | T5.4, T5.9, T5.11, T5.12 | tests unitarios sobre `IdempotencyService.lookup` cubren: hit + fingerprint match → response cacheada; hit + mismatch → 409; miss → inserción fresh; expirada → fresh request |
-| G26 | Decimal precision: `Transaction.amount` es Prisma `Decimal`, no `BigInt` | 5 | T5.1, T5.5 | inspección del schema (la columna es `DECIMAL`, no `BIGINT`); test asserta que `12.34` round-trips como `12.34` exacto |
-| G27 | Audit log: `createdBy` / `updatedBy` en cada escritura de Transaction | 5 | T5.1, T5.9, T5.12 | inspección del schema (columnas presentes); test unitario sobre `TransactionService.create` asserta que la fila de `AuditLog` lleva `actorId = userId` |
-| G28 | Sign-aware totals (income vs expense) + per-category totals + threshold alerts | 5, 6 | T5.9, T5.12, T6.8, T6.9 | tests unitarios sobre `TotalsService.forUser` separan income/expense correctamente; `perCategory` excluye categorías soft-deleted; `ThresholdService.evaluate` emite `transactions.threshold.exceeded` |
-| G29 | `docs/architecture.md` existe y no está vacío | 1, 8 | T1.8, T8.1 | `wc -l docs/architecture.md` ≥ 200 |
-| G30 | `Documents-es/docs/architecture.md` existe; mismo contenido (sin el delta de locale) | 1, 8 | T1.8, T8.2 | diff entre los dos archivos difiere solo en strings específicas de locale; chequeo CJK vacío |
-| G31 | `docs/migration-playbook.md` existe con una sección por etapa del playbook | 8 | T8.3 | conteo de secciones = 7 (una por etapa) |
-| G32 | `Documents-es/docs/migration-playbook.md` existe | 8 | T8.4 | chequeo de archivo + chequeo CJK vacío |
-| G33 | `scripts/migrate/*.sh` existe; un `.sh` por etapa del playbook | 8 | T8.5 | `ls scripts/migrate/*.sh \| wc -l` = 7 |
-| G34 | Cada `*.sh` es idempotente: re-correrlo sobre un branch vacío es un no-op o imprime `already applied` | 8 | T8.5 | correr cada script dos veces sobre un clone limpio; exit 0 ambas veces |
-| G35 | `LICENSE` es MIT | 1 | T1.4 | `head -1 LICENSE` reporta MIT; `grep 'MIT License'` matchea |
-| G36 | `CONTRIBUTING.md` y `README.md` existen | 1 | T1.4 | chequeo de archivo |
-| G37 | Todos los commits están en `develop` (sin commits a `main`) | 1–8 | chain strategy + merge final en T8 | `git log main` no muestra nuevos commits más allá del baseline de sdd-init |
-| G38 | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md` es el proposal canónico | cross-cutting | chain strategy | el archivo existe; matchea la observación Engram en topic_key `sdd/vertical-slicing-reference-scaffold/proposal` |
-| G39 | La observación Engram en topic_key `sdd/vertical-slicing-reference-scaffold/proposal` existe y es recuperable | cross-cutting | chain strategy | `mem_search` + `mem_get_observation` retorna el proposal |
-| G40 | `apps/web/components.json` existe; componentes shadcn-style presentes en `apps/web/components/ui/{button,input,form,card,dialog,dropdown-menu,toast}.tsx` | 4, 6 | T4.4, T4.6 | path check sobre las ocho primitivas |
-| G41 | Design tokens (colors, spacing, typography) extraídos de `gastos-personales/` y aplicados vía `apps/web/tailwind.config.ts` (o CSS variables en `apps/web/app/globals.css`) | 4, 6 | T4.7 | grep + visual diff; `apps/web/app/globals.css` contiene las variables `--background`, `--foreground`, `--primary` esperadas; `apps/web/tailwind.config.ts` las referencia |
-| G42 | `next-intl` configurado; existen `apps/web/messages/{en,es}.json` | 4 | T4.2, T4.3 | chequeo de archivo; `pnpm --filter web dev` muestra las rutas `/en` y `/es`; al menos un string se renderiza en ambos locales |
-| G43 | Cada screen en `apps/web/app/(auth)/*` y `apps/web/app/(app)/*` es WCAG AA compliant | 4, 6, 7 | T4.13, T6.10, T7.8 | el audit de `@axe-core/playwright` pasa por screen crítica; el tab-test manual de teclado pasa |
-| G44 | Cada form tiene los estados loading / error / success / empty / validation-error implementados | 4, 6 | T4.14, T6.10 | review de componente por form; tests de cobertura de estados pasan |
-| G45 | Todas las pages son responsive: mobile (≤640px) y desktop (≥1024px) breakpoints cubiertos; el layout no se rompe entre medio | 4, 6 | T4.13, T6.10 | diff visual responsive; sin overflow horizontal a 360px y 1440px |
-| G46 | Tests de componente con Vitest + Testing Library: al menos un test por screen crítica para el happy path | 4, 6 | T4.1, T4.8–T4.12, T6.1, T6.4–T6.9 | la corrida de vitest reporta tests de componente pasando por screen crítica |
-| G47 | Tests e2e con Playwright: al menos un flujo crítico (login → transactions list → create transaction) pasa | 7 | T7.6, T7.7, T7.9 | `pnpm turbo run e2e` sale 0; ambos proyectos (`en`, `es`) pasan |
+| Gate | Descripción (proposal §7.X / §11.3)                                                                                                                                         | Slice            | Tarea(s)                            | Cómo se verifica                                                                                                                                                                                                                                                  |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1   | `pnpm install` sobre un clone limpio completa sin errores                                                                                                                   | 1                | T1.1                                | `pnpm install` → exit 0                                                                                                                                                                                                                                           |
+| G2   | `pnpm db:up` levanta el contenedor Docker de Postgres                                                                                                                       | 1                | T1.5                                | `docker compose ps` → servicio `postgres` healthy                                                                                                                                                                                                                 |
+| G3   | `pnpm prisma migrate dev` aplica todas las migraciones de forma limpia                                                                                                      | 2                | T2.1, T5.2                          | `prisma/migrations/` populado; `psql \d+ "Transaction"` muestra `amount DECIMAL`                                                                                                                                                                                  |
+| G4   | `pnpm turbo run build` retorna 0 sobre todos los packages                                                                                                                   | 1, 8             | T1.6, T1.7, T8.6                    | `pnpm turbo run build` → exit 0; `apps/web/.next/` y `apps/api/dist/` producidos                                                                                                                                                                                  |
+| G5   | `pnpm turbo run lint` retorna 0                                                                                                                                             | 1                | T1.3, T8.6                          | `pnpm turbo run lint` → exit 0; ESLint flat config + boundary plugin activos                                                                                                                                                                                      |
+| G6   | `pnpm turbo run test` retorna 0                                                                                                                                             | 2, 3, 4, 5, 6, 8 | T2.4, T3._, T4._, T5._, T6._, T8.6  | Vitest exit 0 sobre los workspaces                                                                                                                                                                                                                                |
+| G7   | `pnpm turbo run typecheck` retorna 0                                                                                                                                        | 1, 8             | T1.2, T8.6                          | `tsc --noEmit` → exit 0 sobre el workspace                                                                                                                                                                                                                        |
+| G8   | `pnpm turbo run bdd` retorna 0                                                                                                                                              | 7, 8             | T7.1, T7.2, T7.3, T7.4, T7.9, T8.6  | `@cucumber/cucumber` → exit 0; ≥ 30 escenarios pasan                                                                                                                                                                                                              |
+| G9   | Existen ≥ 9 archivos `.feature` (12 en este design)                                                                                                                         | 7                | T7.2, T7.4                          | `find libs/features -name '*.feature' \| wc -l` ≥ 9 (actual: 12)                                                                                                                                                                                                  |
+| G10  | ≥ 30 escenarios totales en los archivos `.feature`                                                                                                                          | 7                | T7.2, T7.4                          | grep-count `Scenario:` lines ≥ 30                                                                                                                                                                                                                                 |
+| G11  | Step definitions compartidas por feature bajo `libs/features/<feature>/docs/step-defs/`                                                                                     | 7                | T7.1, T7.3                          | path check de los directorios `step-defs/`; sin cuerpos de step duplicados entre archivos `.feature`                                                                                                                                                              |
+| G12  | BDD cubre email+password E2E (happy + invalid creds) Y OAuth Google happy stubbed path                                                                                      | 7                | T7.2                                | `libs/features/auth/docs/{login-email-password,oauth-google-stub}.feature` existen y contienen los escenarios requeridos                                                                                                                                          |
+| G13  | El callback de OAuth contra Google real NO está en Gherkin (solo manual/integración)                                                                                        | 7                | T7.2 (aserción negativa)            | grep `real google\|google oauth callback` sobre `libs/features/**/docs/*.feature` devuelve vacío                                                                                                                                                                  |
+| G14  | ESLint boundary rules activos (sin `*/server/*` desde `*/client/*`; sin imports cross-module)                                                                               | 1                | T1.3                                | `pnpm turbo run lint` → 0 errores; las reglas `no-client-server-import` y `no-cross-module-import` producen violaciones sobre los fixtures                                                                                                                        |
+| G15  | Una violación deliberada (test fixture) es detectada por ESLint                                                                                                             | 1                | T1.3                                | `pnpm turbo run lint:fixtures` asserta que cada `invalid.ts` dispara su regla                                                                                                                                                                                     |
+| G16  | `libs/core/database` es el único lugar donde se instancia `new PrismaClient()`                                                                                              | 2                | T2.1                                | `grep -rn 'new PrismaClient(' apps libs apps/api` retorna 0 matches fuera de `libs/core/database/src/`; la regla de ESLint `no-prisma-outside-core` lo enforce                                                                                                    |
+| G17  | Los schemas Zod compartidos se reutilizan tanto en el client (forms) como en el server (validation pipe); sin validadores duplicados                                        | 3, 4, 5          | T3.2, T3.6, T4.8–T4.12, T5.4, T5.11 | el form de client importa el mismo módulo `@features/<slice>/shared/schemas/*` que el `ZodValidationPipe` de NestJS                                                                                                                                               |
+| G18  | Multi-currency: existen las tablas `Currency` y `FxRate`; la conversión de FX tiene una advertencia de staleness a > 24 h                                                   | 5                | T5.1, T5.3, T5.8, T5.9, T5.12       | inspección del schema (las tablas existen); test unitario sobre `TransactionService.create` asserta que `transactions.fx.stale` se dispatcha cuando la rate tiene más de 24 h                                                                                     |
+| G19  | Soft-delete categories: cada query de category filtra `deletedAt: null` (no opt-out)                                                                                        | 5                | T5.6, T5.7, T5.12                   | invariante JSDoc sobre los ports de `CategoryRepository`; tests unitarios assertean que `findById` retorna `null` para categorías soft-deleted; test de integración asserta que las categorías soft-deleted no aparecen en selectores ni en totales por categoría |
+| G20  | Los providers de email+password + Google OAuth corren en paralelo contra `@auth/prisma-adapter`                                                                             | 3                | T3.3                                | test unitario sobre `auth.config.ts` asserta que el array de providers contiene exactamente `credentials` + `google` y que el adapter está cableado                                                                                                               |
+| G21  | Password reset (forgot + reset) implementado con email mockeado                                                                                                             | 3, 4             | T3.4, T4.10, T4.11                  | BDD cubre el flujo (`libs/features/auth/docs/password-reset.feature`); test unitario sobre `PasswordResetService.requestReset` asserta que se produce la captura de email mockeada                                                                                |
+| G22  | Sessions list + revoke implementado                                                                                                                                         | 3, 4, 6          | T3.4, T4.6, T6.3                    | BDD lo cubre; test unitario de `SessionService.revokeSession` asserta que la session ya no puede autenticar                                                                                                                                                       |
+| G23  | Los roles RBAC (admin / user) se enforce en la **capa de dominio**                                                                                                          | 3                | T3.4, T3.7                          | el chequeo de permisos vive en `RbacService`, llamado desde los controllers; BDD cubre los escenarios user-denied y admin-allowed                                                                                                                                 |
+| G24  | Tx validation: `amount > 0`, currency válida, category existe                                                                                                               | 5                | T5.4, T5.9, T5.12                   | el schema Zod rechaza `amount <= 0`; los tests de repository assertean que el lookup de category aplica el filtro de soft-delete                                                                                                                                  |
+| G25  | Idempotency-key en POST previene duplicados ante retry                                                                                                                      | 5                | T5.4, T5.9, T5.11, T5.12            | tests unitarios sobre `IdempotencyService.lookup` cubren: hit + fingerprint match → response cacheada; hit + mismatch → 409; miss → inserción fresh; expirada → fresh request                                                                                     |
+| G26  | Decimal precision: `Transaction.amount` es Prisma `Decimal`, no `BigInt`                                                                                                    | 5                | T5.1, T5.5                          | inspección del schema (la columna es `DECIMAL`, no `BIGINT`); test asserta que `12.34` round-trips como `12.34` exacto                                                                                                                                            |
+| G27  | Audit log: `createdBy` / `updatedBy` en cada escritura de Transaction                                                                                                       | 5                | T5.1, T5.9, T5.12                   | inspección del schema (columnas presentes); test unitario sobre `TransactionService.create` asserta que la fila de `AuditLog` lleva `actorId = userId`                                                                                                            |
+| G28  | Sign-aware totals (income vs expense) + per-category totals + threshold alerts                                                                                              | 5, 6             | T5.9, T5.12, T6.8, T6.9             | tests unitarios sobre `TotalsService.forUser` separan income/expense correctamente; `perCategory` excluye categorías soft-deleted; `ThresholdService.evaluate` emite `transactions.threshold.exceeded`                                                            |
+| G29  | `docs/architecture.md` existe y no está vacío                                                                                                                               | 1, 8             | T1.8, T8.1                          | `wc -l docs/architecture.md` ≥ 200                                                                                                                                                                                                                                |
+| G30  | `Documents-es/docs/architecture.md` existe; mismo contenido (sin el delta de locale)                                                                                        | 1, 8             | T1.8, T8.2                          | diff entre los dos archivos difiere solo en strings específicas de locale; chequeo CJK vacío                                                                                                                                                                      |
+| G31  | `docs/migration-playbook.md` existe con una sección por etapa del playbook                                                                                                  | 8                | T8.3                                | conteo de secciones = 7 (una por etapa)                                                                                                                                                                                                                           |
+| G32  | `Documents-es/docs/migration-playbook.md` existe                                                                                                                            | 8                | T8.4                                | chequeo de archivo + chequeo CJK vacío                                                                                                                                                                                                                            |
+| G33  | `scripts/migrate/*.sh` existe; un `.sh` por etapa del playbook                                                                                                              | 8                | T8.5                                | `ls scripts/migrate/*.sh \| wc -l` = 7                                                                                                                                                                                                                            |
+| G34  | Cada `*.sh` es idempotente: re-correrlo sobre un branch vacío es un no-op o imprime `already applied`                                                                       | 8                | T8.5                                | correr cada script dos veces sobre un clone limpio; exit 0 ambas veces                                                                                                                                                                                            |
+| G35  | `LICENSE` es MIT                                                                                                                                                            | 1                | T1.4                                | `head -1 LICENSE` reporta MIT; `grep 'MIT License'` matchea                                                                                                                                                                                                       |
+| G36  | `CONTRIBUTING.md` y `README.md` existen                                                                                                                                     | 1                | T1.4                                | chequeo de archivo                                                                                                                                                                                                                                                |
+| G37  | Todos los commits están en `develop` (sin commits a `main`)                                                                                                                 | 1–8              | chain strategy + merge final en T8  | `git log main` no muestra nuevos commits más allá del baseline de sdd-init                                                                                                                                                                                        |
+| G38  | `openspec/changes/vertical-slicing-reference-scaffold/proposal.md` es el proposal canónico                                                                                  | cross-cutting    | chain strategy                      | el archivo existe; matchea la observación Engram en topic_key `sdd/vertical-slicing-reference-scaffold/proposal`                                                                                                                                                  |
+| G39  | La observación Engram en topic_key `sdd/vertical-slicing-reference-scaffold/proposal` existe y es recuperable                                                               | cross-cutting    | chain strategy                      | `mem_search` + `mem_get_observation` retorna el proposal                                                                                                                                                                                                          |
+| G40  | `apps/web/components.json` existe; componentes shadcn-style presentes en `apps/web/components/ui/{button,input,form,card,dialog,dropdown-menu,toast}.tsx`                   | 4, 6             | T4.4, T4.6                          | path check sobre las ocho primitivas                                                                                                                                                                                                                              |
+| G41  | Design tokens (colors, spacing, typography) extraídos de `gastos-personales/` y aplicados vía `apps/web/tailwind.config.ts` (o CSS variables en `apps/web/app/globals.css`) | 4, 6             | T4.7                                | grep + visual diff; `apps/web/app/globals.css` contiene las variables `--background`, `--foreground`, `--primary` esperadas; `apps/web/tailwind.config.ts` las referencia                                                                                         |
+| G42  | `next-intl` configurado; existen `apps/web/messages/{en,es}.json`                                                                                                           | 4                | T4.2, T4.3                          | chequeo de archivo; `pnpm --filter web dev` muestra las rutas `/en` y `/es`; al menos un string se renderiza en ambos locales                                                                                                                                     |
+| G43  | Cada screen en `apps/web/app/(auth)/*` y `apps/web/app/(app)/*` es WCAG AA compliant                                                                                        | 4, 6, 7          | T4.13, T6.10, T7.8                  | el audit de `@axe-core/playwright` pasa por screen crítica; el tab-test manual de teclado pasa                                                                                                                                                                    |
+| G44  | Cada form tiene los estados loading / error / success / empty / validation-error implementados                                                                              | 4, 6             | T4.14, T6.10                        | review de componente por form; tests de cobertura de estados pasan                                                                                                                                                                                                |
+| G45  | Todas las pages son responsive: mobile (≤640px) y desktop (≥1024px) breakpoints cubiertos; el layout no se rompe entre medio                                                | 4, 6             | T4.13, T6.10                        | diff visual responsive; sin overflow horizontal a 360px y 1440px                                                                                                                                                                                                  |
+| G46  | Tests de componente con Vitest + Testing Library: al menos un test por screen crítica para el happy path                                                                    | 4, 6             | T4.1, T4.8–T4.12, T6.1, T6.4–T6.9   | la corrida de vitest reporta tests de componente pasando por screen crítica                                                                                                                                                                                       |
+| G47  | Tests e2e con Playwright: al menos un flujo crítico (login → transactions list → create transaction) pasa                                                                   | 7                | T7.6, T7.7, T7.9                    | `pnpm turbo run e2e` sale 0; ambos proyectos (`en`, `es`) pasan                                                                                                                                                                                                   |
 
 ### Completitud de cobertura de gates
 
@@ -1029,26 +1029,26 @@ Es el mismo comportamiento que en slice 4 batch 2 — no se necesita lógica de 
 
 ### Evidencia TDD (por sub-tarea)
 
-| Sub-task | RED | GREEN | Refactor |
-|----------|-----|-------|----------|
-| brief-cookie-name-migration | N/A — renombrado mecánico + 2 nuevas aserciones de atributo. Los 11 tests existentes en `lib-auth.test.ts` fallarían en la aserción `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)` si `AUTH_SESSION_COOKIE` se cambiase sin actualizar el mock del test — pero el mock usa la constante así que el renombrado fluye. Los 8 tests de páginas / forms que tenían hardcoded `"auth-session"` en el cookie store SÍ fallaron tras el renombrado + fueron actualizados en el mismo commit (test+code atómico). | 13/13 lib-auth tests PASS (eran 11; +2 nuevas aserciones de atributo); 106/106 apps/web tests PASS (eran 104; +2 lib-auth + ningún test nuevo de página/form); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | Ninguno — la superficie es pequeña + autocontenida. |
-| brief-server-cookie-read | N/A — cuerpo de la función sin cambios; solo la constante propaga el renombrado. | Todos los tests pasan sin modificación (los tests existentes asseren sobre el shape decodificado, no sobre el nombre de la cookie directamente). | Ninguno. |
-| brief-markers-apply-progress | N/A — solo documentación. | N/A. | N/A. |
+| Sub-task                     | RED                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | GREEN                                                                                                                                                                                                                                                                                                               | Refactor                                            |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| brief-cookie-name-migration  | N/A — renombrado mecánico + 2 nuevas aserciones de atributo. Los 11 tests existentes en `lib-auth.test.ts` fallarían en la aserción `cookieStr.startsWith(\`${AUTH_SESSION_COOKIE}=\`)`si`AUTH_SESSION_COOKIE`se cambiase sin actualizar el mock del test — pero el mock usa la constante así que el renombrado fluye. Los 8 tests de páginas / forms que tenían hardcoded`"auth-session"` en el cookie store SÍ fallaron tras el renombrado + fueron actualizados en el mismo commit (test+code atómico). | 13/13 lib-auth tests PASS (eran 11; +2 nuevas aserciones de atributo); 106/106 apps/web tests PASS (eran 104; +2 lib-auth + ningún test nuevo de página/form); 112/112 @features/auth; 37/37 @core/events; 20/20 @core/config; 21/21 apps/api; 9/9 turbo tasks; 10/10 lint; 9/9 typecheck; 11/11 boundary fixtures. | Ninguno — la superficie es pequeña + autocontenida. |
+| brief-server-cookie-read     | N/A — cuerpo de la función sin cambios; solo la constante propaga el renombrado.                                                                                                                                                                                                                                                                                                                                                                                                                           | Todos los tests pasan sin modificación (los tests existentes asseren sobre el shape decodificado, no sobre el nombre de la cookie directamente).                                                                                                                                                                    | Ninguno.                                            |
+| brief-markers-apply-progress | N/A — solo documentación.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | N/A.                                                                                                                                                                                                                                                                                                                | N/A.                                                |
 
 ### Quality gates — todos verdes
 
-| Gate | Comando | Resultado |
-|------|---------|-----------|
-| Workspace install | `pnpm install` | exit 0 |
-| Tests (auth) | `pnpm --filter @features/auth exec vitest run` | 112/112 PASS |
-| Tests (events) | `pnpm --filter @core/events exec vitest run` | 37/37 PASS |
-| Tests (config) | `pnpm --filter @core/config exec vitest run` | 20/20 PASS |
-| Tests (api) | `cd apps/api && pnpm exec vitest run` | 21/21 PASS |
-| Tests (web) | `cd apps/web && pnpm exec vitest run` | 106/106 PASS (eran 104; +2 nuevas aserciones de atributo) |
-| Tests (turbo) | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS |
-| Lint (full) | `pnpm turbo run lint` | 10/10 tasks PASS |
-| Lint (fixtures) | `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones a través de los fixtures inválidos |
-| Typecheck (full) | `pnpm turbo run typecheck` | 9/9 tasks PASS |
+| Gate              | Comando                                                                                                           | Resultado                                                              |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Workspace install | `pnpm install`                                                                                                    | exit 0                                                                 |
+| Tests (auth)      | `pnpm --filter @features/auth exec vitest run`                                                                    | 112/112 PASS                                                           |
+| Tests (events)    | `pnpm --filter @core/events exec vitest run`                                                                      | 37/37 PASS                                                             |
+| Tests (config)    | `pnpm --filter @core/config exec vitest run`                                                                      | 20/20 PASS                                                             |
+| Tests (api)       | `cd apps/api && pnpm exec vitest run`                                                                             | 21/21 PASS                                                             |
+| Tests (web)       | `cd apps/web && pnpm exec vitest run`                                                                             | 106/106 PASS (eran 104; +2 nuevas aserciones de atributo)              |
+| Tests (turbo)     | `pnpm turbo run test --filter=@features/auth --filter=@core/* --filter=@shared-utils/* --filter=api --filter=web` | 9/9 tasks PASS                                                         |
+| Lint (full)       | `pnpm turbo run lint`                                                                                             | 10/10 tasks PASS                                                       |
+| Lint (fixtures)   | `pnpm run lint:fixtures`                                                                                          | 11/11 fixtures PASS, 18 violaciones a través de los fixtures inválidos |
+| Typecheck (full)  | `pnpm turbo run typecheck`                                                                                        | 9/9 tasks PASS                                                         |
 
 ### Desviaciones críticas del brief (3)
 
@@ -1116,12 +1116,12 @@ Puertos de dominio. `libs/features/transactions/server/src/domain/interfaces/{tr
 
 ### Quality gates (por slice 5 PR #1)
 
-| Gate | Resultado |
-|------|-----------|
-| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0 |
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 27/27 PASS (5 archivos) |
-| `pnpm lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
+| Gate                                                                            | Resultado                                                             |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `DATABASE_URL=postgresql://... pnpm --filter @core/database exec prisma format` | exit 0                                                                |
+| `pnpm --filter @features/transactions exec tsc --noEmit`                        | exit 0                                                                |
+| `pnpm --filter @features/transactions exec vitest run`                          | 27/27 PASS (5 archivos)                                               |
+| `pnpm lint:fixtures`                                                            | 11/11 fixtures PASS, 18 violaciones en fixtures inválidos preservadas |
 
 ### Fuera de alcance para PR #1 (diferido)
 
@@ -1187,17 +1187,17 @@ Cinco adaptadores Prisma que implementan los puertos de dominio. Ubicados en `li
 
 ### Quality gates (slice 5 PR #2)
 
-| Gate | Resultado |
-|------|-----------|
-| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0 |
-| `pnpm --filter @features/transactions exec vitest run` | 98/98 PASS (11 files: 5 schema + 6 adapter/FX) |
-| `pnpm --filter @core/database exec tsc --noEmit` | exit 0 (la superficie de exportación modificada sigue typecheckando) |
-| `pnpm --filter api exec tsc --noEmit` | exit 0 (el módulo NestJS compila contra el barrel público) |
-| `pnpm --filter @features/auth exec tsc --noEmit` | exit 0 (sin regresión cross-slice) |
-| `pnpm --filter web exec tsc --noEmit` | exit 0 (sin regresión de app) |
-| `pnpm turbo run lint` | 11/11 tasks PASS, 0 errores |
-| `pnpm run lint:fixtures` | 11/11 fixtures PASS, 18 violaciones en invalid-fixtures preservadas |
-| `pnpm --filter @core/database exec vitest run` | 3/3 PASS (sin regresión en la superficie del singleton) |
+| Gate                                                     | Resultado                                                            |
+| -------------------------------------------------------- | -------------------------------------------------------------------- |
+| `pnpm --filter @features/transactions exec tsc --noEmit` | exit 0                                                               |
+| `pnpm --filter @features/transactions exec vitest run`   | 98/98 PASS (11 files: 5 schema + 6 adapter/FX)                       |
+| `pnpm --filter @core/database exec tsc --noEmit`         | exit 0 (la superficie de exportación modificada sigue typecheckando) |
+| `pnpm --filter api exec tsc --noEmit`                    | exit 0 (el módulo NestJS compila contra el barrel público)           |
+| `pnpm --filter @features/auth exec tsc --noEmit`         | exit 0 (sin regresión cross-slice)                                   |
+| `pnpm --filter web exec tsc --noEmit`                    | exit 0 (sin regresión de app)                                        |
+| `pnpm turbo run lint`                                    | 11/11 tasks PASS, 0 errores                                          |
+| `pnpm run lint:fixtures`                                 | 11/11 fixtures PASS, 18 violaciones en invalid-fixtures preservadas  |
+| `pnpm --filter @core/database exec vitest run`           | 3/3 PASS (sin regresión en la superficie del singleton)              |
 
 ### Out of scope para PR #2 (diferido a PR #3)
 

@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { env } from "@core/config";
 
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * Slice-1 placeholder landing page + slice 4 batch 2
@@ -47,12 +47,10 @@ export default async function LandingPage({ params }: PageProps): Promise<React.
       <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
         <h1>gastos-personales-reference</h1>
         <p>
-          Vertical-slicing reference scaffold &mdash; locale:{" "}
-          <code>{locale}</code>
+          Vertical-slicing reference scaffold &mdash; locale: <code>{locale}</code>
         </p>
         <p style={{ color: "#666" }}>
-          Slice 1 placeholder. Auth UI lands in slice 4, transactions in
-          slice 6.
+          Slice 1 placeholder. Auth UI lands in slice 4, transactions in slice 6.
         </p>
         <p style={{ color: "#999", fontSize: "0.75rem" }}>
           NODE_ENV: <code>{env.NODE_ENV}</code>

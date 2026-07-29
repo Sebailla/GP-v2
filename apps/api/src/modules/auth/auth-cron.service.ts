@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 
-import type { PasswordResetTokenRepository } from "@features/auth";
+import { PasswordResetTokenRepository } from "@features/auth";
 
 /**
  * F4 cron registration (slice 3 batch 6 — T3.6 NestJS wrapper).
@@ -20,20 +20,18 @@ import type { PasswordResetTokenRepository } from "@features/auth";
  */
 @Injectable()
 export class AuthCronService {
-	private readonly logger = new Logger(AuthCronService.name);
+  private readonly logger = new Logger(AuthCronService.name);
 
-	constructor(
-		private readonly passwordResetTokenRepo: PasswordResetTokenRepository,
-	) {}
+  constructor(private readonly passwordResetTokenRepo: PasswordResetTokenRepository) {}
 
-	@Cron("*/15 * * * *")
-	async purgeExpiredResetTokens(): Promise<void> {
-		const before = new Date();
-		const removed = await this.passwordResetTokenRepo.deleteExpired(before);
-		if (removed > 0) {
-			this.logger.log(
-				`purged ${removed} expired password-reset token(s) (expiresAt < ${before.toISOString()})`,
-			);
-		}
-	}
+  @Cron("*/15 * * * *")
+  async purgeExpiredResetTokens(): Promise<void> {
+    const before = new Date();
+    const removed = await this.passwordResetTokenRepo.deleteExpired(before);
+    if (removed > 0) {
+      this.logger.log(
+        `purged ${removed} expired password-reset token(s) (expiresAt < ${before.toISOString()})`,
+      );
+    }
+  }
 }

@@ -5,7 +5,7 @@ import { env } from "@core/config";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-server";
 
 /**
  * ForgotPasswordPage — slice 4 batch 4d (T4.10) + slice 4 batch 2
@@ -35,7 +35,7 @@ import { getSession } from "@/lib/auth";
  * regardless of whether the email exists (no enumeration leak).
  */
 interface ForgotPasswordPageProps {
-	params: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
 }
 
 // Force-dynamic: the form posts to the auth API at request time;
@@ -47,36 +47,36 @@ interface ForgotPasswordPageProps {
 export const dynamic = "force-dynamic";
 
 export default async function ForgotPasswordPage({
-	params,
+  params,
 }: ForgotPasswordPageProps): Promise<React.JSX.Element> {
-	const { locale } = await params;
+  const { locale } = await params;
 
-	// Redirect-if-already-authenticated (slice 4 batch 2).
-	const session = await getSession();
-	if (session !== null) {
-		redirect(`/${locale}`);
-	}
+  // Redirect-if-already-authenticated (slice 4 batch 2).
+  const session = await getSession();
+  if (session !== null) {
+    redirect(`/${locale}`);
+  }
 
-	const t = await getTranslations("auth.forgotPassword");
+  const t = await getTranslations("auth.forgotPassword");
 
-	return (
-		<main
-			style={{
-				minHeight: "100dvh",
-				display: "grid",
-				placeItems: "center",
-				padding: "2rem",
-				background: "var(--ui-bg)",
-			}}
-		>
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle>{t("title")}</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<ForgotPasswordForm apiUrl={env.API_URL} locale={locale} />
-				</CardContent>
-			</Card>
-		</main>
-	);
+  return (
+    <main
+      style={{
+        minHeight: "100dvh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        background: "var(--ui-bg)",
+      }}
+    >
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ForgotPasswordForm apiUrl={env.API_URL} locale={locale} />
+        </CardContent>
+      </Card>
+    </main>
+  );
 }

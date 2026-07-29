@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { test } from "@playwright/test";
+import { expectNoAxeViolations } from "./utils/axe.js";
 
 /**
  * Slice 4 batch 4e — T4.13 WCAG AA audit per critical screen.
@@ -17,12 +17,14 @@ import AxeBuilder from "@axe-core/playwright";
  *     supplies the token in the URL).
  *  3. Submits the form (so the form is in the success / next state
  *     for the audit).
- *  4. Runs `new AxeBuilder({ page }).analyze()` and asserts zero
- *     violations.
+ *  4. Calls `expectNoAxeViolations(page)` (slice 7 PR-6 / T7.8) which
+ *     internally runs `@axe-core/playwright` against the locked WCAG
+ *     AA tag set and asserts zero violations.
  *
  * Tests are per-locale (en + es) per design §8.4. Playwright's
- * `projects` config (`chromium-en` + `chromium-es`) handles the
- * locale split automatically.
+ * `projects` config (`en` + `es`) handles the locale split
+ * automatically (slice 7 PR-5 / T7.5 renamed the projects from the
+ * slice-4 era's `chromium-en` / `chromium-es`).
  *
  * Per-dev browser install: `npx playwright install chromium`.
  * Run via `pnpm e2e` from `apps/web/`.
@@ -57,37 +59,23 @@ test.describe("WCAG AA — auth screens", () => {
     await page.goto("/en/sign-in");
     // The empty form is the surface we audit. The success / loading
     // states are also audited via the per-form test files (Vitest).
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    await expectNoAxeViolations(page);
   });
 
   test("sign-up page has zero WCAG AA violations", async ({ page }) => {
     await page.goto("/en/sign-up");
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    await expectNoAxeViolations(page);
   });
 
   test("forgot-password page has zero WCAG AA violations", async ({ page }) => {
     await page.goto("/en/forgot-password");
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    await expectNoAxeViolations(page);
   });
 
-  test("reset-password/[token] page has zero WCAG AA violations", async ({
-    page,
-  }) => {
+  test("reset-password/[token] page has zero WCAG AA violations", async ({ page }) => {
     await page.goto(
       "/en/reset-password/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
     );
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    expect(accessibilityScanResults.violations).toEqual([]);
+    await expectNoAxeViolations(page);
   });
 });

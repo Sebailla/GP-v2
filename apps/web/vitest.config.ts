@@ -32,27 +32,87 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   test: {
-    include: ["__tests__/**/*.test.ts", "__tests__/**/*.test.tsx"],
+    include: [
+      "__tests__/**/*.test.ts",
+      "__tests__/**/*.test.tsx",
+      "app/**/__tests__/**/*.test.ts",
+      "app/**/__tests__/**/*.test.tsx",
+    ],
     environment: "happy-dom",
     globals: false,
     clearMocks: true,
     setupFiles: ["./__tests__/setup.ts"],
+    // M5 D4 — per-package coverage threshold (60% on lines,
+    // branches, functions, statements). See the observability
+    // spec's "Coverage Gate Enforcement" requirement + the
+    // apps/api vitest config for the canonical explanation.
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json-summary"],
+      thresholds: {
+        global: {
+          lines: 60,
+          branches: 60,
+          functions: 60,
+          statements: 60,
+        },
+      },
+    },
+    // Slice 7 PR-7 (commit 36386e1): the happy-dom 20.10 + vitest 4.1
+    // worker pool has a known instability with React 18 + useEffect-
+    // driven state updates in component trees (e.g. EditTransactionForm's
+    // mount-then-load-then-setState pattern). The worker exits
+    // prematurely after ~3-4 minutes with the default
+    // `pool: "threads"` setting when 5 forms × 5 states race each
+    // other in the same worker.
+    //
+    // Fix: serialize the test suite by switching to the `forks` pool
+    // with a single worker and no isolation between test files. Tests
+    // run serially in one fork, which is slower (~30% slower) but
+    // stable. The throughput regression is acceptable for the 25-test
+    // state-coverage harness; the rest of the apps/web unit suite is
+    // small enough that the regression is in the noise.
+    //
+    // DO NOT drop `maxWorkers: 1` or set `isolate: true` without
+    // re-reading slice 7 — the worker-pool OOM regresses.
+    //
+    // Vitest 4 migration: `poolOptions.forks.singleFork` is removed
+    // in vitest 4 (https://vitest.dev/guide/migration#pool-rework);
+    // the upstream-blessed replacement is the top-level
+    // `pool` + `maxWorkers` + `isolate` triple below.
+    pool: "forks",
+    maxWorkers: 1,
+    isolate: false,
+    // Bounded test timeouts. Default is 5s; the slice 6 PR-D
+    // EditTransactionForm `prefills` test needs a longer window
+    // for the `findByDisplayValue` poll (the happy-dom worker
+    // exit failure was a worker-pool signal, but the per-test
+    // timeout was also too tight for the multi-form state-coverage
+    // harness). 15s gives each test the room it needs without
+    // letting a single bad test mask the whole suite.
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
-resolve: {
-alias: [
+  resolve: {
+    alias: [
       {
         find: /^@features\/auth\/shared\/schemas$/,
-        replacement: path.resolve(
-          __dirname,
-          "../../libs/features/auth/shared/schemas/index.ts",
-        ),
+        replacement: path.resolve(__dirname, "../../libs/features/auth/shared/schemas/index.ts"),
       },
       {
         find: /^@features\/auth$/,
+        replacement: path.resolve(__dirname, "../../libs/features/auth/server/src/index.ts"),
+      },
+      {
+        find: /^@features\/transactions\/shared\/schemas$/,
         replacement: path.resolve(
           __dirname,
-          "../../libs/features/auth/server/src/index.ts",
+          "../../libs/features/transactions/shared/schemas/index.ts",
         ),
+      },
+      {
+        find: /^@features\/transactions$/,
+        replacement: path.resolve(__dirname, "../../libs/features/transactions/client/index.ts"),
       },
       {
         find: "@",
@@ -60,18 +120,23 @@ alias: [
       },
       {
         find: /^next-intl\/navigation$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/navigation.client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/navigation.client.js"),
       },
       {
         find: /^next-intl\/server$/,
-        replacement: path.resolve(
-          __dirname,
-          "node_modules/next-intl/dist/server.react-client.js",
-        ),
+        replacement: path.resolve(__dirname, "node_modules/next-intl/dist/server.react-client.js"),
       },
-],
+      // Slice 8.1.2 — the `server-only` marker package throws unconditionally
+      // when imported from a Node-side test runner (vitest runs in Node, not
+      // in a Next.js react-server context). The package ships an `empty.js`
+      // shim under the `react-server` export condition that does nothing; we
+      // alias it so vitest can import `auth-server.ts` (which uses the marker
+      // to gate itself against client bundling) without exploding at module
+      // load time.
+      {
+        find: /^server-only$/,
+        replacement: path.resolve(__dirname, "node_modules/server-only/empty.js"),
+      },
+    ],
   },
 });

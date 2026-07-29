@@ -19,6 +19,7 @@ export default defineConfig({
     include: [
       "src/__tests__/**/*.test.ts",
       "../shared/schemas/__tests__/**/*.test.ts",
+      "../docs/__tests__/**/*.test.ts",
     ],
     environment: "node",
     globals: false,

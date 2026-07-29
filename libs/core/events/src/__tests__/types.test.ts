@@ -5,6 +5,7 @@ import {
   authPasswordResetCompletedPayload,
   authPasswordResetRequestedPayload,
   authRbacDeniedPayload,
+  authRoleChangedPayload,
   authSessionRevokedPayload,
   transactionsCreatedPayload,
   transactionsFxStalePayload,
@@ -15,9 +16,10 @@ import {
 } from "../types";
 
 /**
- * TDD contract for the events type catalog (T2.3 — 9 events).
+ * TDD contract for the events type catalog (T2.3 — 9 events, extended
+ * to 10 by module-3-superadmin for the `auth.role.changed` admin event).
  *
- *  - RED:    EVENT_NAMES contains all 9 expected names; each per-event
+ *  - RED:    EVENT_NAMES contains all 10 expected names; each per-event
  *            Zod schema rejects a malformed payload.
  *  - GREEN:  each schema accepts a well-formed payload of its type.
  *  - TRIANGULATE: validatePayload surfaces a descriptive error on
@@ -30,6 +32,7 @@ const ALL_NAMES = [
   "auth.password-reset.completed",
   "auth.session.revoked",
   "auth.rbac.denied",
+  "auth.role.changed",
   "transactions.created",
   "transactions.updated",
   "transactions.soft-deleted",
@@ -38,8 +41,8 @@ const ALL_NAMES = [
 ] as const;
 
 describe("EVENT_NAMES", () => {
-  it("contains exactly the 9 expected domain event names", () => {
-    expect(EVENT_NAMES).toHaveLength(9);
+  it("contains exactly the 10 expected domain event names", () => {
+    expect(EVENT_NAMES).toHaveLength(10);
     for (const name of ALL_NAMES) {
       expect(EVENT_NAMES).toContain(name);
     }
@@ -50,7 +53,10 @@ describe("auth.password-reset.requested", () => {
   it("accepts a well-formed payload", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
+      locale: "en",
+      resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),
       requestedAt: new Date(),
     });
     expect(result.success).toBe(true);
@@ -59,7 +65,45 @@ describe("auth.password-reset.requested", () => {
   it("rejects a token shorter than 32 chars", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "short",
+      locale: "en",
+      resetUrl: "http://localhost:3000/en/reset-password/short",
+      requestedAt: new Date(),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing `to` (recipient email is required by the controller subscriber)", () => {
+    const result = authPasswordResetRequestedPayload.safeParse({
+      userId: "u1",
+      token: "a".repeat(32),
+      locale: "en",
+      resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),
+      requestedAt: new Date(),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an unknown locale (closed enum: en|es)", () => {
+    const result = authPasswordResetRequestedPayload.safeParse({
+      userId: "u1",
+      to: "alice@example.com",
+      token: "a".repeat(32),
+      locale: "fr",
+      resetUrl: "http://localhost:3000/fr/reset-password/" + "a".repeat(64),
+      requestedAt: new Date(),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a malformed resetUrl", () => {
+    const result = authPasswordResetRequestedPayload.safeParse({
+      userId: "u1",
+      to: "alice@example.com",
+      token: "a".repeat(32),
+      locale: "en",
+      resetUrl: "not-a-url",
       requestedAt: new Date(),
     });
     expect(result.success).toBe(false);
@@ -68,7 +112,10 @@ describe("auth.password-reset.requested", () => {
   it("accepts an ISO string for requestedAt and coerces to Date", () => {
     const result = authPasswordResetRequestedPayload.safeParse({
       userId: "u1",
+      to: "alice@example.com",
       token: "a".repeat(32),
+      locale: "en",
+      resetUrl: "http://localhost:3000/en/reset-password/" + "a".repeat(64),
       requestedAt: "2026-07-05T00:00:00.000Z",
     });
     expect(result.success).toBe(true);
@@ -122,6 +169,37 @@ describe("auth.rbac.denied", () => {
       at: new Date(),
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("auth.role.changed (M3 — module-3-superadmin)", () => {
+  it("accepts a well-formed payload", () => {
+    const result = authRoleChangedPayload.safeParse({
+      actorId: "admin-1",
+      targetUserId: "u1",
+      fromRole: "USER",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a role outside the closed USER|ADMIN enum", () => {
+    const result = authRoleChangedPayload.safeParse({
+      actorId: "admin-1",
+      targetUserId: "u1",
+      fromRole: "GOD",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing actorId", () => {
+    const result = authRoleChangedPayload.safeParse({
+      targetUserId: "u1",
+      fromRole: "USER",
+      toRole: "ADMIN",
+    });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -229,11 +307,7 @@ describe("validatePayload helper", () => {
       currency: "USD",
       occurredAt: new Date(),
     };
-    const parsed = validatePayload(
-      "transactions.created",
-      transactionsCreatedPayload,
-      payload
-    );
+    const parsed = validatePayload("transactions.created", transactionsCreatedPayload, payload);
     expect(parsed.transactionId).toBe("t1");
   });
 
@@ -244,7 +318,7 @@ describe("validatePayload helper", () => {
         userId: "u1",
         amount: "10.00",
         // missing currency and occurredAt
-      })
+      }),
     ).toThrow(/transactions\.created/);
   });
 });

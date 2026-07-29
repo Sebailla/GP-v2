@@ -38,11 +38,7 @@ export const REDACTED_TOKEN_SENTINEL = "***REDACTED***";
  * .`redactAtBuffer` for the opt-out).
  */
 export function redactSensitive(event: DomainEvent): DomainEvent {
-  if (
-    event.payload === null ||
-    event.payload === undefined ||
-    typeof event.payload !== "object"
-  ) {
+  if (event.payload === null || event.payload === undefined || typeof event.payload !== "object") {
     return event;
   }
   const payload = event.payload as Record<string, unknown>;
@@ -112,7 +108,7 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
       // observable.
       console.error(
         `[events] handler threw for "${event.name}":`,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     });
   // F3: redact-at-buffer is ON by default (the secure default).
@@ -147,7 +143,18 @@ export function createInMemoryDispatcher(options: DispatcherOptions = {}): InMem
           try {
             await handler(event);
           } catch (error) {
+            // Module-2 PR #3 (task 3.10): propagate the FIRST
+            // subscriber error so the caller can map it to the right
+            // status code (e.g., MailAdapter.send rejection →
+            // 502 on the forgot-password controller). Previously the
+            // dispatcher swallowed the error and surfaced only via
+            // the `onError` sink (which the controller never read).
+            // The error is still surfaced through `onError` so
+            // existing observability (the dev console sink) keeps
+            // working — the propagation is additive, not a
+            // replacement.
             onError(event, error, handler);
+            throw error;
           }
         }
       }

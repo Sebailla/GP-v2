@@ -26,19 +26,20 @@ import type { z } from "zod";
  * NOT ship a global exception filter — that lands in slice 5+).
  */
 @Injectable()
-export class ZodValidationPipe<T extends z.ZodTypeAny>
-	implements PipeTransform<unknown, z.infer<T>>
-{
-	constructor(private readonly schema: T) {}
+export class ZodValidationPipe<T extends z.ZodTypeAny> implements PipeTransform<
+  unknown,
+  z.infer<T>
+> {
+  constructor(private readonly schema: T) {}
 
-	transform(value: unknown, _metadata: ArgumentMetadata): z.infer<T> {
-		const result = this.schema.safeParse(value);
-		if (!result.success) {
-			throw new BadRequestException({
-				error: "VALIDATION_FAILED",
-				issues: result.error.issues,
-			});
-		}
-		return result.data;
-	}
+  transform(value: unknown, _metadata: ArgumentMetadata): z.infer<T> {
+    const result = this.schema.safeParse(value);
+    if (!result.success) {
+      throw new BadRequestException({
+        error: "VALIDATION_FAILED",
+        issues: result.error.issues,
+      });
+    }
+    return result.data;
+  }
 }

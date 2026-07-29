@@ -8,6 +8,7 @@ import { PrismaSessionRepository } from "./infrastructure/repositories/prisma-se
 import type { UserRepository } from "./domain/interfaces/user.repository.js";
 import { PrismaUserRepository } from "./infrastructure/repositories/prisma-user.repository.js";
 import type { AuthEventDispatcher } from "./events.js";
+import { insertAuditEvent, hashIpForAudit } from "./audit.service.js";
 
 // Re-export the error classes so consumers (tests, the barrel `src/index.ts`)
 // can import the whole SessionService surface from a single path.
@@ -66,6 +67,60 @@ export type CurrentUser = {
   role: string;
 };
 
+/**
+ * M4 (module-4-privacy) — coalesce window for `Session.lastActiveAt`
+ * writes on `getCurrentUser` (D1). The DB-level conditional UPDATE
+ * only writes when `lastActiveAt IS NULL OR lastActiveAt < now - WINDOW`.
+ * 60s is the boundary the spec mandates (`audit-log-ui` "Session
+ * LastActiveAt Update" scenario); pinning the constant here keeps the
+ * TDD contract and the production code in lock-step.
+ */
+const LAST_ACTIVE_AT_COALESCE_WINDOW_MS = 60_000;
+
+/**
+ * F3 fix (4R-driven correction): circuit breaker for the
+ * `lastActiveAt` coalesce write on `getCurrentUser`.
+ *
+ * Every authenticated request hits `getCurrentUser`, which after
+ * validation runs a coalesce UPDATE on the session row. The 60s
+ * coalesce window absorbs most writes, but the DB still has to
+ * evaluate the `where OR [lastActiveAt IS NULL, lastActiveAt < cutoff]`
+ * predicate on every request. For users with N concurrent sessions,
+ * that's N evaluations/min.
+ *
+ * Most real users have ≤ 5 active sessions. A user with >10 active
+ * sessions is almost always a bot, a scraper, or a session-replay
+ * attack — the write-amplification on the coalesce path is wasted
+ * I/O on adversarial traffic.
+ *
+ * The breaker: when the user's active-session count strictly exceeds
+ * `LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS`, skip the coalesce write
+ * entirely. The validation result is unchanged — the breaker is a
+ * side-effect gate, not a correctness gate. The threshold (10) is
+ * conservative: a human with 5 devices + 2 standby sessions is still
+ * under the breaker; an attacker who has replayed 10+ stolen cookies
+ * trips it.
+ *
+ * Logging is intentionally DEBUG-level (not WARN/ERROR) so a
+ * tripped breaker does not spam production logs — the trip is
+ * expected behavior for adversarial traffic, not an incident.
+ */
+const LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS = 10;
+
+type ActiveSessionCountCacheEntry = { count: number; ts: number };
+
+/**
+ * Active-session count cache for the breaker. Cache misses are intentionally
+ * bounded rather than single-flighted: concurrent misses may briefly issue
+ * duplicate listActive queries, but every entry expires after the same 60s
+ * coalesce window and the breaker remains a safety optimization only.
+ */
+const activeSessionCountCache = new Map<string, ActiveSessionCountCacheEntry>();
+
+export function clearActiveSessionCountCache(): void {
+  activeSessionCountCache.clear();
+}
+
 export class SessionService {
   private readonly prisma: PrismaClient;
   private readonly sessionRepo: SessionRepository;
@@ -104,6 +159,18 @@ export class SessionService {
    * session whose expiry is exactly `now` is considered expired.
    * This avoids the race where a request that arrives at `t == expires`
    * is served a stale session.
+   *
+   * M4 (module-4-privacy) — Session.lastActiveAt coalesce (D1):
+   * after the validation steps pass, the service writes
+   * `lastActiveAt = now` to the session row, but ONLY if the row is
+   * either (a) fresh (`lastActiveAt IS NULL`) or (b) older than the
+   * 60s coalesce window. The DB-level conditional UPDATE bounds
+   * write amplification at 1 update / 60s / session across N
+   * concurrent workers — see `openspec/changes/module-4-privacy/
+   * design.md` §2 D1 + §3.2. The coalesce UPDATE returning 0 rows
+   * (another worker won the race, or the row was just written
+   * within the window) is treated as a successful no-op; the
+   * CurrentUser projection is returned unchanged regardless.
    */
   async getCurrentUser(sessionToken: string): Promise<CurrentUser> {
     // Slice 3 batch 6: routes the session read through the
@@ -126,6 +193,50 @@ export class SessionService {
       // orphaned — same observable failure as a missing token.
       throw new AuthError("INVALID_SESSION");
     }
+    // M4 D1 coalesce write — fires AFTER the validation steps so a
+    // missing/expired/orphaned session never produces a write. The
+    // 60s cutoff is the coalesce window: a write within 60s of the
+    // previous write is a no-op (Prisma returns 0 rows affected, the
+    // service treats it as a successful coalesce).
+    //
+    // F3 fix (4R-driven correction): the coalesce write is GATED by
+    // the circuit breaker — when the user has more than
+    // LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS active sessions, the
+    // write is skipped (the validation result is preserved). The
+    // active-session count is read via the SessionRepository port
+    // (same dependency the controller's GET /auth/sessions uses);
+    // keeping it on the port keeps the unit test surface tight and
+    // avoids reaching for `prisma.session` directly (boundary rule).
+    const now = new Date();
+    const cachedCount = activeSessionCountCache.get(session.userId);
+    const activeSessionCount =
+      cachedCount !== undefined && now.getTime() - cachedCount.ts < LAST_ACTIVE_AT_COALESCE_WINDOW_MS
+        ? cachedCount.count
+        : (await this.sessionRepo.listActive(session.userId)).length;
+    if (cachedCount === undefined || now.getTime() - cachedCount.ts >= LAST_ACTIVE_AT_COALESCE_WINDOW_MS) {
+      activeSessionCountCache.set(session.userId, { count: activeSessionCount, ts: now.getTime() });
+    }
+    if (activeSessionCount > LAST_ACTIVE_AT_CIRCUIT_BREAKER_SESSIONS) {
+      // Circuit breaker tripped — adversarial traffic profile.
+      // The validation result is returned unchanged; only the
+      // coalesce side-effect is suppressed.
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      };
+    }
+    const cutoff = new Date(now.getTime() - LAST_ACTIVE_AT_COALESCE_WINDOW_MS);
+    await this.prisma.session.update({
+      where: {
+        id: session.id,
+        OR: [
+          { lastActiveAt: null },
+          { lastActiveAt: { lt: cutoff } },
+        ],
+      },
+      data: { lastActiveAt: now },
+    });
     return {
       id: user.id,
       email: user.email,
@@ -198,6 +309,246 @@ export class SessionService {
     const result = await this.prisma.session.deleteMany({
       where: { userId },
     });
+    return result.count;
+  }
+
+  // ---------------------------------------------------------------------------
+  // M3 ADMIN SURFACE (module-3-superadmin — task 2.2 GREEN)
+  //
+  // Per `openspec/changes/module-3-superadmin/design.md` §4
+  // (SessionService rows) and the spec's "Session List by User" /
+  // "Revoke Single Session" / "Revoke All Sessions for User"
+  // requirements. These three methods are the server-side primitives
+  // behind the NestJS AdminController (PR #3). They pair the data
+  // path (Prisma) with the audit path (`auth.session.revoked` event)
+  // so the controller stays HTTP-agnostic.
+  //
+  // The payload widening from the slice-3 `{ userId, sessionId,
+  // revokedAt }` to the M3 `{ actorId, targetUserId, sessionId,
+  // ipAddress, userAgent, revokedAt, count? }` matches design D3 +
+  // §3.2. The TS view of the widening lives at
+  // `auth.events.ts` (`AuthSessionRevokedPayload`); the dispatcher
+  // casts to that type at the receiving end.
+  //
+  // Idempotency:
+  //   - `revoke` reads the row first so it can emit the event AFTER
+  //     the delete; a missing row is a silent no-op (no event).
+  //   - `revokeAll` always emits one event (even with `count=0`) so
+  //     the audit trail captures every admin attempt, including
+  //     "nothing to revoke" cases.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * List every session owned by the user, sorted DESC by
+   * `lastActiveAt` (NULLs last per the spec's "Session List by User"
+   * "Sort `lastActiveAt IS NULL` last" scenario). Per spec "Session
+   * List Projection", the projection is the spec-literal 6-field
+   * shape: `{ id, userId, createdAt, lastActiveAt, userAgent,
+   * ipAddress }`. The `sessionToken` field is INTENTIONALLY absent
+   * — the cookie carries it; admin clients never see it (security
+   * boundary per design D7).
+   *
+   * The controller (PR #2) projects this list to the spec-literal
+   * JSON response. PR #1 locks the service surface so the
+   * controller has a stable shape.
+   *
+   * JD-2 fix (JD-driven correction round 1): `ipAddress` is
+   * returned as the HMAC-SHA256 hex digest (NOT the raw IP) — the
+   * `auth-server-surface` spec's "IP rendered as HMAC hex"
+   * scenario demands the projection never echo a raw PII IP back
+   * to an admin client. The same HMAC secret (`env.JWT_SECRET`)
+   * backs `insertAuditEvent`'s audit row insertion; re-derivation
+   * is `createHmac('sha256', env.JWT_SECRET).update(rawIp).digest('hex')`.
+   * Null ipAddress maps to null (no hash on null).
+   */
+  async list(userId: string): Promise<
+    ReadonlyArray<{
+      readonly id: string;
+      readonly userId: string;
+      readonly createdAt: Date | null;
+      readonly lastActiveAt: Date | null;
+      readonly userAgent: string | null;
+      readonly ipAddress: string | null;
+    }>
+  > {
+    const rows = await this.prisma.session.findMany({
+      where: { userId },
+      orderBy: { lastActiveAt: { sort: "desc", nulls: "last" } },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      userId: row.userId,
+      createdAt: row.createdAt ?? null,
+      lastActiveAt: row.lastActiveAt ?? null,
+      userAgent: row.userAgent ?? null,
+      // JD-2 fix: HMAC the IP before projection so the
+      // `GET /admin/sessions` endpoint can never echo raw PII.
+      // The raw IP is captured at the controller (design D3)
+      // and persists in the DB column for forensic / audit-row
+      // needs (already HMAC'd on the audit row insert path).
+      // The Prisma column is `String?`; the type at this surface
+      // can be `string | null | undefined` depending on test
+      // mocks. Anything missing/null maps to null; a real IP maps
+      // to its HMAC hex.
+      ipAddress: hashIpForAudit(row.ipAddress ?? null),
+    }));
+  }
+
+  /**
+   * Look up a session by its primary key. Returns `{ id, userId, ... }`
+   * on success; `null` when no row matches. Used by the admin
+   * single-session revoke path to detect self-revoke (the controller
+   * reads the row BEFORE the delete, then compares `row.userId` to
+   * the JWT's userId to decide whether to emit `Set-Cookie` clear).
+   *
+   * F3 fix (4R-driven correction): prior to this method the
+   * controller detected self-revoke by listing the admin's remaining
+   * sessions AFTER the revoke and checking `length === 0`. That
+   * heuristic is wrong for admins with multiple concurrent sessions
+   * (revoking one leaves others active, the cookie stays, the admin
+   * stays logged in). The `findById` lookup is O(1) on the primary
+   * key and pins the ownership check to the actual target row.
+   *
+   * Mirrors the `findByToken` / `findById` port pattern on
+   * `SessionRepository`; the direct `prisma.session.findUnique` is
+   * acceptable here because the read is on a single primary key and
+   * the port abstraction's purpose (mockable for unit tests) is
+   * preserved by the call sites that wire mocks.
+   */
+  async findById(sessionId: string): Promise<
+    | {
+        readonly id: string;
+        readonly userId: string;
+        readonly sessionToken: string;
+        readonly expires: Date;
+      }
+    | null
+  > {
+    const row = await this.prisma.session.findUnique({ where: { id: sessionId } });
+    if (row === null) {
+      return null;
+    }
+    return {
+      id: row.id,
+      userId: row.userId,
+      sessionToken: row.sessionToken,
+      expires: row.expires,
+    };
+  }
+
+  /**
+   * Revoke a single session by its PRIMARY KEY (NOT by token — the
+   * controller resolves the token→id before calling). The admin
+   * single-session path lives here; the slice-3 user-self-revoke
+   * path stays on `revokeSession(token, userId)` and emits the
+   * narrower slice-3 payload.
+   *
+   * Idempotent: a missing row is a silent no-op (no event, no
+   * audit row). The row is read BEFORE the delete so the event
+   * payload always carries the targetUserId — without the read, the
+   * dispatch would race the delete.
+   *
+   * IP + UA are recorded exactly as captured at the controller
+   * boundary (per design D3); the service does not redact them.
+   * Pino `[ip]` redaction is applied at the LOG layer, not here.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent` so the same primitive backs every admin op
+   * (RbacService.changeRole, SessionService.revoke/revokeAll).
+   */
+  async revoke(
+    sessionId: string,
+    actorId: string,
+    ipAddress: string | null,
+    userAgent: string | null,
+  ): Promise<void> {
+    const row = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+    if (row === null) {
+      return;
+    }
+    const targetUserId = row.userId;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.session.delete({ where: { id: sessionId } });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: sessionId,
+        action: "REVOKE_SESSION",
+        metadata: { targetUserId },
+        ipAddress,
+        userAgent,
+      });
+    });
+
+    const event: DomainEvent = {
+      name: "auth.session.revoked",
+      userId: actorId,
+      payload: {
+        actorId,
+        targetUserId,
+        sessionId,
+        ipAddress,
+        userAgent,
+        revokedAt: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    await this.dispatcher(event);
+  }
+
+  /**
+   * Revoke every session owned by the user. Returns the count. Emits
+   * ONE admin event (`auth.session.revoked` with `count` in the
+   * payload) — the singleton event is the audit anchor, not N
+   * per-session events (which would flood the trail).
+   *
+   * Always emits (event + audit row), even when `count === 0` —
+   * the audit trail captures "admin tried, user had nothing". Per
+   * design §3.2 and the `auth-server-surface` spec's `Revoke All
+   * Sessions for User → 0 sessions → 204, revokedCount: 0`
+   * scenario.
+   *
+   * Task 2.5 REFACTOR: the audit-row insert goes through
+   * `insertAuditEvent`. Metadata carries `{ count, targetUserId }`
+   * so the bulk revoke is recoverable from a single audit row.
+   */
+  async revokeAll(
+    userId: string,
+    actorId: string,
+    ipAddress: string | null,
+    userAgent: string | null,
+  ): Promise<number> {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.session.deleteMany({
+        where: { userId },
+      });
+      await insertAuditEvent(tx, {
+        actorId,
+        targetId: userId,
+        action: "REVOKE_ALL_SESSIONS",
+        metadata: { count: deleted.count },
+        ipAddress,
+        userAgent,
+      });
+      return deleted;
+    });
+
+    const event: DomainEvent = {
+      name: "auth.session.revoked",
+      userId: actorId,
+      payload: {
+        actorId,
+        targetUserId: userId,
+        sessionId: "bulk",
+        ipAddress,
+        userAgent,
+        count: result.count,
+        revokedAt: new Date(),
+      },
+      occurredAt: new Date(),
+    };
+    await this.dispatcher(event);
     return result.count;
   }
 

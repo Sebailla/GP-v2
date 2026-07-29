@@ -113,8 +113,7 @@ interface InvalidTokenScenario {
 }
 
 async function runInvalidTokenScenario(scenario: InvalidTokenScenario) {
-  const { rawToken, seedRow, forbidMessageWord, rawTokenIsInTokenRepo } =
-    scenario;
+  const { rawToken, seedRow, forbidMessageWord, rawTokenIsInTokenRepo } = scenario;
 
   const tokenRepo = makeFakeTokenRepo();
   if (rawTokenIsInTokenRepo) {
@@ -136,8 +135,7 @@ async function runInvalidTokenScenario(scenario: InvalidTokenScenario) {
   const prismaStub = makePrismaStub();
   const auditSink = vi.fn();
 
-  const { PasswordResetService, AuthError } =
-    await import("../password-reset.service.js");
+  const { PasswordResetService, AuthError } = await import("../password-reset.service.js");
   const service = new PasswordResetService(
     userRepo,
     tokenRepo as unknown as PasswordResetTokenRepository,
@@ -153,9 +151,7 @@ async function runInvalidTokenScenario(scenario: InvalidTokenScenario) {
   // into a single matcher (the previous shape called
   // `service.consumeReset(...)` twice per scenario: once for the
   // instance assertion, once for the message-shape assertion).
-  await expect(
-    service.consumeReset(rawToken, "anotherPassword"),
-  ).rejects.toSatisfy(
+  await expect(service.consumeReset(rawToken, "anotherPassword")).rejects.toSatisfy(
     (err: unknown) =>
       err instanceof AuthError &&
       err.code === "INVALID_RESET_TOKEN" &&
@@ -179,8 +175,7 @@ describe("PasswordResetService", () => {
   // dispatcher is not a function.
   // -------------------------------------------------------------------------
   it("F8 — the constructor throws TypeError when the dispatcher is missing/null (not a function)", async () => {
-    const { PasswordResetService } =
-      await import("../password-reset.service.js");
+    const { PasswordResetService } = await import("../password-reset.service.js");
     const userRepo = makeFakeUserRepo(null);
     const tokenRepo = makeFakeTokenRepo();
     const prismaStub = makePrismaStub();
@@ -209,6 +204,94 @@ describe("PasswordResetService", () => {
     ).toThrow(TypeError);
   });
 
+  describe("requestReset (locale-aware — module-2 PR #3 task 3.1)", () => {
+    it("dispatches a `resetUrl` whose path begins with `/es/reset-password/` when the locale is `es`", async () => {
+      const userRepo = makeFakeUserRepo({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        hashedPassword: "$2a$10$old-hash",
+      });
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      // D2 + spec scenario "Reset URL embeds the active locale":
+      // `requestReset("alice@example.com", "es")` MUST dispatch an
+      // event whose payload includes a `resetUrl` whose path starts
+      // with `/es/reset-password/`. The raw token is included exactly
+      // once (in the path, after the locale prefix).
+      await service.requestReset("alice@example.com", "es");
+
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+      const event = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
+      expect(event.name).toBe("auth.password-reset.requested");
+      const payload = event.payload as {
+        userId: string;
+        to: string;
+        token: string;
+        locale: string;
+        resetUrl: string;
+        requestedAt: Date;
+      };
+      expect(payload.locale).toBe("es");
+      expect(payload.resetUrl).toMatch(/^[^?#]*\/es\/reset-password\/[A-Za-z0-9_-]+$/);
+      // Raw token appears exactly once in the URL (after `/es/reset-password/`).
+      const pathTail = payload.resetUrl.split("/es/reset-password/")[1] ?? "";
+      expect(pathTail).toBe(payload.token);
+      // Recipient email copied from the user record so the
+      // controller subscriber can call MailAdapter.send without a
+      // second DB hit.
+      expect(payload.to).toBe("alice@example.com");
+    });
+
+    it("dispatches a `resetUrl` whose path begins with `/en/reset-password/` when the locale is `en`", async () => {
+      const userRepo = makeFakeUserRepo({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        hashedPassword: "$2a$10$old-hash",
+      });
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      await service.requestReset("alice@example.com", "en");
+
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+      const event = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
+      const payload = event.payload as {
+        userId: string;
+        to: string;
+        token: string;
+        locale: string;
+        resetUrl: string;
+        requestedAt: Date;
+      };
+      expect(payload.locale).toBe("en");
+      expect(payload.resetUrl).toMatch(/^[^?#]*\/en\/reset-password\/[A-Za-z0-9_-]+$/);
+      expect(payload.to).toBe("alice@example.com");
+    });
+
+    it("mints NOTHING (no row, no event) for an unknown email regardless of locale (no enumeration leak)", async () => {
+      const userRepo = makeFakeUserRepo(null);
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcher = vi.fn<AuthEventDispatcher>();
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
+
+      await expect(service.requestReset("ghost@example.com", "es")).resolves.toBeUndefined();
+
+      expect(tokenRepo.create).not.toHaveBeenCalled();
+      expect(dispatcher).not.toHaveBeenCalled();
+    });
+  });
+
   describe("requestReset", () => {
     it("mints a token, persists a row, and dispatches auth.password-reset.requested for a known email", async () => {
       const userRepo = makeFakeUserRepo({
@@ -220,11 +303,10 @@ describe("PasswordResetService", () => {
       const tokenRepo = makeFakeTokenRepo();
       const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("alice@example.com");
+      await service.requestReset("alice@example.com", "en");
 
       expect(tokenRepo.create).toHaveBeenCalledTimes(1);
       const createdArg = (
@@ -235,22 +317,22 @@ describe("PasswordResetService", () => {
       expect(createdArg.userId).toBe("user-1");
       expect(createdArg.expiresAt.getTime()).toBeGreaterThan(Date.now());
       const expectedExpiry = Date.now() + TEST_TOKEN_TTL_MS;
-      expect(
-        Math.abs(createdArg.expiresAt.getTime() - expectedExpiry),
-      ).toBeLessThan(5_000);
+      expect(Math.abs(createdArg.expiresAt.getTime() - expectedExpiry)).toBeLessThan(5_000);
 
       expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = (
-        vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent]
-      )[0];
+      const dispatched = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
       expect(dispatched.name).toBe("auth.password-reset.requested");
       expect(dispatched.userId).toBe("user-1");
       const payload = dispatched.payload as {
         userId: string;
+        to: string;
         token: string;
+        locale: string;
+        resetUrl: string;
         requestedAt: Date;
       };
       expect(payload.userId).toBe("user-1");
+      expect(payload.to).toBe("alice@example.com");
       expect(payload.token.length).toBeGreaterThanOrEqual(MIN_TOKEN_LENGTH);
       expect(sha256(payload.token)).toBe(createdArg.tokenHash);
       expect(payload.requestedAt).toBeInstanceOf(Date);
@@ -261,13 +343,10 @@ describe("PasswordResetService", () => {
       const tokenRepo = makeFakeTokenRepo();
       const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await expect(
-        service.requestReset("ghost@example.com"),
-      ).resolves.toBeUndefined();
+      await expect(service.requestReset("ghost@example.com", "es")).resolves.toBeUndefined();
 
       expect(tokenRepo.create).not.toHaveBeenCalled();
       expect(dispatcher).not.toHaveBeenCalled();
@@ -283,87 +362,65 @@ describe("PasswordResetService", () => {
       const tokenRepo = makeFakeTokenRepo();
       const dispatcher = vi.fn<AuthEventDispatcher>();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(userRepo, tokenRepo, dispatcher);
 
-      await service.requestReset("alice@example.com");
-      await service.requestReset("alice@example.com");
+      await service.requestReset("alice@example.com", "en");
+      await service.requestReset("alice@example.com", "en");
 
       expect(tokenRepo.create).toHaveBeenCalledTimes(2);
       const first = (
-        vi.mocked(tokenRepo.create).mock.calls[0] as unknown as [
-          { tokenHash: string },
-        ]
+        vi.mocked(tokenRepo.create).mock.calls[0] as unknown as [{ tokenHash: string }]
       )[0].tokenHash;
       const second = (
-        vi.mocked(tokenRepo.create).mock.calls[1] as unknown as [
-          { tokenHash: string },
-        ]
+        vi.mocked(tokenRepo.create).mock.calls[1] as unknown as [{ tokenHash: string }]
       )[0].tokenHash;
       expect(first).not.toBe(second);
 
-          expect(dispatcher).toHaveBeenCalledTimes(2);
-          const events = vi
-            .mocked(dispatcher)
-            .mock.calls.map((c) => (c as unknown as [DomainEvent])[0]);
-          expect(
-            events.every((e) => e.name === "auth.password-reset.requested"),
-          ).toBe(true);
-        });
+      expect(dispatcher).toHaveBeenCalledTimes(2);
+      const events = vi
+        .mocked(dispatcher)
+        .mock.calls.map((c) => (c as unknown as [DomainEvent])[0]);
+      expect(events.every((e) => e.name === "auth.password-reset.requested")).toBe(true);
+    });
 
-        it("R3 follow-up — swallows dispatcher rejection + emits AuditSink signal; row persists (orphan bounded by F4 cron)", async () => {
-          const userRepo = makeFakeUserRepo({
-            id: "user-1",
-            email: "alice@example.com",
-            role: "USER",
-            hashedPassword: "$2a$10$old",
-          });
-          const tokenRepo = makeFakeTokenRepo();
-          const dispatcherError = new Error("email adapter offline");
-          const dispatcher = vi
-            .fn<AuthEventDispatcher>()
-            .mockRejectedValue(dispatcherError);
-          const auditSink = vi.fn();
-
-          const { PasswordResetService } =
-            await import("../password-reset.service.js");
-          const service = new PasswordResetService(
-            userRepo,
-            tokenRepo as unknown as PasswordResetTokenRepository,
-            dispatcher,
-            // prisma is required by the constructor shape; use a no-op
-            // stub since requestReset never reaches the transaction.
-            asPrismaStub(makePrismaStub()),
-            auditSink,
-          );
-
-          // Contract: requestReset RESOLVES (no 500 to caller), row
-          // persists (user can inspect dev mailbox OR retry), audit
-          // sink fires with the F2-shaped signal.
-          await expect(
-            service.requestReset("alice@example.com"),
-          ).resolves.toBeUndefined();
-
-          expect(tokenRepo.create).toHaveBeenCalledTimes(1);
-          expect(dispatcher).toHaveBeenCalledTimes(1);
-          expect(auditSink).toHaveBeenCalledTimes(1);
-          const auditCall = (
-            vi.mocked(auditSink).mock.calls[0] as unknown as [
-              {
-                kind: string;
-                event: DomainEvent;
-                error: unknown;
-              },
-            ]
-          )[0];
-          expect(auditCall.kind).toBe("AUTH_EVENT_DISPATCH_FAILURE");
-          expect(auditCall.event.name).toBe("auth.password-reset.requested");
-          expect((auditCall.error as Error).message).toBe(
-            "email adapter offline",
-          );
-        });
+    it("PR #3 (task 3.10) — propagates dispatcher rejection so the controller maps it to 502 (was swallowed in slice-3)", async () => {
+      const userRepo = makeFakeUserRepo({
+        id: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+        hashedPassword: "$2a$10$old",
       });
+      const tokenRepo = makeFakeTokenRepo();
+      const dispatcherError = new Error("email adapter offline");
+      const dispatcher = vi.fn<AuthEventDispatcher>().mockRejectedValue(dispatcherError);
+
+      const { PasswordResetService } = await import("../password-reset.service.js");
+      const service = new PasswordResetService(
+        userRepo,
+        tokenRepo as unknown as PasswordResetTokenRepository,
+        dispatcher,
+        // prisma is required by the constructor shape; use a no-op
+        // stub since requestReset never reaches the transaction.
+        asPrismaStub(makePrismaStub()),
+      );
+
+      // PR #3 contract: requestReset REJECTS so the controller can
+      // catch the dispatcher error and return 502 (per forgot-password
+      // spec scenario "Gmail SMTP failure surfaces 502"). The
+      // dispatcher-error sink (`onError` inside the dispatcher)
+      // still receives the error for observability — see
+      // `src/__tests__/dispatcher.test.ts` for the propagation test.
+      await expect(service.requestReset("alice@example.com", "en")).rejects.toThrow(
+        "email adapter offline",
+      );
+
+      // Row still persists (F2 orphan-bounded invariant is preserved).
+      // The user can re-call requestReset to mint a fresh row + retry.
+      expect(tokenRepo.create).toHaveBeenCalledTimes(1);
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe("consumeReset — prisma.$transaction atomicity (F1 + F6)", () => {
     it("wraps userRepo.updatePassword + tokenRepo.markConsumed in a prisma.$transaction so a 2nd-write failure rolls back the first (F1 + F6)", async () => {
@@ -390,8 +447,7 @@ describe("PasswordResetService", () => {
         txPrtUpdate: txPasswordResetTokenUpdate,
       });
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(
         userRepo,
         tokenRepo as unknown as PasswordResetTokenRepository,
@@ -437,16 +493,13 @@ describe("PasswordResetService", () => {
       });
 
       const dispatcherError = new Error("email service down");
-      const dispatcher = vi
-        .fn<AuthEventDispatcher>()
-        .mockRejectedValue(dispatcherError);
+      const dispatcher = vi.fn<AuthEventDispatcher>().mockRejectedValue(dispatcherError);
       vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new-hash" as never);
 
       const prismaStub = makePrismaStub();
       const auditSink = vi.fn();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(
         userRepo,
         tokenRepo as unknown as PasswordResetTokenRepository,
@@ -455,9 +508,11 @@ describe("PasswordResetService", () => {
         auditSink,
       );
 
-      await expect(
-        service.consumeReset(rawToken, "newPwd123"),
-      ).resolves.toBeUndefined();
+      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toEqual({
+        userId: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+      });
 
       expect(prismaStub.$transaction).toHaveBeenCalledTimes(1);
       expect(prismaStub.txUserUpdate).toHaveBeenCalledTimes(1);
@@ -494,8 +549,7 @@ describe("PasswordResetService", () => {
       const prismaStub = makePrismaStub();
       const auditSink = vi.fn();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(
         userRepo,
         tokenRepo as unknown as PasswordResetTokenRepository,
@@ -504,9 +558,11 @@ describe("PasswordResetService", () => {
         auditSink,
       );
 
-      await expect(
-        service.consumeReset(rawToken, "newPwd123"),
-      ).resolves.toBeUndefined();
+      await expect(service.consumeReset(rawToken, "newPwd123")).resolves.toEqual({
+        userId: "user-1",
+        email: "alice@example.com",
+        role: "USER",
+      });
 
       expect(auditSink).not.toHaveBeenCalled();
     });
@@ -566,13 +622,10 @@ describe("PasswordResetService", () => {
         hashedPassword: "$2a$10$old-hash",
       });
       const dispatcher = vi.fn<AuthEventDispatcher>();
-      vi.mocked(bcrypt.hash).mockResolvedValue(
-        "$2a$10$new-bcrypt-hash" as never,
-      );
+      vi.mocked(bcrypt.hash).mockResolvedValue("$2a$10$new-bcrypt-hash" as never);
       const prismaStub = makePrismaStub();
 
-      const { PasswordResetService } =
-        await import("../password-reset.service.js");
+      const { PasswordResetService } = await import("../password-reset.service.js");
       const service = new PasswordResetService(
         userRepo,
         tokenRepo as unknown as PasswordResetTokenRepository,
@@ -601,9 +654,7 @@ describe("PasswordResetService", () => {
       expect(tokenRepo.markConsumed).not.toHaveBeenCalled();
 
       expect(dispatcher).toHaveBeenCalledTimes(1);
-      const dispatched = (
-        vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent]
-      )[0];
+      const dispatched = (vi.mocked(dispatcher).mock.calls[0] as unknown as [DomainEvent])[0];
       expect(dispatched.name).toBe("auth.password-reset.completed");
       expect(dispatched.userId).toBe("user-1");
       const payload = dispatched.payload as {
@@ -614,10 +665,7 @@ describe("PasswordResetService", () => {
       expect(payload.resetAt).toBeInstanceOf(Date);
 
       expect(bcrypt.hash).toHaveBeenCalledTimes(1);
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        "newPassword123",
-        BCRYPT_COST_FACTOR,
-      );
+      expect(bcrypt.hash).toHaveBeenCalledWith("newPassword123", BCRYPT_COST_FACTOR);
     });
   });
 });

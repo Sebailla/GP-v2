@@ -12,6 +12,9 @@ dist/
 out/
 build/
 
+# Next.js 16 auto-generated types file (auto-regenerated on every build)
+apps/web/next-env.d.ts
+
 # Prisma generated client (re-generated on `prisma generate`)
 libs/core/database/src/generated/
 
@@ -50,3 +53,12 @@ Thumbs.db
 *.pid
 *.seed
 *.pid.lock
+
+# Local symlinks created by slice fix-orphan-shared-directories
+# (2026-07-14, PR #73..#79 chain). Each `libs/features/<x>/server/shared`
+# symlink points to `libs/features/<x>/shared` to repair import resolution
+# without modifying the canonical package boundaries. These symlinks are
+# machine-local (different absolute paths on different clones would break
+# them) and must NOT be tracked. They are recreated on demand by the
+# slice's installer if missing.
+**/server/shared

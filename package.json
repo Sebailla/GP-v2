@@ -10,15 +10,20 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
+    "backup": "tsx scripts/operations/backup.ts",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "lint:fixtures": "node tools/eslint-plugin-boundary/scripts/run-fixtures.mjs",
+    "restore-drill": "tsx scripts/operations/restore-drill.ts",
     "test": "turbo run test",
+    "test:migrate": "bash scripts/migrate/__tests__/idempotency.test.sh",
     "typecheck": "turbo run typecheck",
     "bdd": "turbo run bdd",
+    "bdd:verify": "bash scripts/bdd/verify.sh",
     "e2e": "turbo run e2e",
-    "coverage": "turbo run coverage",
+    "coverage": "NODE_OPTIONS='--import tsx' node tools/coverage-validator.ts",
+    "coverage:validate": "NODE_OPTIONS='--import tsx' node tools/coverage-validator.ts",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d postgres",
@@ -31,9 +36,16 @@
     "clean": "turbo run clean && rm -rf .turbo node_modules"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.0.0",
+    "@eslint/markdown": "8.0.3",
+    "@types/pg": "^8.20.0",
     "@typescript-eslint/parser": "8.62.0",
+    "@vitest/coverage-v8": "4.1.9",
+    "pg": "8.13.1",
     "prettier": "3.9.0",
+    "tsx": "^4.23.0",
     "turbo": "2.10.3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
   }
 }

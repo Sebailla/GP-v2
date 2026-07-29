@@ -24,9 +24,7 @@ export function toDecimal(value: DecimalLikeInput): Decimal {
   if (value instanceof Decimal) return value;
   if (typeof value === "string") return new Decimal(value);
   if (typeof value === "number") return new Decimal(value);
-  throw new TypeError(
-    `toDecimal: expected Decimal | string | number, got ${typeof value}`
-  );
+  throw new TypeError(`toDecimal: expected Decimal | string | number, got ${typeof value}`);
 }
 
 export function add(a: DecimalLikeInput, b: DecimalLikeInput): Decimal {

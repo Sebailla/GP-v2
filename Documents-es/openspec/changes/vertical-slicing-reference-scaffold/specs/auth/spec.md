@@ -255,34 +255,34 @@ El critical flow login → authenticated landing MUST ser ejercitado por al meno
 
 El slice de auth persiste registros de identidad a través de `@auth/prisma-adapter` contra `libs/core/database`. Los elementos mínimos del schema expuestos al slice de auth se listan abajo. Los column types referencian tipos Prisma; remitirse al Prisma schema para la proyección SQL.
 
-| Table             | Column                | Type                | Constraints / Notes                                                                 |
-|-------------------|-----------------------|---------------------|--------------------------------------------------------------------------------------|
-| `User`            | `id`                  | `String` (`cuid()`) | Primary key.                                                                        |
-| `User`            | `email`               | `String`            | NOT NULL; UNIQUE index (collation case-insensitive manejada en el application layer). |
-| `User`            | `emailVerified`       | `DateTime?`         | NULL hasta verificarse.                                                              |
-| `User`            | `name`                | `String?`           | Display name.                                                                        |
-| `User`            | `image`               | `String?`           | Avatar URL.                                                                          |
-| `User`            | `passwordHash`        | `String?`           | NULL cuando el user se registra vía OAuth únicamente. Hash bcrypt/argon2.            |
-| `User`            | `role`                | `enum Role`         | NOT NULL; uno de `admin`, `user`. Default `user`.                                    |
-| `User`            | `createdAt`           | `DateTime`          | NOT NULL.                                                                            |
-| `User`            | `updatedAt`           | `DateTime`          | NOT NULL.                                                                            |
-| `Account`         | `id`                  | `String` (`cuid()`) | Primary key. Adapter-managed.                                                        |
-| `Account`         | `userId`              | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                          |
-| `Account`         | `provider`            | `String`            | NOT NULL; uno de `credentials`, `google`.                                            |
-| `Account`         | `providerAccountId`   | `String`            | NOT NULL.                                                                            |
-| `Account`         | `access_token` etc.   | `String?`           | Adapter-managed columns (refresh_token, expires_at, token_type, scope, id_token).     |
-| `Session`         | `id`                  | `String` (`cuid()`) | Primary key. Adapter-managed.                                                        |
-| `Session`         | `userId`              | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                          |
-| `Session`         | `sessionToken`        | `String`            | NOT NULL; UNIQUE index.                                                              |
-| `Session`         | `expires`             | `DateTime`          | NOT NULL.                                                                            |
-| `VerificationToken` | `identifier`        | `String`            | Adapter-managed reset / verification token storage.                                  |
-| `VerificationToken` | `token`             | `String`            | UNIQUE index.                                                                        |
-| `VerificationToken` | `expires`           | `DateTime`          | NOT NULL.                                                                            |
-| `PasswordResetToken` | `id`               | `String` (`cuid()`) | Primary key. Usado para flows de password reset con email mockeado.                  |
-| `PasswordResetToken` | `userId`           | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                          |
-| `PasswordResetToken` | `tokenHash`        | `String`            | NOT NULL; UNIQUE index. Hash del token (raw token nunca persistido).                 |
-| `PasswordResetToken` | `expiresAt`         | `DateTime`          | NOT NULL.                                                                            |
-| `PasswordResetToken` | `consumedAt`        | `DateTime?`         | NULL hasta que el reset ocurre; index `(userId, consumedAt)` para chequeos rápidos.  |
+| Table                | Column              | Type                | Constraints / Notes                                                                   |
+| -------------------- | ------------------- | ------------------- | ------------------------------------------------------------------------------------- |
+| `User`               | `id`                | `String` (`cuid()`) | Primary key.                                                                          |
+| `User`               | `email`             | `String`            | NOT NULL; UNIQUE index (collation case-insensitive manejada en el application layer). |
+| `User`               | `emailVerified`     | `DateTime?`         | NULL hasta verificarse.                                                               |
+| `User`               | `name`              | `String?`           | Display name.                                                                         |
+| `User`               | `image`             | `String?`           | Avatar URL.                                                                           |
+| `User`               | `passwordHash`      | `String?`           | NULL cuando el user se registra vía OAuth únicamente. Hash bcrypt/argon2.             |
+| `User`               | `role`              | `enum Role`         | NOT NULL; uno de `admin`, `user`. Default `user`.                                     |
+| `User`               | `createdAt`         | `DateTime`          | NOT NULL.                                                                             |
+| `User`               | `updatedAt`         | `DateTime`          | NOT NULL.                                                                             |
+| `Account`            | `id`                | `String` (`cuid()`) | Primary key. Adapter-managed.                                                         |
+| `Account`            | `userId`            | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                           |
+| `Account`            | `provider`          | `String`            | NOT NULL; uno de `credentials`, `google`.                                             |
+| `Account`            | `providerAccountId` | `String`            | NOT NULL.                                                                             |
+| `Account`            | `access_token` etc. | `String?`           | Adapter-managed columns (refresh_token, expires_at, token_type, scope, id_token).     |
+| `Session`            | `id`                | `String` (`cuid()`) | Primary key. Adapter-managed.                                                         |
+| `Session`            | `userId`            | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                           |
+| `Session`            | `sessionToken`      | `String`            | NOT NULL; UNIQUE index.                                                               |
+| `Session`            | `expires`           | `DateTime`          | NOT NULL.                                                                             |
+| `VerificationToken`  | `identifier`        | `String`            | Adapter-managed reset / verification token storage.                                   |
+| `VerificationToken`  | `token`             | `String`            | UNIQUE index.                                                                         |
+| `VerificationToken`  | `expires`           | `DateTime`          | NOT NULL.                                                                             |
+| `PasswordResetToken` | `id`                | `String` (`cuid()`) | Primary key. Usado para flows de password reset con email mockeado.                   |
+| `PasswordResetToken` | `userId`            | `String`            | NOT NULL; FK → `User.id` ON DELETE CASCADE.                                           |
+| `PasswordResetToken` | `tokenHash`         | `String`            | NOT NULL; UNIQUE index. Hash del token (raw token nunca persistido).                  |
+| `PasswordResetToken` | `expiresAt`         | `DateTime`          | NOT NULL.                                                                             |
+| `PasswordResetToken` | `consumedAt`        | `DateTime?`         | NULL hasta que el reset ocurre; index `(userId, consumedAt)` para chequeos rápidos.   |
 
 Indexes referenciados arriba:
 
@@ -298,14 +298,14 @@ El enum `Role` y los valores string de `provider` son parte del auth domain cont
 
 Per Locked Decision #3 (4–6 archivos `.feature` por módulo con step defs compartidas), el módulo de auth entrega:
 
-| Archivo                                                     | High-level scenarios                                                                                                                                                                                                                                                                                       |
-|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `libs/features/auth/docs/login-email-password.feature`      | Scenario: Valid credentials sign the user in · Scenario: Unknown email renders generic error · Scenario: Wrong password renders generic error · Scenario: Validation error on malformed email blocks submit · Scenario: Successful sign-in lands on the locale-correct landing.                              |
-| `libs/features/auth/docs/oauth-google-stub.feature`         | Scenario: Stubbed Google callback mints a session · Scenario: Stubbed Google callback for a new email creates the account then signs in · Scenario: Both providers (Credentials and Google) resolve to the same user record for the same email.                                                                |
-| `libs/features/auth/docs/password-reset.feature`            | Scenario: Forgot-password for a known email persists a token and a mocked email capture · Scenario: Reset-password with a valid token replaces the credential and consumes the token · Scenario: Reset-password with an expired token is rejected.                                                                |
-| `libs/features/auth/docs/sessions-list.feature`             | Scenario: Listing sessions returns every active session with device label · Scenario: Revoking a session prevents further authentication using that session identifier · Scenario: Revocation re-renders the sessions list with the removed entry gone.                                                            |
-| `libs/features/auth/docs/rbac-admin.feature`                | Scenario: A `user` role attempting an admin-only action is denied by the domain service · Scenario: An `admin` role succeeds on the same action · Scenario: RBAC denial surfaces in the UI error state without leaking policy details.                                                                            |
-| `libs/features/auth/docs/login-locale-routing.feature`      | Scenario: `/en/sign-in` y `/es/sign-in` renderizan la pantalla de sign-in en el locale solicitado · Scenario: Switching locale keeps the user on the same auth surface in the new locale.                                                                                                                       |
+| Archivo                                                | High-level scenarios                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `libs/features/auth/docs/login-email-password.feature` | Scenario: Valid credentials sign the user in · Scenario: Unknown email renders generic error · Scenario: Wrong password renders generic error · Scenario: Validation error on malformed email blocks submit · Scenario: Successful sign-in lands on the locale-correct landing. |
+| `libs/features/auth/docs/oauth-google-stub.feature`    | Scenario: Stubbed Google callback mints a session · Scenario: Stubbed Google callback for a new email creates the account then signs in · Scenario: Both providers (Credentials and Google) resolve to the same user record for the same email.                                 |
+| `libs/features/auth/docs/password-reset.feature`       | Scenario: Forgot-password for a known email persists a token and a mocked email capture · Scenario: Reset-password with a valid token replaces the credential and consumes the token · Scenario: Reset-password with an expired token is rejected.                              |
+| `libs/features/auth/docs/sessions-list.feature`        | Scenario: Listing sessions returns every active session with device label · Scenario: Revoking a session prevents further authentication using that session identifier · Scenario: Revocation re-renders the sessions list with the removed entry gone.                         |
+| `libs/features/auth/docs/rbac-admin.feature`           | Scenario: A `user` role attempting an admin-only action is denied by the domain service · Scenario: An `admin` role succeeds on the same action · Scenario: RBAC denial surfaces in the UI error state without leaking policy details.                                          |
+| `libs/features/auth/docs/login-locale-routing.feature` | Scenario: `/en/sign-in` y `/es/sign-in` renderizan la pantalla de sign-in en el locale solicitado · Scenario: Switching locale keeps the user on the same auth surface in the new locale.                                                                                       |
 
 Todas las step definitions viven bajo `libs/features/auth/docs/step-defs/` y son compartidas entre los seis archivos `.feature`. El phrasing concreto de los steps se deja a `sdd-design`; los requirement-level scenarios arriba enumeran la superficie de tests que el design debe alcanzar.
 

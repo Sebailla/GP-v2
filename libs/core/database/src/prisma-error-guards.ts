@@ -52,10 +52,7 @@
  * @param target - The unique-constraint field name to match (e.g. "slug", "userId")
  * @returns `true` if `err` is a P2002 with the given target field
  */
-export function isPrismaUniqueViolation(
-  err: unknown,
-  target: string,
-): boolean {
+export function isPrismaUniqueViolation(err: unknown, target: string): boolean {
   if (typeof err !== "object" || err === null) return false;
   if (!("code" in err)) return false;
   if ((err as { code?: unknown }).code !== "P2002") return false;

@@ -5,9 +5,7 @@ import {
 } from "@core/database";
 import type { PrismaClient, Prisma } from "@core/database";
 
-import type {
-  Category,
-} from "../../domain/entities/category.entity.js";
+import type { Category } from "../../domain/entities/category.entity.js";
 import {
   CategoryAlreadyExistsError,
   CategoryNotFoundError,

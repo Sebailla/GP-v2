@@ -85,9 +85,46 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  // M4 (module-4-privacy) — session creation timestamp. Required
+  // for the spec-literal 6-field list projection (per design D7 +
+  // the auth-server-surface spec's "Session List Projection"
+  // requirement). Nullable so the column is additive: every
+  // pre-M4 session row has NULL and stays readable. The schema
+  // `default(now())` populates the column on every NEW session
+  // insert going forward; pre-existing rows are NULL until
+  // PR #2 wires a backfill (the spec accepts the NULL).
+  createdAt    DateTime? @default(now())
+  // M3 (module-3-superadmin) — nullable JSON column. The `?` is
+  // non-negotiable: every session row predates this column and must
+  // remain readable. The column is admin-side metadata (e.g. last
+  // seen device label, sign-in surface) and never influences the
+  // auth path. See `openspec/changes/module-3-superadmin/design.md`
+  // §4 for the migration story + §5 for the data shape contract.
+  metadata     Json?
+  // M4 (module-4-privacy) — last-active timestamp. Nullable so the
+  // column is additive (no backfill required): every session row
+  // predates the column and the coalesce-write pattern in
+  // `SessionService.getCurrentUser` (per design D1) treats
+  // `lastActiveAt IS NULL` as "never seen yet, write now". The
+  // `@@index` below keeps the `list()` ORDER BY `lastActiveAt DESC`
+  // and the coalesce UPDATE off a seq-scan path. See
+  // `openspec/changes/module-4-privacy/design.md` §2 (D1) + §2 (D7).
+  lastActiveAt DateTime?
+  // M4 (module-4-privacy) — UA + IP captured at the controller
+  // boundary (per design D7 + the auth-server-surface spec's "Session
+  // List Projection" requirement). Same shape as the audit log
+  // columns: UA ≤ 512 chars, IP ≤ 45 chars (IPv6-mapped IPv4 max
+  // length). Both nullable so the columns are additive — every
+  // pre-M4 session row has NULL for both. The IP stored here is the
+  // RAW IP; HMAC conversion for admin responses happens at the
+  // controller projection boundary (per `pattern/pino-bracket-notation-
+  // redaction`, log lines carrying it are redacted at the LOG layer).
+  userAgent  String? @db.VarChar(512)
+  ipAddress  String? @db.VarChar(45)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([lastActiveAt])
   @@map("sessions")
 }
 
@@ -118,6 +155,44 @@ model PasswordResetToken {
   @@index([userId, consumedAt])
   @@index([expiresAt, consumedAt])
   @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// M3 ADMIN AUDIT (module-3-superadmin — D2)
+//
+// Append-only audit log for every admin operation (CHANGE_ROLE,
+// REVOKE_SESSION, REVOKE_ALL_SESSIONS). The IP and UA are captured at
+// the controller boundary (D3) so the service layer stays HTTP-agnostic.
+// Retention is deferred to M4 (D7) — the @@index([createdAt]) keeps the
+// eventual purge query off a seq-scan path.
+//
+// Pino `[ip]` redaction (per `pattern/pino-bracket-notation-redaction`)
+// is applied at the LOG layer, not here. This table is the row-of-record
+// — the IP is stored as captured, but log lines carrying it must be
+// redacted by pino's bracket-notation redaction paths.
+// ---------------------------------------------------------------------------
+
+enum AdminAuditAction {
+  REVOKE_SESSION
+  REVOKE_ALL_SESSIONS
+  CHANGE_ROLE
+}
+
+model AdminAuditEvent {
+  id        String           @id @default(cuid())
+  actorId   String
+  targetId  String
+  action    AdminAuditAction
+  createdAt DateTime         @default(now())
+  metadata  Json
+  // HMAC-SHA256 digests are persisted as 64-character lowercase hex.
+  ipAddress String?          @db.VarChar(64)
+  // UA ≤ 512 chars. Truncated to 512 chars at the controller boundary
+  // before insert (per threat matrix §7 — IP + UA handling).
+  userAgent String?          @db.VarChar(512)
+
+  @@index([createdAt])
+  @@map("admin_audit_events")
 }
 
 // ---------------------------------------------------------------------------
@@ -274,4 +349,26 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// BACKUP (slice — R-PF-7)
+//
+// Audit trail for the daily `pg_dump` job. One row per `runBackup`
+// invocation. The /status endpoint reads the most recent row to surface
+// `lastBackupAt` and `lastBackupStatus`.
+//
+// The `environment` column is REQUIRED because staging and production
+// share the same Postgres host; without it the /status endpoint on
+// production would happily report the staging backup timestamp.
+// ---------------------------------------------------------------------------
+
+model BackupRun {
+  id          String   @id @default(cuid())
+  performedAt DateTime @default(now())
+  status      String
+  bytes       Int?
+  storageKey  String?
+  message     String?
+  environment String
 }

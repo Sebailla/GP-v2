@@ -1,8 +1,8 @@
 import {
-	type CanActivate,
-	type ExecutionContext,
-	Injectable,
-	UnauthorizedException,
+  type CanActivate,
+  type ExecutionContext,
+  Injectable,
+  UnauthorizedException,
 } from "@nestjs/common";
 import type { Request } from "express";
 import { decode } from "next-auth/jwt";
@@ -12,6 +12,10 @@ import { env } from "@core/config";
 import type { CurrentUser } from "@features/auth";
 
 import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
+import {
+  authSessionValidationsTotal,
+  authSessionValidationsFailedTotal,
+} from "../../modules/metrics/registry.js";
 
 /**
  * Real NextAuth v5 JWT auth guard — T3.3 (slice 3 batch 7).
@@ -61,46 +65,69 @@ import { NEXTAUTH_SESSION_TOKEN_NAME } from "../../lib/auth.constants.js";
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const request = context.switchToHttp().getRequest<Request>();
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<Request>();
 
-		const header = request.headers.authorization;
-		if (typeof header !== "string" || !header.startsWith("Bearer ")) {
-			throw new UnauthorizedException("missing or malformed bearer token");
-		}
+    const header = request.headers.authorization;
+    if (typeof header !== "string" || !header.startsWith("Bearer ")) {
+      // M5 D5 — increment the failed-validation counter on every
+      // guard rejection (missing / malformed / expired / wrong-secret
+      // / forged tokens all share the same generic 401 response;
+      // the metric also collapses them into a single bucket so
+      // operators see aggregate failure volume without distinguishing
+      // modes).
+      authSessionValidationsFailedTotal.inc();
+      throw new UnauthorizedException("missing or malformed bearer token");
+    }
 
-		const token = header.slice("Bearer ".length).trim();
-		if (token === "") {
-			throw new UnauthorizedException("missing bearer token");
-		}
+    const token = header.slice("Bearer ".length).trim();
+    if (token === "") {
+      authSessionValidationsFailedTotal.inc();
+      throw new UnauthorizedException("missing bearer token");
+    }
 
-		let claims: Record<string, unknown> | null = null;
-		try {
-			claims = await decode({
-				token,
-				secret: env.NEXTAUTH_SECRET,
-				salt: NEXTAUTH_SESSION_TOKEN_NAME,
-			});
-		} catch {
-			// `decode` returns null on expired / wrong-secret tokens but
-			// can throw on completely malformed input (e.g. a non-JWT
-			// string, an unparseable payload). Both shapes fail the same
-			// way from the caller's perspective: 401.
-			claims = null;
-		}
-		if (claims === null) {
-			// `decode` returns null on expired / malformed / wrong-secret
-			// tokens. We use a single generic copy for every failure mode
-			// to avoid leaking which side failed (parallels D-AUTH-1 from
-			// the auth spec: no enumeration leak across the credential
-			// failure modes).
-			throw new UnauthorizedException("invalid bearer token");
-		}
+    let claims: Record<string, unknown> | null = null;
+    try {
+      claims = await decode({
+        token,
+        secret: env.NEXTAUTH_SECRET,
+        salt: NEXTAUTH_SESSION_TOKEN_NAME,
+      });
+    } catch {
+      // `decode` returns null on expired / wrong-secret tokens but
+      // can throw on completely malformed input (e.g. a non-JWT
+      // string, an unparseable payload). Both shapes fail the same
+      // way from the caller's perspective: 401.
+      claims = null;
+    }
+    if (claims === null) {
+      // `decode` returns null on expired / malformed / wrong-secret
+      // tokens. We use a single generic copy for every failure mode
+      // to avoid leaking which side failed (parallels D-AUTH-1 from
+      // the auth spec: no enumeration leak across the credential
+      // failure modes).
+      authSessionValidationsFailedTotal.inc();
+      throw new UnauthorizedException("invalid bearer token");
+    }
 
-		const user = toCurrentUser(claims);
-		(request as { user?: CurrentUser }).user = user;
-		return true;
-	}
+    try {
+      const user = toCurrentUser(claims);
+      (request as { user?: CurrentUser }).user = user;
+    } catch (error) {
+      // toCurrentUser throws on a structurally invalid JWT (no `sub`).
+      // Surface as a failed validation; the public 401 copy stays
+      // generic so the caller cannot distinguish failure modes.
+      authSessionValidationsFailedTotal.inc();
+      throw error;
+    }
+
+    // M5 D5 — increment the success counter on every accepted
+    // session validation. The counter is unlabelled (PII contract);
+    // operators can correlate via the JWT issuance pattern or by
+    // joining with the access logs that carry the request id.
+    authSessionValidationsTotal.inc();
+    return true;
+  }
 }
 
 /**
@@ -125,18 +152,18 @@ export class JwtAuthGuard implements CanActivate {
  * issuance and the current request).
  */
 function toCurrentUser(claims: Readonly<Record<string, unknown>>): CurrentUser {
-	const userId = pickString(claims["userId"]) ?? pickString(claims["sub"]);
-	const email = pickString(claims["email"]) ?? "";
-	const role = pickString(claims["role"]) ?? "USER";
+  const userId = pickString(claims["userId"]) ?? pickString(claims["sub"]);
+  const email = pickString(claims["email"]) ?? "";
+  const role = pickString(claims["role"]) ?? "USER";
 
-	if (userId === null || userId === "") {
-		// A token with no subject is structurally invalid. Treat as a
-		// 401 rather than throwing at projection time — keeps the
-		// public error copy consistent with the rest of the guard.
-		throw new UnauthorizedException("invalid bearer token");
-	}
+  if (userId === null || userId === "") {
+    // A token with no subject is structurally invalid. Treat as a
+    // 401 rather than throwing at projection time — keeps the
+    // public error copy consistent with the rest of the guard.
+    throw new UnauthorizedException("invalid bearer token");
+  }
 
-	return { id: userId, email, role };
+  return { id: userId, email, role };
 }
 
 /**
@@ -146,8 +173,8 @@ function toCurrentUser(claims: Readonly<Record<string, unknown>>): CurrentUser {
  * malformed claims uniformly.
  */
 function pickString(value: unknown): string | null {
-	if (typeof value === "string" && value.length > 0) {
-		return value;
-	}
-	return null;
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  return null;
 }

@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { beforeAll, vi } from "vitest";
 
 /**
  * Vitest setupFiles hook for `apps/web` — slice 4 batch 4b.
@@ -15,8 +16,94 @@ import "@testing-library/jest-dom/vitest";
  *  - The vitest `setupFiles` config runs the import BEFORE any test
  *    module loads so the matchers are available globally.
  *
- * No other setup is required for slice 4 batch 4b — the shadcn-style
- * primitives are pure React components with no I/O, no fetch, no DOM
- * mutation outside the render tree. happy-dom provides a DOM, the
- * matchers add the assertion surface, and the tests run.
+ * `next/navigation` is mocked globally (slice 8 — fix-web-vitest-crash)
+ * because happy-dom does not mount the Next.js app router. Any component
+ * that calls `useRouter()`, `usePathname()`, `useSearchParams()`, or
+ * `useParams()` throws `invariant expected app router to be mounted`
+ * (`next@16.2.10/navigation.ts:179`) at render time without this stub.
+ * Without the stub, the 15/25 scenarios in
+ * `apps/web/__tests__/components/transactions/state-coverage.test.tsx`
+ * that render `TransactionsList` (via `RowEditMenu`),
+ * `CreateTransactionForm`, or `EditTransactionForm` throw at render,
+ * the partial fiber stays mounted across tests, and V8 heap grows to
+ * ~4 GB before the worker is OOM-killed after ~4 minutes (slice-8
+ * verify Gate 3, Engram `#2278`).
+ *
+ * Slice 7 PR-7 (`36386e1`) added the serialized-fork worker-pool
+ * workaround to `apps/web/vitest.config.ts` (now at lines 62-64
+ * after `fix-vitest-4-deprecation` / PR #69 — `pool: "forks"`
+ * + `maxWorkers: 1` + `isolate: false` per the Vitest 4
+ * pool-rework migration guide at
+ * https://vitest.dev/guide/migration#pool-rework).
+ * That workaround changed WHEN the worker OOM fires, not WHETHER —
+ * it does NOT address the `useRouter()` invariant. This global mock
+ * is the root-cause fix; both coexist.
+ *
+ * The mock lives at the suite's single setup entry so every test
+ * file under `apps/web/__tests__/` (the existing 18 + any future
+ * file) gets the fake router automatically. The per-file mock at
+ * `apps/web/__tests__/components/auth/state-coverage.test.tsx`
+ * L47-49 becomes redundant but stays untouched in this PR (follow-up
+ * cleanup). See `openspec/changes/fix-web-vitest-crash/{proposal,spec,design}.md`.
  */
+
+// Factory form is REQUIRED: `vi.mock` is hoisted by Vitest's transform
+// above all imports, and the factory receives the `vi` object so the
+// `vi.fn()` stubs are recreated per test. `clearMocks: true` in
+// `apps/web/vitest.config.ts:38` resets the stubs automatically, so
+// tests do not need to manually clear them between scenarios.
+//
+// `useRouter` returns the FULL router shape (`push`, `replace`, `back`,
+// `forward`, `refresh`, `prefetch`) — the 3 affected form components
+// call `useRouter().push(...)` for success-path navigation; a minimal
+// stub that only returns `{ replace }` would silently break those
+// success-path assertions. The auth forms' per-file mock returns
+// only `{ replace }` because they only call `replace`; we return the
+// full shape here so any router-using component is covered.
+//
+// `useSearchParams` returns a fresh `URLSearchParams()` (WHATWG spec
+// class implemented at full fidelity in happy-dom 20.10; the 3
+// affected components call `.get(...)` only). `useParams` returns
+// `{}` so a future component that destructures it does not crash on
+// `undefined`.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+}));
+
+/**
+ * Vitest 4 + `isolate: false` cross-file isolation hook.
+ *
+ * `fix-vitest-4-deprecation` (commit 06eda80) migrated the apps/web
+ * vitest config to the Vitest 4 top-level pool shape
+ * (`pool: "forks"` + `maxWorkers: 1` + `isolate: false`,
+ * https://vitest.dev/guide/migration#pool-rework). The previous
+ * attempt of this change was BLOCKED at T1 verify: with `isolate: false`
+ * the global `vi.mock("next/navigation", ...)` above PERSISTS ACROSS
+ * test files in the same worker, and 7-21 auth-page tests fail
+ * non-deterministically because the mock state leaks between files
+ * (e.g. a `vi.fn()` count from one file bleeds into the next).
+ *
+ * The Vitest 4 migration guide prescribes:
+ *   "If your tests were relying on module reset between tests,
+ *    you'll need to add setupFile that calls `vi.resetModules()` in
+ *    `beforeAll` test hook."
+ *
+ * `beforeAll` runs once per test file (not per test), so the cost is
+ * one extra module-graph reset per file — well below the OOM-causing
+ * happy-dom isolated-runner cost we're avoiding. `clearMocks: true`
+ * in vitest.config.ts (L38) still resets the `vi.fn()` instances
+ * between individual tests; this hook handles the cross-file boundary.
+ */
+beforeAll(() => {
+  vi.resetModules();
+});

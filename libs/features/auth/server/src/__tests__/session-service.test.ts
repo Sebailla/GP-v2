@@ -44,37 +44,49 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * in the sandbox without a real database.
  */
 
-    vi.mock("@core/database", () => ({
-      prisma: {
-        session: {
-          findUnique: vi.fn(),
-          delete: vi.fn(),
-          deleteMany: vi.fn(),
-        },
-        user: {
-          findUnique: vi.fn(),
-        },
-      },
-    }));
+vi.mock("@core/database", () => ({
+  prisma: {
+    session: {
+      findUnique: vi.fn(),
+      // M4 (module-4-privacy — task 1.6): getCurrentUser now performs
+      // a coalesce UPDATE on `Session.lastActiveAt` per design D1.
+      // The mock must expose `session.update` so the production code
+      // can call it without throwing.
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+      // F3 fix: the circuit-breaker check routes through
+      // SessionRepository.listActive → prisma.session.findMany.
+      findMany: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
 
-    import { prisma } from "@core/database";
+import { prisma } from "@core/database";
 
-    import type { AuthEventDispatcher } from "../events.js";
+import type { AuthEventDispatcher } from "../events.js";
 
-    /**
-     * Slice 3 batch 6 (drop-wireauth-events): SessionService now takes
-     * the dispatcher as the 4th constructor argument. The existing
-     * session-service unit tests don't exercise dispatch on the paths
-     * under test (the wireAuthEvents wrapper used to do this); they
-     * pass a `vi.fn()` so the F8 guard accepts the constructor call
-     * and Pattern A is wired in.
-     */
-    const noopDispatcher = vi.fn<AuthEventDispatcher>();
+/**
+ * Slice 3 batch 6 (drop-wireauth-events): SessionService now takes
+ * the dispatcher as the 4th constructor argument. The existing
+ * session-service unit tests don't exercise dispatch on the paths
+ * under test (the wireAuthEvents wrapper used to do this); they
+ * pass a `vi.fn()` so the F8 guard accepts the constructor call
+ * and Pattern A is wired in.
+ */
+const noopDispatcher = vi.fn<AuthEventDispatcher>();
 
-    describe("SessionService", () => {
-      beforeEach(() => {
-        vi.resetAllMocks();
-      });
+describe("SessionService", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    // F3 fix: default `findMany` (used by the circuit breaker check)
+    // to an empty list so the breaker stays un-tripped for tests that
+    // exercise the coalesce-write path.
+    vi.mocked(prisma.session.findMany).mockResolvedValue([] as never);
+  });
 
   describe("getCurrentUser", () => {
     it("returns { id, email, role } when sessionToken is valid and not expired", async () => {
@@ -181,9 +193,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
       const service = new SessionService(prisma, undefined, undefined, noopDispatcher);
 
-      await expect(
-        service.revokeSession("unknown-token"),
-      ).resolves.toBeUndefined();
+      await expect(service.revokeSession("unknown-token")).resolves.toBeUndefined();
       expect(prisma.session.delete).toHaveBeenCalledWith({
         where: { sessionToken: "unknown-token" },
       });

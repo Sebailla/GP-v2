@@ -37,15 +37,15 @@ import type { DomainEvent } from "../types";
  *    missing" reason.
  */
 
-const eventWithToken = (
-  rawToken: string,
-  overrides: Partial<DomainEvent> = {},
-): DomainEvent => ({
+const eventWithToken = (rawToken: string, overrides: Partial<DomainEvent> = {}): DomainEvent => ({
   name: "auth.password-reset.requested",
   userId: "u1",
   payload: {
     userId: "u1",
+    to: "alice@example.com",
     token: rawToken,
+    locale: "en",
+    resetUrl: `http://localhost:3000/en/reset-password/${rawToken}`,
     requestedAt: new Date("2030-01-01T00:00:00Z"),
   },
   occurredAt: new Date("2030-01-01T00:00:00Z"),
@@ -59,14 +59,10 @@ describe("redactSensitive (F3)", () => {
 
     const redacted = redactSensitive(event);
 
-    expect((redacted.payload as { token: string }).token).toBe(
-      "***REDACTED***",
-    );
+    expect((redacted.payload as { token: string }).token).toBe("***REDACTED***");
     // Non-token fields preserved.
     expect((redacted.payload as { userId: string }).userId).toBe("u1");
-    expect(
-      (redacted.payload as { requestedAt: Date }).requestedAt,
-    ).toBeInstanceOf(Date);
+    expect((redacted.payload as { requestedAt: Date }).requestedAt).toBeInstanceOf(Date);
     // Envelope preserved.
     expect(redacted.name).toBe("auth.password-reset.requested");
     expect(redacted.userId).toBe("u1");
@@ -130,16 +126,12 @@ describe("InMemoryDispatcher ring buffer redaction (F3 integration)", () => {
 
     // 1. The handler received the RAW event (with the real token).
     expect(receivedByHandler).toBeDefined();
-    expect((receivedByHandler!.payload as { token: string }).token).toBe(
-      rawToken,
-    );
+    expect((receivedByHandler!.payload as { token: string }).token).toBe(rawToken);
 
     // 2. The ring buffer holds the REDACTED copy.
     const replayed = dispatcher.replay("u1");
     expect(replayed).toHaveLength(1);
-    expect((replayed[0]!.payload as { token: string }).token).toBe(
-      "***REDACTED***",
-    );
+    expect((replayed[0]!.payload as { token: string }).token).toBe("***REDACTED***");
 
     unsub();
   });
@@ -153,8 +145,6 @@ describe("InMemoryDispatcher ring buffer redaction (F3 integration)", () => {
 
     const replayed = dispatcher.replay("u1");
     expect(replayed).toHaveLength(1);
-    expect((replayed[0]!.payload as { token: string }).token).toBe(
-      rawToken,
-    );
+    expect((replayed[0]!.payload as { token: string }).token).toBe(rawToken);
   });
 });

@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 
-import {
-  forgotPasswordSchema,
-  type ForgotPasswordInput,
-} from "@features/auth/shared/schemas";
+import { forgotPasswordSchema, type ForgotPasswordInput } from "@features/auth/shared/schemas";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -59,7 +56,11 @@ export function ForgotPasswordForm({
   });
 
   const [submitted, setSubmitted] = React.useState(false);
-  const { submit, isSubmitting: apiIsSubmitting, formError } = useAuthApiPost({
+  const {
+    submit,
+    isSubmitting: apiIsSubmitting,
+    formError,
+  } = useAuthApiPost({
     apiBaseUrl: apiUrl,
     endpoint: "/auth/forgot-password",
     errorMap: {},
@@ -103,10 +104,7 @@ export function ForgotPasswordForm({
       aria-describedby={formError ? "forgot-password-form-error" : undefined}
       className={cn("flex flex-col gap-ui-space-4", className)}
     >
-      <AuthFormErrorBanner
-        id="forgot-password-form-error"
-        message={formError}
-      />
+      <AuthFormErrorBanner id="forgot-password-form-error" message={formError} />
 
       <FormFieldRow
         id="forgot-password-email"

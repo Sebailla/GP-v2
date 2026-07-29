@@ -11,10 +11,12 @@
     "ignoreDeprecations": "6.0",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "../docs/step-defs/**/*.ts", "../docs/__tests__/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",
-    "../../../core/database/src/generated/**"
+    "../../../core/database/src/generated/**",
+    "src/__tests__/**",
+    "../docs/__tests__/**"
   ]
 }

@@ -1,22 +1,24 @@
 {
   "auth": {
-"common": {
-          "loading": "Cargando…",
-          "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
-          "cancel": "Cancelar",
-          "backToLoginLink": "Volver a iniciar sesión",
-          "error": {
-            "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
-          }
-        },
-    "signIn": {
-      "title": "Iniciar sesión",
-      "description": "Inicia sesión para acceder a tu cuenta.",
-      "email": "Correo electrónico",
-      "password": "Contraseña",
-      "submit": "Iniciar sesión",
+    "common": {
+      "loading": "Cargando…",
+      "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
+      "cancel": "Cancelar",
+      "backToLoginLink": "Volver a iniciar sesión",
       "error": {
-        "invalidCredentials": "Correo electrónico o contraseña no válidos."
+        "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
+      }
+    },
+"signIn": {
+      "title": "Sign in",
+      "description": "Sign in to access your account.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "google": "Continuar con Google",
+      "dividerOr": "o",
+      "error": {
+        "invalidCredentials": "Credenciales no válidas."
       }
     },
     "signUp": {
@@ -51,12 +53,32 @@
       "revokeButton": "Revocar",
       "empty": "No se han encontrado sesiones activas."
     },
+    "error": {
+      "title": "Error de inicio de sesión",
+      "backToSignIn": "Volver a inicio de sesión",
+      "codes": {
+        "unknown": "Algo salió mal al iniciar sesión. Por favor, inténtalo de nuevo.",
+        "Configuration": "La autenticación está mal configurada. Por favor contacta al soporte.",
+        "AccessDenied": "Se denegó el acceso a este recurso. El enlace puede haber expirado o ser inválido.",
+        "Verification": "El enlace de verificación es inválido o ha expirado.",
+        "OAuthSignin": "No se pudo iniciar el flujo OAuth. Por favor inténtalo de nuevo.",
+        "OAuthCallback": "No se pudo completar el flujo OAuth. Por favor inténtalo de nuevo.",
+        "OAuthCreateAccount": "No se pudo crear tu cuenta mediante OAuth. Por favor inténtalo de nuevo.",
+        "EmailCreateAccount": "No se pudo crear tu cuenta mediante email. Por favor inténtalo de nuevo.",
+        "Callback": "La devolución de llamada de OAuth falló. Por favor inténtalo de nuevo.",
+        "OAuthAccountNotLinked": "Este email ya está vinculado a otro método de inicio de sesión.",
+        "EmailSignin": "No se pudo enviar el enlace de inicio de sesión por email. Por favor inténtalo de nuevo.",
+        "CredentialsSignin": "Email o contraseña no válidos.",
+        "SessionRequired": "Debes iniciar sesión para ver esta página."
+      }
+    },
     "devMailbox": {
       "title": "Buzón de desarrollo",
       "noTokensHint": "Aún no se ha despachado ningún token de restablecimiento de contraseña.",
       "tokenLabel": "Token de restablecimiento",
       "copyButton": "Copiar token",
-      "copiedToClipboard": "Copiado al portapapeles"
+      "copiedToClipboard": "Copiado al portapapeles",
+      "resetUrlLabel": "Visitar enlace de restablecimiento"
     },
     "dashboard": {
       "welcome": "Bienvenido/a, {email}.",
@@ -65,6 +87,282 @@
     "locale": {
       "en": "Inglés",
       "es": "Español"
+    }
+  },
+  "transactions": {
+    "list": {
+      "title": "Transacciones",
+      "subtitle": "Explorá, buscá y administrá tus transacciones.",
+      "empty": "Aún no hay transacciones. Agregá la primera.",
+      "error": {
+        "load": "No se pudieron cargar las transacciones. Probá de nuevo.",
+        "network": "Error de red. Revisá tu conexión."
+      },
+      "columns": {
+        "date": "Fecha",
+        "amount": "Monto",
+        "category": "Categoría",
+        "currency": "Moneda",
+        "kind": "Tipo",
+        "actions": "Acciones"
+      },
+      "filter": {
+        "fromDate": "Desde",
+        "toDate": "Hasta",
+        "category": "Categoría",
+        "currency": "Moneda",
+        "apply": "Aplicar",
+        "reset": "Reiniciar"
+      }
+    },
+    "new": {
+      "title": "Nueva transacción",
+      "submit": "Crear",
+      "success": "Transacción creada.",
+      "error": {
+        "invalidData": "Revisá los valores del formulario.",
+        "duplicate": "Ya existe una transacción con la misma huella digital.",
+        "server": "Error del servidor. Probá de nuevo."
+      },
+      "amount": "Monto",
+      "currency": "Moneda",
+      "kind": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "category": "Categoría",
+      "notes": "Notas (opcional)",
+      "occurredAt": "Fecha"
+    },
+    "edit": {
+      "title": "Editar transacción",
+      "submit": "Guardar",
+      "success": "Transacción actualizada.",
+      "error": {
+        "load": "No se pudo cargar esta transacción.",
+        "update": "No se pudieron guardar los cambios."
+      }
+    },
+    "detail": {
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar lógicamente esta transacción? Un admin puede recuperarla."
+    },
+    "delete": {
+      "success": "Transacción eliminada lógicamente.",
+      "error": "No se pudo eliminar la transacción."
+    },
+    "actions": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "view": "Ver"
+    },
+    "totals": {
+      "income": "Ingreso",
+      "expense": "Gasto",
+      "net": "Neto"
+    },
+    "threshold": {
+      "title": "Alerta de umbral",
+      "dismissed": "Descartada"
+    }
+  },
+  "categories": {
+    "list": {
+      "title": "Categorías",
+      "subtitle": "Organizá tus transacciones en categorías.",
+      "empty": "Aún no hay categorías.",
+      "new": "Nueva categoría"
+    },
+    "form": {
+      "name": "Nombre",
+      "kind": {
+        "income": "Ingreso",
+        "expense": "Gasto"
+      },
+      "submit": "Guardar",
+      "success": "Categoría guardada.",
+      "error": "No se pudo guardar la categoría.",
+      "slug": "Slug",
+      "slugHint": "Solo letras minúsculas, números y guiones."
+    },
+    "delete": {
+      "confirm": "¿Eliminar lógicamente esta categoría? Las transacciones existentes conservan sus datos pero la categoría desaparecerá de los selectores.",
+      "success": "Categoría eliminada lógicamente.",
+      "error": "No se pudo eliminar la categoría."
+    },
+    "kinds": {
+      "income": "Ingreso",
+      "expense": "Gasto"
+    }
+  },
+  "common": {
+    "loading": "Cargando…",
+    "genericError": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "back": "Atrás",
+    "submit": "Enviar",
+    "yes": "Sí",
+    "no": "No",
+    "close": "Cerrar",
+    "retry": "Reintentar"
+  },
+  "status": {
+    "title": "Estado del sistema",
+    "description": "Instantánea operativa de la fundación de producción.",
+    "loading": "Cargando estado…",
+    "errorTitle": "Estado no disponible",
+    "error": "No pudimos cargar el estado. Detalle: {message}",
+    "retry": "Reintentar",
+    "notFoundTitle": "Página de estado no encontrada",
+    "cardTitle": "Detalle del estado",
+    "environment": "Entorno",
+    "commit": "Commit de la API",
+    "lastBackup": "Último backup",
+    "never": "Nunca",
+    "uptime": "Uptime de la API",
+    "publicApiUrl": "URL de la API",
+    "publicWebUrl": "URL del Web",
+    "lastUpdate": "Instantánea tomada el {ts}"
+  },
+  "admin": {
+    "flash": {
+      "denied": "Acceso denegado. Esta sección está restringida a administradores."
+    },
+    "errors": {
+      "lastAdmin": "Esta es la última cuenta de administrador. Promueve a otro usuario a ADMIN antes de degradar esta.",
+      "serialization_failed": "El cambio de rol entró en conflicto con otra actualización. Inténtalo de nuevo."
+    },
+    "nav": {
+      "users": "Usuarios",
+      "sessions": "Sesiones",
+      "back": "Volver a la aplicación"
+    },
+    "users": {
+      "title": "Gestión de usuarios",
+      "description": "Revisa los usuarios registrados y ajusta sus roles.",
+      "loading": "Cargando usuarios…",
+      "empty": "Aún no hay usuarios.",
+      "emptyHelp": "Cuando se creen cuentas nuevas aparecerán aquí para asignar roles.",
+      "error": "No pudimos cargar los usuarios. {message}",
+      "retry": "Reintentar",
+      "columns": {
+        "email": "Correo",
+        "role": "Rol",
+        "createdAt": "Creado",
+        "actions": "Acciones"
+      },
+      "view": "Abrir",
+      "roleChange": {
+        "label": "Cambiar rol",
+        "submit": "Guardar rol",
+        "submitting": "Guardando…",
+        "success": "Rol actualizado.",
+        "validationError": "Selecciona un rol válido (USER o ADMIN)."
+      }
+    },
+    "userDetail": {
+      "title": "Detalle del usuario",
+      "backToList": "Volver a usuarios",
+      "loading": "Cargando usuario…",
+      "notFound": "Usuario no encontrado.",
+      "roleLabel": "Rol actual",
+      "metadataTitle": "Metadatos de la cuenta",
+      "createdAt": "Cuenta creada",
+      "updatedAt": "Última actualización",
+      "error": "No pudimos cargar el usuario. {message}",
+      "retry": "Reintentar"
+    },
+    "sessions": {
+      "title": "Gestión de sesiones",
+      "description": "Revisa las sesiones activas de cualquier usuario y revócalas si es necesario.",
+      "userIdLabel": "ID de usuario",
+      "userIdPlaceholder": "Pega un ID de usuario para listar sesiones",
+      "load": "Listar sesiones",
+      "loading": "Cargando sesiones…",
+      "empty": "No hay sesiones activas para este usuario.",
+      "error": "No pudimos cargar las sesiones. {message}",
+      "retry": "Reintentar",
+      "revokeAll": "Revocar todas las sesiones",
+      "revokeAllConfirm": "¿Revocar todas las sesiones de este usuario? Se cerrará la sesión en todos los dispositivos.",
+      "revokeAllSuccess": "Todas las sesiones fueron revocadas.",
+      "revokeSuccess": "Sesión revocada.",
+      "validationError": "Ingresa un ID de usuario válido para listar sesiones.",
+      "columns": {
+        "id": "ID de sesión",
+        "createdAt": "Creada",
+        "lastActiveAt": "Última actividad",
+        "userAgent": "User agent",
+        "ipAddress": "Dirección IP",
+        "actions": "Acciones"
+      },
+      "revoke": "Revocar"
+    },
+    "audit": {
+      "title": "Registro de auditoría",
+      "description": "Revisá las acciones administrativas y ejecutá la purga de retención.",
+      "loading": "Cargando eventos de auditoría…",
+      "empty": "Ningún evento de auditoría coincide con los filtros actuales.",
+      "emptyHelp": "Los eventos se registran cuando un admin revoca sesiones o cambia roles. Ajustá los filtros o esperá nueva actividad.",
+      "error": "No pudimos cargar los eventos de auditoría. {message}",
+      "retry": "Reintentar",
+      "filterApplied": "Filtros aplicados.",
+      "validationError": "Ingresá valores de filtro válidos.",
+      "filters": {
+        "title": "Filtros",
+        "actorIdLabel": "ID del actor",
+        "actorIdPlaceholder": "Filtrar por actor (UUID)",
+        "targetIdLabel": "ID del objetivo",
+        "targetIdPlaceholder": "Filtrar por objetivo (UUID)",
+        "actionLabel": "Acción",
+        "actionAll": "Todas las acciones",
+        "sinceLabel": "Desde",
+        "untilLabel": "Hasta",
+        "apply": "Aplicar filtros",
+        "reset": "Reiniciar filtros",
+        "validationError": "Ingresá al menos un valor de filtro (actor, objetivo, acción o rango de fechas)."
+      },
+      "pagination": {
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "page": "Página {page} de {total}",
+        "first": "Primera",
+        "last": "Última"
+      },
+      "columns": {
+        "createdAt": "Cuándo",
+        "action": "Acción",
+        "actorId": "Actor",
+        "targetId": "Objetivo",
+        "ipAddress": "IP (HMAC, primeros 8 caracteres)",
+        "userAgent": "User agent",
+        "metadata": "Metadatos"
+      },
+      "retention": {
+        "title": "Purga de retención",
+        "description": "Previsualizá cuántas filas coinciden con un umbral de antigüedad y luego ejecutá la purga real.",
+        "olderThanDaysLabel": "Más antiguo que (días)",
+        "olderThanDaysPlaceholder": "p. ej. 90",
+        "validationError": "Ingresá un entero positivo para el umbral de antigüedad (en días).",
+        "dryRun": "Purga de prueba",
+        "dryRunning": "Ejecutando purga de prueba…",
+        "dryRunResult": "Prueba: {matched} fila(s) serían eliminadas.",
+        "dryRunResultZero": "Prueba: ninguna fila coincide con este umbral.",
+        "purge": "Purgar ahora",
+        "purging": "Purgando…",
+        "purgeConfirm": "¿Eliminar {matched} evento(s) de auditoría con más de {days} día(s)? Esta acción no se puede deshacer.",
+        "purgeResult": "Se purgaron {deleted} fila(s).",
+        "purgeResultZero": "Purga confirmada — ninguna fila coincidió.",
+        "error": "La acción de retención falló. {message}"
+      },
+      "actions": {
+        "REVOKE_SESSION": "Revocar sesión",
+        "REVOKE_ALL_SESSIONS": "Revocar todas las sesiones",
+        "CHANGE_ROLE": "Cambiar rol"
+      }
     }
   }
 }
