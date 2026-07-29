@@ -1,6 +1,6 @@
 {
   "name": "@core/logging",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Structured logger shared by apps/api and apps/web. Re-exports a pino instance with the redaction list required by R-PF-5.",
   "type": "module",
