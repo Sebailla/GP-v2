@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-29
+
+### Summary
+
+Productionization program completion. Six chained PRs (#79 Module 2 Public Authentication, #80 Module 3 Superadmin, #81 Module 4 Privacy, #82 Module 5 Production Hardening, #83 Module 5.1 Coverage Hardening, #84 Module 5.1.1 Coverage Hardening housekeeping) ship M2–M5.1.1 end-to-end. **MINOR bump** from v1.1.1 → v1.2.0 because the release introduces additive new public-API surfaces (Google OAuth handshake, superadmin session management endpoints, audit-log UI, observability metrics, coverage gate) and remains backward-compatible with v1.1.1 auth + transactions surfaces.
+
+Closes 3 carry-forward WARNINGs from v1.1.1: bcrypt-cost-12, F2 race (serializable isolation on idempotency replay), circuit-breaker perf. Adds observability metrics wiring. Adds coverage gate enforcement (60% per package, fail-fast in CI). Closes M5.1 FAIL carry-forward by lifting apps/api branch coverage 54.87% → 68.80%.
+
+658 Vitest + BDD + Playwright tests pass. Six chained PRs were each PASS-WITH-WARNINGS at the 4R review (0 blockers, 0 criticals). Eight canonical specs now live at `openspec/specs/<domain>/spec.md`.
+
+### Added — Module 2 Public Authentication (PR #79)
+
+Google OAuth handshake wired through `@core/auth` (no information leak on already-authenticated users, idempotent account linking, `redirect-if-already-authenticated` guard on the four auth pages). DevMailbox backend for local validation. Password reset flow with single-use tokens, 1-hour expiry, and audit-log emission.
+
+### Added — Module 3 Superadmin (PR #80)
+
+Sessions list + revoke UI for `role: 'superadmin'`. Role management page (promote / demote between `user` and `superadmin`). Audit log viewer with filter + pagination. All actions emit audit-log events through `@core/events`.
+
+### Added — Module 4 Privacy (PR #81)
+
+Audit log retention policy + scheduled cleanup. Audit log UI surface (filter, export, detail drawer). `Session.lastActiveAt` tracking with 30-day inactivity expiry. `LastSeenIndicator` UI component on the session list.
+
+### Added — Module 5 Production Hardening (PR #82)
+
+BCRYPT cost raised 10 → 12 (closes v1.1.1 WARNING). F2 race closed via `prisma.$transaction` with `Serializable` isolation on idempotency replay. Circuit breaker pattern on the FX rate provider. Observability metrics exposed via `/metrics` (request duration histograms, error counters, FX provider call counts).
+
+### Added — Module 5.1 Coverage Hardening (PR #83)
+
+Vitest 4.1.x migration. Custom `runsOnce` Vitest validator. Race stabilization suite for F2 (idempotency replay under concurrency). Runbook under `docs/operations/admin-runbook.md` (EN) and `Documents-es/docs/operations/admin-runbook.md` (ES mirror).
+
+### Added — Module 5.1.1 Coverage Housekeeping (PR #84)
+
+`apps/api` branch coverage lifted 54.87% → 68.80%. Per-package 60% threshold hard-locked in CI (fail-fast). Re-verification of M5.1 PASS WITH WARNINGS — no blockers.
+
+### Changed
+
+- 12 × `package.json` workspace version bumped from `1.1.1` → `1.2.0` (apps/web, apps/api, libs/core/{database,config,events,logging,rate-limit}, libs/features/{auth,transactions}/server, libs/shared-utils/{decimal,date-formatting,currency}).
+- `pnpm-lock.yaml` updated to reflect ESLint 10, Vitest 4.1.x, Prisma 7.8, NextAuth 5 beta 25, Hono 4.12.
+- Branch model updated: `develop` is the working branch, `main` is the immutable production release branch. Both branches now share the same protection rules (no force-push, no delete, 1 required review); `develop` is enforced stricter (`enforce_admins: true`).
+
+### Quality gates
+
+| Gate              | Result                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------- |
+| Typecheck         | PASS (`pnpm turbo run typecheck` — all workspaces)                                              |
+| Lint              | PASS (`pnpm turbo run lint`)                                                                    |
+| Test              | PASS (658/658 tests across Vitest + BDD + Playwright across `@features/auth`, `@features/transactions`, `apps/api`, `apps/web`, libs) |
+| Build             | PASS (`pnpm turbo run build`; apps/api dist + apps/web .next)                                   |
+| Boundary fixtures | PASS (`pnpm lint:fixtures`)                                                                     |
+
+**Total workspace tests at v1.2.0**: 658 (was 491 at v1.1.1; the +167 delta is mostly slice-7 BDD bridge fixes + slice-8 auth BDD gate coverage + M5.1.1 coverage hardening).
+
+### Known issues still deferred
+
+- **`apps/web` build** Pages Router vs App Router config drift — slice 8 closed the lib/auth.ts barrel split, full App Router migration is still pending.
+- **`format:check` drift** — apply Prettier formatting to the workspace; pending chore PR.
+- **CI BDD + Playwright jobs** — wired in slice 8 PR-2; observability around BDD runs is still pending.
+
+### Release process
+
+- **Branch model**: `develop` is the working branch; `main` is the immutable production release branch. Releases are cut via `release/v<MAJOR>.<MINOR>.<PATCH>` branches off `develop` → PR → `main` → tag → GitHub release.
+- **Commit convention**: Conventional Commits (no `Co-Authored-By` / no AI attribution).
+- **Branch-model convention** (per AGENTS.md §2): feature branches cut from `develop`, work-unit commits, `git revert <sha>` for rollback.
+- **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
+
+[1.2.0]: https://github.com/Sebailla/GP-v2/compare/v1.1.1...v1.2.0
+[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.2.0...HEAD
+
 ## [1.1.1] - 2026-07-09
 
 ### Summary
@@ -76,7 +144,6 @@ Spanish mirror of `apply-progress.md` got an explicit **estado del espejo** tabl
 - **Branch-model convention** (per AGENTS.md §2): feature branches cut from `develop`, work-unit commits, `git revert <sha>` for rollback.
 - **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
 
-[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.1.1...HEAD
 [1.1.1]: https://github.com/Sebailla/GP-v2/compare/v1.1.0...v1.1.1
 [1.0.0]: https://github.com/Sebailla/GP-v2/releases/tag/v1.0.0
 
