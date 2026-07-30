@@ -5,6 +5,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { MailModule } from "./mail/mail.module.js";
 import { MetricsModule } from "./modules/metrics/metrics.module.js";
+import { ReportsModule } from "./modules/reports/reports.module.js";
 import { TransactionsModule } from "./modules/transactions/transactions.module.js";
 
 /**
@@ -37,6 +38,7 @@ import { TransactionsModule } from "./modules/transactions/transactions.module.j
     HealthModule,
     MailModule,
     MetricsModule,
+    ReportsModule,
     ScheduleModule.forRoot(),
     TransactionsModule,
   ],

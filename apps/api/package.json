@@ -22,6 +22,7 @@
     "@core/logging": "workspace:*",
     "@core/rate-limit": "workspace:*",
     "@features/auth": "workspace:*",
+    "@features/reports": "workspace:*",
     "@features/transactions": "workspace:*",
     "@nestjs/common": "11.1.27",
     "@nestjs/core": "11.1.27",
