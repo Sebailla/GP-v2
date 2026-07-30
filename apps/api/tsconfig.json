@@ -31,6 +31,8 @@
       "@shared-utils/decimal/*": ["libs/shared-utils/decimal/src/*"],
       "@features/auth": ["libs/features/auth/server"],
       "@features/auth/*": ["libs/features/auth/*"],
+      "@features/reports": ["libs/features/reports/src"],
+      "@features/reports/*": ["libs/features/reports/src/*"],
       "@features/transactions": ["libs/features/transactions/server"],
       "@features/transactions/*": ["libs/features/transactions/*"],
       "@shared-utils/*": ["../libs/shared-utils/*"]
@@ -40,6 +42,7 @@
     "src/**/*.ts",
     "test/**/*.ts",
     "../libs/features/auth/shared/schemas/**/*.ts",
+    "../libs/features/reports/shared/schemas/**/*.ts",
     "../libs/features/transactions/shared/schemas/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]
