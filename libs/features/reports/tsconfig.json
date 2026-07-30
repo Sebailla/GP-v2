@@ -7,7 +7,8 @@
     "lib": ["ES2022"],
     "noEmit": true,
     "rootDir": ".",
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "shared/**/*.ts"],
   "exclude": ["node_modules"]
