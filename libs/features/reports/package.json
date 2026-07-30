@@ -31,12 +31,14 @@
     "@core/events": "workspace:*",
     "@features/auth": "workspace:*",
     "@features/transactions": "workspace:*",
+    "react": "19.2.7",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "22.18.0",
     "typescript": "6.0.3",
     "vitest": "4.1.9",
-    "eslint": "^10.6.0"
+    "eslint": "^10.6.0",
+    "@types/react": "19.2.7"
   }
 }

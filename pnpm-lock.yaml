@@ -458,6 +458,9 @@ importers:
       '@features/transactions':
         specifier: workspace:*
         version: link:../transactions/server
+      react:
+        specifier: 19.2.7
+        version: 19.2.7
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -465,6 +468,9 @@ importers:
       '@types/node':
         specifier: 22.18.0
         version: 22.18.0
+      '@types/react':
+        specifier: 19.2.7
+        version: 19.2.7
       eslint:
         specifier: ^10.6.0
         version: 10.6.0(jiti@2.7.0)

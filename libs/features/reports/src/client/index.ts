@@ -1,5 +1,6 @@
 /**
- * @features/reports/client — public API.
- * Landed in PR #5 (page UI + client components + Recharts).
+ * @features/reports/client — barrel.
+ * Re-exports the client-side surface (API fetchers, hooks, components).
  */
-export {};
+export * from './api/reports-api.js';
+export * from './hooks/use-reports.js';
