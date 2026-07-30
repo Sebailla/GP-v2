@@ -37,14 +37,14 @@ export interface FxRateProvider {
  * reportQuerySchema (PR #1) but as a plain TS type — the boundary
  * enforces the Zod shape; the service consumes the parsed result.
  *
- * `currencyCode` is typed as `CurrencyCode | undefined` (not just `?:`)
- * so the controller can pass the parsed Zod result through without a
- * `exactOptionalPropertyTypes` mismatch.
+ * `currencyCode` is optional + accepts undefined (the `?` plus the
+ * explicit `| undefined`) so callers can omit the field entirely
+ * under `exactOptionalPropertyTypes`.
  */
 export interface ReportQuery {
   readonly fromDate: IsoDate;
   readonly toDate: IsoDate;
-  readonly currencyCode: CurrencyCode | undefined;
+  readonly currencyCode?: CurrencyCode | undefined;
 }
 
 /**
@@ -246,6 +246,7 @@ export function reportsService(deps: ReportsServiceDeps) {
 
   return {
     async getSummary(userId: string, query: ReportQuery): Promise<ReportsSummary> {
+      assertRangeWithinCap(query);
       const { currencyCode: target } = await resolvePrimaryCurrency(userId);
       const txs = await reportsRepository.findForUserInRange(userId, {
         fromDate: query.fromDate,
@@ -259,6 +260,7 @@ export function reportsService(deps: ReportsServiceDeps) {
       userId: string,
       query: ReportQuery,
     ): Promise<readonly CategoryBreakdownReport[]> {
+      assertRangeWithinCap(query);
       const { currencyCode: target } = await resolvePrimaryCurrency(userId);
       const txs = await reportsRepository.findForUserInRange(userId, {
         fromDate: query.fromDate,
@@ -314,6 +316,7 @@ export function reportsService(deps: ReportsServiceDeps) {
       query: ReportQuery,
       bucket: Bucket,
     ): Promise<PeriodComparisonReport> {
+      assertRangeWithinCap(query);
       const { currencyCode: target } = await resolvePrimaryCurrency(userId);
       const currentRange: DateRange = { fromDate: query.fromDate, toDate: query.toDate };
       const previousRange = computeComparisonWindow(currentRange);
@@ -364,6 +367,7 @@ export function reportsService(deps: ReportsServiceDeps) {
       query: ReportQuery,
       detail: 'summary' | 'transactions',
     ): Promise<CsvExportResult> {
+      assertRangeWithinCap(query);
       const { currencyCode: target } = await resolvePrimaryCurrency(userId);
       const txs = await reportsRepository.findForUserInRange(userId, {
         fromDate: query.fromDate,
@@ -520,6 +524,23 @@ function computeDelta(current: ReportsSummary, previous: ReportsSummary): Period
     net: netDiff,
     netPercent,
   };
+}
+
+/**
+ * Enforce the 365-day range cap (per spec S7 and the Zod schema).
+ *
+ * The Zod schema enforces this at the HTTP boundary, but the service
+ * must enforce it independently because the BDD suite and any future
+ * direct-service caller bypass the controller.
+ */
+function assertRangeWithinCap(query: ReportQuery): void {
+  const fromMs = Date.parse(query.fromDate + 'T00:00:00Z');
+  const toMs = Date.parse(query.toDate + 'T00:00:00Z');
+  if (Number.isNaN(fromMs) || Number.isNaN(toMs)) return;
+  const days = Math.abs((toMs - fromMs) / (1000 * 60 * 60 * 24));
+  if (days > 365) {
+    throw new Error(`Range > 365 days (got ${Math.floor(days)} days)`);
+  }
 }
 
 /**

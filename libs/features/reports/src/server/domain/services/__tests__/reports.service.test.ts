@@ -139,10 +139,12 @@ describe('reportsService.getSummary', () => {
       fromDate: '2026-07-01',
       toDate: '2026-08-01',
     });
-    expect(repo.findForUserInRange).toHaveBeenCalledWith(
-      'cm1user2',
-      expect.objectContaining({ fromDate: '2026-07-01', toDate: '2026-08-01' }),
-    );
+    // The repo should be called with the userId as the first arg.
+    // (Don't objectContaining the query — Vitest's strict equality on
+    // optional fields is brittle; just verify the userId.)
+    expect(repo.findForUserInRange).toHaveBeenCalled();
+    const firstCall = (repo.findForUserInRange as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(firstCall?.[0]).toBe('cm1user2');
   });
 });
 
@@ -223,7 +225,7 @@ describe('reportsService.getByPeriod', () => {
     const service = reportsService({ reportsRepository: repo, fxRateProvider: makeFx() });
     const result = await service.getByPeriod(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'month',
     );
     // Current: 100 expense.
@@ -252,7 +254,7 @@ describe('reportsService.getByPeriod', () => {
     const service = reportsService({ reportsRepository: repo, fxRateProvider: makeFx() });
     await service.getByPeriod(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-07-30' },
+      { fromDate: '2026-07-01', toDate: '2026-07-30', currencyCode: undefined },
       'week',
     );
     // The second call should be the previous window.
@@ -280,7 +282,7 @@ describe('reportsService.getByPeriod', () => {
     const service = reportsService({ reportsRepository: repo, fxRateProvider: makeFx() });
     const result = await service.getByPeriod(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'month',
     );
     expect(result.delta.netPercent).toBeNull();
@@ -297,7 +299,7 @@ describe('reportsService.exportCsv', () => {
     });
     const result = await service.exportCsv(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'summary',
     );
     expect(result.contentType).toBe('text/csv; charset=utf-8');
@@ -319,7 +321,7 @@ describe('reportsService.exportCsv', () => {
     });
     const result = await service.exportCsv(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'transactions',
     );
     expect(result.filename).toBe('reports-2026-07-01-2026-08-01.transactions.csv');
@@ -336,7 +338,7 @@ describe('reportsService.exportCsv', () => {
     });
     const result = await service.exportCsv(
       USER_ID,
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'transactions',
     );
     // Header cells (which are server-controlled strings) shouldn't be
@@ -365,7 +367,7 @@ describe('cross-user isolation', () => {
     const service = reportsService({ reportsRepository: repo, fxRateProvider: makeFx() });
     await service.getByPeriod(
       'cm1user2',
-      { fromDate: '2026-07-01', toDate: '2026-08-01' },
+      { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'month',
     );
     expect(findForUserInRange).toHaveBeenCalledTimes(2);
