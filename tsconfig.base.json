@@ -38,6 +38,8 @@
       "@features/auth/*": ["libs/features/auth/*"],
       "@features/transactions": ["libs/features/transactions/server"],
       "@features/transactions/*": ["libs/features/transactions/*"],
+      "@features/reports": ["libs/features/reports/src"],
+      "@features/reports/*": ["libs/features/reports/src/*"],
       "@shared-utils/*": ["libs/shared-utils/*"]
     }
   },

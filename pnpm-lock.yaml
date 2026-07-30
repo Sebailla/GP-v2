@@ -438,6 +438,40 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.18.0)(@vitest/coverage-v8@4.1.9)(happy-dom@20.10.6)(vite@8.1.3(@types/node@22.18.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.23.0)(yaml@2.9.0))
 
+  libs/features/reports:
+    dependencies:
+      '@core/config':
+        specifier: workspace:*
+        version: link:../../core/config
+      '@core/database':
+        specifier: workspace:*
+        version: link:../../core/database
+      '@core/events':
+        specifier: workspace:*
+        version: link:../../core/events
+      '@features/auth':
+        specifier: workspace:*
+        version: link:../auth/server
+      '@features/transactions':
+        specifier: workspace:*
+        version: link:../transactions/server
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: 22.18.0
+        version: 22.18.0
+      eslint:
+        specifier: ^10.6.0
+        version: 10.6.0(jiti@2.7.0)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.9
+        version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.18.0)(@vitest/coverage-v8@4.1.9)(happy-dom@20.10.6)(vite@8.1.3(@types/node@22.18.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.48.0)(tsx@4.23.0)(yaml@2.9.0))
+
   libs/features/transactions/server:
     dependencies:
       '@core/config':
