@@ -331,7 +331,7 @@ describe('reportsService.exportCsv', () => {
     // For now, the description column is empty for each transaction.
     // The test verifies the guard is wired in the header at minimum.
     const service = reportsService({
-      reportsRepository: makeRepo([tx({ id: '1' })]),
+      reportsRepository: makeRepo([tx({ id: 'cm1tx1' })]),
       fxRateProvider: makeFx(),
     });
     const result = await service.exportCsv(
@@ -342,16 +342,22 @@ describe('reportsService.exportCsv', () => {
     // Header cells (which are server-controlled strings) shouldn't be
     // guarded (they're not user input). But data cells with formula
     // triggers WOULD be — we test that the serializer is wired.
-    // The header should appear bare.
     expect(result.body).toContain('id,occurred_at,');
-    // Empty description for our mock (no 'description' field on TransactionForReport).
-    expect(result.body).toMatch(/\r\ncm1tx1,,/);
+    // The data row has the id followed by the ISO date and an empty
+    // description: cm1tx1,2026-07-15T12:00:00.000Z,cm1cat1,...
+    // Wait — column order is: id,occurred_at,description,category_id,...
+    // So: cm1tx1,<iso>,<empty>,cm1cat1,Food,...
+    expect(result.body).toMatch(/\r\ncm1tx1,[^,]+,,cm1cat1/);
   });
 });
 
 describe('cross-user isolation', () => {
   it('userId is propagated to BOTH repository calls in getByPeriod', async () => {
-    const findForUserInRange = vi.fn(async () => []);
+    const calls: Array<[string, unknown]> = [];
+    const findForUserInRange = vi.fn(async (userId: string, _range: unknown) => {
+      calls.push([userId, _range]);
+      return [];
+    });
     const repo: ReportsRepository = {
       findForUserInRange,
       findPrimaryCurrencyForUser: vi.fn(async () => USD),
@@ -363,7 +369,7 @@ describe('cross-user isolation', () => {
       'month',
     );
     expect(findForUserInRange).toHaveBeenCalledTimes(2);
-    expect(findForUserInRange.mock.calls[0]?.[0]).toBe('cm1user2');
-    expect(findForUserInRange.mock.calls[1]?.[0]).toBe('cm1user2');
+    expect(calls[0]?.[0]).toBe('cm1user2');
+    expect(calls[1]?.[0]).toBe('cm1user2');
   });
 });
