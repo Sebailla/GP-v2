@@ -65,6 +65,9 @@ importers:
       '@features/auth':
         specifier: workspace:*
         version: link:../../libs/features/auth/server
+      '@features/reports':
+        specifier: workspace:*
+        version: link:../../libs/features/reports
       '@features/transactions':
         specifier: workspace:*
         version: link:../../libs/features/transactions/server

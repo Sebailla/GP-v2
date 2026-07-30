@@ -1,22 +1,19 @@
 /**
  * @features/reports/server/domain/services — barrel.
- * Re-exports the pure-domain services.
+ * Re-exports the pure-domain services and the service-only types.
+ *
+ * TypeScript shapes that mirror Zod schemas live in
+ * `@features/reports/shared/schemas` and are re-exported via the
+ * shared barrel — we don't duplicate them here to avoid TS2308
+ * "already exported" ambiguity errors.
  */
 export {
   reportsService,
   type FxRateProvider,
-  type ReportQuery,
-  type ReportsSummary,
-  type CategoryBreakdownReport,
-  type PeriodComparisonReport,
-  type PeriodSeries,
-  type PeriodBucket,
-  type PeriodDelta,
-  type Bucket,
-  type CsvExportResult,
   type ReportsServiceDeps,
   type ReportsService,
+  type CsvExportResult,
 } from './reports.service.js';
 
-export { timeBucketService, type Bucket as BucketType, type BucketSeriesPoint } from './time-bucket.service.js';
+export { timeBucketService } from './time-bucket.service.js';
 export { csvSerializer } from './csv-serializer.js';
