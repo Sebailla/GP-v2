@@ -22,26 +22,6 @@ const NEEDS_QUOTING = new Set([',', '"', '\r', '\n']);
 const BOM = '\uFEFF';
 const LINE_ENDING = '\r\n';
 
-/**
- * Coerce a cell value to a string for serialization.
- *
- * - null / undefined → ''.
- * - number → String(n).
- * - string → as-is.
- * - boolean → 'true' / 'false'.
- * - anything else → JSON.stringify (defensive).
- */
-function coerce(v: unknown): string {
-  if (v === null || v === undefined) return '';
-  if (typeof v === 'number') return String(v);
-  if (typeof v === 'boolean') return v ? 'true' : 'false';
-  if (typeof v === 'string') return v;
-  try {
-    return JSON.stringify(v);
-  } catch {
-    return '';
-  }
-}
 
 /**
  * Apply the CSV injection guard to a single cell.
@@ -50,55 +30,68 @@ function coerce(v: unknown): string {
  * set. Mid-string occurrences (e.g., "foo=bar") are NOT guarded because
  * Excel only auto-executes formulas at the start of a cell.
  *
- * Numeric-looking strings (e.g., "-100.5") are also NOT guarded when
- * they pass the `isNumeric` check — those are legitimate negative
- * numbers, not formulas.
+ * For STRING-typed cells, the guard fires whenever the leading char is
+ * a formula trigger — Excel/Sheets will auto-execute the formula
+ * regardless of whether the value happens to look numeric.
+ *
+ * For NUMBER-typed cells (passed through coerce()'s number branch),
+ * the guard is SKIPPED — those are legitimate numbers, not strings a
+ * user typed. The caller is responsible for not putting strings in
+ * number-typed columns.
  */
-function guardFormula(s: string): string {
+function guardFormula(s: string, wasNumber: boolean): string {
   if (s.length === 0) return s;
+  if (wasNumber) return s; // Numbers are never formula vectors.
   const first = s.charAt(0);
   if (!FORMULA_TRIGGERS.has(first)) return s;
-  // If the entire string is numeric (e.g., "-100.5", "+1.5e10"), it's
-  // a number, not a formula. Pass through.
-  if (isNumeric(s)) return s;
   return "'" + s;
 }
 
 /**
- * Loose numeric check: matches integers, decimals, negatives, scientific
- * notation. Used to distinguish formula-prefixed cells from negative
- * numbers that happen to start with '-'.
+ * Coerce a cell value to a string for serialization.
+ *
+ * - null / undefined → ''.
+ * - number → String(n). Marks `wasNumber = true` so the formula guard
+ *   can be skipped for genuine numbers.
+ * - string → as-is. Marks `wasNumber = false` so the formula guard fires
+ *   on any string starting with a formula trigger.
+ * - boolean → 'true' / 'false'.
+ * - anything else → JSON.stringify (defensive).
  */
-function isNumeric(s: string): boolean {
-  if (s.length === 0) return false;
-  // Allow optional leading +/-, then digits, optional decimal, optional
-  // exponent. Reject anything else (including trailing letters or
-  // operators that would make it a formula).
-  return /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(s);
+function coerce(v: unknown): { s: string; wasNumber: boolean } {
+  if (v === null || v === undefined) return { s: '', wasNumber: false };
+  if (typeof v === 'number') return { s: String(v), wasNumber: true };
+  if (typeof v === 'boolean') return { s: v ? 'true' : 'false', wasNumber: false };
+  if (typeof v === 'string') return { s: v, wasNumber: false };
+  try {
+    return { s: JSON.stringify(v), wasNumber: false };
+  } catch {
+    return { s: '', wasNumber: false };
+  }
 }
 
 /**
  * Escape a single cell per RFC 4180 + the injection guard.
  *
  * Order of operations (matters!):
- * 1. Coerce to string.
- * 2. Apply injection guard (single-quote prefix).
+ * 1. Coerce to string (tracking whether the original was a number).
+ * 2. Apply injection guard (skip if the original was a number).
  * 3. Check if quoting is needed (comma, double quote, CR, LF).
  * 4. If quoting needed: wrap in double quotes and double inner quotes.
  */
 function escapeCell(v: unknown): string {
-  let s = coerce(v);
-  s = guardFormula(s);
-  if (s.length === 0) return s;
+  const { s, wasNumber } = coerce(v);
+  const guarded = guardFormula(s, wasNumber);
+  if (guarded.length === 0) return guarded;
   let needsQuote = false;
-  for (let i = 0; i < s.length; i++) {
-    if (NEEDS_QUOTING.has(s.charAt(i))) {
+  for (let i = 0; i < guarded.length; i++) {
+    if (NEEDS_QUOTING.has(guarded.charAt(i))) {
       needsQuote = true;
       break;
     }
   }
-  if (!needsQuote) return s;
-  return '"' + s.replace(/"/g, '""') + '"';
+  if (!needsQuote) return guarded;
+  return '"' + guarded.replace(/"/g, '""') + '"';
 }
 
 /**
