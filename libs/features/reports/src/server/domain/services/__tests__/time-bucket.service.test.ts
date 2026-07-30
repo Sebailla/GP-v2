@@ -64,7 +64,9 @@ describe('timeBucketService.bucketize', () => {
       expect(result[0]?.label).toBe('2026-07');
       expect(result[0]?.transactions).toHaveLength(3);
       expect(result[0]?.expense).toBe('-60.00');
-      expect(result[0]?.net).toBe('60.00');
+      // net = income + expense = 0 + (-60.00) = -60.00
+      // (sign-aware: when there's only expense, net stays negative)
+      expect(result[0]?.net).toBe('-60.00');
     });
 
     it('produces one bucket per month when range spans multiple months', () => {
