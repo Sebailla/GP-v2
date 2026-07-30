@@ -36,11 +36,15 @@ export interface FxRateProvider {
  * Canonical query shape for the ReportsService. Matches the Zod schema
  * reportQuerySchema (PR #1) but as a plain TS type — the boundary
  * enforces the Zod shape; the service consumes the parsed result.
+ *
+ * `currencyCode` is typed as `CurrencyCode | undefined` (not just `?:`)
+ * so the controller can pass the parsed Zod result through without a
+ * `exactOptionalPropertyTypes` mismatch.
  */
 export interface ReportQuery {
   readonly fromDate: IsoDate;
   readonly toDate: IsoDate;
-  readonly currencyCode?: CurrencyCode;
+  readonly currencyCode: CurrencyCode | undefined;
 }
 
 /**
@@ -52,7 +56,7 @@ export type Bucket = 'week' | 'month';
  * Result of getSummary — the canonical shape returned by GET /api/reports/summary.
  * Mirrors the reportSummarySchema (PR #1).
  */
-export interface SummaryReport {
+export interface ReportsSummary {
   readonly fromDate: IsoDate;
   readonly toDate: IsoDate;
   readonly currencyCode: CurrencyCode;
@@ -88,7 +92,7 @@ export interface PeriodBucket {
   readonly net: string;
 }
 export interface PeriodSeries {
-  readonly totals: SummaryReport;
+  readonly totals: ReportsSummary;
   readonly buckets: readonly PeriodBucket[];
 }
 export interface PeriodDelta {
@@ -218,7 +222,7 @@ export function reportsService(deps: ReportsServiceDeps) {
   }
 
   /**
-   * Build a SummaryReport from already-converted transactions.
+   * Build a ReportsSummary from already-converted transactions.
    */
   function buildSummary(
     fromDate: IsoDate,
@@ -226,7 +230,7 @@ export function reportsService(deps: ReportsServiceDeps) {
     currencyCode: CurrencyCode,
     converted: readonly (TransactionForReport & { _convertedAmount: string })[],
     fxFreshness: 'fresh' | 'stale',
-  ): SummaryReport {
+  ): ReportsSummary {
     const totals = aggregateTotals(converted);
     return {
       fromDate,
@@ -241,7 +245,7 @@ export function reportsService(deps: ReportsServiceDeps) {
   }
 
   return {
-    async getSummary(userId: string, query: ReportQuery): Promise<SummaryReport> {
+    async getSummary(userId: string, query: ReportQuery): Promise<ReportsSummary> {
       const { currencyCode: target } = await resolvePrimaryCurrency(userId);
       const txs = await reportsRepository.findForUserInRange(userId, {
         fromDate: query.fromDate,
@@ -501,7 +505,7 @@ function bucketize(
  * delta.netPercent = (current.net - previous.net) / |previous.net|.
  * Returns null when previous.net is zero (division by zero).
  */
-function computeDelta(current: SummaryReport, previous: SummaryReport): PeriodDelta {
+function computeDelta(current: ReportsSummary, previous: ReportsSummary): PeriodDelta {
   const incomeDiff = (Number(current.income) - Number(previous.income)).toFixed(2);
   const expenseDiff = (Number(current.expense) - Number(previous.expense)).toFixed(2);
   const netDiff = (Number(current.net) - Number(previous.net)).toFixed(2);
