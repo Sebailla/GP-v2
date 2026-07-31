@@ -19,7 +19,12 @@
       "@/*": ["apps/web/*"],
       "@features/auth": ["libs/features/auth/server/src/index.ts"],
       "@features/auth/*": ["libs/features/auth/*"],
-      "@features/transactions/shared/*": ["libs/features/transactions/shared/*"]
+      "@features/transactions/shared/*": ["libs/features/transactions/shared/*"],
+      "@features/reports": ["libs/features/reports/src/index.ts"],
+      "@features/reports/*": ["libs/features/reports/src/*"],
+      "@features/reports/client": ["libs/features/reports/src/client/index.ts"],
+      "@features/reports/server": ["libs/features/reports/src/server/index.ts"],
+      "@features/reports/shared": ["libs/features/reports/shared/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

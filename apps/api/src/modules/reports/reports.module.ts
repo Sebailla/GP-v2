@@ -1,9 +1,14 @@
 import { Module } from '@nestjs/common';
 
 import {
-  REPORTS_REPOSITORY_TOKEN,
   InMemoryReportsRepository,
+  REPORTS_REPOSITORY_TOKEN,
+  ReportsService,
 } from '@features/reports/server';
+import {
+  FX_RATE_PROVIDER_TOKEN,
+  InMemoryFxRateProvider,
+} from '@features/transactions';
 
 import { TransactionsModule } from '../transactions/transactions.module.js';
 import { ReportsController } from './reports.controller.js';
@@ -19,9 +24,14 @@ import { ReportsController } from './reports.controller.js';
  *   the same branch (the strict workspace resolution in this branch
  *   does not generate the client, so the Prisma adapter is not viable
  *   from here yet).
+ * - `ReportsService` (concrete NestJS-injectable wrapper around the
+ *   pure `reportsService({...})` factory) wired through a useFactory
+ *   that injects the two port tokens: REPORTS_REPOSITORY_TOKEN and
+ *   FX_RATE_PROVIDER_TOKEN (the latter is re-exported by
+ *   TransactionsModule).
  *
- * Imports `TransactionsModule` so the FxRateProvider token is in the
- * DI container — `ReportsController` injects `FxRateProvider` directly.
+ * Imports `TransactionsModule` so the FX_RATE_PROVIDER_TOKEN is in the
+ * DI container — the service factory needs it.
  *
  * Cross-user isolation invariant: the controller uses
  * `@UseGuards(JwtAuthGuard)` to extract `userId` from the JWT, and
@@ -36,7 +46,15 @@ import { ReportsController } from './reports.controller.js';
       provide: REPORTS_REPOSITORY_TOKEN,
       useClass: InMemoryReportsRepository,
     },
+    {
+      provide: ReportsService,
+      useFactory: (
+        reportsRepository: InMemoryReportsRepository,
+        fxRateProvider: InMemoryFxRateProvider,
+      ) => new ReportsService({ reportsRepository, fxRateProvider }),
+      inject: [REPORTS_REPOSITORY_TOKEN, FX_RATE_PROVIDER_TOKEN],
+    },
   ],
-  exports: [REPORTS_REPOSITORY_TOKEN],
+  exports: [REPORTS_REPOSITORY_TOKEN, ReportsService],
 })
 export class ReportsModule {}

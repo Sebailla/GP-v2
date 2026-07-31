@@ -364,5 +364,61 @@
         "CHANGE_ROLE": "Change role"
       }
     }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Summarize your spending over time.",
+    "filterBar": {
+      "fromDate": "From",
+      "toDate": "To",
+      "bucket": "Group by",
+      "bucketWeek": "Week",
+      "bucketMonth": "Month",
+      "presetThisMonth": "This month",
+      "presetLastMonth": "Last month",
+      "presetLast3Months": "Last 3 months",
+      "presetYTD": "Year to date",
+      "presetCustom": "Custom",
+      "apply": "Apply"
+    },
+    "summary": {
+      "title": "Summary",
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net",
+      "transactionCount": "Transactions",
+      "fxStale": "FX rates may be stale — figures are approximate."
+    },
+    "breakdown": {
+      "title": "By category",
+      "category": "Category",
+      "total": "Total",
+      "share": "Share",
+      "transactionCount": "Tx"
+    },
+    "period": {
+      "title": "Period comparison",
+      "current": "Current period",
+      "previous": "Previous period",
+      "delta": "Change",
+      "income": "Income",
+      "expense": "Expense",
+      "net": "Net",
+      "deltaPercent": "% change"
+    },
+    "export": {
+      "buttonLabel": "Download CSV",
+      "summaryLabel": "Summary",
+      "transactionsLabel": "Transactions",
+      "downloading": "Downloading..."
+    },
+    "states": {
+      "loading": "Loading reports",
+      "errorTitle": "Could not load reports",
+      "retry": "Retry",
+      "emptyTitle": "No data in this range",
+      "emptyDescription": "Create your first transaction to see reports here.",
+      "emptyCta": "Create your first transaction"
+    }
   }
 }

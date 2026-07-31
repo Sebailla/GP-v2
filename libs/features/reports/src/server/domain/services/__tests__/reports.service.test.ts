@@ -4,6 +4,7 @@ import {
   type FxRateProvider,
 } from '../reports.service.js';
 import type { ReportsRepository, TransactionForReport } from '../../ports/index.js';
+import { toDecimal } from '@shared-utils/decimal';
 
 /**
  * Pure-domain service tests. The repository and FX provider are mocked.
@@ -44,7 +45,9 @@ function makeFx(rates: Record<string, { rate: string; recordedAt: Date }> = {}):
   return {
     getRate: vi.fn(async (from: string, to: string) => {
       const key = `${from}:${to}`;
-      return rates[key] ?? null;
+      const r = rates[key];
+      if (r === undefined) return null;
+      return { rate: toDecimal(r.rate), recordedAt: r.recordedAt };
     }),
   };
 }

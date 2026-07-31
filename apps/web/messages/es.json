@@ -9,7 +9,7 @@
         "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
       }
     },
-"signIn": {
+    "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",
       "email": "Email",
@@ -363,6 +363,62 @@
         "REVOKE_ALL_SESSIONS": "Revocar todas las sesiones",
         "CHANGE_ROLE": "Cambiar rol"
       }
+    }
+  },
+  "reports": {
+    "title": "Reportes",
+    "subtitle": "Resume tus gastos a lo largo del tiempo.",
+    "filterBar": {
+      "fromDate": "Desde",
+      "toDate": "Hasta",
+      "bucket": "Agrupar por",
+      "bucketWeek": "Semana",
+      "bucketMonth": "Mes",
+      "presetThisMonth": "Este mes",
+      "presetLastMonth": "Mes anterior",
+      "presetLast3Months": "Últimos 3 meses",
+      "presetYTD": "Año en curso",
+      "presetCustom": "Personalizado",
+      "apply": "Aplicar"
+    },
+    "summary": {
+      "title": "Resumen",
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "net": "Neto",
+      "transactionCount": "Transacciones",
+      "fxStale": "Las tasas de cambio pueden estar desactualizadas."
+    },
+    "breakdown": {
+      "title": "Por categoría",
+      "category": "Categoría",
+      "total": "Total",
+      "share": "Participación",
+      "transactionCount": "Tx"
+    },
+    "period": {
+      "title": "Comparación por período",
+      "current": "Período actual",
+      "previous": "Período anterior",
+      "delta": "Cambio",
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "net": "Neto",
+      "deltaPercent": "% cambio"
+    },
+    "export": {
+      "buttonLabel": "Descargar CSV",
+      "summaryLabel": "Resumen",
+      "transactionsLabel": "Transacciones",
+      "downloading": "Descargando..."
+    },
+    "states": {
+      "loading": "Cargando reportes",
+      "errorTitle": "No se pudieron cargar los reportes",
+      "retry": "Reintentar",
+      "emptyTitle": "Sin datos en este rango",
+      "emptyDescription": "Crea tu primera transacción para ver reportes aquí.",
+      "emptyCta": "Crea tu primera transacción"
     }
   }
 }
