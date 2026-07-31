@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
 
+import {
+  TEST_USER,
+  mockAuthApi,
+  setSessionCookie,
+  waitForAuthenticatedLanding,
+} from "../utils/auth-harness.js";
+
 /**
  * Slice 7 PR-5 (T7.7) — login → transactions list → create critical flow.
  *
@@ -24,13 +31,6 @@ import { test, expect } from "@playwright/test";
  * Per-dev browser install: `npx playwright install chromium`.
  * Run via `pnpm e2e` from `apps/web/`.
  */
-
-const mockUserResponse = {
-  id: "user-alice",
-  email: "alice@example.com",
-  role: "USER",
-  sessionToken: "stub-session-token",
-};
 
 const mockCategoryResponse = {
   id: "cat-groceries",
@@ -68,25 +68,15 @@ const mockCreatedTransaction = {
 };
 
 test.describe("T7.7 — login → list → create (both locales)", () => {
-  test.beforeEach(async ({ page }) => {
-    // Auth mocks.
-    await page.route("**/auth/login", (route) =>
-      route.fulfill({
-        status: 200,
-        body: JSON.stringify(mockUserResponse),
-        headers: {
-          "content-type": "application/json",
-          "set-cookie": "auth-session=stub-session-token; Path=/; HttpOnly",
-        },
-      }),
-    );
-    await page.route("**/auth/session", (route) =>
-      route.fulfill({
-        status: 200,
-        body: JSON.stringify(mockUserResponse),
-        headers: { "content-type": "application/json" },
-      }),
-    );
+  test.beforeEach(async ({ context, page }) => {
+    // Pre-seed the session cookie via the shared auth-harness
+    // helper. The session cookie is named `authjs.session-token`
+    // and carries a URL-encoded JSON payload (per the server's
+    // `decodeSession` in `apps/web/lib/auth-server.ts`).
+    await setSessionCookie(context, TEST_USER);
+    // Mock the cross-origin auth API the page calls on submit
+    // + the post-auth refresh.
+    await mockAuthApi(page, TEST_USER);
 
     // Empty initial list.
     await page.route("**/transactions?**", (route) =>
@@ -124,14 +114,15 @@ test.describe("T7.7 — login → list → create (both locales)", () => {
     test(`sign in → list (empty) → open form → create → new row visible (/${locale}/)`, async ({
       page,
     }) => {
-      // 1. Sign in.
+      // 1. Sign in. The post-auth callbackUrl is `/${locale}/(app)`
+      //    (Next.js route group), not `/${locale}/`. The shared
+      //    `waitForAuthenticatedLanding` helper matches both
+      //    shapes (legacy + current) for spec-time flexibility.
       await page.goto(`/${locale}/sign-in`);
-      await page.fill('input[name="email"]', "alice@example.com");
+      await page.fill('input[name="email"]', TEST_USER.email);
       await page.fill('input[name="password"]', "correct-horse-battery-staple");
       await Promise.all([
-        page.waitForURL((url) => url.pathname === `/${locale}/`, {
-          timeout: 5_000,
-        }),
+        waitForAuthenticatedLanding(page, locale, { timeout: 5_000 }),
         page.click('button[type="submit"]'),
       ]);
 
@@ -158,9 +149,13 @@ test.describe("T7.7 — login → list → create (both locales)", () => {
         await notesInput.first().fill("test");
       }
 
-      // 5. Submit.
+      // 5. Submit. The list surface is at `/${locale}/transactions`
+      //    so the post-create redirect lands somewhere in that
+      //    subtree (the exact path depends on slice-6 PR-B/C).
       await Promise.all([
-        page.waitForURL((url) => url.pathname.startsWith(`/${locale}/transactions`)),
+        page.waitForURL((url) => url.pathname.startsWith(`/${locale}/transactions`), {
+          timeout: 5_000,
+        }),
         page.click('button[type="submit"]'),
       ]);
 
