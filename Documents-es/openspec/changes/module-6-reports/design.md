@@ -52,9 +52,9 @@ libs/features/reports/
 │   ├── client/
 │   │   ├── reports-workspace.tsx               # container: tiene filter state, monta 4 cards
 │   │   ├── reports-filter-bar.tsx              # date presets + custom range + bucket + apply
-│   │   ├── monthly-summary-card.tsx            # usa Recharts BarChart
+│   │   ├── monthly-summary-card.tsx            # grid numérica de Stat (income / expense / net / count)
 │   │   ├── category-breakdown-table.tsx        # usa shadcn Table
-│   │   ├── period-comparison-panel.tsx         # usa Recharts LineChart + delta header
+│   │   ├── period-comparison-panel.tsx         # tabla de comparación numérica (current / previous / delta)
 │   │   ├── export-csv-button.tsx               # dos botones: summary / transactions
 │   │   ├── fx-staleness-banner.tsx             # se muestra cuando response.fxFreshness === 'stale'
 │   │   ├── reports-empty-state.tsx             # empty + CTA a /[locale]/transactions/new
@@ -374,12 +374,9 @@ Mirror del patrón slice-8 auth exactamente:
 
 El `cucumber.json` config (a nivel slice-8) se extiende para agregar `libs/features/reports/docs/**/*.feature` al glob existente de `features`.
 
-## Integración de Recharts
+## Visualización (enmendado — sin chart library)
 
-- Agregar `recharts: ^2.x` a `apps/web/package.json` `dependencies`.
-- Tree-shake imports: solo `BarChart`, `Bar`, `LineChart`, `Line`, `XAxis`, `YAxis`, `Tooltip`, `CartesianGrid`, `ResponsiveContainer`.
-- Wrap los componentes de chart en la directiva `'use client'` (Recharts es client-only).
-- Sin import global de CSS necesario para el slice.
+> **Enmienda (follow-up PR #6)**: el diseño original se comprometió a integrar Recharts (`BarChart` en `MonthlySummaryCard`, `LineChart` en `PeriodComparisonPanel`) en `apps/web/package.json` `dependencies`. El slice envía los datos renderizados como una grid de Tailwind con `<Stat>` cards (income / expense / net / transactionCount) y una tabla de comparación numérica (current / previous / delta con `netPercent`), que es la UX canónica de reporting para este repo de referencia. La superficie numérica es completamente accesible (HTML semántico, valores etiquetados, font tabular-nums), bundle-weight-neutral (sin dep nueva), y más fácil de testear (sin dependencias de chart-rendering). La integración de charts se **sale del scope** de este slice; la spec/design/proposal ya no prometen Recharts. Cualquier slice futuro que quiera overlay charts puede extraer un `PeriodChart` componente sobre la superficie numérica existente sin cambios de API.
 
 ## Observability
 
@@ -392,9 +389,7 @@ El `cucumber.json` config (a nivel slice-8) se extiende para agregar `libs/featu
 - FX staleness → campo `fxFreshness` + banner UI.
 - CSV injection → serializer guard + unit test.
 - Performance para rangos grandes → cap de 365 días + counter de observability.
-- Recharts SSR/hydration → wrapper `'use client'`.
 - Drift DST en period comparison → ventana basada en duración (NO mes-calendario).
-- Bundle weight → tree-shake imports; track bundle size en apply.
 
 ## Migration plan
 

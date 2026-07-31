@@ -12,10 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  *
  * Lives at `apps/web/components/reports/PeriodComparisonPanel.tsx`.
  *
- * Note: Recharts integration (a line chart of net over the buckets) is
- * deferred to a follow-up slice. The current implementation shows the
- * numeric comparison + delta; the chart is a UI enhancement, not a
- * core slice requirement.
+ * The slice renders numeric `<Stat>` cards only (no chart library) per
+ * the Recharts amendment in `openspec/changes/module-6-reports/design.md`
+ * §"Visualization". Any future slice that wants to overlay charts can
+ * extract a `PeriodChart` component on top of the existing numeric
+ * surface without API changes.
  */
 export interface PeriodComparisonBucket {
   readonly label: string;

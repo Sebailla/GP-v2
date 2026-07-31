@@ -30,8 +30,7 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
   - `GET /api/reports/by-category?fromDate&toDate` → `CategoryBreakdownReport[]`.
   - `GET /api/reports/by-period?fromDate&toDate&bucket=week|month` → `PeriodComparisonReport`.
   - `GET /api/reports/export.csv?fromDate&toDate[&detail=transactions]` → CSV stream.
-- Page UI at `apps/web/app/[locale]/(app)/reports/page.tsx` (server component, locale-aware) consuming `client/` components.
-- Recharts integration for `MonthlySummaryCard` and `PeriodComparisonPanel` (bar chart + line chart, respectively).
+- Page UI at `apps/web/app/[locale]/(app)/reports/page.tsx` (server component, locale-aware) consuming `client/` components. *(Numeric `<Stat>` cards only — no chart library; see Recharts amendment in design.md §"Visualization".)*
 - Strict TDD: RED → GREEN → TRIANGULATE → REFACTOR for every service + controller + component.
 - BDD coverage for the 4 user flows (summary, breakdown, comparison, CSV export).
 - Component tests (Vitest) for every `client/` component, 5-state coverage per AGENTS.md §9.
@@ -51,7 +50,7 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
 - Forecast / predictive charts (no ML, no extrapolation).
 - Admin-side reports (e.g., global MRR, per-user activity). Reports are user-facing.
 - Push notifications for budget threshold breaches (the `ThresholdService` server-side exists but UI integration is a separate slice).
-- Other chart libraries (Recharts only; no Visx, no Chart.js).
+- Other chart libraries (no chart library in this slice — numeric `<Stat>` cards only; see Recharts amendment in design.md §"Visualization").
 - Anomaly detection / outlier highlighting.
 - Tagging transactions (a separate slice).
 
@@ -69,13 +68,13 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
 1. **In-service aggregation in `ReportsService` (NOT delegated to `TotalsService`)** — *amended from original "reuse TotalsService" intent*. The original decision was to delegate per-category + per-user totals to `TotalsService` from `@features/transactions` to avoid the trap of two implementations diverging. This is **not feasible** by construction: `TotalsService` consumes `Transaction` (with `kind: 'income' | 'expense'`, sign encoded in the row) and `Decimal` amounts in the original currency; `ReportsService` consumes `TransactionForReport` (with sign-aware `amount: string`, already FX-converted to the user's primary currency). The two data shapes are not interchangeable, and reports' aggregation is intrinsically *post-FX-conversion* — different operation. The `ReportsService.aggregateTotals` helper is the correct, minimal implementation; the original "divergence risk" doesn't apply because the two aggregations answer different questions (per-user undifferentiated totals vs FX-normalized per-user / per-category / per-period totals).
 2. **New `TimeBucketService` in `libs/features/reports/server/src/domain/`** — pure domain logic for weekly/monthly grouping. RED-testable, no I/O, no Prisma. Takes `Transaction[]` and `bucket: 'week' | 'month'`; returns `Bucket[]`.
 3. **Schemas in `libs/features/reports/shared/schemas/`** — strict Zod schemas, one per query/response shape. Mirror the canonical list schema's shape: cursor pagination + half-open `[fromDate, toDate)` + ISO-4217 `currencyCode`.
-4. **Server routes return pre-aggregated JSON**; the client renders tables + Recharts. No chart library on the server. No CSV generation on the client.
+4. **Server routes return pre-aggregated JSON**; the client renders numeric `<Stat>` cards and a comparison table (no chart library — see Recharts amendment in design.md §"Visualization"). No CSV generation on the client.
 5. **All `/api/reports/*` endpoints require authenticated session** via the existing `JwtAuthGuard`; every query filters by `userId` from the session. No admin-only endpoints.
 6. **CSV export endpoint** at `GET /api/reports/export.csv?fromDate&toDate[&detail=transactions]`. Default mode = summary rows (one per category). With `?detail=transactions` = line items (one row per transaction). CSV injection guard: cells starting with `=`, `+`, `-`, `@` get a single-quote prefix.
 7. **Page UI is a server component** with `getTranslations` + page header, and the filter + table area is a client component (`<ReportsWorkspace />`). Locale-aware; uses `next-intl` catalogs under `apps/web/messages/{en,es}/reports.json`.
 8. **FX normalization to primary currency** — all aggregations convert via `FxRateProvider` (existing). The user's primary currency comes from `CurrencyRepository.findPrimaryForUser(userId)` (new method on the existing port; if missing, default to USD with a console warn + observability counter). Detail CSV export keeps `currencyCode` per row.
 9. **Period comparison** — comparison window = the same-duration window immediately preceding the primary range. So if `fromDate=2026-07-01&toDate=2026-07-29`, comparison = `2026-06-02..2026-06-30` (29 days back). The response carries `current` + `previous` + `delta` (absolute + percent) so the client renders "Este período: $X vs $Y anterior (+Z%)".
-10. **Recharts is added as a workspace dependency** at `apps/web/package.json` `dependencies.recharts`. Tree-shaking supported; no global CSS import needed.
+10. *(Removed — see Recharts amendment in design.md §"Visualization".)*
 11. **Boundary rules** enforced via `tools/eslint-plugin-boundary/`: schemas in `shared/`, port + service + impl in `server/`, components in `client/`, BDD in `docs/`. Reports does NOT import from `apps/web/` (one-way: web imports from features). Reports does NOT import from `apps/api/` (server-side uses the NestJS module from `apps/api/src/modules/reports/` which imports from `@features/reports/server`).
 12. **No new events emitted on `@core/events`** — reports is read-only, no audit signal needed for a user looking at their own data. If compliance later requires CSV-export audit, that's a follow-up.
 
@@ -128,9 +127,7 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
 - **Currency normalization drift** — if user mixes currencies in time range, FX rate staleness could give misleading deltas. **Mitigation**: use the same `FxRateProvider` as transactions; respect its 24h staleness policy; in the report, surface a `fxFreshness` field (e.g., `fresh | stale`) so the UI can show a banner.
 - **CSV injection in export** — cells starting with `=`, `+`, `-`, `@` execute formulas in Excel/Sheets. **Mitigation**: prefix `'` for any cell matching `^[=+\-@]`. Add explicit unit test.
 - **Performance: aggregations over large date ranges** — a user with 5 years of transactions might time out. **Mitigation**: enforce a max range of 365 days; return 400 Bad Request with a clear message otherwise. Add observability counter on the endpoint.
-- **Recharts SSR / hydration** — Recharts is client-only by default; using it from a server component triggers hydration mismatches. **Mitigation**: wrap chart components in `'use client'` and import Recharts only in those.
 - **Period comparison arithmetic edge** — DST boundaries + month-length differences could mis-align the comparison window by 1 day. **Mitigation**: comparison window is computed via `(fromDate - duration, fromDate)` where `duration = toDate - fromDate` in days; we explicitly do NOT use "same calendar month last year" to avoid DST drift.
-- **Bundle weight** — Recharts adds ~95 KB gzip to `apps/web`. **Mitigation**: import only the chart types we use (`BarChart`, `LineChart`, `XAxis`, `YAxis`, `Tooltip`); tree-shaking handles the rest. Track bundle size in the apply phase.
 
 ## Migration
 
@@ -141,7 +138,7 @@ None. Read-only slice, no DB changes, no schema changes, no data backfill.
 1. ✅ Date range presets — Presets (Esta semana, Este mes, Últimos 3 meses, YTD) + Custom.
 2. ✅ Period comparison — Dual (current vs previous, with delta).
 3. ✅ CSV export columns — Dual mode (`?detail=transactions` for line items, default = summary).
-4. ✅ Charts — Recharts library (chosen after proposing SVG vs library).
+4. ✅ Charts — *Dropped from scope per the Recharts amendment in design.md §"Visualization". Numeric `<Stat>` cards are the final UX.*
 5. ✅ Empty state — Onboarding CTA → `/transactions/new`.
 6. ✅ Default currency — FX-normalize to primary currency; detail keeps per-row `currencyCode`.
 

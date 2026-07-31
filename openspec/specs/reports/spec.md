@@ -18,7 +18,6 @@ The end-user outcome is a `/[locale]/(app)/reports` page that turns "what did I 
 - `@features/transactions/server` — `TransactionRepository.findManyForUser`, `CategoryRepository`, `CurrencyRepository`, `FxRateProvider`. **`TotalsService` is NOT consumed** (see amendment note in `proposal.md` §"Intent" and `design.md` §"Ports + services + impl split" — the two data models are not interchangeable). Reports provides its own in-service aggregation helpers.
 - `@core/database` — Prisma client (used only inside the port impl; not in `ReportsService`).
 - `@core/events` — not used (read-only slice).
-- `recharts` — added as `apps/web` dependency, used only in `client/` components.
 - `next-intl` — locale-aware strings under `apps/web/messages/{en,es}/reports.json`.
 
 ## Surface
@@ -116,9 +115,9 @@ Returns `text/csv; charset=utf-8` stream.
 `<ReportsWorkspace />` (client component):
 - Holds the date-range filter state (`fromDate`, `toDate`, `bucket`, `currencyCode`).
 - Renders 4 cards in order:
-  1. `<MonthlySummaryCard />` — calls `/api/reports/summary`, renders `income` / `expense` / `net` + a `<BarChart />` from Recharts.
+  1. `<MonthlySummaryCard />` — calls `/api/reports/summary`, renders `income` / `expense` / `net` / `transactionCount` as a 4-column grid of `<Stat>` cards (per `MonthlySummaryCard.tsx`). *(No chart library — see Recharts amendment in design.md §"Visualization".)*
   2. `<CategoryBreakdownTable />` — calls `/api/reports/by-category`, renders a table with `categoryName`, `total`, `share` (formatted as %).
-  3. `<PeriodComparisonPanel />` — calls `/api/reports/by-period`, renders `current.buckets` + `previous.buckets` aligned side-by-side, plus a `<LineChart />` from Recharts showing `net` over the buckets, and a header line "Este período: $X (vs $Y anterior, +Z%)".
+  3. `<PeriodComparisonPanel />` — calls `/api/reports/by-period`, renders `current.totals` + `previous.totals` + `delta` (income / expense / net / netPercent) as a 3-column grid of `<Stat>` cards, plus a header line "Este período: $X (vs $Y anterior, +Z%)". *(No chart library — see Recharts amendment in design.md §"Visualization".)*
   4. `<ExportCsvButton />` — calls `/api/reports/export.csv?detail=summary`, then `?detail=transactions`. Shows two buttons: "Export summary" and "Export transactions".
 - Renders the 5 states per AGENTS.md §9: loading, error, success, empty ("No data in this range — create your first transaction"), validation-error (range > 365 days).
 
@@ -132,7 +131,7 @@ Returns `text/csv; charset=utf-8` stream.
 6. **No writes**: reports must NOT emit any event on `@core/events`, NOT call any Prisma write, NOT mutate any session or audit log.
 7. **Locale-aware**: server responses are locale-neutral; the client renders locale-aware strings via `next-intl` catalogs.
 8. **CSV safety**: any cell starting with `=`, `+`, `-`, `@` is prefixed with `'`. UTF-8 BOM on the response. CRLF line endings.
-9. **No chart on server**: server returns JSON only; Recharts is loaded only in client components.
+9. **No chart on server**: server returns JSON only; the UI renders numeric `<Stat>` cards (no chart library).
 
 ## Scenarios (Given-When-Then)
 
