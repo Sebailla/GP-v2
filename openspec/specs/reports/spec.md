@@ -15,7 +15,7 @@ The end-user outcome is a `/[locale]/(app)/reports` page that turns "what did I 
 ## Dependencies
 
 - `@features/auth/server` — `JwtAuthGuard`, session resolution, `userId` injection.
-- `@features/transactions/server` — `TransactionRepository.findManyForUser`, `TotalsService`, `CategoryRepository`, `CurrencyRepository`, `FxRateProvider`. **Reports does NOT duplicate any aggregation; it composes on top of these.**
+- `@features/transactions/server` — `TransactionRepository.findManyForUser`, `CategoryRepository`, `CurrencyRepository`, `FxRateProvider`. **`TotalsService` is NOT consumed** (see amendment note in `proposal.md` §"Intent" and `design.md` §"Ports + services + impl split" — the two data models are not interchangeable). Reports provides its own in-service aggregation helpers.
 - `@core/database` — Prisma client (used only inside the port impl; not in `ReportsService`).
 - `@core/events` — not used (read-only slice).
 - `recharts` — added as `apps/web` dependency, used only in `client/` components.

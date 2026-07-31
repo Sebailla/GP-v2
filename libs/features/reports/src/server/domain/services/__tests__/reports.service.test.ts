@@ -327,7 +327,7 @@ describe('reportsService.exportCsv', () => {
       { fromDate: '2026-07-01', toDate: '2026-08-01', currencyCode: undefined },
       'transactions',
     );
-    expect(result.filename).toBe('reports-2026-07-01-2026-08-01.transactions.csv');
+    expect(result.filename).toBe('reports-2026-07-01-2026-08-01.detail.csv');
     expect(result.body).toContain('id,occurred_at,description,category_id,category_name,amount,currency_code,amount_in_primary,primary_currency_code');
   });
 

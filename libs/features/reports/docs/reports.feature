@@ -107,7 +107,7 @@ Feature: Reports & Analytics
   Scenario: CSV export detail mode (S11)
     Given user A has 5 transactions in 2026-07 with -100.00, -50.00, -10.00, -25.00, -15.00 (all USD)
     When the user requests GET /api/reports/export.csv?fromDate=2026-07-01&toDate=2026-08-01&detail=transactions
-    Then the CSV filename contains ".transactions.csv"
+    Then the CSV filename contains ".detail.csv"
     And the CSV body contains the header "id,occurred_at,description,category_id,category_name,amount,currency_code,amount_in_primary,primary_currency_code"
 
   Scenario: CSV injection guard (S12 — CRITICAL)

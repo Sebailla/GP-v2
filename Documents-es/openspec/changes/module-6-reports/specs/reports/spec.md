@@ -15,7 +15,7 @@ El outcome de cara al usuario es una página `/[locale]/(app)/reports` que convi
 ## Dependencias
 
 - `@features/auth/server` — `JwtAuthGuard`, resolución de sesión, inyección de `userId`.
-- `@features/transactions/server` — `TransactionRepository.findManyForUser`, `TotalsService`, `CategoryRepository`, `CurrencyRepository`, `FxRateProvider`. **Reports NO duplica ninguna agregación; compone encima de estos.**
+- `@features/transactions/server` — `TransactionRepository.findManyForUser`, `CategoryRepository`, `CurrencyRepository`, `FxRateProvider`. **`TotalsService` NO se consume** (ver nota de enmienda en `proposal.md` §"Intent" y `design.md` §"Ports + services + impl split" — los dos data models no son intercambiables). Reports provee sus propios helpers de agregación in-service.
 - `@core/database` — Prisma client (usado solo dentro de la impl del port; no en `ReportsService`).
 - `@core/events` — no usado (slice read-only).
 - `recharts` — agregado como dependencia de `apps/web`, usado solo en componentes de `client/`.

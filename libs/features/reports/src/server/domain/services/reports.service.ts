@@ -383,7 +383,7 @@ export function reportsService(deps: ReportsServiceDeps) {
       });
       const { converted } = await convertAll(txs, target);
 
-      const filename = `reports-${query.fromDate}-${query.toDate}${detail === 'transactions' ? '.transactions' : ''}.csv`;
+      const filename = `reports-${query.fromDate}-${query.toDate}${detail === 'transactions' ? '.detail' : ''}.csv`;
 
       if (detail === 'summary') {
         const byCategory = await this.getByCategory(userId, query);

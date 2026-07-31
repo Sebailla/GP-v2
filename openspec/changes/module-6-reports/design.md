@@ -167,7 +167,7 @@ export const timeBucketService = {
 
 ### Domain service: `ReportsService`
 
-Composes `ReportsRepository` + `TotalsService` (from `@features/transactions`) + `FxRateProvider` + `TimeBucketService`.
+Composes `ReportsRepository` + `FxRateProvider` + `TimeBucketService`. **Does not delegate to `TotalsService` from `@features/transactions`** — see the amendment to Architecture decision #1 below for the rationale (different data shapes: `Transaction` with `kind` vs `TransactionForReport` with sign-aware `amount` post-FX).
 
 ```ts
 export const reportsService = {
@@ -180,8 +180,8 @@ export const reportsService = {
 
 Internals:
 
-1. `getSummary` calls `repo.findForUserInRange(userId, range)`, runs each through `fxRateProvider.convertTo(amount, currencyCode)` (parallel with bounded concurrency), aggregates via `TotalsService.forUser`, returns `ReportsSummary` with `fxFreshness` set to `'stale'` if any rate older than 24h.
-2. `getByCategory` similar, calls `TotalsService.perCategory`, computes `share` as `categoryTotal.abs() / totalExpense.abs()`.
+1. `getSummary` calls `repo.findForUserInRange(userId, range)`, runs each through `fxRateProvider.convertTo(amount, currencyCode)` (parallel with bounded concurrency), aggregates via the in-service `aggregateTotals` helper (sign-on-amount after FX), returns `ReportsSummary` with `fxFreshness` set to `'stale'` if any rate older than 24h.
+2. `getByCategory` similar, runs the same FX conversion + per-category bucketing done in-service (no `TotalsService.perCategory` delegation), computes `share` as `categoryTotal.abs() / totalExpense.abs()`.
 3. `getByPeriod`:
    - Compute comparison window: `comparisonFrom = fromDate - duration`, `comparisonTo = fromDate`, where `duration = toDate - fromDate` in days. Explicitly NOT calendar-month to avoid DST drift.
    - Fetch both ranges from `repo`.
@@ -214,7 +214,7 @@ Implementation notes:
 ```ts
 @Module({
   imports: [
-    TransactionsModule,        // for TotalsService, FxRateProvider, CategoryRepository, CurrencyRepository
+    TransactionsModule,        // for FxRateProvider, CategoryRepository, CurrencyRepository (TotalsService NOT consumed — see decision #1 amendment)
     AuthModule,                 // for JwtAuthGuard, user resolution
     PrismaModule,               // for PrismaService
   ],
