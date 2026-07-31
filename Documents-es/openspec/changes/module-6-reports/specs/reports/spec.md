@@ -312,7 +312,7 @@ Then ambas responses retornan exitosa e independientemente
 And ninguno de los tabs muta estado compartido
 ```
 
-### Escenario S20 — Conformidad WCAG AA (DIFERIDO — ver nota de enmienda abajo)
+### Escenario S20 — Conformidad WCAG AA (CUMPLIDO — ver nota de audit abajo)
 
 ```
 Given el ReportsPage está renderizado
@@ -320,18 +320,18 @@ When corre el audit de @axe-core/playwright
 Then no se reportan violaciones de WCAG AA
 ```
 
-**Nota de enmienda (PR #6 / archive-amendment)**: el proposal original
-se comprometió con un audit de `@axe-core/playwright` sobre la página
-renderizada `/[locale]/reports`. El repo de referencia sí envía
-patrones de accesibilidad (HTML semántico, `aria-live="polite"` en
-`FxStalenessBanner`, `<label htmlFor>` en cada input de formulario,
-`<th scope>` en la tabla de breakdown), pero el spec automatizado de
-audit se difirió — el entorno de dev requiere Postgres corriendo
-para el harness de e2e, y el slice se entrega read-only contra el
-adapter in-memory, por lo que el audit debe aterrizar en un change de
-follow-up una vez que el adapter Prisma reemplace al in-memory. Este
-escenario queda como invariante diferido; el slice se archiva con S20
-UNTESTED y el follow-up queda trackeado en el archive report.
+**Nota de audit**: el escenario S20 está cubierto por
+`apps/web/e2e/reports.spec.ts`, que corre `@axe-core/playwright`
+contra la página renderizada `/[locale]/reports` para los proyectos
+Playwright `en` y `es`. El audit asserta cero violaciones del set
+de tags WCAG AA bloqueado (`wcag2a`, `wcag2aa`, `wcag21a`,
+`wcag21aa`). Cerrar este escenario requirió (a) `generateMetadata`
+en la página de reports + las 5 páginas de auth (cierra la regla
+`document-title` que el audit detectó) y (b) el mismo patrón
+`addCookies()` de auth-harness que el `transactions/login-list-create.spec.ts`
+de slice 7 usa para la superficie autenticada de reports. El audit
+es parte del target de test `pnpm e2e` y corre contra una
+superficie de API mockeada (no requiere DB viva).
 
 ## Compliance
 

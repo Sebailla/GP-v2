@@ -312,7 +312,7 @@ Then both responses return successfully and independently
 And neither tab mutates shared state
 ```
 
-### Scenario S20 — WCAG AA conformance (DEFERRED — see amendment note below)
+### Scenario S20 — WCAG AA conformance (COMPLIANT — see audit note below)
 
 ```
 Given the ReportsPage is rendered
@@ -320,17 +320,18 @@ When the @axe-core/playwright audit runs
 Then no violations of WCAG AA are reported
 ```
 
-**Amendment note (PR #6 / archive-amendment)**: the original proposal
-committed to a `@axe-core/playwright` audit on the rendered
-`/[locale]/reports` page. The reference repo ships accessibility
-patterns (semantic HTML, `aria-live="polite"` on `FxStalenessBanner`,
-`<label htmlFor>` on every form input, `<th scope>` on the breakdown
-table) but the automated audit spec was deferred — the dev environment
-requires a running Postgres for the e2e harness and the slice ships
-read-only against the in-memory adapter, so the audit needs to land in
-a follow-up change once the Prisma adapter replaces the in-memory one.
-This scenario remains as a deferred invariant; the slice archives with
-S20 UNTESTED and the follow-up is tracked in the archive report.
+**Audit note**: scenario S20 is covered by `apps/web/e2e/reports.spec.ts`,
+which runs `@axe-core/playwright` against the rendered
+`/[locale]/reports` page for both the `en` and `es` Playwright
+projects. The audit asserts zero violations of the locked WCAG AA
+tag set (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`). Closing this
+scenario required (a) `generateMetadata` on the reports page +
+the 5 auth pages (closes the `document-title` rule that the audit
+caught) and (b) the same `addCookies()` auth-harness pattern that
+slice-7's `transactions/login-list-create.spec.ts` uses for the
+authenticated reports surface. The audit is part of the
+\`pnpm e2e\` test target and runs against a mocked API surface
+(no live DB required).
 
 ## Compliance
 
