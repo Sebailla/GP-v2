@@ -47,6 +47,7 @@ model User {
   accounts            Account[]
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
+  userPreference      UserPreference?
 
   // Slice 5 back-relations (T5.1)
   transactionsCreated Transaction[]    @relation("TransactionCreatedBy")
@@ -228,8 +229,36 @@ model Currency {
   fxRatesTo             FxRate[]      @relation("FxRateTo")
   transactionsFrom      Transaction[] @relation("TransactionCurrency")
   transactionsReporting Transaction[] @relation("TransactionReportingCurrency")
+  userPreferences       UserPreference[]
 
   @@map("currencies")
+}
+
+/**
+ * Per-user reporting preferences. Owned by the module-6-reports slice's
+ * `findPrimaryCurrencyForUser` port implementation. The `primaryCurrencyCode`
+ * is the canonical ISO 4217 code the user wants to see aggregated reports
+ * in. When `null`, the `ReportsService` falls back to USD with a
+ * `console.warn` + observability counter (per spec S18).
+ *
+ * Why a separate model (not a field on `User`): keeping reporting
+ * preferences on a side table isolates the "config" shape from the
+ * "identity" shape and lets future reporting preferences (e.g. default
+ * date range, week-start day) extend without an `User` migration.
+ *
+ * One row per user. The `userId` is the natural primary key (1:1 with
+ * `User`) — `findUnique({ where: { userId } })` is the canonical lookup.
+ */
+model UserPreference {
+  userId             String   @id
+  primaryCurrencyCode String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency Currency? @relation(fields: [primaryCurrencyCode], references: [code], onDelete: SetNull)
+
+  @@map("user_preferences")
 }
 
 model FxRate {

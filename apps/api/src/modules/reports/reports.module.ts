@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import {
-  InMemoryReportsRepository,
+  PrismaReportsRepository,
   REPORTS_REPOSITORY_TOKEN,
   ReportsService,
 } from '@features/reports/server';
@@ -18,12 +18,10 @@ import { ReportsController } from './reports.controller.js';
  *
  * Registers:
  * - `ReportsController` for the 4 GET endpoints under /api/reports/*.
- * - The `REPORTS_REPOSITORY_TOKEN` bound to `InMemoryReportsRepository`.
- *   A follow-up slice swaps this for `PrismaReportsRepository` once
- *   the workspace pnpm + Prisma client generation step is run from
- *   the same branch (the strict workspace resolution in this branch
- *   does not generate the client, so the Prisma adapter is not viable
- *   from here yet).
+ * - `REPORTS_REPOSITORY_TOKEN` bound to `PrismaReportsRepository` (the
+ *   production binding). The previous `InMemoryReportsRepository` binding
+ *   is still available via the module's barrel imports for tests +
+ *   BDD to substitute via `Test.createTestingModule({...}).overrideProvider(...)`.
  * - `ReportsService` (concrete NestJS-injectable wrapper around the
  *   pure `reportsService({...})` factory) wired through a useFactory
  *   that injects the two port tokens: REPORTS_REPOSITORY_TOKEN and
@@ -44,12 +42,12 @@ import { ReportsController } from './reports.controller.js';
   providers: [
     {
       provide: REPORTS_REPOSITORY_TOKEN,
-      useClass: InMemoryReportsRepository,
+      useClass: PrismaReportsRepository,
     },
     {
       provide: ReportsService,
       useFactory: (
-        reportsRepository: InMemoryReportsRepository,
+        reportsRepository: PrismaReportsRepository,
         fxRateProvider: InMemoryFxRateProvider,
       ) => new ReportsService({ reportsRepository, fxRateProvider }),
       inject: [REPORTS_REPOSITORY_TOKEN, FX_RATE_PROVIDER_TOKEN],
