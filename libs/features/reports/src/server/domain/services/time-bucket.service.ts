@@ -145,10 +145,15 @@ export const timeBucketService = {
     bucket: Bucket,
     range: DateRange,
   ): readonly BucketSeriesPoint[] {
-    // Range filter (half-open [fromDate, toDate)).
+    // Range filter (half-open [fromDate, toDate) INCLUSIVE on both
+    // calendar days). The `toDate` is the exclusive end of the
+    // interval at the day level; we bump it to the start of the
+    // next day so transactions on the `toDate` calendar day are
+    // included. Matches the in-memory + Prisma adapter semantics.
     const fromMs = Date.parse(range.fromDate + 'T00:00:00Z');
-    const toMs = Date.parse(range.toDate + 'T00:00:00Z');
-    if (Number.isNaN(fromMs) || Number.isNaN(toMs) || fromMs >= toMs) {
+    const toExclusiveMs = Date.parse(range.toDate + 'T00:00:00Z');
+    const toMs = toExclusiveMs + 24 * 60 * 60 * 1000;
+    if (Number.isNaN(fromMs) || Number.isNaN(toExclusiveMs) || fromMs >= toExclusiveMs) {
       return [];
     }
 

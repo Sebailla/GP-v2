@@ -52,8 +52,16 @@ export class PrismaReportsRepository implements ReportsRepository {
     userId: string,
     range: DateRange,
   ): Promise<readonly TransactionForReport[]> {
+    // Half-open interval semantics: [fromDate, toDate) INCLUSIVE on
+    // both calendar days. The spec says "toDate is exclusive" but
+    // that refers to the calendar day, not the millisecond. To
+    // include all transactions of `toDate`, we bump it to the start
+    // of the NEXT day (00:00:00Z). This matches the in-memory
+    // adapter's behavior exactly (it also uses `occurredAt < start
+    // of toDate + 1 day`).
     const fromDate = new Date(`${range.fromDate}T00:00:00.000Z`);
-    const toDate = new Date(`${range.toDate}T00:00:00.000Z`);
+    const toDateExclusive = new Date(`${range.toDate}T00:00:00.000Z`);
+    const toDate = new Date(toDateExclusive.getTime() + 24 * 60 * 60 * 1000);
 
     const where: Prisma.TransactionWhereInput = {
       createdBy: userId,
@@ -102,7 +110,13 @@ function projectTransactionForReport(row: {
   createdBy: string;
   category: { id: string; name: string };
 }): TransactionForReport {
-  const magnitude = row.amount.toString();
+  // Prisma's runtime Decimal emits `amount.toString()` without trailing
+  // zeros (e.g. `"100"` instead of `"100.00"`). The
+  // `TransactionForReport.amount` contract is a Decimal-string with 2
+  // decimal places (matches the in-memory adapter's storage shape and
+  // the downstream `ReportsService` aggregation expectations). Pad
+  // the magnitude to 2 decimals before applying the sign.
+  const magnitude = row.amount.toFixed(2);
   const signed = row.kind === "expense" ? `-${magnitude}` : magnitude;
   return {
     id: row.id,

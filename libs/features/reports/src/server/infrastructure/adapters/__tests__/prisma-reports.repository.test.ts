@@ -8,22 +8,10 @@ import { PrismaReportsRepository } from "../prisma-reports.repository.js";
  * Integration tests for `PrismaReportsRepository` against a real Postgres
  * connection.
  *
- * Current status: this suite is **skipped** because the
- * `@core/database` Prisma client is wired with a placeholder
- * `accelerateUrl` (Prisma 7 constructor requirement) and the
- * `@prisma/adapter-pg` driver adapter that turns local
- * `postgresql://...` strings into a real connection is not yet
- * integrated (TODO in `libs/core/database/src/client.ts`). The slice-3
- * placeholder works for typecheck and AST-level tests; a real DB
- * connection requires the adapter-pg follow-up.
- *
- * Tests are written and reviewed; they will run as soon as the
- * adapter-pg integration lands. To unblock in the meantime:
- *   1. `pnpm add -w @prisma/adapter-pg && pnpm install`
- *   2. Update `libs/core/database/src/client.ts` to import the
- *      adapter and pass it to `new PrismaClient({ adapter })` instead
- *      of `accelerateUrl`.
- *   3. Remove the `describe.skip` calls below.
+ * Requires `DATABASE_URL` to be set (the local Postgres container
+ * brought up by `pnpm db:up` is the canonical target). The
+ * `@core/database` Prisma client is wired with `@prisma/adapter-pg`
+ * and connects to the real DB on first property access.
  *
  * The fixture rows in `beforeAll` use cuid-style ids prefixed with
  * `rdrts1_` so a parallel CI run does not collide with other
@@ -124,7 +112,7 @@ afterAll(async () => {
   await prisma.userPreference.deleteMany({ where: { userId: USER_A } });
 });
 
-describe.skip("PrismaReportsRepository.findForUserInRange", () => {
+describe("PrismaReportsRepository.findForUserInRange", () => {
   it("returns the user's transactions projected to TransactionForReport", async () => {
     const rows = await adapter.findForUserInRange(USER_A, {
       fromDate: "2026-07-01",
@@ -167,7 +155,7 @@ describe.skip("PrismaReportsRepository.findForUserInRange", () => {
   });
 });
 
-describe.skip("PrismaReportsRepository.findPrimaryCurrencyForUser", () => {
+describe("PrismaReportsRepository.findPrimaryCurrencyForUser", () => {
   it("returns the configured primary currency code", async () => {
     const code = await adapter.findPrimaryCurrencyForUser(USER_A);
     expect(code).toBe(CURRENCY_USD);

@@ -10,6 +10,8 @@
 // permitted. The `no-prisma-outside-core` ESLint rule from slice 1 enforces
 // that boundary. Importing PrismaClient from feature code will fail lint.
 
+import { PrismaPg } from "@prisma/adapter-pg";
+
 import { PrismaClient } from "./generated/client.js";
 
 type GlobalWithPrisma = typeof globalThis & {
@@ -22,15 +24,20 @@ let _instance: PrismaClient | undefined;
 
 function getOrCreate(): PrismaClient {
   if (_instance) return _instance;
+  const connectionString = process.env["DATABASE_URL"];
+  if (connectionString === undefined || connectionString.length === 0) {
+    throw new Error(
+      "@core/database: DATABASE_URL is required to construct the Prisma client. " +
+        "Set it in apps/api/.env (or the process environment) before the first request. " +
+        "This is a fail-fast at first property access, not at module load, so test " +
+        "files that import `prisma` without a DB connection are unaffected.",
+    );
+  }
+  const adapter = new PrismaPg({ connectionString });
   _instance =
     globalForPrisma.prisma ??
     new PrismaClient({
-      // Prisma 7 requires `accelerateUrl` in the constructor type signature even
-      // when not using Prisma Accelerate. Empty string is rejected at runtime
-      // (must be non-empty); the real fix is a driver adapter. Tracked for
-      // slice 3+ (api wire-up).
-      // TODO(slice-3+): replace with @prisma/adapter-pg and remove this placeholder.
-      accelerateUrl: "postgresql://placeholder.localhost/db",
+      adapter,
       log: process.env.NODE_ENV === "production" ? ["error"] : ["query", "error", "warn"],
     });
   if (process.env.NODE_ENV !== "production") {

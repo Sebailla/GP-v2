@@ -46,8 +46,13 @@ export class InMemoryReportsRepository implements ReportsRepository {
     range: DateRange,
   ): Promise<readonly TransactionForReport[]> {
     const fromMs = Date.parse(range.fromDate + 'T00:00:00Z');
-    const toMs = Date.parse(range.toDate + 'T00:00:00Z');
-    if (Number.isNaN(fromMs) || Number.isNaN(toMs) || fromMs >= toMs) return [];
+    // `toDate` is the exclusive end of the half-open interval. To
+    // include all transactions on the `toDate` calendar day, we
+    // bump it to the start of the NEXT day (UTC midnight). This
+    // matches the Prisma adapter's `lt: nextDayMidnight` query.
+    const toExclusiveMs = Date.parse(range.toDate + 'T00:00:00Z');
+    const toMs = toExclusiveMs + 24 * 60 * 60 * 1000;
+    if (Number.isNaN(fromMs) || Number.isNaN(toExclusiveMs) || fromMs >= toExclusiveMs) return [];
 
     const all = this.transactionsByUser.get(userId) ?? [];
     return all

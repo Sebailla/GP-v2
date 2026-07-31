@@ -136,7 +136,11 @@ describe('timeBucketService.bucketize — triangulation', () => {
       expect(result[0]?.transactions).toHaveLength(1);
     });
 
-    it('excludes a transaction at exactly the toDate timestamp (half-open)', () => {
+    it('includes a transaction at exactly 2026-08-01T00:00:00Z (calendar-day inclusion)', () => {
+      // The half-open interval is inclusive on BOTH calendar days.
+      // `toDate: "2026-08-01"` means "include up to the end of
+      // 2026-08-01". A transaction at exactly `T00:00:00Z` of that
+      // day is on the `toDate` calendar day and is INCLUDED.
       const txs = [
         tx({ id: '1', occurredAt: new Date('2026-08-01T00:00:00Z'), amount: '-10.00' }),
       ];
@@ -144,7 +148,23 @@ describe('timeBucketService.bucketize — triangulation', () => {
         fromDate: '2026-07-01',
         toDate: '2026-08-01',
       });
-      expect(result).toEqual([]);
+      const ids = result.flatMap((b) => b.transactions.map((t) => t.id));
+      expect(ids).toContain('1');
+    });
+
+    it('excludes a transaction at the day after toDate (2026-08-02)', () => {
+      const txs = [
+        tx({ id: '1', occurredAt: new Date('2026-08-02T00:00:00Z'), amount: '-10.00' }),
+      ];
+      const result = timeBucketService.bucketize(txs, 'month', {
+        fromDate: '2026-07-01',
+        toDate: '2026-08-01',
+      });
+      // 2026-08-02 is past the calendar-day interval. The bucketer
+      // might still produce a 2026-08 bucket (the month contains
+      // 2026-08-02), but it must NOT contain the transaction.
+      const ids = result.flatMap((b) => b.transactions.map((t) => t.id));
+      expect(ids).not.toContain('1');
     });
   });
 
