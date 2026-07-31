@@ -368,6 +368,10 @@
   "reports": {
     "title": "Reportes",
     "subtitle": "Resume tus gastos a lo largo del tiempo.",
+    "meta": {
+      "title": "Reportes — Gastos Personales",
+      "description": "Resumen mensual, desglose por categoría y comparación de período de tus transacciones."
+    },
     "filterBar": {
       "fromDate": "Desde",
       "toDate": "Hasta",

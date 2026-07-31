@@ -12,12 +12,28 @@ import { ReportsWorkspace } from '@/components/reports/ReportsWorkspace';
  * Per AGENTS.md §9 (UI complete, not scaffold), the page delivers the
  * full 5-state surface per card: loading / error / success / empty /
  * validation-error, all handled by the ReportsWorkspace state machine.
+ *
+ * `generateMetadata` is required by the WCAG AA audit (S20 in
+ * `openspec/changes/module-6-reports/specs/reports/spec.md`):
+ * `axe-core`'s `document-title` rule reports "Documents must have
+ * <title> element to aid in navigation" as a serious violation
+ * when the `<title>` is missing. The title is locale-aware via the
+ * `reports.meta.title` and `reports.meta.description` i18n keys.
  */
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: PageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'reports.meta' });
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default async function ReportsPage({ params }: PageProps) {
   const { locale } = await params;

@@ -368,6 +368,10 @@
   "reports": {
     "title": "Reports",
     "subtitle": "Summarize your spending over time.",
+    "meta": {
+      "title": "Reports — Gastos Personales",
+      "description": "Monthly summary, category breakdown, and period comparison of your transactions."
+    },
     "filterBar": {
       "fromDate": "From",
       "toDate": "To",
