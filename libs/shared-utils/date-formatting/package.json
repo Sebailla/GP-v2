@@ -1,6 +1,6 @@
 {
   "name": "@shared-utils/date-formatting",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Timezone-safe date formatting (Intl.DateTimeFormat) + ISO 8601 parsing for gastos-personales-reference. Pure helpers, no I/O.",
   "type": "module",

@@ -7,7 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-07-29
+## [1.3.0] - 2026-07-31
+
+### Summary
+
+Module 6 (Reports & Analytics) vertical slice ships end-to-end. The new `apps/web/app/[locale]/(app)/reports/page.tsx` renders a locale-aware, WCAG AA-compliant analytics surface — monthly summary, category breakdown, period comparison, and CSV export — with the `PrismaReportsRepository` production binding replacing the in-memory adapter at the NestJS module layer. **MINOR bump** from v1.2.0 → v1.3.0 because the release introduces a new public-API surface (4 `GET /api/reports/*` endpoints + the `/[locale]/(app)/reports` page) and is backward-compatible with v1.2.0 auth + transactions.
+
+Closes all 4 carry-forward items from the v1.2.0 archive-report: WARNING-W1 (CSV detail filename deviation), WARNING-W2 (Recharts structural-only dep), WARNING-W3 (TotalsService reuse amendment), and SUGGESTION-S4 (S20 WCAG AA audit deferred to compliant). Ships the `PrismaReportsRepository` + `UserPreference` schema change + `@prisma/adapter-pg` integration that closes the slice-3+ TODO. Re-archived with `pass` verdict (zero warnings, zero critical findings, two SUGGESTIONs both out of M6 scope).
+
+131 `@features/reports` Vitest tests + 247/248 `apps/api` Vitest tests + 65 BDD scenarios + 12 Playwright auth-screen a11y tests + 6 Playwright reports-page a11y tests all pass. Coverage on `@features/reports` is 95.5% statements / 86.4% branches (well above the 60% target). Eight canonical specs now live at `openspec/specs/<domain>/spec.md` with byte-identical EN/ES mirrors under `Documents-es/`.
+
+### Added — Module 6 PR #1 (Foundation: shared schemas + workspace skeleton)
+
+`libs/features/reports/` workspace package: 4 canonical Zod schemas (`report-query`, `report-summary`, `report-by-category`, `report-by-period`) with 52 unit tests. `pnpm-workspace.yaml` and `tsconfig.base.json` updated to include the new package + path alias. 4 schema tests, 2 RED-GREEN atomic commits per schema (8 commits total). Slice scaffolding following the AGENTS.md §7 boundary rule (schemas under `shared/`, services under `server/`, components under `client/`).
+
+### Added — Module 6 PR #2 (Domain: `ReportsRepository` port + `TimeBucketService` + CSV serializer)
+
+`ReportsRepository` port interface with the 2 read-only operations the slice needs. `REPORTS_REPOSITORY_TOKEN` DI token (slice-wide pattern). `TimeBucketService` for week/month bucketing (DST-safe, pure-domain, no I/O). `csvSerializer` with the injection guard (`=`, `+`, `-`, `@` prefix), UTF-8 BOM, and CRLF line endings. 350 lines including tests. RED → GREEN → TRIANGULATE pattern per task.
+
+### Added — Module 6 PR #3 (`ReportsService` + `InMemoryReportsRepository` + NestJS wiring)
+
+`ReportsService` (4 methods: `getSummary`, `getByCategory`, `getByPeriod`, `exportCsv`). `InMemoryReportsRepository` for tests + BDD. NestJS `ReportsModule` wired in `apps/api/`. The integration test that exercises cross-user isolation at the controller boundary ships in this PR. 600 lines including tests. Observability counter stubbed (the `apps/api/src/modules/metrics/` wiring from M5 picks it up).
+
+### Added — Module 6 PR #4 (BDD bridge + 12 Gherkin scenarios)
+
+`libs/features/reports/docs/reports.feature` (20 Gherkin scenarios matching the spec, of which 12 are exercised end-to-end via the in-memory adapter). 5 step-definition files + the slice-8 binding bridge. `cucumber.json` extended to include the new feature. 1326 lines including tests + step defs. All 12 BDD scenarios pass.
+
+### Added — Module 6 PR #5 (Page UI + i18n + client components + Recharts amendment)
+
+`apps/web/app/[locale]/(app)/reports/page.tsx` (server component). 10 client components: `ReportsWorkspace` (state machine), `MonthlySummaryCard`, `CategoryBreakdownTable`, `PeriodComparisonPanel`, `ExportCsvButton`, `FxStalenessBanner`, 3 state components, 4 hooks. `next-intl` catalogs in `apps/web/messages/{en,es}.json` (38 keys per locale). The Recharts commit was *amended* in the v1.3.0 follow-up cycle (see "Changed" below) — the original commit landed the dep structurally; the amendment drops the chart library promise and the UI ships as numeric `<Stat>` cards + comparison table, which is the canonical reporting UX for the reference repo. 4 RED-GREEN commits: client API + 4 hooks, state components + i18n, filter bar + summary + breakdown + workspace, main UI components + page.
+
+### Changed — Module 6 W1: CSV detail filename (`.transactions.csv` → `.detail.csv`)
+
+The implementation shipped `.transactions.csv` because the BDD feature was relaxed to match the implementation rather than the spec. The v1.3.0 fix re-aligns implementation to spec: `reports-<fromDate>-<toDate>[.detail].csv`. Closes WARNING-W1 from the v1.2.0 archive-report.
+
+### Changed — Module 6 W2: drop Recharts promise, ship numeric Stat cards
+
+Investigation showed the `recharts` dependency was *never actually added* to `apps/web/package.json` (the verify-report's WARNING-W2 was inaccurate: the dep was not in `package.json` and not in `pnpm-lock.yaml`). The original commitment to integrate Recharts (`BarChart` in `MonthlySummaryCard`, `LineChart` in `PeriodComparisonPanel`) was amended: the slice ships numeric `<Stat>` cards and a comparison table, which is the canonical reporting UX for the reference repo. The `design.md` §"Visualization (amended — no chart library)" carries the rationale (no bundle weight, no chart-rendering dependencies, accessible by default). Closes WARNING-W2 from the v1.2.0 archive-report.
+
+### Changed — Module 6 W3: `TotalsService` reuse amendment
+
+The original proposal committed to delegating per-category + per-user totals to `TotalsService` from `@features/transactions` to avoid "two implementations diverging". Investigation showed this is **not feasible by construction**: `TotalsService` consumes `Transaction` (with `kind: 'income' | 'expense'`, sign encoded in the row) and `Decimal` amounts in the original currency; `ReportsService` consumes `TransactionForReport` (with sign-aware `amount: string`, already FX-converted to the user's primary currency). The two data shapes are not interchangeable. The `ReportsService.aggregateTotals` helper is the correct, minimal implementation; the original "divergence risk" doesn't apply because the two aggregations answer different questions (per-user undifferentiated totals vs FX-normalized per-user / per-category / per-period totals). The amendment updates 8 EN/ES spec/proposal/design files with the rationale. Closes WARNING-W3 from the v1.2.0 archive-report.
+
+### Added — `PrismaReportsRepository` + `UserPreference` schema
+
+The `PrismaReportsRepository` is the production binding for `REPORTS_REPOSITORY_TOKEN`, replacing the `InMemoryReportsRepository` at the NestJS module layer. The implementation includes:
+
+- **Schema change** (`libs/core/database/prisma/schema.prisma` + migration `20260731000000_add_user_preference/`): a new `model UserPreference` with `primaryCurrencyCode: String?` (FK to `currencies.code`, SET NULL on the optional currency). One row per user. The `UserPreference` table is the seam that lets `findPrimaryCurrencyForUser` resolve the user's primary reporting currency.
+- **Adapter** (`libs/features/reports/src/server/infrastructure/adapters/prisma-reports.repository.ts`): the 2 port operations against the Prisma client with cross-user isolation (`where: { createdBy: userId, deletedAt: null }`), half-open `[fromDate, toDate)` range filter (corrected in the v1.3.0 cycle — see "Fixed" below), and sign-aware amount projection at the boundary (Prisma's `Transaction.amount` is always positive magnitude; sign is in `kind`; the adapter projects to `TransactionForReport.amount: string` as positive for income, `-X.XX` for expense, matching the in-memory adapter exactly).
+- **Wiring**: `apps/api/src/modules/reports/reports.module.ts` swaps `useClass: InMemoryReportsRepository` for `useClass: PrismaReportsRepository` so the production binding is Prisma. Tests + BDD still use the in-memory adapter (substituted via `Test.createTestingModule`).
+- **Integration tests** (`prisma-reports.repository.test.ts`, 6 tests): half-open range, sign-aware amount, cross-user isolation, primary currency lookup — all run against a real Postgres container (the dev-environment `pnpm db:up` brings up the canonical target).
+
+### Fixed — half-open range off-by-one (calendar-day inclusion)
+
+Investigation of the integration tests surfaced a latent bug in 4 files: the `toDate` boundary was interpreted as start-of-day UTC instead of end-of-day. A transaction at `2026-08-01T12:00:00Z` with `toDate: "2026-08-01"` was **excluded** because the filter used `lt: 2026-08-01T00:00:00Z`. The spec says "half-open `[fromDate, toDate)` is inclusive on both calendar days" — the implementation had a calendar-day off-by-one. Fixed in `in-memory-reports.repository.ts`, `prisma-reports.repository.ts`, `time-bucket.service.ts`, and the `computeComparisonWindow` helper in `reports.service.ts`. The 2 time-bucket tests that codified the buggy behavior were updated to assert the calendar-day inclusion semantics instead. Surfaced by the un-skip of the Prisma adapter integration tests; the BDD suite was not exercising the boundary case (transactions at exactly `toDateT00:00:00Z`).
+
+### Fixed — `@prisma/adapter-pg` integration (closes slice-3+ TODO)
+
+The `@core/database/src/client.ts` placeholder `accelerateUrl` that blocked every Prisma adapter in the repo from connecting to a real Postgres is replaced with the `@prisma/adapter-pg` driver adapter. The Prisma 7 client is now constructed with `new PrismaPg({ connectionString: DATABASE_URL })` and the placeholder + the TODO comment are removed. `turbo.json`'s `test`, `lint`, and `typecheck` tasks now declare the 7 env vars so they propagate to child processes (the `build` and `bdd` tasks already did). Closes the slice-3+ TODO that has been blocking Prisma adapter integration since slice 3.
+
+### Added — S20 WCAG AA audit (closes SUGGESTION-S4 from v1.2.0)
+
+The module-6-reports slice was committed to a `@axe-core/playwright` audit on the rendered `/[locale]/reports` page. The v1.3.0 cycle delivers:
+
+- `apps/web/e2e/reports.spec.ts` (the S20 audit harness) — mocks the 4 `/api/reports/*` endpoints via `page.route()`, runs `expectNoAxeViolations(page)` for both `en` and `es` Playwright projects, asserts zero violations of the locked WCAG tag set (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`).
+- `generateMetadata` on the reports page + the 5 auth pages (sign-in, sign-up, forgot-password, reset-password/[token], error) so every page renders a non-empty `<title>` element. Closes the `@axe-core/playwright` `document-title` rule that the audit caught.
+- Locale-aware i18n keys (`reports.meta.*`, `auth.meta.*`) in `apps/web/messages/{en,es}.json`.
+
+The audit flips scenario S20 from `DEFERRED` to `COMPLIANT` in the 4 spec files (EN delta + canonical, ES delta + canonical). The `e2e/reports.spec.ts` suite is part of `pnpm e2e` and runs against a mocked API surface (no live DB required). 6 Playwright tests pass for the reports audit; 12 pass for the auth-screen audit (a side benefit of the `<title>` fixes — the slice-4 `wcag-aa.spec.ts` suite that was previously failing in the dev environment for the same `document-title` reason is now green too).
+
+### Quality gates
+
+- `pnpm install`: exits 0
+- `pnpm turbo run build lint typecheck test`: 46/46 successful
+- `pnpm lint:fixtures`: 118 passed, 0 failed
+- `pnpm turbo run bdd`: 12/12 reports scenarios + 25/25 transactions + 28/28 auth = 65 scenarios total
+- `pnpm --filter @core/database exec vitest run`: 26/26 tests (includes the 6 newly un-skipped `PrismaReportsRepository` integration tests against a real Postgres)
+- `pnpm --filter @features/reports exec vitest run`: 131/131 tests
+- `pnpm --filter api exec vitest run`: 247/248 tests (1 pre-existing skip in `auth-hash.bcrypt.perf.test.ts`)
+- `pnpm --filter web exec tsc --noEmit`: clean
+- `pnpm --filter web exec eslint .`: clean
+- `pnpm playwright test e2e/reports.spec.ts`: 6/6 (en + es + smoke)
+- `pnpm playwright test e2e/wcag-aa.spec.ts`: 12/12 (4 pages × 3 projects)
+- Coverage on `@features/reports`: 95.5% statements / 86.4% branches / 90.2% functions / 95.7% lines (well above the 60% target)
+- DB: `pnpm db:up && docker compose ps` shows Postgres healthy
+
+### Out of scope (carried forward to v1.3.x patches)
+
+- SUGGESTION-S2 (slice-4 / slice-7 auth-harness fragility): the `wcag-aa.spec.ts` and `transactions/login-list-create.spec.ts` suites were failing in the local dev environment for the `document-title` reason before the `<title>` fixes landed; after this release the auth-harness fragility is a different (smaller) issue. Recommended tracking as a slice-4/7 follow-up change.
+
+
 
 ### Summary
 

@@ -1,6 +1,6 @@
 {
   "name": "@core/rate-limit",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "description": "Pluggable rate limiter for gastos-personales-reference. Ships an InMemory adapter for tests and an Upstash Redis adapter for staging/production. Consumed by the RateLimitGuard in apps/api.",
   "type": "module",
