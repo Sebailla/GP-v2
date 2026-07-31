@@ -20,6 +20,7 @@ import { timeBucketService } from './time-bucket.service.js';
 import { csvSerializer } from './csv-serializer.js';
 import type { ReportsRepository, TransactionForReport, DateRange } from '../ports/index.js';
 import type { CurrencyCode, IsoDate } from '../ports/types.js';
+import { toDecimal, type Decimal } from '@shared-utils/decimal';
 
 /**
  * FX rate provider port — minimal interface we depend on.
@@ -27,9 +28,16 @@ import type { CurrencyCode, IsoDate } from '../ports/types.js';
  * The full interface (from @features/transactions) is wider; we only
  * consume the bits we need here. This keeps the dependency surface
  * narrow and makes mocking trivial.
+ *
+ * Note: `rate` is `Decimal` (decimal.js), matching the contract of
+ * `@features/transactions` `InMemoryFxRateProvider` and the rest of
+ * the slice-5 financial code. PR #5 of module-6-reports corrected the
+ * port to use `Decimal` (previously declared as `string` which was
+ * incompatible with the actual adapter and would have failed at runtime
+ * when an FX cross-currency report ran).
  */
 export interface FxRateProvider {
-  getRate(fromCode: string, toCode: string): Promise<{ rate: string; recordedAt: Date } | null>;
+  getRate(fromCode: string, toCode: string): Promise<{ rate: Decimal; recordedAt: Date } | null>;
 }
 
 /**
@@ -173,7 +181,7 @@ export function reportsService(deps: ReportsServiceDeps) {
     }
     const fresh = isFresh(rate.recordedAt, 24 * 60 * 60 * 1000);
     return {
-      amount: (Number(amount) * Number(rate.rate)).toFixed(2),
+      amount: toDecimal(amount).times(toDecimal(rate.rate)).toFixed(2),
       rateFreshness: fresh ? 'fresh' : 'stale',
     };
   }
@@ -550,4 +558,63 @@ function r0(n: number): string {
   return n.toString();
 }
 
-export type ReportsService = ReturnType<typeof reportsService>;
+/**
+ * Type-level alias for the factory's return shape (pure-domain surface).
+ *
+ * Renamed from `ReportsService` → `ReportsServiceApi` in PR #5 of the
+ * module-6-reports slice so the concrete `ReportsService` class below
+ * can take the natural name without a TS2308 "already exported"
+ * ambiguity. The factory is still the unit-test seam: 124 tests in
+ * `src/server/domain/services/__tests__/` build it directly via
+ * `reportsService({...})` and never reference this alias.
+ */
+export type ReportsServiceApi = ReturnType<typeof reportsService>;
+
+/**
+ * Concrete `ReportsService` — NestJS-injectable thin wrapper around the
+ * pure `reportsService({...})` factory.
+ *
+ * The controller (`apps/api/src/modules/reports/reports.controller.ts`)
+ * injects THIS class as a value (per the slice-5 convention enforced by
+ * the `@gpr/boundary/no-import-type-injectable` ESLint rule). The class
+ * carries the same method surface so the controller stays a thin
+ * pass-through; the module wires it with the `REPORTS_REPOSITORY_TOKEN`
+ * and `FX_RATE_PROVIDER_TOKEN` (from `@features/transactions`).
+ *
+ * The factory remains the unit-test seam — tests don't construct this
+ * class, they call `reportsService({...})` directly with mocked deps.
+ */
+export class ReportsService {
+  private readonly impl: ReportsServiceApi;
+
+  constructor(deps: ReportsServiceDeps) {
+    this.impl = reportsService(deps);
+  }
+
+  getSummary(userId: string, query: ReportQuery): Promise<ReportsSummary> {
+    return this.impl.getSummary(userId, query);
+  }
+
+  getByCategory(
+    userId: string,
+    query: ReportQuery,
+  ): Promise<readonly CategoryBreakdownReport[]> {
+    return this.impl.getByCategory(userId, query);
+  }
+
+  getByPeriod(
+    userId: string,
+    query: ReportQuery,
+    bucket: Bucket,
+  ): Promise<PeriodComparisonReport> {
+    return this.impl.getByPeriod(userId, query, bucket);
+  }
+
+  exportCsv(
+    userId: string,
+    query: ReportQuery,
+    detail: 'summary' | 'transactions',
+  ): Promise<CsvExportResult> {
+    return this.impl.exportCsv(userId, query, detail);
+  }
+}

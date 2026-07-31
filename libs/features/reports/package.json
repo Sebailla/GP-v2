@@ -31,6 +31,7 @@
     "@core/events": "workspace:*",
     "@features/auth": "workspace:*",
     "@features/transactions": "workspace:*",
+    "@shared-utils/decimal": "workspace:*",
     "react": "19.2.7",
     "zod": "4.4.3"
   },

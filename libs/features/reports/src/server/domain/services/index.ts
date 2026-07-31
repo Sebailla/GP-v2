@@ -9,9 +9,10 @@
  */
 export {
   reportsService,
+  ReportsService,
   type FxRateProvider,
+  type ReportsServiceApi,
   type ReportsServiceDeps,
-  type ReportsService,
   type CsvExportResult,
 } from './reports.service.js';
 
