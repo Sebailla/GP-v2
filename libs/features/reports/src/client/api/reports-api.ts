@@ -39,7 +39,7 @@ import {
 export interface ClientReportQuery {
   readonly fromDate: string;
   readonly toDate: string;
-  readonly currencyCode?: string;
+  readonly currencyCode?: string | undefined;
 }
 
 export type ClientReportByPeriodQuery = ClientReportQuery & {
