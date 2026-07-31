@@ -34,7 +34,7 @@ El slice es **read-only en la capa de datos**: ninguna tabla nueva de Prisma, ni
 - Cobertura BDD para los 4 user flows (summary, breakdown, comparison, CSV export).
 - Tests de componentes (Vitest) por cada componente de `client/`, cobertura 5 estados per AGENTS.md §9.
 - E2E (Playwright) para un critical flow por locale (`/en/reports` y `/es/reports`).
-- Auditoría WCAG AA sobre `ReportsPage` vía `@axe-core/playwright`.
+- Patrones de accesibilidad enviados (HTML semántico, `aria-live`, labels asociados); el audit automatizado WCAG AA vía `@axe-core/playwright` se difiere a un slice de follow-up una vez que el harness de e2e pueda correr contra el adapter Prisma (este slice se entrega contra el adapter in-memory; ver nota de enmienda S20 en `spec.md`).
 - Mirror en español de cada `.md` bajo `openspec/changes/module-6-reports/` en `Documents-es/openspec/changes/module-6-reports/` (per AGENTS.md §13). Verificación de caracteres chinos en los archivos ES: `grep -P '[\x{4e00}-\x{9fff}]'` retorna vacío.
 - Cobertura 60% por paquete en los nuevos paquetes `libs/features/reports/{shared,server,client}` (per `openspec/config.yaml`, soft target).
 
@@ -101,10 +101,10 @@ El slice es **read-only en la capa de datos**: ninguna tabla nueva de Prisma, ni
   - `ExportCsvButton` — loading / error / success / disabled-when-empty.
 - **BDD (Cucumber 13)**:
   - `reports.feature` cubre: monthly summary para usuario nuevo; category breakdown después de 5 transactions en 2 categorías; period comparison con delta; CSV export summary mode; CSV export detail mode; CSV injection guard.
-- **E2E (Playwright + @axe-core/playwright)**:
+- **E2E (Playwright)**:
   - Un critical flow por locale: `/en/reports` abre → filter "this month" → ve monthly summary → click "export CSV" → archivo descarga.
   - `/es/reports` mirror del mismo flow.
-  - WCAG AA audit sobre `ReportsPage` y todos los componentes hijos alcanzables.
+  - WCAG AA audit diferido a un slice de follow-up (el harness de e2e necesita Postgres corriendo; este slice se entrega contra el adapter in-memory). Los patrones de accesibilidad sí se envían en la UI renderizada.
 - **Coverage target**: 60% lines/branches/functions/statements per `openspec/config.yaml`. Por paquete en los nuevos `libs/features/reports/{shared,server,client}`.
 
 ## Quality gates (deben pasar antes de merge)

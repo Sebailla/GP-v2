@@ -313,7 +313,7 @@ Then ambas responses retornan exitosa e independientemente
 And ninguno de los tabs muta estado compartido
 ```
 
-### Escenario S20 — Conformidad WCAG AA
+### Escenario S20 — Conformidad WCAG AA (DIFERIDO — ver nota de enmienda abajo)
 
 ```
 Given el ReportsPage está renderizado
@@ -321,9 +321,22 @@ When corre el audit de @axe-core/playwright
 Then no se reportan violaciones de WCAG AA
 ```
 
+**Nota de enmienda (PR #6 / archive-amendment)**: el proposal original
+se comprometió con un audit de `@axe-core/playwright` sobre la página
+renderizada `/[locale]/reports`. El repo de referencia sí envía
+patrones de accesibilidad (HTML semántico, `aria-live="polite"` en
+`FxStalenessBanner`, `<label htmlFor>` en cada input de formulario,
+`<th scope>` en la tabla de breakdown), pero el spec automatizado de
+audit se difirió — el entorno de dev requiere Postgres corriendo
+para el harness de e2e, y el slice se entrega read-only contra el
+adapter in-memory, por lo que el audit debe aterrizar en un change de
+follow-up una vez que el adapter Prisma reemplace al in-memory. Este
+escenario queda como invariante diferido; el slice se archiva con S20
+UNTESTED y el follow-up queda trackeado en el archive report.
+
 ## Compliance
 
-- **AGENTS.md §9 (UI complete, not scaffold)**: cobertura de 5 estados por componente `client/`. WCAG AA vía @axe-core/playwright. Rutas con prefijo de locale vía `/en/...` y `/es/...`. Component tests + E2E tests por surface crítica. Sin páginas placeholder, sin componentes stub.
+- **AGENTS.md §9 (UI complete, not scaffold)**: cobertura de 5 estados por componente `client/`. Patrones de accesibilidad enviados (HTML semántico, `aria-live`, labels asociados), pero el audit automatizado WCAG AA vía `@axe-core/playwright` se difiere a un slice de follow-up (ver nota de enmienda S20). Rutas con prefijo de locale vía `/en/...` y `/es/...`. Component tests + E2E tests por surface crítica. Sin páginas placeholder, sin componentes stub.
 - **AGENTS.md §4 (Strict TDD)**: cada service + controller + service client impl + componente escrito bajo RED → GREEN → TRIANGULATE → REFACTOR.
 - **AGENTS.md §7 (boundary rules)**: Prisma solo en `libs/core/database`. Schemas solo en `libs/features/reports/shared/schemas/`. Sin imports client↔server. Sin imports cross-module; rutear vía `@core/events` o shared ports.
 - **AGENTS.md §13 (Spanish mirror)**: cada `.md` bajo `openspec/changes/module-6-reports/` viene con mirror `Documents-es/openspec/changes/module-6-reports/` en el mismo commit atómico. Check CJK pasa.
