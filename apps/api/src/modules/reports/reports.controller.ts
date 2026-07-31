@@ -2,8 +2,6 @@ import {
   BadRequestException,
   Controller,
   Get,
-  Inject,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -15,12 +13,7 @@ import {
   reportByPeriodQuerySchema,
   reportExportQuerySchema,
 } from '@features/reports/shared';
-import {
-  REPORTS_REPOSITORY_TOKEN,
-  reportsService,
-  type FxRateProvider,
-  type ReportsRepository,
-} from '@features/reports/server';
+import { ReportsService } from '@features/reports/server';
 
 import { JwtAuthGuard } from '../../shared/guards/jwt.guard.js';
 import { QuerySchema } from '../../shared/decorators/query.decorator.js';
@@ -41,7 +34,18 @@ import { QuerySchema } from '../../shared/decorators/query.decorator.js';
  * (controllers in apps/api, services in libs/features). The controller
  * is intentionally thin — it extracts the authenticated userId from
  * request.user (set by JwtAuthGuard), validates the query via the
- * canonical Zod schemas, and delegates to reportsService.
+ * canonical Zod schemas, and delegates to ReportsService.
+ *
+ * Why a concrete ReportsService (not the ports directly): per the
+ * slice-5 convention enforced by `@gpr/boundary/no-import-type-injectable`
+ * (ADR 0008), controllers decorated with `@Controller()` MUST inject
+ * concrete service classes (value imports), not ports (`type` imports
+ * are erased under `isolatedModules: true` and NestJS reflective DI
+ * fails to resolve them). `ReportsService` is the concrete NestJS-
+ * injectable wrapper around the pure-domain `reportsService({...})`
+ * factory; the factory remains the unit-test seam. ReportsModule
+ * wires the wrapper with `REPORTS_REPOSITORY_TOKEN` and
+ * `FX_RATE_PROVIDER_TOKEN` (from `@features/transactions`).
  *
  * Cross-user isolation: userId is read from request.user.id and passed
  * to every service method. Belt-and-suspenders: the repository adapter
@@ -50,17 +54,7 @@ import { QuerySchema } from '../../shared/decorators/query.decorator.js';
 @Controller('api/reports')
 @UseGuards(JwtAuthGuard)
 export class ReportsController {
-  constructor(
-    @Inject(REPORTS_REPOSITORY_TOKEN) private readonly reportsRepository: ReportsRepository,
-    private readonly fxRateProvider: FxRateProvider,
-  ) {}
-
-  private getService() {
-    return reportsService({
-      reportsRepository: this.reportsRepository,
-      fxRateProvider: this.fxRateProvider,
-    });
-  }
+  constructor(private readonly reports: ReportsService) {}
 
   @Get('summary')
   async getSummary(
@@ -69,7 +63,7 @@ export class ReportsController {
   ) {
     const userId = request.user?.id;
     if (!userId) throw new BadRequestException('Missing authenticated user');
-    return this.getService().getSummary(userId, query);
+    return this.reports.getSummary(userId, query);
   }
 
   @Get('by-category')
@@ -79,7 +73,7 @@ export class ReportsController {
   ) {
     const userId = request.user?.id;
     if (!userId) throw new BadRequestException('Missing authenticated user');
-    return this.getService().getByCategory(userId, query);
+    return this.reports.getByCategory(userId, query);
   }
 
   @Get('by-period')
@@ -89,7 +83,7 @@ export class ReportsController {
   ) {
     const userId = request.user?.id;
     if (!userId) throw new BadRequestException('Missing authenticated user');
-    return this.getService().getByPeriod(userId, query, query.bucket);
+    return this.reports.getByPeriod(userId, query, query.bucket);
   }
 
   /**
@@ -108,7 +102,7 @@ export class ReportsController {
   ): Promise<{ filename: string; body: string }> {
     const userId = request.user?.id;
     if (!userId) throw new BadRequestException('Missing authenticated user');
-    const result = await this.getService().exportCsv(userId, query, query.detail);
+    const result = await this.reports.exportCsv(userId, query, query.detail);
     return { filename: result.filename, body: result.body };
   }
 }
