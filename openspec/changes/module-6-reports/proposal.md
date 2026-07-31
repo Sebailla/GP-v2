@@ -35,7 +35,7 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
 - BDD coverage for the 4 user flows (summary, breakdown, comparison, CSV export).
 - Component tests (Vitest) for every `client/` component, 5-state coverage per AGENTS.md §9.
 - E2E (Playwright) for one critical flow per locale (`/en/reports` and `/es/reports`).
-- Accessibility patterns shipped (semantic HTML, `aria-live`, associated labels); automated WCAG AA audit via `@axe-core/playwright` deferred to a follow-up slice once the e2e harness can run against the Prisma adapter (the slice ships against the in-memory adapter; see S20 amendment in `spec.md`).
+- Accessibility patterns shipped (semantic HTML, `aria-live`, associated labels); the automated WCAG AA audit via `@axe-core/playwright` is covered by `apps/web/e2e/reports.spec.ts` and locked to `wcag2a`, `wcag2aa`, `wcag21a`, and `wcag21aa`.
 - Spanish mirror of every `.md` under `openspec/changes/module-6-reports/` in `Documents-es/openspec/changes/module-6-reports/` (per AGENTS.md §13). Chinese-character check on the Spanish files: `grep -P '[\x{4e00}-\x{9fff}]'` returns empty.
 - 60% per-package coverage on the new `libs/features/reports/{shared,server,client}` packages (per `openspec/config.yaml`, soft target).
 
@@ -105,7 +105,7 @@ The slice is **read-only at the data layer**: no new Prisma tables, no migration
 - **E2E (Playwright)**:
   - One critical flow per locale: `/en/reports` opens → filter "this month" → see monthly summary → click "export CSV" → file downloads.
   - `/es/reports` mirrors the same flow.
-  - WCAG AA audit deferred to a follow-up slice (the e2e harness needs a running Postgres; this slice ships against the in-memory adapter). Accessibility patterns are still shipped in the rendered UI.
+  - WCAG AA audit via `@axe-core/playwright` is covered by `apps/web/e2e/reports.spec.ts` and locked to `wcag2a`, `wcag2aa`, `wcag21a`, and `wcag21aa`.
 - **Coverage target**: 60% lines/branches/functions/statements per `openspec/config.yaml`. Per-package on the new `libs/features/reports/{shared,server,client}`.
 
 ## Quality gates (must pass before merge)

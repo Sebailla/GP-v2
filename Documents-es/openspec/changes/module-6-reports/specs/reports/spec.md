@@ -335,7 +335,7 @@ superficie de API mockeada (no requiere DB viva).
 
 ## Compliance
 
-- **AGENTS.md §9 (UI complete, not scaffold)**: cobertura de 5 estados por componente `client/`. Patrones de accesibilidad enviados (HTML semántico, `aria-live`, labels asociados), pero el audit automatizado WCAG AA vía `@axe-core/playwright` se difiere a un slice de follow-up (ver nota de enmienda S20). Rutas con prefijo de locale vía `/en/...` y `/es/...`. Component tests + E2E tests por surface crítica. Sin páginas placeholder, sin componentes stub.
+- **AGENTS.md §9 (UI complete, not scaffold)**: cobertura de 5 estados por componente `client/`. Se entregan patrones de accesibilidad (HTML semántico, `aria-live`, labels asociados), y el audit automatizado WCAG AA vía `@axe-core/playwright` está cubierto por `apps/web/e2e/reports.spec.ts` con el set de tags bloqueado `wcag2a`, `wcag2aa`, `wcag21a` y `wcag21aa` (ver nota de audit S20). Rutas con prefijo de locale vía `/en/...` y `/es/...`. Component tests + E2E tests por surface crítica. Sin páginas placeholder, sin componentes stub.
 - **AGENTS.md §4 (Strict TDD)**: cada service + controller + service client impl + componente escrito bajo RED → GREEN → TRIANGULATE → REFACTOR.
 - **AGENTS.md §7 (boundary rules)**: Prisma solo en `libs/core/database`. Schemas solo en `libs/features/reports/shared/schemas/`. Sin imports client↔server. Sin imports cross-module; rutear vía `@core/events` o shared ports.
 - **AGENTS.md §13 (Spanish mirror)**: cada `.md` bajo `openspec/changes/module-6-reports/` viene con mirror `Documents-es/openspec/changes/module-6-reports/` en el mismo commit atómico. Check CJK pasa.

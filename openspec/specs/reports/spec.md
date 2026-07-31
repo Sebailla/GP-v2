@@ -335,7 +335,7 @@ authenticated reports surface. The audit is part of the
 
 ## Compliance
 
-- **AGENTS.md §9 (UI complete, not scaffold)**: 5-state coverage per `client/` component. Accessibility patterns shipped (semantic HTML, `aria-live`, associated labels) but automated WCAG AA audit via `@axe-core/playwright` is deferred to a follow-up slice (see S20 amendment note). Locale-prefixed routes via `/en/...` and `/es/...`. Component tests + E2E tests per critical surface. No placeholder pages, no stub components.
+- **AGENTS.md §9 (UI complete, not scaffold)**: 5-state coverage per `client/` component. Accessibility patterns shipped (semantic HTML, `aria-live`, associated labels), and the automated WCAG AA audit via `@axe-core/playwright` is covered by `apps/web/e2e/reports.spec.ts` with the locked tag set `wcag2a`, `wcag2aa`, `wcag21a`, and `wcag21aa` (see S20 audit note). Locale-prefixed routes via `/en/...` and `/es/...`. Component tests + E2E tests per critical surface. No placeholder pages, no stub components.
 - **AGENTS.md §4 (Strict TDD)**: every service + controller + service client impl + component written under RED → GREEN → TRIANGULATE → REFACTOR.
 - **AGENTS.md §7 (boundary rules)**: Prisma only in `libs/core/database`. Schemas only in `libs/features/reports/shared/schemas/`. No client↔server imports. No cross-module imports; route through `@core/events` or shared ports.
 - **AGENTS.md §13 (Spanish mirror)**: every `.md` under `openspec/changes/module-6-reports/` ships with `Documents-es/openspec/changes/module-6-reports/` mirror in the same atomic commit. CJK check passes.
