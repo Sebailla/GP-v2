@@ -9,6 +9,28 @@
         "timeout": "Request timed out. Please check your connection and try again."
       }
     },
+    "meta": {
+      "signIn": {
+        "title": "Sign in — Gastos Personales",
+        "description": "Sign in to your Gastos Personales account to manage your transactions."
+      },
+      "signUp": {
+        "title": "Create account — Gastos Personales",
+        "description": "Create a Gastos Personales account to start tracking your spending."
+      },
+      "forgotPassword": {
+        "title": "Reset your password — Gastos Personales",
+        "description": "Receive a password reset link by email."
+      },
+      "resetPassword": {
+        "title": "Set a new password — Gastos Personales",
+        "description": "Choose a new password for your Gastos Personales account."
+      },
+      "error": {
+        "title": "Authentication error — Gastos Personales",
+        "description": "Something went wrong while signing you in. Please try again."
+      }
+    },
     "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",

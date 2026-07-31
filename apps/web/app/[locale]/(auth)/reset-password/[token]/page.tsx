@@ -33,6 +33,20 @@ interface ResetPasswordPageProps {
   params: Promise<{ locale: string; token: string }>;
 }
 
+/**
+ * Per the WCAG AA audit closure (issue #90 + the module-6-reports S20
+ * flip-to-COMPLIANT), every page must render a non-empty `<title>`.
+ * See `sign-in/page.tsx` for the full rationale.
+ */
+export async function generateMetadata({ params }: ResetPasswordPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.meta.resetPassword" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
 // Force-dynamic: same rationale as the forgot-password page (see
 // `app/[locale]/(auth)/forgot-password/page.tsx`). Static prerendering
 // the dynamic `[token]` segment at build time would produce a 404 for

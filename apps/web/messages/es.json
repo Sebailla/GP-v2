@@ -9,6 +9,28 @@
         "timeout": "La solicitud expiró. Por favor, verifica tu conexión e inténtalo de nuevo."
       }
     },
+    "meta": {
+      "signIn": {
+        "title": "Iniciar sesión — Gastos Personales",
+        "description": "Inicia sesión en tu cuenta de Gastos Personales para gestionar tus transacciones."
+      },
+      "signUp": {
+        "title": "Crear cuenta — Gastos Personales",
+        "description": "Crea una cuenta de Gastos Personales para empezar a registrar tus gastos."
+      },
+      "forgotPassword": {
+        "title": "Restablecer tu contraseña — Gastos Personales",
+        "description": "Recibe un enlace de restablecimiento de contraseña por email."
+      },
+      "resetPassword": {
+        "title": "Define una nueva contraseña — Gastos Personales",
+        "description": "Elige una nueva contraseña para tu cuenta de Gastos Personales."
+      },
+      "error": {
+        "title": "Error de autenticación — Gastos Personales",
+        "description": "Algo salió mal al iniciar sesión. Por favor, inténtalo de nuevo."
+      }
+    },
     "signIn": {
       "title": "Sign in",
       "description": "Sign in to access your account.",

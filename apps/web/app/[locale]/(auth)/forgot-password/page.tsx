@@ -38,6 +38,20 @@ interface ForgotPasswordPageProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Per the WCAG AA audit closure (issue #90 + the module-6-reports S20
+ * flip-to-COMPLIANT), every page must render a non-empty `<title>`.
+ * See `sign-in/page.tsx` for the full rationale.
+ */
+export async function generateMetadata({ params }: ForgotPasswordPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.meta.forgotPassword" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
 // Force-dynamic: the form posts to the auth API at request time;
 // pre-rendering at build time would produce stale HTML and Next.js 16's
 // ErrorBoundary throws `useContext(LayoutRouterContext) -> null` during

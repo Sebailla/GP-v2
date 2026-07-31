@@ -84,6 +84,20 @@ function isNextAuthErrorCode(value: unknown): value is NextAuthErrorCode {
   );
 }
 
+/**
+ * Per the WCAG AA audit closure (issue #90 + the module-6-reports S20
+ * flip-to-COMPLIANT), every page must render a non-empty `<title>`.
+ * See `sign-in/page.tsx` for the full rationale.
+ */
+export async function generateMetadata({ params }: AuthErrorPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.meta.error" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
 export default async function AuthErrorPage({
   params,
   searchParams,

@@ -42,6 +42,22 @@ interface SignInPageProps {
   params: Promise<{ locale: string }>;
 }
 
+/**
+ * Per the WCAG AA audit closure (issue #90 + the module-6-reports S20
+ * flip-to-COMPLIANT), every page must render a non-empty `<title>`.
+ * The `document-title` violation in `@axe-core/playwright` is a
+ * serious-impact finding; this `generateMetadata` closes the gap for
+ * the sign-in surface.
+ */
+export async function generateMetadata({ params }: SignInPageProps) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "auth.meta.signIn" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
+
 export default async function SignInPage({ params }: SignInPageProps): Promise<React.JSX.Element> {
   const { locale } = await params;
 
