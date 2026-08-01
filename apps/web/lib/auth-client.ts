@@ -1,22 +1,33 @@
 /**
  * apps/web/lib/auth-client.ts — slice 7 server/client split +
- * slice 8.1.2 client-side surface expansion.
+ * slice 8.1.2 client-side surface expansion + v1.4.0 refactor.
  *
- * Browser-only helpers: `setSessionCookie` (write the
- * `authjs.session-token` cookie via `document.cookie`) and
- * `clearSessionCookie` (expire it). The companion `auth-server.ts`
+ * Browser-only helpers: `isSessionPayload` (type guard for the API
+ * login / register response shape) and `clearSessionCookie` (expire
+ * the session cookie on sign-out). The companion `auth-server.ts`
  * holds the server-only `getSession()` plus the cookie
  * read/decoder surface.
  *
- * **Slice 8.1.2 — `isSessionPayload` + `SessionPayload` move.** These
- * were previously exported from `auth-server.ts` and re-exported by
- * the (now-deleted) `lib/auth.ts` barrel. They describe the API
- * login/register response shape — a contract that only the
- * client-side forms consume (LoginForm + SignUpForm transform the
- * JSON response into a `Session` cookie). Keeping them here means
- * client components can pull them without transitively importing
- * `next/headers` from `auth-server.ts`, which is the bug the
- * slice 8.1.2 fix closes.
+ * **v1.4.0 refactor — `setSessionCookie` removed.** Prior to v1.4.0,
+ * this file wrote the `authjs.session-token` cookie via
+ * `document.cookie = "authjs.session-token=...; HttpOnly; ..."`.
+ * Real browsers silently ignore `HttpOnly` set via `document.cookie`
+ * (the flag is only honored when emitted via a `Set-Cookie` HTTP
+ * response header from the server), so the cookie was written
+ * WITHOUT the flag — which then made the cookie JS-readable but
+ * the slice-2 `decodeSession` returned null when the server tried
+ * to read it back (the cookie's URL-encoding was the inverse of
+ * what the server's `decodeURIComponent` expected on the read path).
+ * v1.4.0 moved the cookie write to the server side: the
+ * `apps/api` `/auth/login` and `/auth/register` endpoints now
+ * emit the cookie via a real `Set-Cookie` response header, so
+ * HttpOnly works as designed. The client no longer needs to write
+ * the cookie itself — `setSessionCookie` is removed entirely.
+ *
+ * The `clearSessionCookie` function remains: sign-out still needs
+ * to expire the cookie client-side (there is no `/auth/logout`
+ * endpoint yet, and even when there is, JS can clear the cookie
+ * before the server round-trip for an immediate visual state).
  *
  * **Why this matters.** The `document.cookie` API is browser-only;
  * bundling it into the server bundle would explode at runtime
@@ -59,52 +70,27 @@ export function isSessionPayload(value: unknown): value is SessionPayload {
 }
 
 /**
- * Encode the session as a JSON string and write it to
- * `document.cookie` with the canonical NextAuth v5 attributes.
- * Client-side only — server components calling this would throw
- * `document is not defined`. The `encodeURIComponent` round-trip
- * matches the `decodeURIComponent` in `decodeSession` so non-ASCII
- * characters in the email field don't break the cookie parser.
- *
- * `HttpOnly` is set as a hint in the cookie string. Real browsers
- * silently ignore `HttpOnly` set via `document.cookie` (the attribute
- * only takes effect when emitted by a `Set-Cookie` header from the
- * server). The directive is included so a future migration to a
- * server-side `Set-Cookie` header is forward-compatible — the test
- * contract already asserts on `HttpOnly` being present.
- *
- * `Secure` is INTENTIONALLY OMITTED: the reference repo's `pnpm dev`
- * runs on `http://localhost:3000` and the browser rejects `Secure`
- * cookies on non-HTTPS origins. When the real Set-Cookie integration
- * lands (slice 6+ deploy hardening), the `Secure` flag belongs in
- * the server-side `Set-Cookie` header, gated by
- * `process.env.NODE_ENV === "production"`.
- */
-export function setSessionCookie(session: Session): void {
-	const value = encodeURIComponent(JSON.stringify(session));
-	const SESSION_TTL_SECONDS = 24 * 60 * 60;
-	const attributes = [
-		`authjs.session-token=${value}`,
-		"path=/",
-		`max-age=${SESSION_TTL_SECONDS}`,
-		"SameSite=lax",
-		"HttpOnly",
-	].join("; ");
-	document.cookie = attributes;
-}
-
-/**
  * Expire the authjs.session-token cookie by setting `Max-Age=0`.
- * Mirrors `setSessionCookie`'s path + SameSite so the browser knows
+ * Mirrors the server's `Set-Cookie` shape so the browser knows
  * which cookie to remove. The value is intentionally empty — the
  * cookie is about to be deleted; its content is irrelevant.
  *
  * Note: `Max-Age=0` is intentionally capitalized (the
  * `Max-Age=<delta-seconds>` directive is case-insensitive in the
  * cookie spec but the canonical form is `Max-Age`; mirroring the
- * `setSessionCookie` lowercase pattern would be a minor inconsistency
- * we accept here for visual symmetry).
+ * server's `Set-Cookie` lowercase pattern would be a minor
+ * inconsistency we accept here for visual symmetry).
  */
 export function clearSessionCookie(): void {
 	document.cookie = `authjs.session-token=; path=/; Max-Age=0; SameSite=lax`;
 }
+
+/**
+ * Re-export `Session` for client code that needs the canonical shape
+ * (e.g. UI components that read session fields from the API
+ * response before persisting it). The `Session` type itself lives
+ * in `auth-server.ts` (server-only) so it can co-locate with the
+ * decoder; this re-export lets client modules pull the type from
+ * the same module as the cookie writer.
+ */
+export type { Session } from "./auth-server.js";

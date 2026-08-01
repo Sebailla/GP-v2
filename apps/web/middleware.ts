@@ -1,7 +1,7 @@
-import { decode } from "next-auth/jwt";
 import createIntlMiddleware from "next-intl/middleware";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { AUTH_SESSION_COOKIE, decodeSession } from "./lib/auth-shared.js";
 import { routing } from "./i18n";
 
 const intlMiddleware = createIntlMiddleware(routing);
@@ -51,58 +51,7 @@ const intlMiddleware = createIntlMiddleware(routing);
  *     (only when NODE_ENV !== "development")
  */
 
-const AUTH_SESSION_COOKIE = "authjs.session-token";
-
-/**
- * Shape of the persisted `Session` cookie value (matches
- * `apps/web/lib/auth-server.ts#Session`). The middleware decodes
- * the cookie value with the same `decodeSession` pure function the
- * server uses so the role check is the canonical contract.
- *
- * Kept inline (not imported from `@/lib/auth-server`) because
- * `auth-server.ts` imports `server-only` which throws at module
- * load when the middleware bundle is evaluated in the Node test
- * runner — see `apps/web/vitest.config.ts` for the `server-only`
- * empty-shim alias (alias only available inside the vitest config,
- * not at middleware import time).
- */
-type AdminCookieSession = {
-  readonly token: string;
-  readonly user: { readonly id: string; readonly email: string; readonly role: string };
-};
-
-type AdminJwtClaims = {
-  readonly userId?: unknown;
-  readonly sub?: unknown;
-  readonly email?: unknown;
-  readonly role?: unknown;
-};
-
-async function decodeAdminSession(raw: string | undefined): Promise<AdminCookieSession | null> {
-  if (raw === undefined || raw === "") return null;
-  try {
-    const claims = (await decode({
-      token: decodeURIComponent(raw),
-      secret: process.env["NEXTAUTH_SECRET"] ?? process.env["JWT_SECRET"] ?? "",
-      salt: AUTH_SESSION_COOKIE,
-    })) as AdminJwtClaims | null;
-    if (claims === null) return null;
-    const id = typeof claims.userId === "string" ? claims.userId : claims.sub;
-    if (
-      typeof id !== "string" ||
-      typeof claims.email !== "string" ||
-      typeof claims.role !== "string"
-    ) {
-      return null;
-    }
-    return {
-      token: raw,
-      user: { id, email: claims.email, role: claims.role },
-    };
-  } catch {
-    return null;
-  }
-}
+const AUTH_SESSION_COOKIE_VALUE = AUTH_SESSION_COOKIE; // re-exported from auth-shared
 
 /**
  * Determine whether the request path is an admin route for the
@@ -167,8 +116,8 @@ async function adminGuard(request: NextRequest, pathname: string): Promise<NextR
   // initialized lazily from the header on first access; reading
   // it explicitly via the header avoids any lazy-init races.
   const cookieHeader = request.headers.get("cookie");
-  const raw = readCookieFromHeader(cookieHeader, AUTH_SESSION_COOKIE);
-  const session = await decodeAdminSession(raw);
+  const raw = readCookieFromHeader(cookieHeader, AUTH_SESSION_COOKIE_VALUE);
+  const session = decodeSession(raw);
   if (session === null) {
     // No session at all → kick to sign-in for the active locale.
     return NextResponse.redirect(new URL(`/${locale}/sign-in`, request.url));

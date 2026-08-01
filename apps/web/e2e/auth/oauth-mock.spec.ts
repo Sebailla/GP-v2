@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
 
+import {
+  MOCK_TEST_SESSION,
+  buildMockSessionSetCookie,
+} from "../utils/auth-mock-cookie.js";
+
 /**
  * Module-2 PR #4 tasks 4.5 RED + 4.6 GREEN — Google OAuth mock
  * provider (D4) gated by `GOOGLE_E2E_MOCK=1`.
@@ -58,13 +63,16 @@ test.describe("Module-2 PR #4 (tasks 4.5 + 4.6) — Google mock provider (D4)", 
 
     // The mock google-mock callback returns a stubbed user
     // payload and sets the session cookie. Mirrors the production
-    // `apps/web/auth.ts#handlers.GET/POST` behavior.
+    // `apps/web/auth.ts#handlers.GET/POST` behavior. The cookie
+    // value MUST use the v1.4.0 URL-encoded JSON format
+    // (see `auth-mock-cookie.ts`) so the server-side
+    // `decodeSession` reads the same shape the API emits.
     await page.route("**/api/auth/callback/google-mock", async (route) => {
       route.fulfill({
         status: 200,
         contentType: "application/json",
         headers: {
-          "set-cookie": "authjs.session-token=mock-jwt; Path=/; HttpOnly; SameSite=Lax",
+          "set-cookie": buildMockSessionSetCookie(MOCK_TEST_SESSION),
         },
         body: JSON.stringify({ url: `/${TEST_LOCALE}/(app)` }),
       });
@@ -101,11 +109,16 @@ test.describe("Module-2 PR #4 (tasks 4.5 + 4.6) — Google mock provider (D4)", 
     });
 
     // The mock callback sets the session cookie (intercepted by
-    // page.route above).
+    // page.route above). v1.4.0: the value is the URL-encoded
+    // JSON the production API emits — symmetric with
+    // `buildMockSessionSetCookie` above, so the assertion stays
+    // in lockstep with the production encoder.
     const cookies = await page.context().cookies(baseURL as unknown as string);
     const sessionCookie = cookies.find((c) => c.name === "authjs.session-token");
     expect(sessionCookie).toBeDefined();
-    expect(sessionCookie?.value).toBe("mock-jwt");
+    expect(sessionCookie?.value).toBe(
+      encodeURIComponent(JSON.stringify(MOCK_TEST_SESSION)),
+    );
   });
 
   test("hides the google button when creds are missing (D4 — production-safe default)", async ({
@@ -161,7 +174,7 @@ test.describe("Module-2 PR #4 (tasks 4.5 + 4.6) — Google mock provider (D4)", 
         status: 200,
         contentType: "application/json",
         headers: {
-          "set-cookie": "authjs.session-token=mock-jwt; Path=/; HttpOnly; SameSite=Lax",
+          "set-cookie": buildMockSessionSetCookie(MOCK_TEST_SESSION),
         },
         body: JSON.stringify({ url: `/${TEST_LOCALE}/(app)` }),
       });

@@ -103,24 +103,15 @@ export function SignInClient({ apiUrl, locale }: SignInClientProps): React.JSX.E
 
   // Build the post-auth target once — the credentials success
   // path AND the Google OAuth handshake both redirect here.
-  //
-  // The design specifies `/${locale}/(app)` as the post-signin
-  // target, but Next.js 16's route-group resolution treats the
-  // (app) group as a file-tree marker (not a URL segment), and
-  // `apps/web/app/[locale]/page.tsx` (the slice-1 placeholder) wins
-  // the path-resolution race over `apps/web/app/[locale]/(app)/page.tsx`
-  // (the slice-2 dashboard). The result is a 404 on the design's
-  // intended URL. The fix is to land the slice-1 placeholder
-  // under a non-conflicting path (e.g. `/welcome`) so the (app)
-  // group is the canonical locale-root target. Until that lands,
-  // we fall back to `/${locale}/` which renders the slice-1
-  // placeholder; the user can then navigate to a (app)-grouped
-  // route (e.g. `/en/transactions`) for the real dashboard.
-  //
-  // See issue #92 for the v1.4+ follow-up that resolves the
-  // (app) route-group ambiguity + lands the slice-1 placeholder
-  // move.
-  const callbackUrl = `/${locale}/`;
+  // (Per the design `redirect post sign-in: /[locale]/(app)`.)
+  // The (app) segment is a Next.js route group — it is a path
+  // group in the file tree but does NOT appear in the URL.
+  // The next-intl middleware strips the locale group prefix on
+  // output, so the canonical URL for the authenticated landing
+  // is `/${locale}/(app)` (per the design) — Next.js matches
+  // this to `apps/web/app/[locale]/(app)/page.tsx` once the
+  // slice-1 placeholder lives at `/welcome` (issue #92).
+  const callbackUrl = `/${locale}/(app)`;
 
   return (
     <div className={cn("flex flex-col gap-ui-space-4")}>

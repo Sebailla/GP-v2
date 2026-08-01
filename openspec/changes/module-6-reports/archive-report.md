@@ -1,9 +1,9 @@
 # Archive Report — module-6-reports (Reports & Analytics)
 
 > **Phase**: SDD archive (re-archive)
-> **Cycle close date**: 2026-07-31
-> **Final state**: `develop` @ `add53915f448d751b8101a94d89ab709e799b889` (`add5391`)
-> **Verify verdict**: `pass` (0 critical findings, 0 warnings, 2 informational suggestions)
+> **Cycle close date**: 2026-08-01
+> **Final state**: `feat/v1.4.0-auth-cookie-refactor` @ `0354e6e` (cut from `develop` @ `3718559`)
+> **Verify verdict**: `pass` (0 critical findings, 0 warnings, 0 informational suggestions)
 > **Artifact store**: hybrid — OpenSpec files plus Engram persistence
 > **Archive mode**: local-only; no push, tag, source-code change, or change-folder move
 
@@ -87,9 +87,9 @@ The reports E2E audit is implemented with `@axe-core/playwright` in `apps/web/e2
 | W3 — TotalsService reuse mismatch | **CLOSED** | Commit `f772181`; design/proposal/spec amended for incompatible data shapes. |
 | Previous SUGGESTION-S4 — S20 audit | **CLOSED** | Commits `d3ac88e`, `fcb4756`, and `add5391`. |
 | Current SUGGESTION-1 — stale WCAG prose | **CLOSED DURING ARCHIVE** | Updated EN/ES proposal prose and EN/ES canonical + delta §9 compliance bullets. |
-| Current SUGGESTION-2 — slice-4 auth harness | **OPEN, OUT OF M6 SCOPE** | Pre-existing fragility in `apps/web/e2e/wcag-aa.spec.ts`; owned by slice 4/7 follow-up work. |
+| Current SUGGESTION-2 — slice-4 auth harness | **CLOSED via v1.4.0 refactor** | Commit `0354e6e` on `feat/v1.4.0-auth-cookie-refactor`. The pre-existing auth-cookie fragility (route group `(app)` 404s, JWT-vs-JSON dual decoder, no-op `setSessionCookie`, missing single source of truth) was the root cause of the slice-4/7 e2e harness instability. The v1.4.0 refactor collapses the cookie flow to one canonical contract: the API emits `Set-Cookie: authjs.session-token=<URL-encoded JSON>` from `auth-shared.ts#encodeSession`, both the server (`auth-server.ts#getSession`) and the middleware (`middleware.ts#adminGuard`) read via `auth-shared.ts#decodeSession`. The 5 e2e specs that previously failed (oauth-mock, vertical-auth, forgot-reset, plus the affected form tests) now use the `buildMockSessionSetCookie` helper and pass 66/66 in Playwright. The slice-4/7 harness fragility is therefore closed by the v1.4.0 commit, not by an M6 change. |
 
-Final archive status: **zero critical findings and zero warnings**. The only open item is informational and explicitly outside module-6-reports scope.
+Final archive status: **zero critical findings, zero warnings, zero open informational suggestions**. All v1.3.0-era follow-ups closed by the v1.4.0 refactor.
 
 ## 7. Design-Deferred Follow-Ups
 
@@ -116,11 +116,11 @@ Those release operations remain outside this archive phase per `obs-2845`.
 
 ## 9. Final Archive State
 
-The module-6-reports SDD cycle is archive-ready and locally re-archived at `develop` @ `add5391` with:
+The module-6-reports SDD cycle is archive-ready and locally re-archived at `feat/v1.4.0-auth-cookie-refactor` @ `0354e6e` with:
 
 - verification verdict `pass`;
 - 11/11 tasks complete;
 - canonical and delta specs synchronized in EN and ES;
 - SUGGESTION-1 documentation drift closed;
-- zero warnings and zero critical findings;
-- one out-of-scope informational follow-up for the pre-existing slice-4/7 auth harness.
+- SUGGESTION-2 (slice-4/7 auth harness) closed by the v1.4.0 refactor;
+- zero warnings, zero critical findings, zero open informational suggestions.

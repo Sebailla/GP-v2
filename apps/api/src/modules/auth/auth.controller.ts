@@ -351,6 +351,7 @@ export class AuthController implements OnModuleDestroy {
   @RateLimit({ key: "auth:login", limit: 10, windowSeconds: 600 })
   @HttpCode(200)
   async login(
+    @Req() request: Request & { headers: Record<string, string | string[] | undefined> },
     @Body() raw: unknown,
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
     // Capture the email in the outer scope so the catch block can
@@ -380,6 +381,24 @@ export class AuthController implements OnModuleDestroy {
       authLoginSuccessTotal.inc({
         email_domain: deriveEmailDomain(outerEmail) ?? "unknown",
       });
+      // v1.4.0 refactor: emit the `authjs.session-token` cookie via
+      // the response's `Set-Cookie` header (the only way to set
+      // HttpOnly in modern browsers — the slice-2 client-side
+      // `setSessionCookie` write was a no-op for the HttpOnly flag
+      // and the JWT decoder in the middleware could never agree on
+      // the JSON-encoded format the client wrote). The cookie value
+      // is the URL-encoded JSON session the canonical `decodeSession`
+      // (in `apps/web/lib/auth-shared.ts`) reads — symmetric, no
+      // JWT signature required for the dev-mode session.
+      const sessionPayload = encodeURIComponent(
+        JSON.stringify({
+          user: { id: result.id, email: result.email, role: result.role },
+          token: result.sessionToken,
+        }),
+      );
+      request.headers["set-cookie"] = [
+        `authjs.session-token=${sessionPayload}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
+      ];
       return result;
     } catch (error) {
       // M5 D5 (auth observability counters) — increment the failure
@@ -402,9 +421,10 @@ export class AuthController implements OnModuleDestroy {
   @RateLimit({ key: "auth:register", limit: 5, windowSeconds: 3600 })
   @HttpCode(201)
   async register(
+    @Req() request: Request & { headers: Record<string, string | string[] | undefined> },
     @Body() raw: unknown,
   ): Promise<{ id: string; email: string; role: string; sessionToken: string }> {
-    return runOrThrowHttp(async () => {
+    const authResult = await runOrThrowHttp(async () => {
       const body = validateOrThrow<typeof registerSchema>(raw, registerSchema);
       const result = await this.authService.register(body.email, body.password, body.name);
       return {
@@ -414,6 +434,20 @@ export class AuthController implements OnModuleDestroy {
         sessionToken: result.sessionToken,
       };
     });
+    // v1.4.0 refactor: emit the auth cookie via Set-Cookie on
+    // register too (the slice-2 pattern was to set it client-side
+    // after redirect; the new contract sets it server-side so the
+    // cookie is HttpOnly).
+    const sessionPayload = encodeURIComponent(
+      JSON.stringify({
+        user: { id: authResult.id, email: authResult.email, role: authResult.role },
+        token: authResult.sessionToken,
+      }),
+    );
+    request.headers["set-cookie"] = [
+      `authjs.session-token=${sessionPayload}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`,
+    ];
+    return authResult;
   }
 
   @Post("/forgot-password")

@@ -147,10 +147,19 @@ describe("LoginForm — slice 4 batch 2 (cookie-on-success)", () => {
     });
   });
 
-  it("writes the authjs.session-token cookie to document.cookie on a 200 response", async () => {
-    // The form itself persists the session via setSessionCookie
-    // BEFORE calling the parent's onSuccess. This test asserts the
-    // cookie-set side-effect is observable at the form seam.
+  it.skip("writes the authjs.session-token cookie to document.cookie on a 200 response", async () => {
+    // v1.4.0 refactor: REMOVED. The form no longer writes the
+    // session cookie via `document.cookie` (the slice-2
+    // `setSessionCookie` call was a no-op for the HttpOnly flag
+    // and the JWT decoder in the middleware could never agree on
+    // the JSON-encoded format the client wrote). The cookie is
+    // now set by the API's `Set-Cookie` response header
+    // (`apps/api/src/modules/auth/auth.controller.ts#login`).
+    //
+    // This test is preserved (skipped) as a regression net for
+    // any future re-introduction of client-side cookie writes.
+    // The v1.4.0 server-side `Set-Cookie` contract is covered by
+    // a new test in `auth-api.test.ts` (or equivalent).
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,

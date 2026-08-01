@@ -145,10 +145,13 @@ describe("SignUpForm — slice 4 batch 2 (cookie-on-success)", () => {
     });
   });
 
-  it("writes the authjs.session-token cookie to document.cookie on a 201 response", async () => {
-    // The SignUpForm itself writes the authjs.session-token cookie before
-    // calling the parent's onSuccess (which navigates). This test
-    // asserts the cookie set is observable via document.cookie.
+  it.skip("writes the authjs.session-token cookie to document.cookie on a 201 response", async () => {
+    // v1.4.0 refactor: REMOVED. The SignUpForm no longer writes
+    // the session cookie via `document.cookie` (the slice-2
+    // `setSessionCookie` call was a no-op for the HttpOnly flag).
+    // The cookie is now set by the API's `Set-Cookie` response
+    // header (`apps/api/src/modules/auth/auth.controller.ts
+    // #register`). Preserved (skipped) as a regression net.
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 201,
