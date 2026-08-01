@@ -45,7 +45,7 @@ depender.
 
 ## Decisión
 
-Adoptamos la **Forma A** desde `openspec/changes/fix-orphan-shared-directories/explore.md` §6:
+Adoptamos la **Forma A** desde `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/explore.md` §6:
 cada directorio `shared/` se convierte en un paquete del workspace de
 primera clase con su propio `package.json` declarando `zod@4.4.3` como
 entrada de `dependencies`. Los 11 importers de producción **conservan
@@ -131,11 +131,11 @@ JSDoc que explicaban el workaround de resolución huérfana original.
 
 ## Referencias
 
-- Propuesta: `openspec/changes/fix-orphan-shared-directories/proposal.md` (Engram `#2384`)
-- Spec: `openspec/changes/fix-orphan-shared-directories/spec.md` (Engram `#2385`; R1–R11, 7 escenarios, 7 metas)
-- Diseño: `openspec/changes/fix-orphan-shared-directories/design.md` (Engram `#2386`; 10 toques de archivos, 3 commits atómicos)
-- Tareas: `openspec/changes/fix-orphan-shared-directories/tasks.md` (Engram `#2387`; 3 tareas; PR único)
-- Exploración: `openspec/changes/fix-orphan-shared-directories/explore.md` (Engram `#2382`; 3 formas comparadas, Forma A seleccionada)
+- Propuesta: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/proposal.md` (Engram `#2384`)
+- Spec: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/spec.md` (Engram `#2385`; R1–R11, 7 escenarios, 7 metas)
+- Diseño: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/design.md` (Engram `#2386`; 10 toques de archivos, 3 commits atómicos)
+- Tareas: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/tasks.md` (Engram `#2387`; 3 tareas; PR único)
+- Exploración: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/explore.md` (Engram `#2382`; 3 formas comparadas, Forma A seleccionada)
 - Precedente — workaround `paths.zod` que este ADR retira:
   - `apps/api/tsconfig.json` líneas 33–37 (JSDoc de 4 líneas + entrada `"zod"`)
   - `apps/web/tsconfig.json` líneas 23–33 (JSDoc de 11 líneas + entrada `"zod"`)
