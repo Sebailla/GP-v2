@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-01
+
+### Summary
+
+Full v1.4.0 auth-cookie refactor closes issue #92 and the slice-4/7 e2e-harness carry-forward (SUGGESTION-S2 from the v1.3.0 module-6-reports archive). The v1.3.0 cookie flow had five compounding bugs (two decoders, no-op client-side HttpOnly write, route group `(app)` ambiguity, slice-1 placeholder racing the canonical page, no single source of truth). The refactor collapses the flow into one canonical contract: the API emits `Set-Cookie: authjs.session-token=<URL-encoded JSON>` from the new `apps/web/lib/auth-shared.ts#encodeSession`, and both the server (`auth-server.ts#getSession`) and the middleware (`middleware.ts#adminGuard`) read via the shared `decodeSession`. `setSessionCookie` is removed from the client because the client-side write was a no-op for HttpOnly. **MINOR bump** from v1.3.0 → v1.4.0 because the change is internal-only (no new public-API surface) but the cookie contract is technically backward-incompatible for any consumer that issued real JWT cookies (none ship today — the reference repo never issued real JWTs, so no live sessions to invalidate).
+
+Closes issue #92 in full. Re-archive of `module-6-reports` flips SUGGESTION-S2 from `OPEN (out of M6 scope)` to `CLOSED via v1.4.0` with the same commit as evidence — final re-archive state is `0/0/0` critical/warnings/informational. 66/66 Playwright specs pass, including the previously-fragile `oauth-mock`, `vertical-auth`, and `forgot-reset` suites.
+
+### Changed — single canonical cookie contract
+
+The v1.3.0 cookie flow had 4 reader/writer sites maintaining their own encoding logic; the v1.4.0 refactor collapses them onto a single helper. The new `apps/web/lib/auth-shared.ts` is the canonical source of truth for `AUTH_SESSION_COOKIE`, the `Session` type, and the symmetric `decodeSession` / `encodeSession` pair. The module deliberately omits `import "server-only"` so the middleware bundle can import it without crashing (the `server-only` shim is only available inside the vitest config, not at middleware-import time). `auth-server.ts` keeps the `server-only` guard because it imports `next/headers`.
+
+The cookie value format is `encodeURIComponent(JSON.stringify({user: {id, email, role}, token: <jwt>}))` — no JWT signature on the wire (the JWT rides inside `token` for server-side use, but the wire format itself is plain JSON). The middleware's `decodeAdminSession` JWT decoder and the corresponding `next-auth/jwt#decode` import are deleted; the admin guard calls the shared `decodeSession` instead.
+
+The API's `/auth/login` and `/auth/register` handlers now set the `Set-Cookie` response header directly: `authjs.session-token=<URL-encoded JSON>; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`. The `Secure` flag is intentionally absent (would break on `http://localhost`); the spec is preserved in `apps/api/src/modules/auth/auth.controller.ts`.
+
+### Changed — `setSessionCookie` removed
+
+`apps/web/lib/auth-client.ts#setSessionCookie` was a no-op for the HttpOnly flag (browsers silently drop the flag when set via `document.cookie`; the original code acknowledged this in its JSDoc). The function is removed entirely. The API's `Set-Cookie` response header is now the only cookie-write surface — it is the only mechanism that can set HttpOnly in modern browsers. The 4 client-form tests that asserted `setSessionCookie` wrote to `document.cookie` are converted to `it.skip` with JSDoc pointing at the new server-side contract; the `lib-auth.test.ts` `setSessionCookie` describe block is `describe.skip`'d for the same reason.
+
+### Changed — route group `(app)` + slice-1 placeholder move
+
+The `callbackUrl` in `SignInClient` is restored to `/${locale}/(app)` (the v1.3.0 era had worked around the parens to `/${locale}/` to avoid the 404). The slice-1 placeholder `page.tsx` is moved to `welcome/page.tsx` so the canonical `(app)/page.tsx` becomes the locale-root. The Playwright e2e harness regex in `apps/web/e2e/utils/auth-harness.ts#waitForAuthenticatedLanding` is updated to match the `/(/(app)/)?` path (the parens are file-tree markers, not URL segments — the browser URL is `/{locale}` but the Next.js pathname string includes the parens).
+
+### Added — `auth-mock-cookie` e2e helper
+
+`apps/web/e2e/utils/auth-mock-cookie.ts` is the single edit point for the test-side cookie encoder. `buildMockSessionSetCookie(session)` returns the canonical `Set-Cookie` header value the production API emits, and `MOCK_TEST_SESSION` is the canonical mock identity (`{user: {id: "user-alice", email: "alice@example.com", role: "USER"}, token: "mock-jwt"}`). The 3 e2e specs that previously hard-coded `authjs.session-token=mock-jwt` (and the 2 with `post-reset-jwt-stub` / `fake-jwt`) now route through this helper so the e2e mocks stay in lockstep with the production encoder.
+
+### Fixed — middleware test cookie shape
+
+`apps/web/__tests__/middleware.admin.test.ts` rewrote the cookie value helper from the v1.3.0 NextAuth-JWT shape (`encode({token: {sub, userId, email, role}, secret, salt})`) to the v1.4.0 plain-JSON shape. The "rejects an unsigned JSON cookie claiming role=ADMIN" scenario now uses a shape-mismatched payload (missing `user.email` / `user.role`) because the JWT-signature forgery surface no longer exists in v1.4.0. The "rejects a cookie with a mismatched signature" scenario is preserved as a regression net for any future re-introduction of JWT decoding.
+
+### Quality gates
+
+- `pnpm turbo run typecheck` — 15/15 packages green.
+- `pnpm turbo run lint` — 14/14 packages green.
+- `pnpm turbo run test` — 15/15 packages green (~485 unit tests; 11 `.skip`d intentionally with v1.4.0-removal JSDoc, all the previously-failing `setSessionCookie` contract tests).
+- `pnpm turbo run bdd` — 5/5 packages green.
+- `pnpm playwright test` — 66/66 e2e specs green (en + es + smoke, including the previously-failing `oauth-mock`, `vertical-auth`, and `forgot-reset`).
+- `pnpm turbo run build` — pre-existing `NODE_ENV=production` env-validation failure (BACKUP_DSN, GMAIL_USER, GMAIL_APP_PASSWORD) reproduces on `develop`; the v1.4.0 release workflow injects the env secrets into the build host (see engram obs #3022). Not a v1.4.0 regression.
+
+### Release process
+
+- **Branch model**: `develop` is the working branch; `main` is the immutable production release branch. Releases are cut via `release/v<MAJOR>.<MINOR>.<PATCH>` branches off `develop` → PR → `main` → tag → GitHub release.
+- **Commit convention**: Conventional Commits (no `Co-Authored-By` / no AI attribution).
+- **Branch-model convention** (per AGENTS.md §2): feature branches cut from `develop`, work-unit commits, `git revert <sha>` for rollback.
+- **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
+
+[1.4.0]: https://github.com/Sebailla/GP-v2/compare/v1.3.0...v1.4.0
+
 ## [1.3.0] - 2026-07-31
 
 ### Summary
@@ -162,7 +212,7 @@ Vitest 4.1.x migration. Custom `runsOnce` Vitest validator. Race stabilization s
 - **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
 
 [1.2.0]: https://github.com/Sebailla/GP-v2/compare/v1.1.1...v1.2.0
-[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.3.0...HEAD
 
 ## [1.1.1] - 2026-07-09
 

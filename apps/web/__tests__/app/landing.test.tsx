@@ -2,10 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 
 /**
- * TDD contract for `apps/web/app/[locale]/page.tsx` — slice 4 batch 2
- * (post-4e T3.3 deferred follow-up).
+ * TDD contract for `apps/web/app/[locale]/welcome/page.tsx` — slice 4 batch 2
+ * (post-4e T3.3 deferred follow-up) + v1.4.0 refactor.
  *
- * The slice-1 placeholder landing page is upgraded to:
+ * The slice-1 placeholder landing page (originally at
+ * `apps/web/app/[locale]/page.tsx`) was moved to
+ * `apps/web/app/[locale]/welcome/page.tsx` in the v1.4.0 slice
+ * so the (app) route group's dashboard becomes the canonical
+ * locale-root (the slice-1 placeholder won the path-resolution
+ * race against the (app) group, see issue #92).
+ *
+ * The page is upgraded to:
  *  - Read the authjs.session-token cookie via `getSession()` (server side).
  *  - If the session is non-null, render the user's email + a
  *    "Welcome" message + (in a future batch) a sign-out button.
@@ -55,7 +62,7 @@ vi.mock("@core/config", () => ({
 }));
 
 // Page under test — imported AFTER the mocks above so the mocks win.
-import LandingPage from "../../app/[locale]/page";
+import LandingPage from "../../app/[locale]/welcome/page";
 
 describe("LandingPage — slice 4 batch 2 (post-4e T3.3 deferred follow-up)", () => {
   beforeEach(() => {

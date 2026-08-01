@@ -103,6 +103,14 @@ export function SignInClient({ apiUrl, locale }: SignInClientProps): React.JSX.E
 
   // Build the post-auth target once — the credentials success
   // path AND the Google OAuth handshake both redirect here.
+  // (Per the design `redirect post sign-in: /[locale]/(app)`.)
+  // The (app) segment is a Next.js route group — it is a path
+  // group in the file tree but does NOT appear in the URL.
+  // The next-intl middleware strips the locale group prefix on
+  // output, so the canonical URL for the authenticated landing
+  // is `/${locale}/(app)` (per the design) — Next.js matches
+  // this to `apps/web/app/[locale]/(app)/page.tsx` once the
+  // slice-1 placeholder lives at `/welcome` (issue #92).
   const callbackUrl = `/${locale}/(app)`;
 
   return (
