@@ -35,7 +35,7 @@ const { mockEnv } = vi.hoisted(() => {
     },
   };
 });
-vi.mock("@core/config", () => ({
+vi.mock("@core/config/web", () => ({
   env: mockEnv,
 }));
 

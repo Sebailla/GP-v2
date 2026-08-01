@@ -7,7 +7,9 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./web": "./web.ts",
+    "./web-env.schema": "./web-env.schema.ts"
   },
   "scripts": {
     "test": "vitest run",

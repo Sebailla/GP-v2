@@ -19,6 +19,13 @@
 const ALLOWED_PATTERNS = [
   /libs\/features\/[^/]+\/shared\/schemas\//,
   /libs\/core\/config\/env\.schema\.ts$/,
+  // v1.4.1 — the env schema split adds a second allowed location
+  // for the web-only env schema. The split is documented in
+  // `openspec/changes/fix-build-env-runtime-validation/explore.md`
+  // §"What this schema does NOT include" — the web schema is
+  // intentionally separate from the API schema so the
+  // `apps/web` build doesn't drag in the API's prod-only fields.
+  /libs\/core\/config\/web-env\.schema\.ts$/,
   // Per design §6.2, the events catalog (kebab-case names +
   // Zod payload schemas) lives in @core/events. The schemas are
   // not feature input/output validation — they are the wire

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
-vi.mock("@core/config", () => ({
+vi.mock("@core/config/web", () => ({
   env: {
     API_URL: "http://api.test",
     NODE_ENV: "test",

@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-01
+
+### Summary
+
+Build env-validation fix. The v1.4.0 release shipped a `next build` that required the API's prod-only env vars (`BACKUP_DSN`, `METRICS_TOKEN`, `UPSTASH_REDIS_REST_*`, `GMAIL_*`) because `apps/web` imported the full `@core/config` env schema — Next.js's page-data collection evaluated the module graph at `NODE_ENV=production` and the API schema's `superRefine` failed on the missing prod-only fields. The v1.4.0 release workflow hid this by injecting the env secrets into the build host; any clean dev environment without the secrets saw the build fail. The v1.4.1 fix splits the env schema so `apps/web` consumes a minimal web-only schema and the web build is runnable without any API secrets. **PATCH bump** from v1.4.0 → v1.4.1 because the change is internal-only (no new public API surface, no behavior change, no migration).
+
+### Added — `@core/config/web` sibling barrel
+
+New entry point `libs/core/config/web.ts` re-exports a web-only env surface (`env`, `webEnvSchema`, `parseWebEnv`, `productionWebEnvSchema`, `WebEnv`, `NodeEnv`) from the new `libs/core/config/web-env.schema.ts`. The full API schema in `libs/core/config/env.schema.ts` stays untouched — the API still fail-fasts at startup on the prod-only fields it actually needs.
+
+The `WebEnv` type does NOT include the API's prod-only fields (`BACKUP_DSN`, `METRICS_TOKEN`, `GMAIL_*`, `MAIL_DSN`, `DATABASE_URL`, `UPSTASH_REDIS_REST_*`). The type-system rejection is verified by a `// @ts-expect-error` test in `libs/core/config/__tests__/web-env.test.ts` that fails loudly if a future schema change accidentally re-adds one of those fields.
+
+### Changed — 9 `apps/web` source files import `env` from the new entry point
+
+`apps/web/auth.ts` + 8 RSC page components (`/api/status`, `/{locale}/(auth)/{sign-in,sign-up,forgot-password,reset-password/[token],dev/mailbox/[userId]}/page.tsx`, `/{locale}/status/page.tsx`, `/{locale}/welcome/page.tsx`) now import `env` from `@core/config/web` instead of the full `@core/config`. The change is one-line per file; no behavior change in the consuming code (the fields the web reads are all in `WebEnv`).
+
+### Changed — 8 test files update their `vi.mock("@core/config", ...)` to `vi.mock("@core/config/web", ...)`
+
+The unit tests in `apps/web/__tests__/app/*.test.tsx` and `apps/web/app/[locale]/status/__tests__/page.test.tsx` mock the env module to inject deterministic values. The mock paths update to match the new import surface.
+
+### Changed — boundary rule allows `web-env.schema.ts`
+
+`tools/eslint-plugin-boundary/rules/no-schemas-outside-shared.cjs` adds `libs/core/config/web-env.schema.ts` to the allowlist alongside the existing `libs/core/config/env.schema.ts` entry. Both schemas are the canonical env contracts for their respective apps; the rule's "one source of truth per shape" invariant is preserved because each schema covers a disjoint env surface.
+
+### Quality gates
+
+- `pnpm turbo run typecheck` — 15/15 packages green.
+- `pnpm turbo run lint` — 14/14 packages green.
+- `pnpm turbo run test` — 15/15 packages green (~485 tests; the 11 v1.4.0 `.skip`d tests remain skipped — the v1.4.1 change is additive, no behavior change to existing test surfaces).
+- `pnpm turbo run bdd` — 5/5 packages green.
+- `pnpm playwright test` — 66/66 specs green (en + es + smoke).
+- `pnpm lint:fixtures` — 118/118 boundary fixtures green.
+- **`pnpm turbo run build --filter=web`** — GREEN WITH NO ENV SECRETS SET (the new gate the v1.4.1 fix enables). The web build no longer needs `BACKUP_DSN`, `METRICS_TOKEN`, `UPSTASH_REDIS_REST_*`, or `GMAIL_*`.
+- `pnpm turbo run build --filter=api` — still green (the API build is a TypeScript compile only; runtime env validation happens at the API process boot, not at build time).
+
+### Release process
+
+- **Branch model**: `develop` is the working branch; `main` is the immutable production release branch. Releases are cut via `release/v<MAJOR>.<MINOR>.<PATCH>` branches off `develop` → PR → `main` → tag → GitHub release.
+- **Commit convention**: Conventional Commits (no `Co-Authored-By` / no AI attribution).
+- **Branch-model convention** (per AGENTS.md §2): feature branches cut from `develop`, work-unit commits, `git revert <sha>` for rollback.
+- **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
+
+[1.4.1]: https://github.com/Sebailla/GP-v2/compare/v1.4.0...v1.4.1
+
 ## [1.4.0] - 2026-08-01
 
 ### Summary
@@ -212,7 +256,7 @@ Vitest 4.1.x migration. Custom `runsOnce` Vitest validator. Race stabilization s
 - **Spanish mirror rule** (per AGENTS.md §13): every English `.md` under `openspec/` or `docs/` ships with `Documents-es/...` Spanish mirror IN THE SAME atomic commit. Verified via `grep -P '[\x{4e00}-\x{9fff}]'` to keep CJK mojibake out.
 
 [1.2.0]: https://github.com/Sebailla/GP-v2/compare/v1.1.1...v1.2.0
-[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Sebailla/GP-v2/compare/v1.4.1...HEAD
 
 ## [1.1.1] - 2026-07-09
 

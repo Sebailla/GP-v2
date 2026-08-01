@@ -49,7 +49,7 @@ vi.mock("next-intl/server", () => ({
 }));
 
 // Mock `@core/config` — the page reads `env.NODE_ENV`.
-vi.mock("@core/config", () => ({
+vi.mock("@core/config/web", () => ({
   env: {
     API_URL: "http://api.test",
     NODE_ENV: "test",

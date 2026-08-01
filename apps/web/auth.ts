@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { env } from "@core/config";
+import { env } from "@core/config/web";
 
 import { isGoogleMockEnabled } from "./lib/google-enabled";
 

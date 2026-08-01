@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { env } from "@core/config";
+import { env } from "@core/config/web";
 
 export const dynamic = "force-dynamic";
 

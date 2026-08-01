@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
-import { env } from "@core/config";
+import { env } from "@core/config/web";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
