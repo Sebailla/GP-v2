@@ -170,10 +170,12 @@ export const TEST_USER: SessionUser = {
 
 /**
  * Wait for the post-auth landing route. The callbackUrl post-signin
- * is `/${locale}/` (the slice-1 placeholder page at
- * `apps/web/app/[locale]/page.tsx`; see issue #92 for the
- * follow-up that lands the slice-1 placeholder move and makes
- * the (app) route group the canonical locale-root).
+ * is `/${locale}/(app)` (the (app) route group, the canonical
+ * authenticated landing per the design). The parens are NOT a
+ * URL segment in Next.js 16 — Next.js resolves the path
+ * `/(app)/...` to the (app) group's pages without rendering the
+ * parens in the browser URL. The match here is on the trailing
+ * `/(app)` substring of the pathname.
  */
 export async function waitForAuthenticatedLanding(
   page: Page,
@@ -181,5 +183,9 @@ export async function waitForAuthenticatedLanding(
   options: { timeout?: number } = {},
 ): Promise<void> {
   const timeout = options.timeout ?? 5_000;
-  await page.waitForURL(new RegExp(`/${locale}/?$`), { timeout });
+  // The browser URL will end with `/(app)` after the (app)
+  // group is resolved. We also accept the root `/<locale>/` (no
+  // (app) suffix) for backward compat with the slice-1 fallback
+  // path that some legacy specs may still use.
+  await page.waitForURL(new RegExp(`/${locale}(/(\\(app\\))?)?$`), { timeout });
 }

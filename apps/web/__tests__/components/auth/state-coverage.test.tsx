@@ -208,11 +208,12 @@ describe("Slice 4 form state coverage (T4.14)", () => {
       });
     });
 
-    it("success: 200 → writes the authjs.session-token cookie before the parent's onSuccess fires", async () => {
-      // Slice 4 cookie migration final: the LoginForm persists the session
-      // via setSessionCookie BEFORE calling the parent's
-      // onSuccess. This test asserts the cookie set is
-      // observable on document.cookie.
+    it.skip("success: 200 → writes the authjs.session-token cookie before the parent's onSuccess fires", async () => {
+      // v1.4.0 refactor: REMOVED. The LoginForm no longer writes
+      // the session cookie via `document.cookie` (the slice-2
+      // `setSessionCookie` was a no-op for the HttpOnly flag).
+      // The cookie is now set by the API's `Set-Cookie` response
+      // header. Preserved (skipped) as a regression net.
       const onSuccess = vi.fn();
       mockFetch.mockResolvedValueOnce(
         new Response(

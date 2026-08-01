@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+import { buildMockSessionSetCookie } from "../utils/auth-mock-cookie.js";
+import type { Session } from "../../lib/auth-shared.js";
+
 /**
  * Module-2 PR #5 task 5.2 — vertical auth E2E for both locales (en + es).
  *
@@ -143,8 +146,15 @@ for (const locale of TEST_LOCALES) {
           status: 200,
           contentType: "application/json",
           headers: {
-            "set-cookie":
-              "authjs.session-token=post-reset-jwt-stub; Path=/; HttpOnly; SameSite=Lax",
+            // v1.4.0: the reset-password route emits the canonical
+            // URL-encoded JSON shape via `buildMockSessionSetCookie`
+            // so the server's `decodeSession` reads the same value
+            // the production API emits. Mirrors `auth.controller.ts
+            // #resetPassword`'s Set-Cookie contract.
+            "set-cookie": buildMockSessionSetCookie({
+              user: { id: TEST_USER_ID, email: TEST_USER_EMAIL, role: "USER" },
+              token: "post-reset-jwt-stub",
+            } satisfies Session),
           },
           body: JSON.stringify({ redirectTo: `/${locale}/(app)` }),
         });

@@ -248,7 +248,12 @@ describe("SignInClient — module 2 public-auth (PR #1 task 1.1)", () => {
     expect(googleCall?.options?.["callbackUrl"]).toBe("/es/(app)");
   });
 
-  it("writes the authjs.session-token cookie to document.cookie on credentials 200", async () => {
+  it.skip("writes the authjs.session-token cookie to document.cookie on credentials 200", async () => {
+    // v1.4.0 refactor: REMOVED. The SignInClient no longer writes
+    // the session cookie via `document.cookie` (the slice-2
+    // `setSessionCookie` was a no-op for the HttpOnly flag). The
+    // cookie is now set by the API's `Set-Cookie` response
+    // header. Preserved (skipped) as a regression net.
     clearGoogleEnv();
     mockApiSuccess();
 

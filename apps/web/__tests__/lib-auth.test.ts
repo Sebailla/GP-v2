@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 /**
  * TDD contract for the apps/web auth-helper surface — slice 4 cookie
  * migration (final, post-NextAuth integration) + slice 8.1.2
- * server/client split finalisation.
+ * server/client split finalisation + v1.4.0 auth-cookie refactor.
  *
  * Slice 7 introduced `auth-server.ts` (server-only `getSession()` via
  * `next/headers`) and `auth-client.ts` (browser-only `setSessionCookie`
@@ -16,6 +16,14 @@ import { cookies } from "next/headers";
  * layouts import directly from `auth-server.ts`. This test mirrors
  * that split: the server half imports from `auth-server.ts`, the
  * client half from `auth-client.ts`.
+ *
+ * **v1.4.0 refactor.** The `setSessionCookie` function was
+ * removed from `auth-client.ts` (the API's `Set-Cookie` response
+ * header is the canonical cookie write). The `setSessionCookie()`
+ * describe block is now `describe.skip`d; it documents the v1.3.0
+ * client-side contract that no longer exists. A new test for the
+ * v1.4.0 server-side `Set-Cookie` contract lives in
+ * `auth-api.test.ts` (or equivalent).
  *
  * The web client uses the canonical NextAuth v5 cookie
  * (`authjs.session-token`) to persist the session token + user
@@ -67,7 +75,19 @@ const {
   AUTH_SESSION_COOKIE,
   SESSION_TTL_SECONDS,
 } = await import("../lib/auth-server");
-const { setSessionCookie, clearSessionCookie } = await import("../lib/auth-client");
+const { clearSessionCookie } = await import("../lib/auth-client");
+// v1.4.0: setSessionCookie removed from auth-client.ts. The tests
+// that called it are describe.skip'd below. Re-declared as a no-op
+// signature-compatible stub so the (skipped) test bodies that
+// reference the name still type-check. The leading underscore on
+// `_args` marks it as intentionally-unused under the TS convention
+// (the root eslint config does not enable `@typescript-eslint/
+// no-unused-vars`, so an inline disable comment is unnecessary
+// AND would crash the linter with "Definition for rule … was not
+// found").
+const setSessionCookie = (..._args: unknown[]): void => {
+  throw new Error("setSessionCookie was removed in v1.4.0");
+};
 
 const SAMPLE_SESSION = {
   token: "session-token-abc",
@@ -158,17 +178,23 @@ describe("apps/web/lib/auth-{server,client} — session helpers (slice 4 cookie 
   });
 
   // -----------------------------------------------------------------------
-  // setSessionCookie — client side
+  // setSessionCookie — REMOVED in v1.4.0 (cookie write moved to API)
   // -----------------------------------------------------------------------
-  describe("setSessionCookie()", () => {
-    it("writes a JSON-encoded session to document.cookie with the canonical NextAuth v5 name (authjs.session-token)", () => {
+  // The `setSessionCookie` function was removed from `auth-client.ts`
+  // in v1.4.0. The cookie is now set by the API's `Set-Cookie`
+  // response header (the only way to set HttpOnly in modern
+  // browsers). The tests below are skipped to reflect the
+  // removal; they document the v1.3.0 contract that no longer
+  // exists. A new describe block in `auth-api.test.ts` (or
+  // equivalent) covers the v1.4.0 server-side `Set-Cookie`
+  // contract.
+  describe.skip("setSessionCookie() (REMOVED in v1.4.0 — server-side Set-Cookie now)", () => {
+    it.skip("writes a JSON-encoded session to document.cookie with the canonical NextAuth v5 name (authjs.session-token)", () => {
       setSessionCookie(SAMPLE_SESSION);
       expect(lastSetCookie).not.toBeNull();
       const cookieStr = String(lastSetCookie);
       const cookieName = AUTH_SESSION_COOKIE;
       expect(cookieStr.startsWith(`${cookieName}=`)).toBe(true);
-      // Canonical NextAuth v5 cookie name — not the slice 4 batch 2
-      // bespoke `auth-session`.
       expect(cookieName).toBe("authjs.session-token");
       const valuePart = cookieStr.split(";")[0] ?? "";
       const encoded = valuePart.split("=").slice(1).join("=");
@@ -181,31 +207,31 @@ describe("apps/web/lib/auth-{server,client} — session helpers (slice 4 cookie 
       expect(parsed).toEqual(SAMPLE_SESSION);
     });
 
-    it("writes a 24h Max-Age (86400 seconds) so the cookie survives across page reloads but expires within a day", () => {
+    it.skip("writes a 24h Max-Age (86400 seconds) so the cookie survives across page reloads but expires within a day", () => {
       setSessionCookie(SAMPLE_SESSION);
       const cookieStr = String(lastSetCookie);
       expect(cookieStr).toMatch(/max-age=86400/i);
     });
 
-    it("writes the cookie scoped to path=/ so every route in the app sees it", () => {
+    it.skip("writes the cookie scoped to path=/ so every route in the app sees it", () => {
       setSessionCookie(SAMPLE_SESSION);
       const cookieStr = String(lastSetCookie);
       expect(cookieStr).toMatch(/path=\//i);
     });
 
-    it("writes the cookie with SameSite=lax (lowercase) so cross-origin POSTs do not include it", () => {
+    it.skip("writes the cookie with SameSite=lax (lowercase) so cross-origin POSTs do not include it", () => {
       setSessionCookie(SAMPLE_SESSION);
       const cookieStr = String(lastSetCookie);
       expect(cookieStr).toMatch(/samesite=lax/i);
     });
 
-    it("writes the HttpOnly attribute as a canonical NextAuth v5 hint (browsers ignore it set via document.cookie)", () => {
+    it.skip("writes the HttpOnly attribute as a canonical NextAuth v5 hint (browsers ignore it set via document.cookie)", () => {
       setSessionCookie(SAMPLE_SESSION);
       const cookieStr = String(lastSetCookie);
       expect(cookieStr).toMatch(/httponly/i);
     });
 
-    it("uses SESSION_TTL_SECONDS=24*60*60 to compose the max-age directive (matches API's SESSION_TTL_MS)", () => {
+    it.skip("uses SESSION_TTL_SECONDS=24*60*60 to compose the max-age directive (matches API's SESSION_TTL_MS)", () => {
       // Slice 4 cookie migration final — the max-age value is the
       // SESSION_TTL_SECONDS constant (24*60*60 = 86400). Pinning
       // the literal here too so a future drift between the
@@ -218,7 +244,7 @@ describe("apps/web/lib/auth-{server,client} — session helpers (slice 4 cookie 
       expect(Number(match?.[1])).toBe(SESSION_TTL_SECONDS);
     });
 
-    it("overwrites a previous authjs.session-token cookie with the new value (last-write-wins)", () => {
+    it.skip("overwrites a previous authjs.session-token cookie with the new value (last-write-wins)", () => {
       setSessionCookie(SAMPLE_SESSION);
       const NEW_SESSION = {
         token: "session-token-xyz",
@@ -244,7 +270,11 @@ describe("apps/web/lib/auth-{server,client} — session helpers (slice 4 cookie 
   // -----------------------------------------------------------------------
   describe("clearSessionCookie()", () => {
     it("writes a Max-Age=0 directive that expires the cookie", () => {
-      setSessionCookie(SAMPLE_SESSION);
+      // v1.4.0: no pre-set via `setSessionCookie` (removed). The
+      // cookie name constant is the canonical NextAuth v5 name
+      // (`authjs.session-token`); the clear path uses the same
+      // name. The `lastSetCookie` spy captures the directive the
+      // form's "sign out" path emits.
       clearSessionCookie();
       const cookieStr = String(lastSetCookie);
       const cookieName = AUTH_SESSION_COOKIE;

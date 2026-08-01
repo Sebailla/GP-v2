@@ -31,6 +31,15 @@ import middleware, { config } from "../middleware";
  * is the design surface; on the web middleware we read the same
  * cookie and compare `user.role === 'ADMIN'`.
  *
+ * **v1.4.0 refactor.** The cookie encoding is now plain
+ * URL-encoded JSON (no JWT signature). The "rejects a cookie
+ * with a mismatched signature" scenario is preserved as a
+ * regression net against a future re-introduction of JWT
+ * decoding — the test feeds the middleware a tampered JWT
+ * which `decodeSession` (JSON-only) now rejects as malformed
+ * JSON, so the expected behavior (redirect to sign-in) holds
+ * under both decoders.
+ *
  * The test exercises three personas by setting the cookie value
  * directly (a JSON-encoded `Session` per the auth-client contract):
  *  - No cookie → unauthenticated → redirect to sign-in.
@@ -42,6 +51,31 @@ const HOST = "http://localhost:3000";
 const TEST_NEXTAUTH_SECRET = "test-secret-at-least-32-characters-long-for-hkdf";
 const AUTH_SESSION_COOKIE = "authjs.session-token";
 
+/**
+ * v1.4.0: build the URL-encoded JSON cookie value the production
+ * `apps/api/src/modules/auth/auth.controller.ts#login` emits.
+ * `decodeSession` reads this exact shape — symmetric on purpose.
+ */
+function adminCookieValue(role: "USER" | "ADMIN"): string {
+  return encodeURIComponent(
+    JSON.stringify({
+      user: {
+        id: "11111111-1111-1111-1111-111111111111",
+        email: `${role.toLowerCase()}@example.com`,
+        role,
+      },
+      token: "any",
+    }),
+  );
+}
+
+/**
+ * Build a NextAuth-JWT-encoded value for the tampered-signature
+ * regression test. v1.4.0 keeps this test as a defense-in-depth
+ * check: the middleware's `decodeSession` (JSON-only) must
+ * reject any non-JSON value, which a tampered JWT effectively
+ * is after a one-byte mutation.
+ */
 async function signedAdminCookieValue(role: "USER" | "ADMIN"): Promise<string> {
   return encode({
     token: {
@@ -57,10 +91,20 @@ async function signedAdminCookieValue(role: "USER" | "ADMIN"): Promise<string> {
 }
 
 function unsignedAdminCookieValue(): string {
+  // v1.4.0: "unsigned" in the JWT sense no longer applies (the
+  // cookie is plain JSON, no signature to forge). The forgery
+  // surface the test pins is now: a cookie value that decodes
+  // successfully but is missing the structural fields
+  // (`user.email` / `user.role`) the canonical `decodeSession`
+  // requires. `decodeSession` returns null on the structural
+  // mismatch → middleware redirects to sign-in.
   return encodeURIComponent(
     JSON.stringify({
       token: "any",
-      user: { id: "x", email: "x@x.com", role: "ADMIN" },
+      // Missing `email` and `role` — the canonical Session shape
+      // demands both, so `decodeSession` rejects this as
+      // malformed.
+      user: { id: "x" },
     }),
   );
 }
@@ -140,7 +184,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // Act
     const response = await callMiddleware(
       "/en/admin/users",
-      await signedAdminCookieValue("USER"),
+      adminCookieValue("USER"),
     );
 
     // Assert: redirect to /en/(app) with ?admin=denied flash
@@ -157,7 +201,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // Same as above for the es locale — proves locale preservation.
     const response = await callMiddleware(
       "/es/admin/users",
-      await signedAdminCookieValue("USER"),
+      adminCookieValue("USER"),
     );
     expect([301, 302, 303, 307, 308]).toContain(response.status);
     const url = new URL(String(response.headers.get("location")), HOST);
@@ -170,7 +214,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // Act
     const response = await callMiddleware(
       "/en/admin/users",
-      await signedAdminCookieValue("ADMIN"),
+      adminCookieValue("ADMIN"),
     );
 
     // Assert: 200 passthrough (the request continues to the page
@@ -183,7 +227,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // applies to BOTH the list page AND the dynamic detail page.
     const response = await callMiddleware(
       "/en/admin/users/11111111-1111-4111-8111-111111111111",
-      await signedAdminCookieValue("ADMIN"),
+      adminCookieValue("ADMIN"),
     );
     expect(response.status).toBe(200);
   });
@@ -194,7 +238,7 @@ describe("apps/web/middleware.ts — admin route guard (M3 Phase 4)", () => {
     // the rest of the (app) surface.
     const response = await callMiddleware(
       "/en/transactions",
-      await signedAdminCookieValue("USER"),
+      adminCookieValue("USER"),
     );
     expect(response.status).toBe(200);
   });

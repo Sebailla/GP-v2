@@ -14,10 +14,10 @@ import { useAuthApiPost } from "@/lib/useAuthApiPost";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@/lib/zod-resolver";
 import type { Session } from "@/lib/auth-server";
-import { isSessionPayload, setSessionCookie } from "@/lib/auth-client";
+import { isSessionPayload } from "@/lib/auth-client";
 
 /**
- * SignUpForm — slice 4 batch 4e (T4.15 REFACTOR).
+ * SignUpForm — slice 4 batch 4e (T4.15 REFACTOR) + v1.4.0 refactor.
  *
  * Refactored in batch 4e to use the shared `FormFieldRow`,
  * `AuthFormErrorBanner`, and `useAuthApiPost` hook instead of inlining
@@ -25,19 +25,28 @@ import { isSessionPayload, setSessionCookie } from "@/lib/auth-client";
  * (the rendered DOM tree, the 5 form states, the i18n keys, the test
  * selectors) is byte-for-byte identical to the batch 4c shape, so the
  * existing tests continue to pass without modification.
+ *
+ * **v1.4.0 refactor — `setSessionCookie` removed.** Prior to v1.4.0,
+ * the form persisted the session cookie client-side via
+ * `document.cookie` after the API success. Real browsers silently
+ * ignore the `HttpOnly` flag set via `document.cookie`, so the
+ * cookie was written without the flag (JS-readable). The v1.4.0
+ * `apps/api` `/auth/register` endpoint now emits the cookie via a
+ * real `Set-Cookie` response header, so the form no longer needs
+ * to write the cookie itself. The form just parses the API
+ * response into a `Session` and notifies the parent — the cookie
+ * is already on the browser by the time the success callback runs.
  */
 export interface SignUpFormProps {
   /** Base URL of the auth API (e.g. `http://localhost:3001`). */
   apiUrl: string;
   /**
-   * Called once the API returns 201. The form persists the session
-   * via `setSessionCookie(session)` BEFORE calling this callback so
-   * the freshly-registered user is technically authenticated for the
-   * brief window between registration and the sign-in screen
-   * (the parent uses `window.location.href` to navigate, which is
-   * a hard navigation — the cookie MUST be set first or the
-   * landing's redirect-if-already-authenticated check on the next
-   * page load will see a logged-out user).
+   * Called once the API returns 201. The API has already emitted
+   * the `Set-Cookie: authjs.session-token=...; HttpOnly; SameSite=Lax`
+   * response header at this point (v1.4.0 contract), so the form
+   * just decodes the API response into a `Session` (`{ token, user }`)
+   * and notifies the parent for navigation — no cookie write
+   * happens client-side.
    */
   onSuccess?: (session: Session) => unknown;
   /** Optional className appended to the wrapping `<form>`. */
@@ -74,17 +83,16 @@ export function SignUpForm({ apiUrl, onSuccess, className }: SignUpFormProps): R
       // The API response shape is `{ id, email, role, sessionToken }`.
       // Map it to the canonical `Session` shape `{ token, user }` so
       // the parent's onSuccess can navigate without re-parsing the
-      // response. The form ALSO persists the cookie here (before
-      // calling the parent) — see SignUpFormProps#onSuccess JSDoc
-      // for the rationale (the parent's `window.location.href`
-      // triggers a hard navigation; the cookie must be on disk
-      // first).
+      // response. The cookie was already persisted by the API's
+      // `Set-Cookie` response header (v1.4.0 contract) — no client-side
+      // cookie write happens here. The parent's `window.location.href`
+      // triggers a hard navigation; the cookie is already on the
+      // browser because the API set it before returning the 201.
       if (isSessionPayload(data)) {
         const session: Session = {
           token: data.sessionToken,
           user: { id: data.id, email: data.email, role: data.role },
         };
-        setSessionCookie(session);
         onSuccess?.(session);
       }
     },

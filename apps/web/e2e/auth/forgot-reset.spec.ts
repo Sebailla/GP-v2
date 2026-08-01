@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+import { buildMockSessionSetCookie } from "../utils/auth-mock-cookie.js";
+import type { Session } from "../../lib/auth-shared.js";
+
 /**
  * Module-2 PR #3 tasks 3.8 + 3.9 — forgot-password → reset-password
  * end-to-end flow with the dev mailbox bridge.
@@ -94,8 +97,14 @@ test.describe("Module-2 PR #3 (tasks 3.8 + 3.9) — forgot → reset flow", () =
         status: 200,
         contentType: "application/json",
         headers: {
-          "set-cookie":
-            "authjs.session-token=fake-jwt; Path=/; HttpOnly; SameSite=Lax",
+          // v1.4.0: same canonical URL-encoded JSON shape the
+          // production API emits. Without this, the server-side
+          // `decodeSession` returns null and the post-reset
+          // redirect to /(app) bounces the user back to /sign-in.
+          "set-cookie": buildMockSessionSetCookie({
+            user: { id: TEST_USER_ID, email: TEST_USER_EMAIL, role: "USER" },
+            token: "fake-jwt",
+          } satisfies Session),
         },
         body: JSON.stringify({ redirectTo: "/en/(app)" }),
       });
