@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { env } from "@core/config";
+import { env } from "@core/config/web";
 
 import { fetchStatus, type StatusPayload } from "@/lib/status-client";
 import { StatusCard } from "@/components/status/StatusCard";

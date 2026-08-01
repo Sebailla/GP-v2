@@ -19,7 +19,7 @@ vi.mock("next-intl", () => ({
 // Mock `@core/config` — the page reads `env.API_URL` to wire the
 // ResetPasswordForm's API base. Returning a deterministic URL keeps
 // the fetch assertion stable.
-vi.mock("@core/config", () => ({
+vi.mock("@core/config/web", () => ({
   env: {
     API_URL: "http://api.test",
     NODE_ENV: "test",

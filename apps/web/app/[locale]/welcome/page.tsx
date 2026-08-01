@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { env } from "@core/config";
+import { env } from "@core/config/web";
 
 import { getSession } from "@/lib/auth-server";
 
