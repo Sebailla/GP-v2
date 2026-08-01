@@ -1219,11 +1219,11 @@ acoplamiento que los eventos cierran.
   (Repository layout), 8 (Slicing contract), 9 (BDD colocated
   strategy), 10 (ESLint boundaries) y 11 (Branch model + SDD
   workflow) son las partes contra las que opera el playbook.
-- `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/proposal.md`
   — la propuesta umbrella de slice 1; las Locked Decisions #4
   (formato dual del playbook) y #5 (catálogo de 9 eventos) son
   los contratos upstream que honra este playbook.
-- `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
   §3.4 — la tabla selectora de las boundary rules; §4 (los
   diseños originales de los slices `auth` y `transactions`).
 - `openspec/changes/slice-8-closing-bdd-and-docs/proposal.md`,

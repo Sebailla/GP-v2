@@ -108,7 +108,7 @@ This plan introduces the following files (English names; Spanish mirror entries 
 - `libs/features/transactions/server/**` — business logic is untouched.
 - `libs/features/auth/shared/schemas/**` — no schema changes.
 - `libs/features/transactions/shared/schemas/**` — no schema changes.
-- `openspec/changes/vertical-slicing-reference-scaffold/**` — historical artifacts.
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/**` — historical artifacts.
 
 ---
 

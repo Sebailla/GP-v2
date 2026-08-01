@@ -30,7 +30,7 @@ puedan confirmar que la estructura ya existe.
 
 El repositorio es un scaffold ejecutable y publicable que valida
 el modelo de monorepo con division vertical descrito en la
-propuesta (`openspec/changes/vertical-slicing-reference-scaffold/proposal.md`).
+propuesta (`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/proposal.md`).
 **No** es una copia 1:1 del proyecto existente `gastos-personales/`;
 existe para validar el modelo antes de cualquier migracion a
 produccion.
@@ -42,7 +42,7 @@ con NestJS 10), tres raices de bibliotecas compartidas (`libs/core`,
 `libs/features`, `libs/shared-utils`), el plugin de ESLint para
 limites arquitectonicos (`tools/`) y los artefactos de planificacion
 bajo `openspec/`. El arbol completo esta en
-`openspec/changes/vertical-slicing-reference-scaffold/design.md`
+`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
 seccion 2; el slice 8 amplia esta seccion con prosa por directorio.
 
 ## 3. Herramientas del monorepo
@@ -63,7 +63,7 @@ PasswordResetService, la configuracion de NextAuth v5 (Credentials
 - Google via `@auth/prisma-adapter`) y los cuatro eventos emitidos.
   El slice compartido entrega cinco esquemas Zod reutilizados por los
   formularios del cliente y el ZodValidationPipe de NestJS. Diseno
-  completo en `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+  completo en `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
   seccion 4.
 
 ## 5. Diseno del dominio: transactions
@@ -74,7 +74,7 @@ TotalsService, ThresholdService; seis adaptadores de repositorio
 Prisma; el InMemoryFxRateProvider; y cinco eventos emitidos. El
 slice compartido entrega cinco esquemas Zod. El filtro de soft-delete
 en cada consulta de categoria es un invariante no negociable (D-TX-5).
-Diseno completo en `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+Diseno completo en `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
 seccion 5.
 
 ## 6. Aspectos transversales
@@ -729,7 +729,7 @@ referencia canonica para los pasos del merge-bookkeeping.
 ## 12. Glosario + cross-references
 
 El glosario completo vive en
-`openspec/changes/vertical-slicing-reference-scaffold/` como
+`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/` como
 parte de las locked decisions de slice-1 (decisiones 1-11).
 Esta seccion re-establece solo los terminos que todo lector de
 este documento necesita, mas links al material mas profundo.
@@ -754,7 +754,7 @@ este documento necesita, mas links al material mas profundo.
 
 - **Slice-1 source of truth** (locked decisions 1-11, catalogo de
   los 9 domain events, diseno de transactions D-TX-1 through
-  D-TX-6): `openspec/changes/vertical-slicing-reference-scaffold/`
+  D-TX-6): `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`
 - **Slice-8 change folder** (proposal / spec / design / tasks
   de este slice):
   `openspec/changes/slice-8-closing-bdd-and-docs/`
@@ -785,5 +785,5 @@ este documento necesita, mas links al material mas profundo.
 { #section-12 }
 
 _La prosa completa de cada seccion llega en el slice 8. Consulta
-`openspec/changes/vertical-slicing-reference-scaffold/tasks.md` §T8.1
+`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md` §T8.1
 (ingles) y §T8.2 (espejo en espanol)._

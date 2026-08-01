@@ -16,7 +16,7 @@ autenticacion que acotaron la propuesta, el diseno y la especificacion.
 
 ## 1. Objetivos del Slice 3
 
-Segun `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+Segun `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
 §4, el Slice 3 entrega toda la superficie del **servidor de
 autenticacion**: `AuthService`, `SessionService`, `RbacService`,
 `PasswordResetService`, la configuracion de NextAuth v5 (Credentials +
@@ -93,7 +93,7 @@ Fallos preexistentes NO provocados por el Slice 3 (diferidos del slice 1):
 ## 5. Limitaciones conocidas (arrastradas hacia adelante)
 
 Esto NO son regresiones — son diferimientos explicitos, rastreados en
-los risk_flags de `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`.
+los risk_flags de `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/apply-progress.md`.
 Cada uno aterriza en el slice indicado.
 
 - **T3.3 stub → cierre T3.7.** El provider de Google esta REGISTRADO
@@ -138,7 +138,7 @@ Cada uno aterriza en el slice indicado.
 
 ## 6. Proximos pasos — Slice 4 (cliente de auth + i18n + shadcn)
 
-Segun `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`
+Segun `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md`
 §T4 (Slice 4): Exponer cada slice de servidor del Slice 3 en la app
 web con rutas prefijadas por locale a traves de `next-intl`,
 primitivas estilo shadcn instaladas localmente (sin CLI), tokens de
