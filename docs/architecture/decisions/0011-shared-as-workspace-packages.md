@@ -43,7 +43,7 @@ depend on.
 
 ## Decision
 
-We adopt **Shape A** from `openspec/changes/fix-orphan-shared-directories/explore.md` §6:
+We adopt **Shape A** from `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/explore.md` §6:
 each `shared/` directory becomes a first-class workspace package with
 its own `package.json` declaring `zod@4.4.3` as a `dependencies` entry.
 The 11 production importers **keep their existing relative
@@ -122,11 +122,11 @@ comments explaining the original orphan-resolution workaround.
 
 ## References
 
-- Proposal: `openspec/changes/fix-orphan-shared-directories/proposal.md` (Engram `#2384`)
-- Spec: `openspec/changes/fix-orphan-shared-directories/spec.md` (Engram `#2385`; R1–R11, 7 scenarios, 7 goals)
-- Design: `openspec/changes/fix-orphan-shared-directories/design.md` (Engram `#2386`; 10 file touches, 3 atomic commits)
-- Tasks: `openspec/changes/fix-orphan-shared-directories/tasks.md` (Engram `#2387`; 3 tasks; single PR)
-- Explore: `openspec/changes/fix-orphan-shared-directories/explore.md` (Engram `#2382`; 3 shapes compared, Shape A selected)
+- Proposal: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/proposal.md` (Engram `#2384`)
+- Spec: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/spec.md` (Engram `#2385`; R1–R11, 7 scenarios, 7 goals)
+- Design: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/design.md` (Engram `#2386`; 10 file touches, 3 atomic commits)
+- Tasks: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/tasks.md` (Engram `#2387`; 3 tasks; single PR)
+- Explore: `openspec/changes/archive/2026-08-01-fix-orphan-shared-directories/explore.md` (Engram `#2382`; 3 shapes compared, Shape A selected)
 - Precedent — pnpm-store `paths.zod` workaround that this ADR retires:
   - `apps/api/tsconfig.json` lines 33–37 (4-line JSDoc + `"zod"` entry)
   - `apps/web/tsconfig.json` lines 23–33 (11-line JSDoc + `"zod"` entry)
