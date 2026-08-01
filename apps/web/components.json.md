@@ -47,9 +47,9 @@ node -e "JSON.parse(require('fs').readFileSync('apps/web/components.json','utf8'
 
 ## Cross-references
 
-- Spec: `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`
+- Spec: `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/proposal.md`
   §11.1 UI-1 (shadcn-style primitives setup).
-- Design: `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+- Design: `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
   §6.5 (the canonical components.json shape).
-- Tasks: `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`
+- Tasks: `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md`
   T4.6 (this artifact).

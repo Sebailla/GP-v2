@@ -325,9 +325,9 @@ The transactions server vertical slice — extends Prisma with Currency, FxRate,
 
 ### Documentation
 
-- `openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`: slice 5 close-out section (English + Spanish mirror). Captures the 9 commits, the 4R findings (5 risk + 10 reliability + 9 readability + 7 resilience), the 3 BLOCKER/CRITICAL remediated, and the 6 known-issues deferred to slice 7+.
-- `Documents-es/openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`: Spanish mirror of the new section.
-- `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`: T5.3 + T5.9 markers now `[x]` (bookkeeping fix that landed with the slice 5 close-out).
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/apply-progress.md`: slice 5 close-out section (English + Spanish mirror). Captures the 9 commits, the 4R findings (5 risk + 10 reliability + 9 readability + 7 resilience), the 3 BLOCKER/CRITICAL remediated, and the 6 known-issues deferred to slice 7+.
+- `Documents-es/openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/apply-progress.md`: Spanish mirror of the new section.
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md`: T5.3 + T5.9 markers now `[x]` (bookkeeping fix that landed with the slice 5 close-out).
 
 ### Known issues for slice 7+ (NOT in this release)
 
@@ -363,7 +363,7 @@ The scope of v1.0.0 is **the auth surface** (sign-in, sign-up, forgot-password, 
 - **Zod env config** at `libs/core/config/`: fail-fast env parsing at module load. Validates `DATABASE_URL`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `WEB_ORIGIN`, `PORT`, `NODE_ENV`, `API_URL`, plus optional Google OAuth credentials. 20+ unit tests cover happy + sad paths.
 - **@core/events** in-memory pub/sub dispatcher with `redactSensitive` redaction at the ring-buffer boundary, `authjs.session-token` cookie compatibility, 31 unit tests covering the 9 domain events + redact + replay paths.
 - **@shared-utils** pure helpers: `date-formatting` (formatDate, parseIsoDate, toIsoString), `currency` (formatCurrency with locale + Intl.NumberFormat), `decimal` (decimal.js wrapper — NEVER BigInt per D-TX-6).
-- **`openspec/changes/vertical-slicing-reference-scaffold/`**: the full SDD artifact tree (proposal + spec + design + tasks + apply-progress) for the reference repo. Per AGENTS.md §13, every English `.md` ships with a `Documents-es/...` Spanish mirror.
+- **`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`**: the full SDD artifact tree (proposal + spec + design + tasks + apply-progress) for the reference repo. Per AGENTS.md §13, every English `.md` ships with a `Documents-es/...` Spanish mirror.
 - **Docker Compose** (`docker-compose.yml`) for the Postgres 16 dev environment.
 
 ### Added — Auth server (slice 3)
@@ -414,7 +414,7 @@ The auth client vertical slice — i18n + shadcn primitives + 5 form pages + WCA
 
 ### Documentation
 
-- `openspec/changes/vertical-slicing-reference-scaffold/`: full SDD artifact tree (proposal + spec + design + tasks + apply-progress). Every English `.md` ships with a `Documents-es/...` Spanish mirror per AGENTS.md §13.
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`: full SDD artifact tree (proposal + spec + design + tasks + apply-progress). Every English `.md` ships with a `Documents-es/...` Spanish mirror per AGENTS.md §13.
 - `docs/slice-3-checklist.md` (EN + ES mirror): slice 3 final gate + verification gates.
 - `README.md` (existing): project overview + quickstart.
 - `AGENTS.md` (existing): project conventions + branch model + commit message format.

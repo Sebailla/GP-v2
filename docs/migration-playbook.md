@@ -1188,11 +1188,11 @@ cross-slice calls re-open the coupling that events close.
   (Repository layout), 8 (Slicing contract), 9 (BDD colocated
   strategy), 10 (ESLint boundaries), and 11 (Branch model + SDD
   workflow) are the parts the playbook operates against.
-- `openspec/changes/vertical-slicing-reference-scaffold/proposal.md`
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/proposal.md`
   — slice 1's umbrella proposal; Locked Decision #4 (playbook
   dual format) and Locked Decision #5 (9-event catalog) are the
   upstream contracts this playbook honours.
-- `openspec/changes/vertical-slicing-reference-scaffold/design.md`
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md`
   §3.4 — the boundary-rule selector table; §4 (the original
   `auth` and `transactions` slice designs).
 - `openspec/changes/slice-8-closing-bdd-and-docs/proposal.md`,

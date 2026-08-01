@@ -5,7 +5,7 @@
 > (`Documents-es/docs/architecture.md`) ships with PR-A2 per
 > AGENTS.md §13.
 > **Project**: `gastos-personales-reference`.
-> **Source of truth**: `openspec/changes/vertical-slicing-reference-scaffold/`
+> **Source of truth**: `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`
 > (slice-1 umbrella) + `openspec/changes/slice-8-closing-bdd-and-docs/`
 > (this slice).
 
@@ -19,7 +19,7 @@ than reconstruct it from fifty files.
 
 The repo is a runnable, publicable reference scaffold that validates
 the vertical-slicing monorepo model documented in
-`openspec/changes/vertical-slicing-reference-scaffold/proposal.md`.
+`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/proposal.md`.
 It is **not** a 1:1 copy of the existing `gastos-personales/`
 project; it exists to validate the model before any production
 migration. Slice-1 Locked Decision #11 keeps the repo alive only
@@ -990,7 +990,7 @@ reference for the merge-bookkeeping steps.
 
 ## 12. Glossary + cross-references
 
-The full glossary lives in `openspec/changes/vertical-slicing-reference-scaffold/`
+The full glossary lives in `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`
 as part of slice-1's locked decisions (decisions 1-11). This section
 re-states only the terms every reader of this document needs, plus
 links to the deeper material.
@@ -1015,7 +1015,7 @@ links to the deeper material.
 
 - **Slice-1 source of truth** (locked decisions 1-11, all 9-domain-event
   catalog, transaction design D-TX-1 through D-TX-6):
-  `openspec/changes/vertical-slicing-reference-scaffold/`
+  `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/`
 - **Slice-8 change folder** (this slice's proposal / spec / design / tasks):
   `openspec/changes/slice-8-closing-bdd-and-docs/`
 - **Migration playbook** (lands in `docs/migration-playbook.md`):

@@ -16,7 +16,7 @@ design + spec scoped.
 
 ## 1. Slice 3 goals
 
-Per `openspec/changes/vertical-slicing-reference-scaffold/design.md` §4,
+Per `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/design.md` §4,
 Slice 3 ships the entire **auth server** surface: `AuthService`,
 `SessionService`, `RbacService`, `PasswordResetService`, NextAuth v5
 config (Credentials + Google via `@auth/prisma-adapter`), the NestJS
@@ -90,7 +90,7 @@ Pre-existing failures NOT caused by Slice 3 (deferred from slice 1):
 ## 5. Known limitations (carried forward)
 
 These are NOT regressions — they are explicit deferrals, tracked in
-`openspec/changes/vertical-slicing-reference-scaffold/apply-progress.md`
+`openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/apply-progress.md`
 risk_flags. Each lands in the slice indicated.
 
 - **T3.3 stub → T3.7 closure.** The Google provider is REGISTERED
@@ -132,7 +132,7 @@ risk_flags. Each lands in the slice indicated.
 
 ## 6. Next steps — Slice 4 (auth client + i18n + shadcn)
 
-Per `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` §T4
+Per `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md` §T4
 (Slice 4): Surface every server slice from Slice 3 on the web app with
 locale-prefixed routes through `next-intl`, shadcn-style primitives
 installed locally (no CLI), extracted design tokens, and complete-final

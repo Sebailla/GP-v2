@@ -47,4 +47,4 @@ pnpm --filter api build    # build de producción de Nest
 
 ## 7. Criterio de éxito
 
-**Todos exit 0.** Si alguna verificación falla, abrir una tarea de fix contra la tarea del slice ofensor en `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`.
+**Todos exit 0.** Si alguna verificación falla, abrir una tarea de fix contra la tarea del slice ofensor en `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md`.

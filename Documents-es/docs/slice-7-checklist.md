@@ -1,6 +1,6 @@
 # Checklist de verificación de slice 7
 
-> **Spec**: `openspec/changes/vertical-slicing-reference-scaffold/tasks.md` §Slice 7
+> **Spec**: `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md` §Slice 7
 > **Estado al cierre de slice 7 (PR-4 + PR-5 + PR-6)**: 7/9 tareas PASS, G8/G9/G10/G11/G12/G13/G46/G47 VERDE; G8 tiene 1 paso documentado como `UNUSED` en el `--dry-run` de auth (el paso de persistencia `@auth/prisma-adapter` está registrado bajo `Then` Y `Given`; el usage-formatter de cucumber lo marca como UNUSED pero la ejecución funciona — ver el body de PR-46). El cableado de los step-bodies a los servicios reales cae en PR-7.
 > **Replay**: `sdd-verify` corre cada comando de §Gate verification más abajo en un clone fresco y confirma el exit code de cada gate.
 

@@ -119,7 +119,7 @@ Este plan introduce los siguientes archivos (nombres en inglés; entradas del es
 - `libs/features/transactions/server/**` — la lógica de negocio queda intacta.
 - `libs/features/auth/shared/schemas/**` — sin cambios de schema.
 - `libs/features/transactions/shared/schemas/**` — sin cambios de schema.
-- `openspec/changes/vertical-slicing-reference-scaffold/**` — artefactos históricos.
+- `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/**` — artefactos históricos.
 
 ---
 

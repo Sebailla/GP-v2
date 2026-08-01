@@ -47,4 +47,4 @@ pnpm --filter api build    # Nest production build
 
 ## 7. Success criterion
 
-**All exit 0.** If any check fails, file a fix-task against the offending slice's task in `openspec/changes/vertical-slicing-reference-scaffold/tasks.md`.
+**All exit 0.** If any check fails, file a fix-task against the offending slice's task in `openspec/changes/archive/2026-07-05-vertical-slicing-reference-scaffold/tasks.md`.
